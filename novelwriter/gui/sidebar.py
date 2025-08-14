@@ -168,7 +168,7 @@ class GuiSideBar(QWidget):
             case nwTheme.LIGHT:
                 CONFIG.themeMode = nwTheme.DARK
             case nwTheme.DARK:
-                CONFIG.themeMode = nwTheme.AUTO
+                CONFIG.themeMode = nwTheme.LIGHT
         self.mainGui.checkThemeUpdate()
         self._setThemeModeIcon()
         return
