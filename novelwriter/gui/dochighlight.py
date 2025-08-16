@@ -95,8 +95,8 @@ class GuiDocHighlighter(QSyntaxHighlighter):
         syntax = SHARED.theme.syntaxTheme
 
         colEmph = syntax.emph if CONFIG.highlightEmph else None
-        colBreak = QColor(syntax.emph)
-        colBreak.setAlpha(64)
+        colBreak = QColor(syntax.text)
+        colBreak.setAlpha(24)
 
         # Create Character Formats
         self._addCharFormat("text",      syntax.text)
