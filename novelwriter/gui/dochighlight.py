@@ -395,9 +395,11 @@ class GuiDocHighlighter(QSyntaxHighlighter):
                 self.setFormat(0, dot, self._hStyles["modifier"])
                 self.setFormat(dot, pos - dot, self._hStyles["value"])
                 self.setFormat(pos, length, self._hStyles["note"])
+                #return # My: Don't put stuff like emphasis
             else:
                 self.setFormat(0, pos, self._hStyles["modifier"])
                 self.setFormat(pos, length, self._hStyles["note"])
+                #return # My: Don't put stuff like emphasis
 
         elif text.startswith("["):  # Special Command
             self.setCurrentBlockState(BLOCK_TEXT)
@@ -417,8 +419,11 @@ class GuiDocHighlighter(QSyntaxHighlighter):
 
         else:  # Text Paragraph
             self.setCurrentBlockState(BLOCK_TEXT)
-            rules = self._txtRules if self._isNovel else self._minRules
-            if self._isNovel and self._dialogParser.enabled:
+            # My: allow dialog highlighting in Notes
+            #rules = self._txtRules if self._isNovel else self._minRules
+            #if self._isNovel and self._dialogParser.enabled:
+            rules = self._txtRules
+            if self._dialogParser.enabled:
                 if utf16Map:
                     for pos, end in self._dialogParser(text):
                         pos = utf16Map[pos]
