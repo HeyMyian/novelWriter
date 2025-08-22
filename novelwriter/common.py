@@ -445,6 +445,7 @@ def fontMatcher(font: QFont) -> QFont:
     default Qt font matching algorithm doesn't handle well changing
     application fonts at runtime.
     """
+    font.setStyleName(None)
     info = QFontInfo(font)
     if (famRequest := font.family()) != (famActual := info.family()):
         logger.warning("Font mismatch: Requested '%s', but got '%s'", famRequest, famActual)
