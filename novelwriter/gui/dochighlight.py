@@ -21,7 +21,7 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
-"""
+"""  # noqa
 from __future__ import annotations
 
 import logging
@@ -57,6 +57,7 @@ BLOCK_TITLE = 4
 
 
 class GuiDocHighlighter(QSyntaxHighlighter):
+    """GUI: Editor Syntax Highlighter."""
 
     __slots__ = (
         "_cmnRules", "_dialogParser", "_hStyles", "_isInactive", "_isNovel",
@@ -84,8 +85,6 @@ class GuiDocHighlighter(QSyntaxHighlighter):
         self.initHighlighter()
 
         logger.debug("Ready: GuiDocHighlighter")
-
-        return
 
     def initHighlighter(self) -> None:
         """Initialise the syntax highlighter, setting all the colour
@@ -141,7 +140,7 @@ class GuiDocHighlighter(QSyntaxHighlighter):
 
         # Multiple or Trailing Spaces
         if CONFIG.showMultiSpaces:
-            rxRule = re.compile(r"[ ]{2,}|[ ]*$", re.UNICODE)
+            rxRule = re.compile(r"\s{2,}")
             hlRule = {
                 0: self._hStyles["mspaces"],
             }
@@ -150,7 +149,7 @@ class GuiDocHighlighter(QSyntaxHighlighter):
             self._cmnRules.append((rxRule, hlRule))
 
         # Non-Breaking Spaces
-        rxRule = re.compile(f"[{nwUnicode.U_NBSP}{nwUnicode.U_THNBSP}]+", re.UNICODE)
+        rxRule = re.compile(f"[{nwUnicode.U_NBSP}{nwUnicode.U_THNBSP}]+")
         hlRule = {
             0: self._hStyles["nobreak"],
         }
@@ -239,7 +238,7 @@ class GuiDocHighlighter(QSyntaxHighlighter):
         self._cmnRules.append((rxRule, hlRule))
 
         # Alignment Tags
-        rxRule = re.compile(r"(^>{1,2}|<{1,2}$)", re.UNICODE)
+        rxRule = re.compile(r"(^>{1,2}|<{1,2}$)")
         hlRule = {
             1: self._hStyles["markup"],
         }
@@ -247,15 +246,13 @@ class GuiDocHighlighter(QSyntaxHighlighter):
         self._txtRules.append((rxRule, hlRule))
 
         # Auto-Replace Tags
-        rxRule = re.compile(r"<(\S+?)>", re.UNICODE)
+        rxRule = re.compile(r"<(\S+?)>")
         hlRule = {
             0: self._hStyles["replace"],
         }
         self._minRules.append((rxRule, hlRule))
         self._txtRules.append((rxRule, hlRule))
         self._cmnRules.append((rxRule, hlRule))
-
-        return
 
     ##
     #  Setters
@@ -264,7 +261,6 @@ class GuiDocHighlighter(QSyntaxHighlighter):
     def setSpellCheck(self, state: bool) -> None:
         """Enable/disable the real time spell checker."""
         self._spellCheck = state
-        return
 
     def setHandle(self, tHandle: str) -> None:
         """Set the handle of the currently highlighted document."""
@@ -275,7 +271,6 @@ class GuiDocHighlighter(QSyntaxHighlighter):
             self._isNovel = item.isDocumentLayout()
             self._isInactive = item.isInactiveClass()
         logger.debug("Syntax highlighter enabled for item '%s'", tHandle)
-        return
 
     ##
     #  Methods
@@ -293,7 +288,6 @@ class GuiDocHighlighter(QSyntaxHighlighter):
                 if block.userState() & cType > 0:
                     self.rehighlightBlock(block)
             logger.debug("Document highlighted in %.3f ms" % (1000*(time() - tStart)))
-        return
 
     ##
     #  Highlight Block
@@ -511,10 +505,13 @@ class GuiDocHighlighter(QSyntaxHighlighter):
 
         self._hStyles[name] = charFormat
 
-        return
-
 
 class TextBlockData(QTextBlockUserData):
+    """Custom QTextBlock Data.
+
+    Custom data stored in a single text block. The spell check state is
+    cached here and used when correcting misspelled text.
+    """
 
     __slots__ = ("_metaData", "_offset", "_spellErrors", "_text")
 
@@ -524,7 +521,6 @@ class TextBlockData(QTextBlockUserData):
         self._offset = 0
         self._metaData: list[tuple[int, int, str, str]] = []
         self._spellErrors: list[tuple[int, int, str]] = []
-        return
 
     @property
     def metaData(self) -> list[tuple[int, int, str, str]]:
@@ -557,8 +553,6 @@ class TextBlockData(QTextBlockUserData):
 
         self._text = text.replace("\u02bc", "'").replace("_", " ")
         self._offset = offset
-
-        return
 
     def spellCheck(self, utf16Map: list[int] | None) -> list[tuple[int, int, str]]:
         """Run the spell checker and cache the result, and return the

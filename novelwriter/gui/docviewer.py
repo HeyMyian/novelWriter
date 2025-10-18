@@ -23,7 +23,7 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
-"""
+"""  # noqa
 from __future__ import annotations
 
 import logging
@@ -53,13 +53,15 @@ from novelwriter.formats.toqdoc import ToQTextDocument
 from novelwriter.gui.theme import STYLES_MIN_TOOLBUTTON
 from novelwriter.types import (
     QtAlignCenterTop, QtKeepAnchor, QtMouseLeft, QtMoveAnchor,
-    QtScrollAlwaysOff, QtScrollAsNeeded
+    QtScrollAlwaysOff, QtScrollAsNeeded, QtSelectBlock, QtSelectDocument,
+    QtSelectWord
 )
 
 logger = logging.getLogger(__name__)
 
 
 class GuiDocViewer(QTextBrowser):
+    """GUI: Document Viewer."""
 
     closeDocumentRequest = pyqtSignal()
     documentLoaded = pyqtSignal(str)
@@ -110,8 +112,6 @@ class GuiDocViewer(QTextBrowser):
 
         logger.debug("Ready: GuiDocViewer")
 
-        return
-
     ##
     #  Properties
     ##
@@ -138,13 +138,11 @@ class GuiDocViewer(QTextBrowser):
         self.setSearchPaths([""])
         self._docHandle = None
         self.docHeader.clearHeader()
-        return
 
     def updateTheme(self) -> None:
         """Update theme elements."""
         self.docHeader.updateTheme()
         self.docFooter.updateTheme()
-        return
 
     def initViewer(self) -> None:
         """Set editor settings from main config."""
@@ -205,8 +203,6 @@ class GuiDocViewer(QTextBrowser):
 
         # If we have a document open, we should reload it in case the font changed
         self.reloadText()
-
-        return
 
     def loadText(self, tHandle: str, updateHistory: bool = True) -> bool:
         """Load text into the viewer from an item handle."""
@@ -280,7 +276,6 @@ class GuiDocViewer(QTextBrowser):
         """Reload the text in the current document."""
         if self._docHandle:
             self.loadText(self._docHandle, updateHistory=False)
-        return
 
     def docAction(self, action: nwDocAction) -> bool:
         """Process document actions on the current document."""
@@ -293,11 +288,11 @@ class GuiDocViewer(QTextBrowser):
         elif action == nwDocAction.COPY:
             self.copy()
         elif action == nwDocAction.SEL_ALL:
-            self._makeSelection(QTextCursor.SelectionType.Document)
+            self._makeSelection(QtSelectDocument)
         elif action == nwDocAction.SEL_PARA:
-            self._makeSelection(QTextCursor.SelectionType.BlockUnderCursor)
+            self._makeSelection(QtSelectBlock)
         else:
-            logger.debug("Unknown or unsupported document action '%s'", str(action))
+            logger.debug("Unknown or unsupported document action '%s'", action)
             return False
         return True
 
@@ -308,7 +303,6 @@ class GuiDocViewer(QTextBrowser):
     def clearNavHistory(self) -> None:
         """Clear the navigation history."""
         self.docHistory.clear()
-        return
 
     def updateDocMargins(self) -> None:
         """Automatically adjust the margins so the text is centred."""
@@ -337,8 +331,6 @@ class GuiDocViewer(QTextBrowser):
         self.docFooter.setGeometry(tB, fY, tW, fH)
         self.setViewportMargins(tM, max(cM, tH), tM, max(cM, fH))
 
-        return
-
     ##
     #  Setters
     ##
@@ -347,7 +339,6 @@ class GuiDocViewer(QTextBrowser):
         """Set the scrollbar position."""
         if (vBar := self.verticalScrollBar()) and vBar.isVisible():
             vBar.setValue(pos)
-        return
 
     ##
     #  Public Slots
@@ -359,7 +350,6 @@ class GuiDocViewer(QTextBrowser):
         if tHandle == self._docHandle and change == nwChange.UPDATE:
             self.docHeader.setHandle(tHandle)
             self.updateDocMargins()
-        return
 
     @pyqtSlot(str)
     def navigateTo(self, anchor: str) -> None:
@@ -367,7 +357,6 @@ class GuiDocViewer(QTextBrowser):
         if isinstance(anchor, str) and anchor.startswith("#"):
             logger.debug("Moving to anchor '%s'", anchor)
             self.setSource(QUrl(anchor))
-        return
 
     ##
     #  Private Slots
@@ -377,13 +366,11 @@ class GuiDocViewer(QTextBrowser):
     def navBackward(self) -> None:
         """Navigate backwards in the document view history."""
         self.docHistory.backward()
-        return
 
     @pyqtSlot()
     def navForward(self) -> None:
         """Navigate forwards in the document view history."""
         self.docHistory.forward()
-        return
 
     @pyqtSlot("QUrl")
     def _linkClicked(self, url: QUrl) -> None:
@@ -396,7 +383,6 @@ class GuiDocViewer(QTextBrowser):
                 self.navigateTo(link)
             elif link.startswith("http"):
                 QDesktopServices.openUrl(QUrl(url))
-        return
 
     @pyqtSlot("QPoint")
     def _openContextMenu(self, point: QPoint) -> None:
@@ -415,22 +401,16 @@ class GuiDocViewer(QTextBrowser):
         action.triggered.connect(qtLambda(self.docAction, nwDocAction.SEL_ALL))
 
         action = qtAddAction(ctxMenu, self.tr("Select Word"))
-        action.triggered.connect(qtLambda(
-            self._makePosSelection, QTextCursor.SelectionType.WordUnderCursor, point
-        ))
+        action.triggered.connect(qtLambda(self._makePosSelection, QtSelectWord, point))
 
         action = qtAddAction(ctxMenu, self.tr("Select Paragraph"))
-        action.triggered.connect(qtLambda(
-            self._makePosSelection, QTextCursor.SelectionType.BlockUnderCursor, point
-        ))
+        action.triggered.connect(qtLambda(self._makePosSelection, QtSelectBlock, point))
 
         # Open the context menu
         if viewport := self.viewport():
             ctxMenu.exec(viewport.mapToGlobal(point))
 
         ctxMenu.setParent(None)
-
-        return
 
     ##
     #  Events
@@ -440,7 +420,6 @@ class GuiDocViewer(QTextBrowser):
         """Update document margins when widget is resized."""
         self.updateDocMargins()
         super().resizeEvent(event)
-        return
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         """Capture mouse click events on the document."""
@@ -450,7 +429,6 @@ class GuiDocViewer(QTextBrowser):
             self.navForward()
         else:
             super().mouseReleaseEvent(event)
-        return
 
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         """Overload drag enter event to handle dragged items."""
@@ -458,7 +436,6 @@ class GuiDocViewer(QTextBrowser):
             event.acceptProposedAction()
         else:
             super().dragEnterEvent(event)
-        return
 
     def dragMoveEvent(self, event: QDragMoveEvent) -> None:
         """Overload drag move event to handle dragged items."""
@@ -466,7 +443,6 @@ class GuiDocViewer(QTextBrowser):
             event.acceptProposedAction()
         else:
             super().dragMoveEvent(event)
-        return
 
     def dropEvent(self, event: QDropEvent) -> None:
         """Overload drop event to handle dragged items."""
@@ -476,7 +452,6 @@ class GuiDocViewer(QTextBrowser):
                     self.openDocumentRequest.emit(handles[0], nwDocMode.VIEW, "", True)
         else:
             super().dropEvent(event)
-        return
 
     ##
     #  Internal Functions
@@ -488,7 +463,7 @@ class GuiDocViewer(QTextBrowser):
         cursor.clearSelection()
         cursor.select(selType)
 
-        if selType == QTextCursor.SelectionType.BlockUnderCursor:
+        if selType == QtSelectBlock:
             # This selection mode also selects the preceding paragraph
             # separator, which we want to avoid.
             posS = cursor.selectionStart()
@@ -500,16 +475,18 @@ class GuiDocViewer(QTextBrowser):
 
         self.setTextCursor(cursor)
 
-        return
-
     def _makePosSelection(self, selType: QTextCursor.SelectionType, pos: QPoint) -> None:
         """Handle text selection at a given location."""
         self.setTextCursor(self.cursorForPosition(pos))
         self._makeSelection(selType)
-        return
 
 
 class GuiDocViewHistory:
+    """GUI: Document Viewer History.
+
+    This class holds the navigation history for the viewer panel, which
+    is used for backward/forward navigation.
+    """
 
     def __init__(self, docViewer: GuiDocViewer) -> None:
         self.docViewer = docViewer
@@ -517,7 +494,6 @@ class GuiDocViewHistory:
         self._posHistory = []
         self._currPos = -1
         self._prevPos = -1
-        return
 
     def clear(self) -> None:
         """Clear the view history."""
@@ -526,7 +502,6 @@ class GuiDocViewHistory:
         self._posHistory = []
         self._currPos = -1
         self._prevPos = -1
-        return
 
     def append(self, tHandle: str) -> bool:
         """Append a document handle and its scroll bar position to the
@@ -566,7 +541,6 @@ class GuiDocViewHistory:
             self._currPos = newPos
             self._updateNavButtons()
             self._dumpHistory()
-        return
 
     def backward(self) -> None:
         """Navigate to the previous entry in the view history."""
@@ -580,7 +554,6 @@ class GuiDocViewHistory:
             self._currPos = newPos
             self._updateNavButtons()
             self._dumpHistory()
-        return
 
     ##
     #  Internal Functions
@@ -590,12 +563,10 @@ class GuiDocViewHistory:
         """Update the scrollbar position of the previous entry."""
         if self._prevPos >= 0 and self._prevPos < len(self._posHistory):
             self._posHistory[self._prevPos] = self.docViewer.scrollPosition
-        return
 
     def _updateNavButtons(self) -> None:
         """Update the navigation buttons in the document header."""
         self.docViewer.docHeader.updateNavButtons(0, len(self._navHistory) - 1, self._currPos)
-        return
 
     def _truncateHistory(self, atPos: int) -> None:
         """Truncate the navigation history to the given position. Also
@@ -606,7 +577,6 @@ class GuiDocViewHistory:
         self._posHistory = self._posHistory[nSkip:atPos + 1]
         self._currPos -= nSkip
         self._prevPos -= nSkip
-        return
 
     def _dumpHistory(self) -> None:
         """Debug function to dump history to the logger. Since it is a
@@ -616,11 +586,10 @@ class GuiDocViewHistory:
             for i, (h, p) in enumerate(zip(self._navHistory, self._posHistory, strict=False)):
                 a = ">" if i == self._currPos else " "
                 logger.debug(f"History {i + 1:02d}: {a} {h:13s} [x:{p}]")
-        return
 
 
 class GuiDocViewHeader(QWidget):
-    """The Embedded Document Header
+    """The Embedded Document Header.
 
     Only used by DocViewer, and is at a fixed position in the
     QTextBrowser's viewport.
@@ -711,8 +680,6 @@ class GuiDocViewHeader(QWidget):
 
         logger.debug("Ready: GuiDocViewHeader")
 
-        return
-
     ##
     #  Methods
     ##
@@ -730,7 +697,6 @@ class GuiDocViewHeader(QWidget):
         self.editButton.setVisible(False)
         self.refreshButton.setVisible(False)
         self.closeButton.setVisible(False)
-        return
 
     def setOutline(self, data: dict[str, tuple[str, int]]) -> None:
         """Set the document outline dataset."""
@@ -750,13 +716,11 @@ class GuiDocViewHeader(QWidget):
                     lambda _, title=title: self.docViewer.navigateTo(f"#{tHandle}:{title}")
                 )
             self._docOutline = data
-        return
 
     def updateFont(self) -> None:
         """Update the font settings."""
         self.setFont(SHARED.theme.guiFont)
         self.itemTitle.setFont(SHARED.theme.guiFontSmall)
-        return
 
     def updateTheme(self) -> None:
         """Update theme elements."""
@@ -777,8 +741,6 @@ class GuiDocViewHeader(QWidget):
 
         self.matchColors()
 
-        return
-
     def matchColors(self) -> None:
         """Update the colours of the widget to match those of the syntax
         theme rather than the main GUI.
@@ -792,15 +754,13 @@ class GuiDocViewHeader(QWidget):
         self.itemTitle.setTextColors(
             color=palette.windowText().color(), faded=SHARED.theme.fadedText
         )
-        return
 
     def changeFocusState(self, state: bool) -> None:
         """Toggle focus state."""
         self.itemTitle.setColorState(state)
-        return
 
     def setHandle(self, tHandle: str) -> None:
-        """Sets the document title from the handle, or alternatively,
+        """Set the document title from the handle, or alternatively,
         set the whole document path.
         """
         self._docHandle = tHandle
@@ -819,13 +779,10 @@ class GuiDocViewHeader(QWidget):
         self.refreshButton.setVisible(True)
         self.closeButton.setVisible(True)
 
-        return
-
     def updateNavButtons(self, firstIdx: int, lastIdx: int, currIdx: int) -> None:
         """Enable and disable nav buttons based on index in history."""
         self.backButton.setEnabled(currIdx > firstIdx)
         self.forwardButton.setEnabled(currIdx < lastIdx)
-        return
 
     ##
     #  Private Slots
@@ -836,20 +793,17 @@ class GuiDocViewHeader(QWidget):
         """Trigger the close editor/viewer on the main window."""
         self.clearHeader()
         self.docViewer.closeDocumentRequest.emit()
-        return
 
     @pyqtSlot()
     def _refreshDocument(self) -> None:
         """Reload the content of the document."""
         self.docViewer.reloadDocumentRequest.emit()
-        return
 
     @pyqtSlot()
     def _editDocument(self) -> None:
         """Open the document in the editor."""
         if tHandle := self._docHandle:
             self.docViewer.openDocumentRequest.emit(tHandle, nwDocMode.EDIT, "", True)
-        return
 
     ##
     #  Events
@@ -861,11 +815,10 @@ class GuiDocViewHeader(QWidget):
         """
         if event.button() == QtMouseLeft:
             self.docViewer.requestProjectItemSelected.emit(self._docHandle, True)
-        return
 
 
 class GuiDocViewFooter(QWidget):
-    """The Embedded Document Footer
+    """The Embedded Document Footer.
 
     Only used by DocViewer, and is at a fixed position in the
     QTextBrowser's viewport.
@@ -944,8 +897,6 @@ class GuiDocViewFooter(QWidget):
 
         logger.debug("Ready: GuiDocViewFooter")
 
-        return
-
     ##
     #  Methods
     ##
@@ -956,7 +907,6 @@ class GuiDocViewFooter(QWidget):
         self.showComments.setFont(SHARED.theme.guiFontSmall)
         self.showSynopsis.setFont(SHARED.theme.guiFontSmall)
         self.showNotes.setFont(SHARED.theme.guiFontSmall)
-        return
 
     def updateTheme(self) -> None:
         """Update theme elements."""
@@ -977,8 +927,6 @@ class GuiDocViewFooter(QWidget):
 
         self.matchColors()
 
-        return
-
     def matchColors(self) -> None:
         """Update the colours of the widget to match those of the syntax
         theme rather than the main GUI.
@@ -989,7 +937,6 @@ class GuiDocViewFooter(QWidget):
         palette.setColor(QPalette.ColorRole.WindowText, syntax.text)
         palette.setColor(QPalette.ColorRole.Text, syntax.text)
         self.setPalette(palette)
-        return
 
     ##
     #  Private Slots
@@ -1000,18 +947,15 @@ class GuiDocViewFooter(QWidget):
         """Toggle the view comment button and reload the document."""
         CONFIG.viewComments = state
         self.docViewer.reloadText()
-        return
 
     @pyqtSlot(bool)
     def _doToggleSynopsis(self, state: bool) -> None:
         """Toggle the view synopsis button and reload the document."""
         CONFIG.viewSynopsis = state
         self.docViewer.reloadText()
-        return
 
     @pyqtSlot(bool)
     def _doToggleNotes(self, state: bool) -> None:
         """Toggle the view notes button and reload the document."""
         CONFIG.viewNotes = state
         self.docViewer.reloadText()
-        return

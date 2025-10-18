@@ -17,7 +17,7 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
-"""
+"""  # noqa
 from __future__ import annotations
 
 import time
@@ -36,7 +36,7 @@ def testGuiStatusBar_Main(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     cHandle = SHARED.project.newFile("A Note", C.hCharRoot)
     newDoc = SHARED.project.storage.getDocument(cHandle)
     newDoc.writeDocument("# A Note\n\n")
-    nwGUI.rebuildIndex(beQuiet=True)
+    nwGUI.rebuildIndex()
 
     status = nwGUI.mainStatus
 

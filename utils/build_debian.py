@@ -17,7 +17,7 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
-"""
+"""  # noqa
 from __future__ import annotations
 
 import argparse
@@ -36,7 +36,7 @@ SIGN_KEY = "D6A9F6B8F227CF7C6F6D1EE84DBBE4B734B0BD08"
 
 def makeDebianPackage(
     signKey: str | None = None, sourceBuild: bool = False, distName: str = "unstable",
-    buildName: str = "", forLaunchpad: bool = False
+    buildName: str = "", forLaunchpad: bool = False, oldLicense: bool = False,
 ) -> str:
     """Build a Debian package."""
     print("")
@@ -96,7 +96,7 @@ def makeDebianPackage(
     print("Copying or generating additional files ...")
     print("")
 
-    copyPackageFiles(outDir, setupPy=True)
+    copyPackageFiles(outDir, oldLicense=oldLicense)
 
     # Copy/Write Debian Files
     # =======================
@@ -155,17 +155,16 @@ def makeDebianPackage(
 
 
 def debian(args: argparse.Namespace) -> None:
-    """Build a .deb package"""
+    """Build a .deb package."""
     if sys.platform != "linux":
         print("ERROR: Command 'build-deb' can only be used on Linux")
         sys.exit(1)
     signKey = SIGN_KEY if args.sign else None
     makeDebianPackage(signKey)
-    return
 
 
 def launchpad(args: argparse.Namespace) -> None:
-    """Wrapper for building Debian packages for Launchpad."""
+    """Build Debian packages for Launchpad."""
     if sys.platform != "linux":
         print("ERROR: Command 'build-ubuntu' can only be used on Linux")
         sys.exit(1)
@@ -181,14 +180,14 @@ def launchpad(args: argparse.Namespace) -> None:
         bldNum = "0"
 
     distLoop = [
-        ("24.04", "noble"),
-        ("25.04", "plucky"),
-        ("25.10", "questing"),
+        ("24.04", "noble", True),
+        ("25.04", "plucky", True),
+        ("25.10", "questing", False),
     ]
 
     print("Building Ubuntu packages for:")
     print("")
-    for distNum, codeName in distLoop:
+    for distNum, codeName, _ in distLoop:
         print(f" * Ubuntu {distNum} {codeName.title()}")
     print("")
 
@@ -198,7 +197,7 @@ def launchpad(args: argparse.Namespace) -> None:
     print("")
 
     dputCmd = []
-    for distNum, codeName in distLoop:
+    for distNum, codeName, oldLicense in distLoop:
         buildName = f"ubuntu{distNum}.{bldNum}"
         dCmd = makeDebianPackage(
             signKey=signKey,
@@ -206,6 +205,7 @@ def launchpad(args: argparse.Namespace) -> None:
             distName=codeName,
             buildName=buildName,
             forLaunchpad=True,
+            oldLicense=oldLicense,
         )
         dputCmd.append(dCmd)
 
@@ -215,5 +215,3 @@ def launchpad(args: argparse.Namespace) -> None:
     for dCmd in dputCmd:
         print(f" > {dCmd}")
     print("")
-
-    return

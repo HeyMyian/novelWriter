@@ -17,7 +17,7 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
-"""
+"""  # noqa
 from __future__ import annotations
 
 import time
@@ -36,10 +36,10 @@ from novelwriter.common import (
     describeFont, elide, encodeMimeHandles, firstFloat, fontMatcher,
     formatFileFilter, formatInt, formatTime, formatTimeStamp, formatVersion,
     fuzzyTime, getFileSize, hexToInt, isHandle, isItemClass, isItemLayout,
-    isItemType, isListInstance, isTitleTag, jsonEncode, makeFileNameSafe,
-    minmax, numberToRoman, openExternalPath, processDialogSymbols,
-    readTextFile, simplified, transferCase, uniqueCompact, utf16CharMap,
-    xmlElement, xmlIndent, xmlSubElem, yesNo
+    isItemType, isListInstance, isTitleTag, jsonCombine, jsonEncode,
+    makeFileNameSafe, minmax, numberToRoman, openExternalPath,
+    processDialogSymbols, readTextFile, simplified, transferCase,
+    uniqueCompact, utf16CharMap, xmlElement, xmlIndent, xmlSubElem, yesNo
 )
 from novelwriter.enum import nwItemClass
 
@@ -537,6 +537,11 @@ def testBaseCommon_fontMatcher(monkeypatch):
     nonsense = QFont("nonesense", 10)
     assert fontMatcher(nonsense) is nonsense
 
+    # Style is reset
+    nonsense.setStyleName("blabla")
+    assert nonsense.styleName() == "blabla"
+    assert fontMatcher(nonsense).styleName() == ""
+
     # General font
     if len(QFontDatabase.families()) > 1:
         fontOne = QFont(QFontDatabase.families()[0])
@@ -643,6 +648,17 @@ def testBaseCommon_jsonEncode():
         '  "seven": [],\n'
         '  "eight": {}\n'
         '}'
+    )
+
+
+@pytest.mark.base
+def testBaseCommon_jsonCombine():
+    """Test the jsonCombine function."""
+    assert jsonCombine({"a": "[1, 2]", "b": "[3, 4]"}) == (
+        '{\n'
+        '  "a": [1, 2],\n'
+        '  "b": [3, 4]\n'
+        '}\n'
     )
 
 
@@ -789,7 +805,6 @@ def testBaseCommon_openExternalPath(monkeypatch, tstPaths):
     def mockOpenUrl(url: QUrl) -> None:
         nonlocal lastUrl
         lastUrl = url.toString()
-        return
 
     monkeypatch.setattr(QDesktopServices, "openUrl", mockOpenUrl)
     assert openExternalPath(Path("/foo/bar")) is False

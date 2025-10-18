@@ -20,7 +20,7 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
-"""
+"""  # noqa
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt
@@ -109,8 +109,15 @@ QtRoleReject = QDialogButtonBox.ButtonRole.RejectRole
 
 QtKeepAnchor = QTextCursor.MoveMode.KeepAnchor
 QtMoveAnchor = QTextCursor.MoveMode.MoveAnchor
+
 QtMoveLeft = QTextCursor.MoveOperation.Left
 QtMoveRight = QTextCursor.MoveOperation.Right
+
+QtSelectWord = QTextCursor.SelectionType.WordUnderCursor
+QtSelectBlock = QTextCursor.SelectionType.BlockUnderCursor
+QtSelectDocument = QTextCursor.SelectionType.Document
+
+QtImCursorRectangle = Qt.InputMethodQuery.ImCursorRectangle
 
 # Size Policy
 

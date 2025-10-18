@@ -17,21 +17,21 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
-"""
+"""  # noqa
 from __future__ import annotations
 
 from unittest.mock import MagicMock
 
 import pytest
 
-from PyQt6.QtGui import QAction, QDesktopServices, QTextBlock, QTextCursor
+from PyQt6.QtGui import QAction, QDesktopServices, QTextBlock
 from PyQt6.QtWidgets import QFileDialog, QMessageBox
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwKeyWords, nwShortcode, nwStats, nwUnicode
 from novelwriter.enum import nwDocAction, nwDocInsert
 from novelwriter.gui.doceditor import GuiDocEditor
-from novelwriter.types import QtKeepAnchor, QtMoveRight
+from novelwriter.types import QtKeepAnchor, QtMoveRight, QtSelectWord
 
 from tests.tools import C, buildTestProject, writeFile
 
@@ -188,7 +188,7 @@ def testGuiMainMenu_EditFormat(qtbot, monkeypatch, nwGUI, prjLipsum):
 
     # Cut, Copy and Paste
     docEditor.setCursorPosition(x)
-    docEditor._makeSelection(QTextCursor.SelectionType.WordUnderCursor)
+    docEditor._makeSelection(QtSelectWord)
 
     mainMenu.aEditCut.activate(QAction.ActionEvent.Trigger)
     assert docEditor.getText()[x:x+50] == (
@@ -201,7 +201,7 @@ def testGuiMainMenu_EditFormat(qtbot, monkeypatch, nwGUI, prjLipsum):
     )
 
     docEditor.setCursorPosition(x)
-    docEditor._makeSelection(QTextCursor.SelectionType.WordUnderCursor)
+    docEditor._makeSelection(QtSelectWord)
 
     mainMenu.aEditCopy.activate(QAction.ActionEvent.Trigger)
     assert docEditor.getText()[x:x+50] == (

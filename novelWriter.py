@@ -2,13 +2,13 @@
 """
 novelWriter – Start Script
 ==========================
-"""
+"""  # noqa
 import os
 import sys
 
 try:
-    import PyQt6.QtCore
-    import PyQt6.QtGui
+    import PyQt6.QtCore  # noqa: F401
+    import PyQt6.QtGui  # noqa: F401
     import PyQt6.QtWidgets  # noqa: F401
 except Exception:
     print("ERROR: Failed to load dependency PyQt6")

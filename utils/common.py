@@ -17,7 +17,7 @@ General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
-"""
+"""  # noqa
 from __future__ import annotations
 
 import shutil
@@ -88,33 +88,34 @@ def copySourceCode(dst: Path) -> None:
         if item.is_file():
             shutil.copyfile(item, dst / relSrc)
             print("Copied:", relSrc, flush=True)
-    return
 
 
-def copyPackageFiles(dst: Path, setupPy: bool = False) -> None:
+def copyPackageFiles(dst: Path, oldLicense: bool = False) -> None:
     """Copy files needed for packaging."""
-    copyFiles = ["LICENSE.md", "CREDITS.md", "pyproject.toml"]
+    copyFiles = ["LICENSE.md", "setup/LICENSE-Apache-2.0.txt", "CREDITS.md", "pyproject.toml"]
     for copyFile in copyFiles:
         shutil.copyfile(copyFile, dst / copyFile)
         print("Copied:", copyFile, flush=True)
 
     writeFile(dst / "MANIFEST.in", (
         "include LICENSE.md\n"
+        "include setup/LICENSE-Apache-2.0.txt\n"
         "include CREDITS.md\n"
         "recursive-include novelwriter/assets *\n"
     ))
 
-    if setupPy:
-        writeFile(dst / "setup.py", (
-            "import setuptools\n"
-            "setuptools.setup()\n"
-        ))
-
     text = readFile(ROOT_DIR / "pyproject.toml")
     text = text.replace("setup/description_pypi.md", "data/description_short.txt")
+    if oldLicense:
+        new = []
+        for line in text.splitlines():
+            if line.startswith("license = "):
+                line = 'license = {text = "GPL-3.0-or-later AND Apache-2.0 AND CC-BY-4.0"}'
+            if line.startswith("license-files = "):
+                continue
+            new.append(line)
+        text = "\n".join(new)
     writeFile(dst / "pyproject.toml", text)
-
-    return
 
 
 def toUpload(srcPath: str | Path, dstName: str | None = None) -> None:
@@ -125,7 +126,6 @@ def toUpload(srcPath: str | Path, dstName: str | None = None) -> None:
     uplDir.mkdir(exist_ok=True)
     srcPath = Path(srcPath)
     shutil.copyfile(srcPath, uplDir / (dstName or srcPath.name))
-    return
 
 
 def makeCheckSum(sumFile: str, cwd: Path | None = None) -> str:
@@ -174,9 +174,7 @@ def appdataXml() -> str:
     """Generate the appdata XML content."""
     raw = readFile(SETUP_DIR / "description_short.txt")
     desc = " ".join(raw.strip().splitlines()).strip()
-    xml = readFile(SETUP_DIR / "novelwriter.appdata.xml")
-    xml = xml.format(description=desc)
-    return xml
+    return readFile(SETUP_DIR / "novelwriter.appdata.xml").format(description=desc)
 
 
 def readFile(file: Path) -> str:
@@ -197,7 +195,6 @@ def freshFolder(path: Path) -> None:
         print("Removing:", str(path), flush=True)
         shutil.rmtree(path)
     path.mkdir()
-    return
 
 
 def systemCall(cmd: list, cwd: Path | str | None = None, env: dict | None = None) -> int:
@@ -213,7 +210,7 @@ def systemCall(cmd: list, cwd: Path | str | None = None, env: dict | None = None
 
 
 def removeRedundantQt(qtBase: Path) -> None:
-    """Delete Qt files that are not needed"""
+    """Delete Qt files that are not needed."""
 
     def unlinkIfFound(file: Path) -> None:
         if file.is_file():
@@ -274,5 +271,3 @@ def removeRedundantQt(qtBase: Path) -> None:
     deleteFolder(qt6Dir / "qml")
     deleteFolder(plugDir / "qmlls")
     deleteFolder(plugDir / "qmllint")
-
-    return
