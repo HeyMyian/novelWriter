@@ -31,8 +31,8 @@ from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QModelIndex, QSize, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
-    QApplication, QComboBox, QDialog, QDoubleSpinBox, QLabel, QSpinBox,
-    QToolButton, QTreeView, QWidget
+    QApplication, QComboBox, QDialog, QDoubleSpinBox, QLabel, QPushButton,
+    QSpinBox, QToolButton, QTreeView, QWidget
 )
 
 from novelwriter import CONFIG, SHARED
@@ -129,10 +129,7 @@ class NComboBox(QComboBox):
         super().__init__(parent=parent)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMaxVisibleItems(maxItems)
-
-        # The style sheet disables Fusion style pop-up mode on some platforms
-        # and allows for scrolling of long lists of items
-        self.setStyleSheet("QComboBox {combobox-popup: 0;}")
+        self.updateStyle()
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         """Only capture the mouse wheel if the widget has focus."""
@@ -145,6 +142,12 @@ class NComboBox(QComboBox):
         """Set the current index from data, with a fallback."""
         idx = self.findData(data)
         self.setCurrentIndex(self.findData(default) if idx < 0 else idx)
+
+    def updateStyle(self) -> None:
+        """Update the style sheet."""
+        # The style sheet disables Fusion style pop-up mode on some
+        # platforms and allows for scrolling of long lists of items
+        self.setStyleSheet("QComboBox {combobox-popup: 0;}")
 
 
 class NSpinBox(QSpinBox):
@@ -199,6 +202,29 @@ class NDoubleSpinBox(QDoubleSpinBox):
             event.ignore()
 
 
+class NPushButton(QPushButton):
+    """Custom: Modified QPushButton.
+
+    A quicker way to create a push button using the app theme.
+    """
+
+    def __init__(
+        self, parent: QWidget, text: str, iconSize: QSize,
+        icon: str | None = None, color: str | None = None
+    ) -> None:
+        super().__init__(parent=parent)
+        self._icon = icon
+        self._color = color
+        self.setText(text)
+        self.setIconSize(iconSize)
+        self.updateIcon()
+
+    def updateIcon(self) -> None:
+        """Update the theme icon."""
+        if self._icon and self._color:
+            self.setIcon(SHARED.theme.getIcon(self._icon, self._color))
+
+
 class NIconToolButton(QToolButton):
     """Custom: Modified QToolButton.
 
@@ -213,12 +239,12 @@ class NIconToolButton(QToolButton):
         self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.setIconSize(iconSize)
         self.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        if icon:
+        if icon and color:
             self.setThemeIcon(icon, color)
 
-    def setThemeIcon(self, iconKey: str, color: str | None = None) -> None:
+    def setThemeIcon(self, icon: str, color: str) -> None:
         """Set an icon from the current theme."""
-        self.setIcon(SHARED.theme.getIcon(iconKey, color))
+        self.setIcon(SHARED.theme.getIcon(icon, color))
 
 
 class NIconToggleButton(QToolButton):
@@ -227,20 +253,23 @@ class NIconToggleButton(QToolButton):
     A quicker way to create a toggle button using the app theme.
     """
 
-    def __init__(self, parent: QWidget, iconSize: QSize, icon: str | None = None) -> None:
+    def __init__(
+        self, parent: QWidget, iconSize: QSize,
+        icon: str | None = None, color: str | None = None
+    ) -> None:
         super().__init__(parent=parent)
         self.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.setIconSize(iconSize)
         self.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         self.setCheckable(True)
         self.setStyleSheet("border: none; background: transparent;")
-        if icon:
-            self.setThemeIcon(icon)
+        if icon and color:
+            self.setThemeIcon(icon, color)
 
-    def setThemeIcon(self, iconKey: str) -> None:
+    def setThemeIcon(self, icon: str, color: str) -> None:
         """Set an icon from the current theme."""
-        iconSize = self.iconSize()
-        self.setIcon(SHARED.theme.getToggleIcon(iconKey, (iconSize.width(), iconSize.height())))
+        size = self.iconSize()
+        self.setIcon(SHARED.theme.getToggleIcon(icon, (size.width(), size.height()), color))
 
 
 class NClickableLabel(QLabel):

@@ -292,6 +292,8 @@ class GuiDocEditor(QPlainTextEdit):
 
     def updateTheme(self) -> None:
         """Update theme elements."""
+        logger.debug("Theme Update: GuiDocEditor")
+
         self.docSearch.updateTheme()
         self.docHeader.updateTheme()
         self.docFooter.updateTheme()
@@ -2478,25 +2480,26 @@ class GuiDocToolBar(QWidget):
 
     def updateTheme(self) -> None:
         """Initialise GUI elements that depend on specific settings."""
-        syntax = SHARED.theme.syntaxTheme
+        logger.debug("Theme Update: GuiDocToolBar")
 
+        syntax = SHARED.theme.syntaxTheme
         palette = self.palette()
         palette.setColor(QPalette.ColorRole.Window, syntax.back)
         palette.setColor(QPalette.ColorRole.WindowText, syntax.text)
         palette.setColor(QPalette.ColorRole.Text, syntax.text)
         self.setPalette(palette)
 
-        self.tbBoldMD.setThemeIcon("fmt_bold", "orange")
-        self.tbItalicMD.setThemeIcon("fmt_italic", "orange")
-        self.tbStrikeMD.setThemeIcon("fmt_strike", "orange")
-        self.tbMarkMD.setThemeIcon("fmt_mark", "orange")
-        self.tbBold.setThemeIcon("fmt_bold")
-        self.tbItalic.setThemeIcon("fmt_italic")
-        self.tbStrike.setThemeIcon("fmt_strike")
-        self.tbUnderline.setThemeIcon("fmt_underline")
-        self.tbMark.setThemeIcon("fmt_mark")
-        self.tbSuperscript.setThemeIcon("fmt_superscript")
-        self.tbSubscript.setThemeIcon("fmt_subscript")
+        self.tbBoldMD.setThemeIcon("fmt_bold", "markdown")
+        self.tbItalicMD.setThemeIcon("fmt_italic", "markdown")
+        self.tbStrikeMD.setThemeIcon("fmt_strike", "markdown")
+        self.tbMarkMD.setThemeIcon("fmt_mark", "markdown")
+        self.tbBold.setThemeIcon("fmt_bold", "shortcode")
+        self.tbItalic.setThemeIcon("fmt_italic", "shortcode")
+        self.tbStrike.setThemeIcon("fmt_strike", "shortcode")
+        self.tbUnderline.setThemeIcon("fmt_underline", "shortcode")
+        self.tbMark.setThemeIcon("fmt_mark", "shortcode")
+        self.tbSuperscript.setThemeIcon("fmt_superscript", "shortcode")
+        self.tbSubscript.setThemeIcon("fmt_subscript", "shortcode")
 
 
 class GuiDocEditSearch(QFrame):
@@ -2590,7 +2593,7 @@ class GuiDocEditSearch(QFrame):
         # Buttons
         # =======
 
-        self.showReplace = NIconToggleButton(self, iSz, "unfold")
+        self.showReplace = NIconToggleButton(self, iSz)
         self.showReplace.toggled.connect(self._doToggleReplace)
 
         self.searchButton = NIconToolButton(self, iSz)
@@ -2716,22 +2719,24 @@ class GuiDocEditSearch(QFrame):
 
     def updateTheme(self) -> None:
         """Update theme elements."""
-        palette = QApplication.palette()
+        logger.debug("Theme Update: GuiDocEditSearch")
 
+        palette = QApplication.palette()
         self.setPalette(palette)
         self.searchBox.setPalette(palette)
         self.replaceBox.setPalette(palette)
 
         # Set icons
-        self.toggleCase.setIcon(SHARED.theme.getIcon("search_case"))
-        self.toggleWord.setIcon(SHARED.theme.getIcon("search_word"))
-        self.toggleRegEx.setIcon(SHARED.theme.getIcon("search_regex"))
-        self.toggleLoop.setIcon(SHARED.theme.getIcon("search_loop"))
-        self.toggleProject.setIcon(SHARED.theme.getIcon("search_project"))
-        self.toggleMatchCap.setIcon(SHARED.theme.getIcon("search_preserve"))
-        self.cancelSearch.setIcon(SHARED.theme.getIcon("search_cancel"))
-        self.searchButton.setThemeIcon("search", "green")
-        self.replaceButton.setThemeIcon("search_replace", "green")
+        self.toggleCase.setIcon(SHARED.theme.getIcon("search_case", "tool"))
+        self.toggleWord.setIcon(SHARED.theme.getIcon("search_word", "tool"))
+        self.toggleRegEx.setIcon(SHARED.theme.getIcon("search_regex", "tool"))
+        self.toggleLoop.setIcon(SHARED.theme.getIcon("search_loop", "tool"))
+        self.toggleProject.setIcon(SHARED.theme.getIcon("search_project", "tool"))
+        self.toggleMatchCap.setIcon(SHARED.theme.getIcon("search_preserve", "tool"))
+        self.cancelSearch.setIcon(SHARED.theme.getIcon("search_cancel", "tool"))
+        self.searchButton.setThemeIcon("search", "action")
+        self.replaceButton.setThemeIcon("search_replace", "apply")
+        self.showReplace.setThemeIcon("unfold", "default")
 
         # Set stylesheets
         self.searchOpt.setStyleSheet("QToolBar {padding: 0;}")
@@ -2960,11 +2965,13 @@ class GuiDocEditHeader(QWidget):
 
     def updateTheme(self) -> None:
         """Update theme elements."""
-        self.tbButton.setThemeIcon("fmt_toolbar", "blue")
-        self.outlineButton.setThemeIcon("list", "blue")
-        self.searchButton.setThemeIcon("search", "blue")
-        self.minmaxButton.setThemeIcon("maximise", "blue")
-        self.closeButton.setThemeIcon("close", "red")
+        logger.debug("Theme Update: GuiDocEditHeader")
+
+        self.tbButton.setThemeIcon("fmt_toolbar", "action")
+        self.outlineButton.setThemeIcon("list", "action")
+        self.searchButton.setThemeIcon("search", "action")
+        self.minmaxButton.setThemeIcon("maximise", "action")
+        self.closeButton.setThemeIcon("close", "reject")
 
         buttonStyle = SHARED.theme.getStyleSheet(STYLES_MIN_TOOLBUTTON)
         self.tbButton.setStyleSheet(buttonStyle)
@@ -3030,7 +3037,7 @@ class GuiDocEditHeader(QWidget):
     @pyqtSlot(bool)
     def _focusModeChanged(self, focusMode: bool) -> None:
         """Update minimise/maximise icon of the Focus Mode button."""
-        self.minmaxButton.setThemeIcon("minimise" if focusMode else "maximise", "blue")
+        self.minmaxButton.setThemeIcon("minimise" if focusMode else "maximise", "action")
 
     ##
     #  Events
@@ -3149,6 +3156,8 @@ class GuiDocEditFooter(QWidget):
 
     def updateTheme(self) -> None:
         """Update theme elements."""
+        logger.debug("Theme Update: GuiDocEditFooter")
+
         iPx = round(0.9*SHARED.theme.baseIconHeight)
         self.linesIcon.setPixmap(SHARED.theme.getPixmap("lines", (iPx, iPx)))
         self.wordsIcon.setPixmap(SHARED.theme.getPixmap("stats", (iPx, iPx)))
