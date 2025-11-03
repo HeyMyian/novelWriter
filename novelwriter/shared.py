@@ -283,15 +283,11 @@ class SharedData(QObject):
             QTimer.singleShot(int(delay*1000), gui.mainProgress.reset)
 
     def newStatusMessage(self, message: str) -> None:
-        """Request a new status message. This is a callable function for
-        core classes that cannot emit signals on their own.
-        """
+        """Request a new status message."""
         self.projectStatusMessage.emit(message)
 
     def setGlobalProjectState(self, state: bool) -> None:
-        """Change the global project status. This is a callable function
-        for core classes that cannot emit signals on their own.
-        """
+        """Change the global project status."""
         self.projectStatusChanged.emit(state)
 
     def runInThreadPool(self, runnable: QRunnable, priority: int = 0) -> None:
@@ -470,6 +466,8 @@ class _GuiAlert(QMessageBox):
         self._theme = theme
         self._message = ""
         self._state = False
+        if isinstance(parent, QWidget):
+            self.move(parent.geometry().center() - self.rect().center())
         logger.debug("Ready: _GuiAlert")
 
     def __del__(self) -> None:  # pragma: no cover
