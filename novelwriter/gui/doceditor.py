@@ -516,7 +516,8 @@ class GuiDocEditor(QPlainTextEdit):
         self.docTextChanged.emit(self._docHandle, self._lastEdit)
         SHARED.project.index.scanText(tHandle, text)
 
-        SHARED.newStatusMessage(self.tr("Saved Document: {0}").format(self._nwItem.itemName))
+        #SHARED.newStatusMessage(self.tr("Saved Document: {0}").format(self._nwItem.itemName))
+        SHARED.newStatusMessage(self.tr("").format(self._nwItem.itemName))
 
         return True
 

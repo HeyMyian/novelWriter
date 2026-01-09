@@ -429,7 +429,8 @@ class NWProject:
         if storagePath := self._storage.storagePath:
             CONFIG.recentProjects.update(storagePath, self._data, saveTime)
 
-        SHARED.newStatusMessage(self.tr("Saved Project: {0}").format(self._data.name))
+        #SHARED.newStatusMessage(self.tr("Saved Project: {0}").format(self._data.name))
+        SHARED.newStatusMessage(self.tr("").format(self._data.name))
         self.setProjectChanged(False)
 
         return True
