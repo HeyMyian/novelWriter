@@ -87,14 +87,14 @@ class Config:
         "iconColDocs", "iconColTree", "iconTheme", "incNotesWCount", "isDebug", "kernelVer",
         "lastNotes", "lightTheme", "lineHighlight", "mainPanePos", "mainWinSize", "memInfo",
         "moveMainWin", "narratorBreak", "narratorDialog", "nativeFont", "osDarwin", "osLinux",
-        "osType", "osUnknown", "osWindows", "outlinePanePos", "prefsWinSize", "scrollPastEnd",
-        "searchCase", "searchLoop", "searchMatchCap", "searchNextFile", "searchProjCase",
-        "searchProjRegEx", "searchProjWord", "searchRegEx", "searchWord", "showEditToolBar",
-        "showFullPath", "showLineEndings", "showMultiSpaces", "showSessionTime", "showTabsNSpaces",
-        "showViewerPanel", "spellLanguage", "stopWhenIdle", "tabWidth", "textFont", "textMargin",
-        "textWidth", "themeMode", "useCharCount", "userIdleTime", "verPyQtString", "verPyQtValue",
-        "verPyString", "verQtString", "verQtValue", "viewComments", "viewNotes", "viewPanePos",
-        "viewSynopsis", "vimMode", "welcomeWinSize",
+        "osType", "osUnknown", "osWindows", "outlinePanePos", "prefsWinSize", "scaleHeadings",
+        "scrollPastEnd", "searchCase", "searchLoop", "searchMatchCap", "searchNextFile",
+        "searchProjCase", "searchProjRegEx", "searchProjWord", "searchRegEx", "searchWord",
+        "showEditToolBar", "showFullPath", "showLineEndings", "showMultiSpaces", "showSessionTime",
+        "showTabsNSpaces", "showViewerPanel", "spellLanguage", "stopWhenIdle", "tabWidth",
+        "textFont", "textMargin", "textWidth", "themeMode", "useCharCount", "userIdleTime",
+        "verPyQtString", "verPyQtValue", "verPyString", "verQtString", "verQtValue",
+        "viewComments", "viewNotes", "viewPanePos", "viewSynopsis", "vimMode", "welcomeWinSize"
     )
 
     LANG_NW   = 1
@@ -213,6 +213,7 @@ class Config:
         self.showTabsNSpaces = False    # Show tabs and spaces in editor
         self.showLineEndings = False    # Show line endings in editor
         self.showMultiSpaces = False    # Highlight multiple spaces in the text
+        self.scaleHeadings   = True     # Use a larger size for headings
 
         self.doReplace       = True     # Enable auto-replace as you type
         self.doReplaceSQuote = True     # Smart single quotes
@@ -698,6 +699,7 @@ class Config:
         self.showTabsNSpaces = conf.rdBool(sec, "showtabsnspaces", self.showTabsNSpaces)
         self.showLineEndings = conf.rdBool(sec, "showlineendings", self.showLineEndings)
         self.showMultiSpaces = conf.rdBool(sec, "showmultispaces", self.showMultiSpaces)
+        self.scaleHeadings   = conf.rdBool(sec, "scaleheadings", self.scaleHeadings)
         self.incNotesWCount  = conf.rdBool(sec, "incnoteswcount", self.incNotesWCount)
         self.showFullPath    = conf.rdBool(sec, "showfullpath", self.showFullPath)
         self.dialogStyle     = conf.rdInt(sec, "dialogstyle", self.dialogStyle)
@@ -829,6 +831,7 @@ class Config:
             "showtabsnspaces": str(self.showTabsNSpaces),
             "showlineendings": str(self.showLineEndings),
             "showmultispaces": str(self.showMultiSpaces),
+            "scaleheadings":   str(self.scaleHeadings),
             "incnoteswcount":  str(self.incNotesWCount),
             "showfullpath":    str(self.showFullPath),
             "dialogstyle":     str(self.dialogStyle),

@@ -32,7 +32,10 @@ from PyQt6.QtCore import (
     QAbstractListModel, QModelIndex, QObject, QPoint, QSize, Qt, pyqtSignal,
     pyqtSlot
 )
-from PyQt6.QtGui import QAction, QCloseEvent, QFont, QPainter, QPaintEvent, QPen, QShortcut
+from PyQt6.QtGui import (
+    QAction, QCloseEvent, QFont, QKeyEvent, QPainter, QPaintEvent, QPen,
+    QShortcut
+)
 from PyQt6.QtWidgets import (
     QApplication, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QListView,
     QMenu, QScrollArea, QStackedWidget, QStyledItemDelegate,
@@ -254,9 +257,12 @@ class _OpenProjectPage(QWidget):
         self.listWidget.setItemDelegate(self.itemDelegate)
         self.listWidget.setModel(self.listModel)
         self.listWidget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.listWidget.clicked.connect(self._projectClicked)
+        self.listWidget.clicked.connect(self._projectSelected)
         self.listWidget.doubleClicked.connect(self._projectDoubleClicked)
         self.listWidget.customContextMenuRequested.connect(self._openContextMenu)
+
+        if selectionModel := self.listWidget.selectionModel():
+            selectionModel.currentChanged.connect(self._selectionChange)
 
         # Info / Tool
         self.aMissing = QAction(self)
@@ -267,6 +273,11 @@ class _OpenProjectPage(QWidget):
         self.selectedPath.setReadOnly(True)
         self.selectedPath.addAction(self.aMissing, QLineEdit.ActionPosition.TrailingPosition)
         self._trPath = self.tr("Path")
+
+        self.keyEnter = QShortcut(self.listWidget)
+        self.keyEnter.setKeys([Qt.Key.Key_Enter, Qt.Key.Key_Return])
+        self.keyEnter.setContext(Qt.ShortcutContext.WidgetShortcut)
+        self.keyEnter.activated.connect(self.openSelectedItem)
 
         self.keyDelete = QShortcut(self)
         self.keyDelete.setKey("Del")
@@ -291,6 +302,18 @@ class _OpenProjectPage(QWidget):
         )
 
     ##
+    #  Events
+    ##
+
+    def keyPressEvent(self, event: QKeyEvent | None) -> None:
+        """Capture key press events."""
+        if event and event.key() in (Qt.Key.Key_Up, Qt.Key.Key_Down):
+            self.listWidget.setFocus()
+            self.listWidget.keyPressEvent(event)
+        else:
+            super().keyPressEvent(event)
+
+    ##
     #  Public Slots
     ##
 
@@ -304,8 +327,13 @@ class _OpenProjectPage(QWidget):
     #  Private Slots
     ##
 
+    @pyqtSlot(QModelIndex, QModelIndex)
+    def _selectionChange(self, current: QModelIndex, previous: QModelIndex) -> None:
+        """Process user changing which item is selected."""
+        self._projectSelected(current)
+
     @pyqtSlot(QModelIndex)
-    def _projectClicked(self, index: QModelIndex) -> None:
+    def _projectSelected(self, index: QModelIndex) -> None:
         """Process single click on project item."""
         value = index.data()[1] if index.isValid() else ""
         value = "" if value == SAMPLE_KEY else value
@@ -372,7 +400,7 @@ class _OpenProjectPage(QWidget):
         """Select the first item, if any are available."""
         index = self.listModel.index(0)
         self.listWidget.setCurrentIndex(index)
-        self._projectClicked(index)
+        self._projectSelected(index)
 
 
 class _ProjectListItem(QStyledItemDelegate):

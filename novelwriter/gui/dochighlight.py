@@ -95,16 +95,21 @@ class GuiDocHighlighter(QSyntaxHighlighter):
 
         colEmph = syntax.emph if CONFIG.highlightEmph else None
 
+        h1Size = nwStyles.H_SIZES[1] if CONFIG.scaleHeadings else None
+        h2Size = nwStyles.H_SIZES[2] if CONFIG.scaleHeadings else None
+        h3Size = nwStyles.H_SIZES[3] if CONFIG.scaleHeadings else None
+        h4Size = nwStyles.H_SIZES[4] if CONFIG.scaleHeadings else None
+
         # Create Character Formats
         self._addCharFormat("text",      syntax.text)
-        self._addCharFormat("header1",   syntax.head, "b", nwStyles.H_SIZES[1])
-        self._addCharFormat("header2",   syntax.head, "b", nwStyles.H_SIZES[2])
-        self._addCharFormat("header3",   syntax.head, "b", nwStyles.H_SIZES[3])
-        self._addCharFormat("header4",   syntax.head, "b", nwStyles.H_SIZES[4])
-        self._addCharFormat("head1h",    syntax.headH, "b", nwStyles.H_SIZES[1])
-        self._addCharFormat("head2h",    syntax.headH, "b", nwStyles.H_SIZES[2])
-        self._addCharFormat("head3h",    syntax.headH, "b", nwStyles.H_SIZES[3])
-        self._addCharFormat("head4h",    syntax.headH, "b", nwStyles.H_SIZES[4])
+        self._addCharFormat("header1",   syntax.head, "b", h1Size)
+        self._addCharFormat("header2",   syntax.head, "b", h2Size)
+        self._addCharFormat("header3",   syntax.head, "b", h3Size)
+        self._addCharFormat("header4",   syntax.head, "b", h4Size)
+        self._addCharFormat("head1h",    syntax.headH, "b", h1Size)
+        self._addCharFormat("head2h",    syntax.headH, "b", h2Size)
+        self._addCharFormat("head3h",    syntax.headH, "b", h3Size)
+        self._addCharFormat("head4h",    syntax.headH, "b", h4Size)
         self._addCharFormat("bold",      colEmph, "b")
         self._addCharFormat("italic",    colEmph, "i")
         self._addCharFormat("strike",    syntax.hidden, "s")

@@ -559,6 +559,13 @@ class GuiPreferences(NDialog):
             unit=self.tr("px")
         )
 
+        # Scale Headings
+        self.scaleHeadings = NSwitch(self)
+        self.scaleHeadings.setChecked(CONFIG.scaleHeadings)
+        self.mainForm.addRow(
+            self.tr("Use a larger font size for headings"), self.scaleHeadings
+        )
+
         # Highlight Current Line
         self.lineHighlight = NSwitch(self)
         self.lineHighlight.setChecked(CONFIG.lineHighlight)
@@ -1082,12 +1089,15 @@ class GuiPreferences(NDialog):
 
         # Text Editing
         lineHighlight = self.lineHighlight.isChecked()
+        scaleHeadings = self.scaleHeadings.isChecked()
 
         updateSyntax |= CONFIG.lineHighlight != lineHighlight
+        updateSyntax |= CONFIG.scaleHeadings != scaleHeadings
 
         CONFIG.spellLanguage   = self.spellLanguage.currentData()
         CONFIG.autoSelect      = self.autoSelect.isChecked()
         CONFIG.cursorWidth     = self.cursorWidth.value()
+        CONFIG.scaleHeadings   = scaleHeadings
         CONFIG.lineHighlight   = lineHighlight
         CONFIG.showTabsNSpaces = self.showTabsNSpaces.isChecked()
         CONFIG.showLineEndings = self.showLineEndings.isChecked()

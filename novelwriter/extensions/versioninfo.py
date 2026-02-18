@@ -33,10 +33,10 @@ from urllib.request import Request, urlopen
 
 from PyQt6.QtCore import QObject, QRunnable, QUrl, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QDesktopServices
-from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from novelwriter import CONFIG, SHARED, __date__, __domain__, __version__
-from novelwriter.common import formatVersion
+from novelwriter.common import formatLink, formatVersion
 from novelwriter.constants import nwConst
 
 logger = logging.getLogger(__name__)
@@ -59,23 +59,43 @@ class VersionInfoWidget(QWidget):
         self._trChecking = self.tr("Checking ...")
         self._trDownload = self.tr("Download from {0}")
 
+        trVersion = self.tr("Version")
+        trNotes = self.tr("Release Notes")
+        trCheck = self.tr("Check Now")
+
         # Labels
-        self._lblInfo = QLabel("{0} {1} \u2013 {2} {3} \u2013 {4}".format(
-            self.tr("Version"), formatVersion(__version__),
-            self.tr("Released on"), CONFIG.localDate(datetime.strptime(__date__, "%Y-%m-%d")),
-            "<a href='#notes'>{0}</a>".format(self.tr("Release Notes")),
-        ), self)
-        self._lblInfo.linkActivated.connect(self._processLink)
-        self._lblRelease = QLabel(self._trLatest.format(
-            "<a href='#update'>{0}</a>".format(self.tr("Check Now"))
-        ), self)
+        iPx = SHARED.theme.baseIconHeight
+
+        self._pixDate = QLabel(self)
+        self._pixDate.setPixmap(SHARED.theme.getPixmap("calendar", (iPx, iPx), "default"))
+        self._pixNotes = QLabel(self)
+        self._pixNotes.setPixmap(SHARED.theme.getPixmap("link", (iPx, iPx), "default"))
+
+        self._lblVersion = QLabel(f"{trVersion} {formatVersion(__version__)}", self)
+        self._lblDate = QLabel(CONFIG.localDate(datetime.strptime(__date__, "%Y-%m-%d")), self)
+        self._lblNotes = QLabel(formatLink("#notes", trNotes), self)
+        self._lblNotes.linkActivated.connect(self._processLink)
+
+        self._lblRelease = QLabel(self._trLatest.format(formatLink("#update", trCheck)), self)
         self._lblRelease.linkActivated.connect(self._processLink)
 
         # Assemble
+        self._info = QHBoxLayout()
+        self._info.addWidget(self._lblVersion, 0)
+        self._info.addSpacing(6)
+        self._info.addWidget(self._pixDate, 0)
+        self._info.addWidget(self._lblDate, 0)
+        self._info.addSpacing(6)
+        self._info.addWidget(self._pixNotes, 0)
+        self._info.addWidget(self._lblNotes, 0)
+        self._info.addStretch(1)
+        self._info.setSpacing(2)
+        self._info.setContentsMargins(0, 0, 0, 0)
+
         self._layout = QVBoxLayout()
-        self._layout.addWidget(self._lblInfo)
+        self._layout.addLayout(self._info)
         self._layout.addWidget(self._lblRelease)
-        self._layout.setSpacing(2)
+        self._layout.setSpacing(8)
         self._layout.setContentsMargins(0, 0, 0, 0)
 
         self.setLayout(self._layout)
@@ -104,8 +124,8 @@ class VersionInfoWidget(QWidget):
     @pyqtSlot(str, str)
     def _updateReleaseInfo(self, tag: str, reason: str) -> None:
         """Update the widget release info."""
-        if version := tag.lstrip("v"):
-            download = f"<a href='#website'>{__domain__}</a>"
+        if version := formatVersion(tag.lstrip("v")):
+            download = formatLink("#website", __domain__)
             self._lblRelease.setText(self._trLatest.format(
                 f"{version} \u2013 {self._trDownload.format(download)}"
             ))

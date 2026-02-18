@@ -25,7 +25,7 @@ from pathlib import Path
 
 import pytest
 
-from PyQt6.QtCore import QPoint
+from PyQt6.QtCore import QPoint, Qt
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QFileDialog, QMenu
 
@@ -136,7 +136,23 @@ def testToolWelcome_Open(qtbot, monkeypatch, nwGUI, fncPath):
         "Project One", "/stuff/project_one", f"Last Opened: {dateTwo}, Word Count: 12.3\u2009k"
     )
 
+    # Change selection with arrow keys
+    assert tabOpen.selectedPath.text() == "Path: /stuff/project_two"
+    qtbot.keyClick(tabOpen, Qt.Key.Key_Left)  # Does nothing
+    assert tabOpen.selectedPath.text() == "Path: /stuff/project_two"
+    qtbot.keyClick(tabOpen, Qt.Key.Key_Right)  # Does nothing
+    assert tabOpen.selectedPath.text() == "Path: /stuff/project_two"
+    qtbot.keyClick(tabOpen, Qt.Key.Key_Down)  # Selects lower
+    assert tabOpen.selectedPath.text() == "Path: /stuff/project_one"
+    qtbot.keyClick(tabOpen, Qt.Key.Key_Down)  # Does nothing (already on last)
+    assert tabOpen.selectedPath.text() == "Path: /stuff/project_one"
+    qtbot.keyClick(tabOpen, Qt.Key.Key_Up)  # Selects upper
+    assert tabOpen.selectedPath.text() == "Path: /stuff/project_two"
+    qtbot.keyClick(tabOpen, Qt.Key.Key_Up)  # Does nothing (already on first)
+    assert tabOpen.selectedPath.text() == "Path: /stuff/project_two"
+
     # Single click item
+    qtbot.mouseClick(vPort, QtMouseLeft, pos=posOne, delay=10)
     assert tabOpen.selectedPath.text() == "Path: /stuff/project_two"
     qtbot.mouseClick(vPort, QtMouseLeft, pos=posTwo, delay=10)
     assert tabOpen.selectedPath.text() == "Path: /stuff/project_one"

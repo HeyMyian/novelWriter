@@ -132,6 +132,7 @@ ICONS = [
     "bookmarks",
     "browse",
     "build_settings",
+    "calendar",
     "cancel",
     "checked",
     "chevron_down",
@@ -153,6 +154,7 @@ ICONS = [
     "import",
     "language",
     "lines",
+    "link",
     "list",
     "margin_bottom",
     "margin_left",
@@ -303,12 +305,12 @@ def processFontAwesome(workDir: Path, iconsDir: Path, jobs: dict) -> None:
                 svg = ET.fromstring(iconFile.read_text(encoding="utf-8"))
                 viewbox = [int(x) for x in svg.get("viewBox", "").split()]
                 viewbox = [viewbox[2]//2 - 256, 0, 512, 512]
+                for elem in svg.iter():
+                    elem.attrib.pop("fill", None)
                 svg.set("viewBox", " ".join(str(x) for x in viewbox))
                 svg.set("fill", "#000000")
                 svg.set("height", "128")
                 svg.set("width", "128")
-                for elem in svg.iter():
-                    elem.attrib.pop("fill", None)
                 icons[key] = svg
             else:
                 print(f"Not Found: {icon}.svg")

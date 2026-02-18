@@ -32,7 +32,7 @@ from PyQt6.QtWidgets import (
 )
 
 from novelwriter import CONFIG, SHARED
-from novelwriter.common import readTextFile
+from novelwriter.common import formatLink, readTextFile
 from novelwriter.enum import nwStandardButton
 from novelwriter.extensions.configlayout import NColorLabel
 from novelwriter.extensions.modified import NDialog
@@ -69,7 +69,7 @@ class GuiAbout(NDialog):
         self.nwInfo = VersionInfoWidget(self)
 
         self.nwLicence = QLabel(self.tr("This application is licenced under {0}").format(
-            "<a href='https://www.gnu.org/licenses/gpl-3.0.html'>GPL v3.0</a>"
+            formatLink("https://www.gnu.org/licenses/gpl-3.0.html", "GPL v3.0")
         ), self)
         self.nwLicence.setOpenExternalLinks(True)
 

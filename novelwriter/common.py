@@ -262,7 +262,17 @@ def formatTime(t: int) -> str:
 
 def formatVersion(value: str) -> str:
     """Format a version number into a more human readable form."""
-    return value.lower().replace("a", " Alpha ").replace("b", " Beta ").replace("rc", " RC ")
+    major, _, version = value.partition(".")
+    prefix = "20" if checkInt(major, 0) >= 20 else ""
+    if "." in version:
+        version = version.replace(".", " Patch ")
+    elif "a" in version:
+        version = version.replace("a", " Alpha ")
+    elif "b" in version:
+        version = version.replace("b", " Beta ")
+    elif "rc" in version:
+        version = version.replace("rc", " RC ")
+    return f"{prefix}{major}.{version}" if major and version else ""
 
 
 def formatFileFilter(extensions: list[str | tuple[str, str]]) -> str:
@@ -276,6 +286,11 @@ def formatFileFilter(extensions: list[str | tuple[str, str]]) -> str:
         elif isinstance(ext, tuple) and len(ext) == 2:
             result.append(f"{ext[0]} ({ext[1]})")
     return ";;".join(result)
+
+
+def formatLink(link: str, text: str = "") -> str:
+    """Format a HTML link for use in labels."""
+    return f"<a href='{link}'>{text or link}</a>"
 
 
 ##
