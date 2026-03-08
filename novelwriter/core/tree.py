@@ -33,6 +33,7 @@ from typing import TYPE_CHECKING, Literal, overload
 from PyQt6.QtCore import QModelIndex
 
 from novelwriter import SHARED
+from novelwriter.common import safeIsFile
 from novelwriter.constants import nwFiles, nwLabels, nwStyles, trConst
 from novelwriter.core.item import NWItem
 from novelwriter.core.itemmodel import ProjectModel, ProjectNode
@@ -372,7 +373,7 @@ class NWTree:
         for node in self._model.root.allChildren():
             item = node.item
             file = f"{item.itemHandle}.nwd"
-            if (contentPath / file).is_file():
+            if safeIsFile(contentPath / file):
                 tocLine = "{0:<25s}  {1:<9s}  {2:<8s}  {3:s}".format(
                     f"content/{file}",
                     item.itemClass.name,
@@ -427,17 +428,23 @@ class NWTree:
             return tItem.itemType == itemType
         return False
 
-    def itemPath(self, tHandle: str, asName: bool = False) -> list[str]:
+    @overload
+    def itemPath(self, tHandle: str, withName: Literal[True]) -> list[tuple[str, str]]: ...
+
+    @overload
+    def itemPath(self, tHandle: str, withName: Literal[False]) -> list[str]: ...
+
+    def itemPath(self, tHandle: str, withName: bool = False) -> list:
         """Iterate upwards in the tree until we find the item with
-        parent None, the root item, and return the list of handles, or
-        alternatively item names. We do this with a for loop with a
-        maximum depth to make infinite loops impossible.
+        parent None, the root item, and return the list of handles,
+        alternatively including item names. We do this with a for loop
+        with a maximum depth to make infinite loops impossible.
         """
         path = []
         if node := self._nodes.get(tHandle):
             for _ in range(MAX_DEPTH):
-                if parent := node.parent():
-                    path.append(node.item.itemName if asName else tHandle)
+                if (parent := node.parent()) and (item := node.item):
+                    path.append((item.itemHandle, item.itemName) if withName else tHandle)
                     node = parent
                 else:
                     return path

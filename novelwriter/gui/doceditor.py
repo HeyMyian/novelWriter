@@ -67,7 +67,7 @@ from novelwriter.enum import (
     nwChange, nwComment, nwDocAction, nwDocInsert, nwDocMode, nwItemClass,
     nwItemType, nwState, nwVimMode
 )
-from novelwriter.extensions.configlayout import NColorLabel
+from novelwriter.extensions.configlayout import NPathColorLabel
 from novelwriter.extensions.eventfilters import WheelEventFilter
 from novelwriter.extensions.modified import NIconToggleButton, NIconToolButton
 from novelwriter.gui.dochighlight import BLOCK_META, BLOCK_TITLE
@@ -77,11 +77,11 @@ from novelwriter.text.counting import standardCounter
 from novelwriter.tools.lipsum import GuiLipsum
 from novelwriter.types import (
     QtAlignCenterTop, QtAlignJustify, QtAlignLeft, QtAlignLeftTop,
-    QtAlignRight, QtBlack, QtImCurrentSelection, QtImCursorRectangle,
-    QtKeepAnchor, QtModCtrl, QtModNone, QtModShift, QtMouseLeft, QtMoveAnchor,
-    QtMoveDown, QtMoveEnd, QtMoveEndOfLine, QtMoveEndOfWord, QtMoveLeft,
-    QtMoveNextChar, QtMoveNextWord, QtMovePreviousWord, QtMoveRight,
-    QtMoveStart, QtMoveStartOfLine, QtMoveUp, QtScrollAlwaysOff,
+    QtAlignMiddle, QtAlignRight, QtBlack, QtImCurrentSelection,
+    QtImCursorRectangle, QtKeepAnchor, QtModCtrl, QtModNone, QtModShift,
+    QtMoveAnchor, QtMoveDown, QtMoveEnd, QtMoveEndOfLine, QtMoveEndOfWord,
+    QtMoveLeft, QtMoveNextChar, QtMoveNextWord, QtMovePreviousWord,
+    QtMoveRight, QtMoveStart, QtMoveStartOfLine, QtMoveUp, QtScrollAlwaysOff,
     QtScrollAsNeeded, QtSelectBlock, QtSelectDocument, QtSelectLine,
     QtSelectWord, QtTransparent
 )
@@ -202,12 +202,22 @@ class GuiDocEditor(QPlainTextEdit):
         self._followTag1 = QShortcut(self)
         self._followTag1.setKey("Ctrl+Return")
         self._followTag1.setContext(Qt.ShortcutContext.WidgetShortcut)
-        self._followTag1.activated.connect(self._processTag)
+        self._followTag1.activated.connect(qtLambda(self._processTag))
 
         self._followTag2 = QShortcut(self)
         self._followTag2.setKey("Ctrl+Enter")
         self._followTag2.setContext(Qt.ShortcutContext.WidgetShortcut)
-        self._followTag2.activated.connect(self._processTag)
+        self._followTag2.activated.connect(qtLambda(self._processTag))
+
+        self._prevLine = QShortcut(self)
+        self._prevLine.setKey("Ctrl+Up")
+        self._prevLine.setContext(Qt.ShortcutContext.WidgetShortcut)
+        self._prevLine.activated.connect(qtLambda(self._skipToParagraph, -1))
+
+        self._nextLine = QShortcut(self)
+        self._nextLine.setKey("Ctrl+Down")
+        self._nextLine.setContext(Qt.ShortcutContext.WidgetShortcut)
+        self._nextLine.activated.connect(qtLambda(self._skipToParagraph, 1))
 
         # Set Up Document Word Counter
         self._timerDoc = QTimer(self)
@@ -656,8 +666,7 @@ class GuiDocEditor(QPlainTextEdit):
     def setCursorLine(self, line: int | None) -> None:
         """Move the cursor to a given line in the document."""
         if isinstance(line, int) and line > 0:
-            block = self._qDocument.findBlockByNumber(line - 1)
-            if block:
+            if block := self._qDocument.findBlockByNumber(line - 1):
                 self.setCursorPosition(block.position())
                 logger.debug("Cursor moved to line %d", line)
 
@@ -2442,6 +2451,18 @@ class GuiDocEditor(QPlainTextEdit):
         else:
             self._doReplace = False
 
+    def _skipToParagraph(self, step: int) -> None:
+        """Move cursor to next paragraph by step."""
+        if step != 0:
+            cursor = self.textCursor()
+            limit = -1 if step < 0 else self._qDocument.blockCount()
+            for i in range(cursor.blockNumber() + step, limit, step):
+                block = self._qDocument.findBlockByNumber(i)
+                if block.isValid() and block.text().strip():
+                    cursor.setPosition(block.position())
+                    self.setTextCursor(cursor)
+                    break
+
 
 class CommandCompleter(QMenu):
     """GuiWidget: Command Completer Menu.
@@ -3241,17 +3262,19 @@ class GuiDocEditHeader(QWidget):
 
         iPx = SHARED.theme.baseIconHeight
         iSz = SHARED.theme.baseIconSize
+        fPx = SHARED.theme.fontPixelSize
 
         # Main Widget Settings
         self.setAutoFillBackground(True)
 
         # Title Label
-        self.itemTitle = NColorLabel("", self)
+        self.itemTitle = NPathColorLabel("", self)
         self.itemTitle.setMargin(0)
         self.itemTitle.setContentsMargins(0, 0, 0, 0)
         self.itemTitle.setAutoFillBackground(True)
         self.itemTitle.setAlignment(QtAlignCenterTop)
-        self.itemTitle.setFixedHeight(iPx)
+        self.itemTitle.setFixedHeight(fPx)
+        self.itemTitle.linkActivated.connect(self._processLabelLink)
 
         # Other Widgets
         self.outlineMenu = QMenu(self)
@@ -3284,15 +3307,15 @@ class GuiDocEditHeader(QWidget):
 
         # Assemble Layout
         self.outerBox = QHBoxLayout()
-        self.outerBox.addWidget(self.tbButton, 0)
-        self.outerBox.addWidget(self.outlineButton, 0)
-        self.outerBox.addWidget(self.searchButton, 0)
+        self.outerBox.addWidget(self.tbButton, 0, QtAlignMiddle)
+        self.outerBox.addWidget(self.outlineButton, 0, QtAlignMiddle)
+        self.outerBox.addWidget(self.searchButton, 0, QtAlignMiddle)
         self.outerBox.addSpacing(4)
-        self.outerBox.addWidget(self.itemTitle, 1)
+        self.outerBox.addWidget(self.itemTitle, 1, QtAlignMiddle)
         self.outerBox.addSpacing(4)
         self.outerBox.addSpacing(iPx)
-        self.outerBox.addWidget(self.minmaxButton, 0)
-        self.outerBox.addWidget(self.closeButton, 0)
+        self.outerBox.addWidget(self.minmaxButton, 0, QtAlignMiddle)
+        self.outerBox.addWidget(self.closeButton, 0, QtAlignMiddle)
         self.outerBox.setContentsMargins(4, 4, 4, 4)
         self.outerBox.setSpacing(0)
 
@@ -3304,7 +3327,7 @@ class GuiDocEditHeader(QWidget):
         # Fix Margins and Size
         # This is needed for high DPI systems. See issue #499.
         self.setContentsMargins(0, 0, 0, 0)
-        self.setMinimumHeight(iPx + 8)
+        self.setMinimumHeight(fPx + 4)
 
         self.updateFont()
         self.updateTheme()
@@ -3394,13 +3417,10 @@ class GuiDocEditHeader(QWidget):
         the whole document path within the project.
         """
         self._docHandle = tHandle
-
         if CONFIG.showFullPath:
-            self.itemTitle.setText(f"  {nwUnicode.U_RSAQUO}  ".join(reversed(
-                [name for name in SHARED.project.tree.itemPath(tHandle, asName=True)]
-            )))
-        else:
-            self.itemTitle.setText(i.itemName if (i := SHARED.project.tree[tHandle]) else "")
+            self.itemTitle.setText(SHARED.project.tree.itemPath(tHandle, withName=True))
+        elif item := SHARED.project.tree[tHandle]:
+            self.itemTitle.setText([(item.itemHandle, item.itemName)])
 
         self.tbButton.setVisible(True)
         self.searchButton.setVisible(True)
@@ -3433,16 +3453,11 @@ class GuiDocEditHeader(QWidget):
         """Reset the colour state of the header title."""
         self.itemTitle.setColorState(self._state)
 
-    ##
-    #  Events
-    ##
-
-    def mousePressEvent(self, event: QMouseEvent) -> None:
-        """Capture a click on the title and ensure that the item is
-        selected in the project tree.
-        """
-        if event.button() == QtMouseLeft:
-            self.docEditor.requestProjectItemSelected.emit(self._docHandle or "", True)
+    @pyqtSlot(str)
+    def _processLabelLink(self, link: str) -> None:
+        """Process an activated link in the label."""
+        if link.startswith("#"):
+            self.docEditor.requestProjectItemSelected.emit(link.lstrip("#"), True)
 
 
 class GuiDocEditFooter(QWidget):
