@@ -247,6 +247,7 @@ class GuiMain(QMainWindow):
         self.novelView.openDocumentRequest.connect(self._openDocument)
         self.novelView.selectedItemChanged.connect(self.itemDetails.updateViewBox)
 
+        self.projSearch.openDocumentRequest.connect(self._openDocument)
         self.projSearch.openDocumentSelectRequest.connect(self._openDocumentSelection)
         self.projSearch.selectedItemChanged.connect(self.itemDetails.updateViewBox)
 
@@ -291,20 +292,8 @@ class GuiMain(QMainWindow):
 
         # Shortcuts
         self.keyReturn = QShortcut(self)
-        self.keyReturn.setKey("Return")
+        self.keyReturn.setKeys(["Return", "Enter", "Shift+Return", "Shift+Enter"])
         self.keyReturn.activated.connect(self._keyPressReturn)
-
-        self.keyShiftReturn = QShortcut(self)
-        self.keyShiftReturn.setKey("Shift+Return")
-        self.keyShiftReturn.activated.connect(self._keyPressReturn)
-
-        self.keyEnter = QShortcut(self)
-        self.keyEnter.setKey("Enter")
-        self.keyEnter.activated.connect(self._keyPressReturn)
-
-        self.keyShiftEnter = QShortcut(self)
-        self.keyShiftEnter.setKey("Shift+Enter")
-        self.keyShiftEnter.activated.connect(self._keyPressReturn)
 
         self.keyEscape = QShortcut(self)
         self.keyEscape.setKey("Esc")
@@ -557,29 +546,26 @@ class GuiMain(QMainWindow):
 
         return True
 
-    @pyqtSlot(str, bool)
-    def openNextDocument(self, tHandle: str, wrapAround: bool) -> None:
-        """Open the next document in the project tree, following the
-        document with the given handle. Stop when reaching the end.
+    @pyqtSlot(str, bool, bool)
+    def openNextDocument(self, tHandle: str, wrapAround: bool, goBack: bool) -> None:
+        """Open the next (or previous) document in the project tree,
+        next to the document with the given handle. Stop when reaching
+        the edge unless the wrapAround flag is set.
         """
-        if SHARED.hasProject:
-            nHandle = None   # The next handle after tHandle
-            fHandle = None   # The first file handle we encounter
-            foundIt = False  # We've found tHandle, pick the next we see
-            for tItem in SHARED.project.tree:
-                if not tItem.isFileType():
-                    continue
-                if fHandle is None:
-                    fHandle = tItem.itemHandle
-                if tItem.itemHandle == tHandle:
-                    foundIt = True
-                elif foundIt:
-                    nHandle = tItem.itemHandle
-                    break
-            if nHandle is not None:
-                self.openDocument(nHandle, tLine=1, doScroll=True)
-            elif wrapAround:
-                self.openDocument(fHandle, tLine=1, doScroll=True)
+        if SHARED.hasProject and (allDocs := SHARED.project.tree.allDocs()):
+            try:
+                currIdx = allDocs.index(tHandle)
+                nHandle = (
+                    (allDocs[-1] if wrapAround else None)
+                    if currIdx == 0 else allDocs[currIdx - 1]
+                ) if goBack else (
+                    (allDocs[0] if wrapAround else None)
+                    if currIdx == len(allDocs) - 1 else allDocs[currIdx + 1]
+                )
+                if nHandle is not None:
+                    self.openDocument(nHandle, tLine=(-1 if goBack else 1), doScroll=True)
+            except Exception:
+                logger.error("Could not find next document for '%s'", tHandle)
 
     def saveDocument(self, force: bool = False) -> None:
         """Save the current documents."""

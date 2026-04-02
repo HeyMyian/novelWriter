@@ -57,12 +57,15 @@ from PyQt6.QtWidgets import (
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import (
-    decodeMimeHandles, fontMatcher, minmax, qtAddAction, qtLambda, transferCase
+    decodeMimeHandles, fontMatcher, minmax, qtAddAction, qtAddMenu, qtLambda,
+    transferCase
 )
 from novelwriter.constants import (
-    nwConst, nwKeyWords, nwLabels, nwShortcode, nwStats, nwUnicode, trStats
+    nwConst, nwKeyWords, nwLabels, nwShortcode, nwStats, nwStyles, nwUnicode,
+    trStats
 )
 from novelwriter.core.document import NWDocument
+from novelwriter.dialogs.editlabel import GuiEditLabel
 from novelwriter.enum import (
     nwChange, nwComment, nwDocAction, nwDocInsert, nwDocMode, nwItemClass,
     nwItemType, nwState, nwVimMode
@@ -74,6 +77,7 @@ from novelwriter.gui.dochighlight import BLOCK_META, BLOCK_TITLE
 from novelwriter.gui.editordocument import GuiTextDocument
 from novelwriter.gui.theme import STYLES_MIN_TOOLBUTTON
 from novelwriter.text.counting import standardCounter
+from novelwriter.text.formats import processHeading
 from novelwriter.tools.lipsum import GuiLipsum
 from novelwriter.types import (
     QtAlignCenterTop, QtAlignJustify, QtAlignLeft, QtAlignLeftTop,
@@ -108,9 +112,12 @@ class GuiDocEditor(QPlainTextEdit):
     """Gui Widget: Main Document Editor."""
 
     __slots__ = (
-        "_autoReplace", "_completer", "_doReplace", "_docChanged", "_docHandle", "_followTag1",
-        "_followTag2", "_keyContext", "_lastActive", "_lastEdit", "_lastFind", "_nwDocument",
-        "_nwItem", "_qDocument", "_timerDoc", "_timerSel", "_vim", "_vpMargin", "_wCounterDoc",
+        "_autoReplace", "_completer", "_doReplace", "_docChanged", "_docHandle", "_followTagEdit",
+        "_followTagView", "_keyContext", "_lastActive", "_lastEdit", "_lastFind", "_nwDocument",
+        "_nwItem", "_qDocument", "_timerDoc", "_timerSel", "_trActions", "_trAddWord", "_trCopy",
+        "_trCreateNote", "_trCut", "_trEditTag", "_trIgnoreWord", "_trMoveText", "_trNoSuggest",
+        "_trOpenURL", "_trPaste", "_trSelectAll", "_trSelectPara", "_trSelectWord", "_trSetName",
+        "_trSpellSuggest", "_trSplitDoc", "_trViewTag", "_vim", "_vpMargin", "_wCounterDoc",
         "_wCounterSel",
     )
 
@@ -128,7 +135,7 @@ class GuiDocEditor(QPlainTextEdit):
     loadDocumentTagRequest = pyqtSignal(str, Enum)
     openDocumentRequest = pyqtSignal(str, Enum, str, bool)
     requestNewNoteCreation = pyqtSignal(str, nwItemClass)
-    requestNextDocument = pyqtSignal(str, bool)
+    requestNextDocument = pyqtSignal(str, bool, bool)
     requestProjectItemRenamed = pyqtSignal(str, str)
     requestProjectItemSelected = pyqtSignal(str, bool)
     spellCheckStateChanged = pyqtSignal(bool)
@@ -154,6 +161,26 @@ class GuiDocEditor(QPlainTextEdit):
         self._doReplace  = False  # Switch to temporarily disable auto-replace
         self._lineColor  = QtTransparent
         self._selection  = QTextEdit.ExtraSelection()
+
+        # Context Menu Translation
+        self._trSetName = self.tr("Set as Document Name")
+        self._trOpenURL = self.tr("Open URL")
+        self._trViewTag = self.tr("View Tag Source")
+        self._trEditTag = self.tr("Edit Tag Source")
+        self._trCreateNote = self.tr("Create Note for Tag")
+        self._trCut = self.tr("Cut")
+        self._trCopy = self.tr("Copy")
+        self._trPaste = self.tr("Paste")
+        self._trSelectAll = self.tr("Select All")
+        self._trSelectWord = self.tr("Select Word")
+        self._trSelectPara = self.tr("Select Paragraph")
+        self._trMoveText = self.tr("Move Text to New Document")
+        self._trSplitDoc = self.tr("Split Document at Cursor")
+        self._trActions = self.tr("More Actions")
+        self._trSpellSuggest = self.tr("Spelling Suggestion(s)")
+        self._trNoSuggest = self.tr("No Suggestions")
+        self._trIgnoreWord = self.tr("Ignore Word")
+        self._trAddWord = self.tr("Add Word to Dictionary")
 
         # Auto-Replace
         self._autoReplace = TextAutoReplace()
@@ -199,15 +226,15 @@ class GuiDocEditor(QPlainTextEdit):
         self._keyContext.setContext(Qt.ShortcutContext.WidgetShortcut)
         self._keyContext.activated.connect(self._openContextFromCursor)
 
-        self._followTag1 = QShortcut(self)
-        self._followTag1.setKey("Ctrl+Return")
-        self._followTag1.setContext(Qt.ShortcutContext.WidgetShortcut)
-        self._followTag1.activated.connect(qtLambda(self._processTag))
+        self._followTagView = QShortcut(self)
+        self._followTagView.setKeys(["Ctrl+Return", "Ctrl+Enter"])
+        self._followTagView.setContext(Qt.ShortcutContext.WidgetShortcut)
+        self._followTagView.activated.connect(qtLambda(self._processTag))
 
-        self._followTag2 = QShortcut(self)
-        self._followTag2.setKey("Ctrl+Enter")
-        self._followTag2.setContext(Qt.ShortcutContext.WidgetShortcut)
-        self._followTag2.activated.connect(qtLambda(self._processTag))
+        self._followTagEdit = QShortcut(self)
+        self._followTagEdit.setKeys(["Ctrl+Shift+Return", "Ctrl+Shift+Enter"])
+        self._followTagEdit.setContext(Qt.ShortcutContext.WidgetShortcut)
+        self._followTagEdit.activated.connect(qtLambda(self._processTag, edit=True))
 
         self._prevLine = QShortcut(self)
         self._prevLine.setKey("Ctrl+Up")
@@ -665,10 +692,11 @@ class GuiDocEditor(QPlainTextEdit):
 
     def setCursorLine(self, line: int | None) -> None:
         """Move the cursor to a given line in the document."""
-        if isinstance(line, int) and line > 0:
-            if block := self._qDocument.findBlockByNumber(line - 1):
+        if isinstance(line, int) and line != 0:
+            line = self._qDocument.blockCount() + line if line < 0 else line - 1
+            if block := self._qDocument.findBlockByNumber(line):
                 self.setCursorPosition(block.position())
-                logger.debug("Cursor moved to line %d", line)
+                logger.debug("Cursor moved to line %d", line + 1)
 
     def setCursorSelection(self, start: int, length: int) -> None:
         """Make a text selection."""
@@ -825,6 +853,8 @@ class GuiDocEditor(QPlainTextEdit):
             self._wrapSelection(nwShortcode.SUP_O, nwShortcode.SUP_C)
         elif action == nwDocAction.SC_SUB and not noFormat:
             self._wrapSelection(nwShortcode.SUB_O, nwShortcode.SUB_C)
+        elif action == nwDocAction.MOVE_TEXT:
+            self._moveTextToNewDocument()
         else:
             if noFormat:
                 logger.warning("Action '%s' not alowed on current block", action)
@@ -1207,49 +1237,61 @@ class GuiDocEditor(QPlainTextEdit):
         uCursor = self.textCursor()
         pCursor = self.cursorForPosition(pos)
         pBlock = pCursor.block()
+        hasSelection = uCursor.hasSelection()
 
         ctxMenu = QMenu(self)
         ctxMenu.setObjectName("ContextMenu")
         if pBlock.userState() == BLOCK_TITLE:
-            action = qtAddAction(ctxMenu, self.tr("Set as Document Name"))
+            action = qtAddAction(ctxMenu, self._trSetName)
             action.triggered.connect(qtLambda(self._emitRenameItem, pBlock))
 
         # URL
         (mData, mType) = self._qDocument.metaDataAtPos(pCursor.position())
         if mData and mType == "url":
-            action = qtAddAction(ctxMenu, self.tr("Open URL"))
+            action = qtAddAction(ctxMenu, self._trOpenURL)
             action.triggered.connect(qtLambda(SHARED.openWebsite, mData))
             ctxMenu.addSeparator()
 
         # Follow
         status = self._processTag(cursor=pCursor, follow=False)
         if status & _TagAction.FOLLOW:
-            action = qtAddAction(ctxMenu, self.tr("Follow Tag"))
-            action.triggered.connect(qtLambda(self._processTag, cursor=pCursor, follow=True))
+            action = qtAddAction(ctxMenu, self._trViewTag)
+            action.triggered.connect(
+                qtLambda(self._processTag, cursor=pCursor, follow=True, edit=False)
+            )
+            action = qtAddAction(ctxMenu, self._trEditTag)
+            action.triggered.connect(
+                qtLambda(self._processTag, cursor=pCursor, follow=True, edit=True)
+            )
             ctxMenu.addSeparator()
         elif status & _TagAction.CREATE:
-            action = qtAddAction(ctxMenu, self.tr("Create Note for Tag"))
+            action = qtAddAction(ctxMenu, self._trCreateNote)
             action.triggered.connect(qtLambda(self._processTag, cursor=pCursor, create=True))
             ctxMenu.addSeparator()
 
         # Cut, Copy and Paste
-        if uCursor.hasSelection():
-            action = qtAddAction(ctxMenu, self.tr("Cut"))
+        if hasSelection:
+            action = qtAddAction(ctxMenu, self._trCut)
             action.triggered.connect(qtLambda(self.docAction, nwDocAction.CUT))
-            action = qtAddAction(ctxMenu, self.tr("Copy"))
+            action = qtAddAction(ctxMenu, self._trCopy)
             action.triggered.connect(qtLambda(self.docAction, nwDocAction.COPY))
 
-        action = qtAddAction(ctxMenu, self.tr("Paste"))
+        action = qtAddAction(ctxMenu, self._trPaste)
         action.triggered.connect(qtLambda(self.docAction, nwDocAction.PASTE))
         ctxMenu.addSeparator()
 
         # Selections
-        action = qtAddAction(ctxMenu, self.tr("Select All"))
+        action = qtAddAction(ctxMenu, self._trSelectAll)
         action.triggered.connect(qtLambda(self.docAction, nwDocAction.SEL_ALL))
-        action = qtAddAction(ctxMenu, self.tr("Select Word"))
+        action = qtAddAction(ctxMenu, self._trSelectWord)
         action.triggered.connect(qtLambda(self._makePosSelection, QtSelectWord, pos))
-        action = qtAddAction(ctxMenu, self.tr("Select Paragraph"))
+        action = qtAddAction(ctxMenu, self._trSelectPara)
         action.triggered.connect(qtLambda(self._makePosSelection, QtSelectBlock, pos))
+
+        # Actions
+        mTools = qtAddMenu(ctxMenu, self._trActions)
+        action = qtAddAction(mTools, self._trMoveText if hasSelection else self._trSplitDoc)
+        action.triggered.connect(self._moveTextToNewDocument)
 
         # Spell Checking
         if SHARED.project.data.spellCheck:
@@ -1262,18 +1304,17 @@ class GuiDocEditor(QPlainTextEdit):
                 sCursor.movePosition(QtMoveRight, QtKeepAnchor, len(word))
                 if suggest:
                     ctxMenu.addSeparator()
-                    qtAddAction(ctxMenu, self.tr("Spelling Suggestion(s)"))
+                    qtAddAction(ctxMenu, self._trSpellSuggest)
                     for option in suggest[:15]:
                         action = qtAddAction(ctxMenu, f"{nwUnicode.U_ENDASH} {option}")
                         action.triggered.connect(qtLambda(self._correctWord, sCursor, option))
                 else:
-                    trNone = self.tr("No Suggestions")
-                    qtAddAction(ctxMenu, f"{nwUnicode.U_ENDASH} {trNone}")
+                    qtAddAction(ctxMenu, f"{nwUnicode.U_ENDASH} {self._trNoSuggest}")
 
                 ctxMenu.addSeparator()
-                action = qtAddAction(ctxMenu, self.tr("Ignore Word"))
+                action = qtAddAction(ctxMenu, self._trIgnoreWord)
                 action.triggered.connect(qtLambda(self._addWord, word, block, False))
-                action = qtAddAction(ctxMenu, self.tr("Add Word to Dictionary"))
+                action = qtAddAction(ctxMenu, self._trAddWord)
                 action.triggered.connect(qtLambda(self._addWord, word, block, True))
 
         # Execute the context menu
@@ -1302,6 +1343,38 @@ class GuiDocEditor(QPlainTextEdit):
                 self.docTextChanged.emit(self._docHandle, self._lastEdit)
 
         return
+
+    @pyqtSlot()
+    def _moveTextToNewDocument(self) -> None:
+        """Process request to move text to new document."""
+        cursor = self.textCursor()
+        if not cursor.hasSelection():
+            cursor.movePosition(QtMoveEnd, QtKeepAnchor)
+            self.setTextCursor(cursor)
+            QApplication.processEvents()
+
+        if (
+            cursor.hasSelection()
+            and (text := self.getSelectedText().strip())  # This handles proper line breaks
+            and (item := self._nwItem)
+            and (parent := item.itemParent)
+        ):
+            heading, title = processHeading(text.partition("\n")[0])
+            label, dlgOk = GuiEditLabel.getLabel(
+                self, text=title or f"{item.itemName} (1)",
+                info=self.tr("Create a new document from selected text?")
+            )
+            if dlgOk and (tHandle := SHARED.project.newFile(
+                label, parent, SHARED.project.tree.subTreePos(item.itemHandle) + 1
+            )):
+                hasHeading = heading != "H0"
+                hLevel = nwStyles.H_LEVEL.get(heading if hasHeading else item.mainHeading, 3)
+                if SHARED.project.writeNewFile(
+                    tHandle, hLevel, item.isDocumentLayout(), text, addHeading=not hasHeading
+                ):
+                    SHARED.project.index.reIndexHandle(tHandle)
+                    SHARED.project.tree.refreshItems([tHandle])
+                    cursor.removeSelectedText()
 
     @pyqtSlot(int, int, int)
     def _updateDocCounts(self, cCount: int, wCount: int, pCount: int) -> None:
@@ -1395,8 +1468,8 @@ class GuiDocEditor(QPlainTextEdit):
         if len(resS) == 0 and self._docHandle:
             self.docSearch.setResultCount(0, 0)
             self._lastFind = None
-            if CONFIG.searchNextFile and not goBack:
-                self.requestNextDocument.emit(self._docHandle, CONFIG.searchLoop)
+            if CONFIG.searchNextFile:
+                self.requestNextDocument.emit(self._docHandle, CONFIG.searchLoop, goBack)
                 QApplication.processEvents()
                 self.beginSearch()
                 prevFocus.setFocus()
@@ -1411,16 +1484,15 @@ class GuiDocEditor(QPlainTextEdit):
         if goBack:
             resIdx -= 2
 
-        if resIdx < 0:
-            resIdx = maxIdx if doLoop else 0
-
-        if resIdx > maxIdx and self._docHandle:
-            if CONFIG.searchNextFile and not goBack:
-                self.requestNextDocument.emit(self._docHandle, CONFIG.searchLoop)
+        if ((resIdx < 0 and goBack) or (resIdx > maxIdx and not goBack)) and self._docHandle:
+            if CONFIG.searchNextFile:
+                self.requestNextDocument.emit(self._docHandle, CONFIG.searchLoop, goBack)
                 QApplication.processEvents()
                 self.beginSearch()
                 prevFocus.setFocus()
                 return
+            elif goBack:
+                resIdx = maxIdx if doLoop else 0
             else:
                 resIdx = 0 if doLoop else maxIdx
 
@@ -2298,7 +2370,8 @@ class GuiDocEditor(QPlainTextEdit):
         self._qDocument.syntaxHighlighter.rehighlightBlock(block)
 
     def _processTag(
-        self, cursor: QTextCursor | None = None, follow: bool = True, create: bool = False
+        self, cursor: QTextCursor | None = None, *,
+        follow: bool = True, edit: bool = False, create: bool = False
     ) -> _TagAction:
         """Activated by Ctrl+Enter. Checks that we're in a block
         starting with '@'. We then find the tag under the cursor and
@@ -2354,7 +2427,7 @@ class GuiDocEditor(QPlainTextEdit):
 
             if follow and exist:
                 logger.debug("Attempting to follow tag '%s'", tag)
-                self.loadDocumentTagRequest.emit(tag, nwDocMode.VIEW)
+                self.loadDocumentTagRequest.emit(tag, nwDocMode.EDIT if edit else nwDocMode.VIEW)
             elif create and not exist:
                 if SHARED.question(self.tr(
                     "Do you want to create a new project note for the tag '{0}'?"

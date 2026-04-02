@@ -46,7 +46,7 @@ from novelwriter.common import (
     formatTimeStamp, joinLines, languageName, processDialogSymbols, safeExists,
     safeIsDir, simplified
 )
-from novelwriter.constants import nwFiles, nwQuotes, nwUnicode
+from novelwriter.constants import nwFiles, nwQuotes, nwUnicode, trStats
 from novelwriter.enum import nwTheme
 from novelwriter.error import formatException, logException
 
@@ -79,23 +79,24 @@ class Config:
         "_manuals", "_nwLangPath", "_qLocale", "_qtLangPath", "_qtTrans", "_recentPaths",
         "_recentProjects", "_splash", "allowOpenDial", "altDialogClose", "altDialogOpen",
         "appHandle", "appName", "askBeforeBackup", "askBeforeExit", "autoSaveDoc", "autoSaveProj",
-        "autoScroll", "autoScrollPos", "autoSelect", "backupOnClose", "cursorWidth", "darkTheme",
-        "dialogLine", "dialogStyle", "doJustify", "doReplace", "doReplaceDQuote", "doReplaceDash",
-        "doReplaceDots", "doReplaceSQuote", "emphLabels", "fmtApostrophe", "fmtDQuoteClose",
-        "fmtDQuoteOpen", "fmtPadAfter", "fmtPadBefore", "fmtPadThin", "fmtSQuoteClose",
-        "fmtSQuoteOpen", "focusWidth", "fontWinSize", "guiFont", "guiLocale", "hasEnchant",
-        "hideFocusFooter", "hideHScroll", "hideVScroll", "highlightEmph", "hostName",
-        "iconColDocs", "iconColTree", "iconTheme", "incNotesWCount", "isDebug", "kernelVer",
-        "lastNotes", "lightTheme", "lineHighlight", "mainPanePos", "mainWinSize", "memInfo",
-        "moveMainWin", "narratorBreak", "narratorDialog", "nativeFont", "osDarwin", "osLinux",
-        "osType", "osUnknown", "osWindows", "outlinePanePos", "prefsWinSize", "scaleHeadings",
-        "scrollPastEnd", "searchCase", "searchLoop", "searchMatchCap", "searchNextFile",
-        "searchProjCase", "searchProjRegEx", "searchProjWord", "searchRegEx", "searchWord",
-        "showEditToolBar", "showFullPath", "showLineEndings", "showMultiSpaces", "showSessionTime",
-        "showTabsNSpaces", "showViewerPanel", "spellLanguage", "stopWhenIdle", "tabWidth",
-        "textFont", "textMargin", "textWidth", "themeMode", "useCharCount", "userIdleTime",
-        "verPyQtString", "verPyQtValue", "verPyString", "verQtString", "verQtValue",
-        "viewComments", "viewNotes", "viewPanePos", "viewSynopsis", "vimMode", "welcomeWinSize"
+        "autoScroll", "autoScrollPos", "autoSelect", "backupOnClose", "countUnit", "cursorWidth",
+        "darkTheme", "dialogLine", "dialogStyle", "doJustify", "doReplace", "doReplaceDQuote",
+        "doReplaceDash", "doReplaceDots", "doReplaceSQuote", "dottedModCodes", "emphLabels",
+        "fmtApostrophe", "fmtDQuoteClose", "fmtDQuoteOpen", "fmtPadAfter", "fmtPadBefore",
+        "fmtPadThin", "fmtSQuoteClose", "fmtSQuoteOpen", "focusWidth", "fontWinSize", "guiFont",
+        "guiLocale", "hasEnchant", "hideFocusFooter", "hideHScroll", "hideVScroll",
+        "highlightEmph", "hostName", "iconColDocs", "iconColTree", "iconTheme", "incNotesWCount",
+        "isDebug", "kernelVer", "lastNotes", "lightTheme", "lineHighlight", "mainPanePos",
+        "mainWinSize", "memInfo", "moveMainWin", "narratorBreak", "narratorDialog", "nativeFont",
+        "osDarwin", "osLinux", "osType", "osUnknown", "osWindows", "outlinePanePos",
+        "prefsWinSize", "scaleHeadings", "scrollPastEnd", "searchCase", "searchLoop",
+        "searchMatchCap", "searchNextFile", "searchProjCase", "searchProjRegEx", "searchProjWord",
+        "searchRegEx", "searchWord", "showEditToolBar", "showFullPath", "showLineEndings",
+        "showMultiSpaces", "showSessionTime", "showTabsNSpaces", "showViewerPanel",
+        "spellLanguage", "stopWhenIdle", "tabWidth", "textFont", "textMargin", "textWidth",
+        "themeMode", "useCharCount", "userIdleTime", "verPyQtString", "verPyQtValue",
+        "verPyString", "verQtString", "verQtValue", "viewComments", "viewNotes", "viewPanePos",
+        "viewSynopsis", "vimMode", "welcomeWinSize",
     )
 
     LANG_NW   = 1
@@ -175,6 +176,7 @@ class Config:
         self.lastNotes    = "0x0"          # The latest release notes that have been shown
         self.nativeFont   = True           # Use native font dialog
         self.useCharCount = False          # Use character count as primary count
+        self.countUnit    = "words"        # Primary count unit
         self.vimMode      = False          # Enable Vim mode
 
         # Icons
@@ -237,6 +239,7 @@ class Config:
         self.altDialogOpen   = ""       # Alternative dialog symbol, open
         self.altDialogClose  = ""       # Alternative dialog symbol, close
         self.highlightEmph   = True     # Add colour to text emphasis
+        self.dottedModCodes  = False    # Add dotted lines under codes and modifiers
 
         self.stopWhenIdle    = True     # Stop the status bar clock when the user is idle
         self.userIdleTime    = 300      # Time of inactivity to consider user idle
@@ -449,6 +452,11 @@ class Config:
             self.textFont = fontMatcher(font)
             logger.debug("Text font set to: %s", describeFont(self.textFont))
 
+    def setPrimaryCount(self, useCharCount: bool) -> None:
+        """Set the primary count unit. This also updates the unit label."""
+        self.useCharCount = useCharCount
+        self.countUnit = trStats("Characters" if useCharCount else "Words").lower()
+
     ##
     #  Methods
     ##
@@ -609,6 +617,9 @@ class Config:
                         nwApp.installTranslator(qTrans)
                         self._qtTrans[lngFile] = qTrans
 
+        # Refresh translated values
+        self.setPrimaryCount(self.useCharCount)
+
     def loadConfig(self, splash: NSplashScreen | None = None) -> bool:
         """Load preferences from file and replace default settings."""
         self._splash = splash
@@ -718,6 +729,7 @@ class Config:
         self.altDialogOpen   = conf.rdStr(sec, "altdialogopen", self.altDialogOpen)
         self.altDialogClose  = conf.rdStr(sec, "altdialogclose", self.altDialogClose)
         self.highlightEmph   = conf.rdBool(sec, "highlightemph", self.highlightEmph)
+        self.dottedModCodes  = conf.rdBool(sec, "dottedmodcodes", self.dottedModCodes)
         self.stopWhenIdle    = conf.rdBool(sec, "stopwhenidle", self.stopWhenIdle)
         self.userIdleTime    = conf.rdInt(sec, "useridletime", self.userIdleTime)
 
@@ -850,6 +862,7 @@ class Config:
             "altdialogopen":   str(self.altDialogOpen),
             "altdialogclose":  str(self.altDialogClose),
             "highlightemph":   str(self.highlightEmph),
+            "dottedmodcodes":  str(self.dottedModCodes),
             "stopwhenidle":    str(self.stopWhenIdle),
             "useridletime":    str(self.userIdleTime),
         }

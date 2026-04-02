@@ -62,13 +62,14 @@ class NWTree:
     also used for file names.
     """
 
-    __slots__ = ("_items", "_model", "_nodes", "_project", "_ready", "_trash")
+    __slots__ = ("_docs", "_items", "_model", "_nodes", "_project", "_ready", "_trash")
 
     def __init__(self, project: NWProject) -> None:
         self._project = project
         self._model = ProjectModel(self)
         self._items: dict[str, NWItem] = {}
         self._nodes: dict[str, ProjectNode] = {}
+        self._docs: list[str] = []
         self._trash = None
         self._ready = False
         logger.debug("Ready: NWTree")
@@ -258,6 +259,19 @@ class NWTree:
         self._model.endInsertRows()
         self._model.layoutChanged.emit()
 
+    def subTreePos(self, tHandle: str) -> int:
+        """Return the position of an item under its parent."""
+        return node.row() if (node := self._nodes.get(tHandle)) else -1
+
+    def allDocs(self) -> list[str]:
+        """Return a list of all document handles."""
+        if not self._docs:
+            self._docs = [
+                node.item.itemHandle for node in self._model.root.allChildren()
+                if node.item.isFileType()
+            ]
+        return self._docs
+
     def pickParent(self, sNode: ProjectNode, hLevel: int, isNote: bool) -> tuple[str | None, int]:
         """Pick an appropriate parent handle for adding a new item."""
         if sNode.item.isFolderType() or sNode.item.isRootType():
@@ -308,6 +322,7 @@ class NWTree:
     def novelStructureChanged(self, tHandle: str) -> None:
         """Emit a novel structure change signal."""
         if self._ready:
+            self._docs = []
             SHARED.novelStructureChanged.emit(tHandle)
 
     def checkConsistency(self, prefix: str) -> tuple[int, int]:
@@ -396,7 +411,8 @@ class NWTree:
                 toc.write("\n".join(entries))
                 toc.write("\n")
 
-        except Exception:
+        except Exception as exc:
+            SHARED.appendErrorMessage(exc)
             logger.error("Could not write ToC file")
             logException()
             return False

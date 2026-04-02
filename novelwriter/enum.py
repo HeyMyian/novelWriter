@@ -129,6 +129,7 @@ class nwDocAction(Enum):
     SC_MARK   = 36
     SC_SUP    = 37
     SC_SUB    = 38
+    MOVE_TEXT = 39
 
 
 class nwDocInsert(Enum):
@@ -278,6 +279,20 @@ class nwStandardButton(Enum):
     BUILD   = 14
     PRINT   = 15
     PREVIEW = 16
+
+
+class nwToolButton(Enum):
+    """Enum: Standard Tool Buttons."""
+
+    ADD       = 0
+    REMOVE    = 1
+    MOVE_UP   = 2
+    MOVE_DOWN = 3
+    IMPORT    = 4
+    EXPORT    = 5
+    BROWSE    = 6
+    EDIT      = 7
+    REVERT    = 8
 
 
 class nwState(Enum):
