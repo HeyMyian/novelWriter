@@ -44,7 +44,7 @@ from novelwriter.error import formatException
 from novelwriter.extensions.modified import NPushButton, NToolDialog
 from novelwriter.extensions.switch import NSwitch
 from novelwriter.types import (
-    QtAlignLeftMiddle, QtAlignRight, QtAlignRightMiddle, QtDecoration,
+    QtAlignLeftMiddle, QtAlignRight, QtAlignRightMiddle, QtDecorationRole,
     QtRoleAction, QtRoleDestruct
 )
 
@@ -593,7 +593,7 @@ class GuiWritingStats(NToolDialog):
                     int(200*min(nWords, histMax)/listMax),
                     self.barHeight, mAspect, mTrans
                 )
-                newItem.setData(self.C_BAR, QtDecoration, wBar)
+                newItem.setData(self.C_BAR, QtDecorationRole, wBar)
 
             newItem.setTextAlignment(self.C_LENGTH, QtAlignRight)
             newItem.setTextAlignment(self.C_IDLE, QtAlignRight)

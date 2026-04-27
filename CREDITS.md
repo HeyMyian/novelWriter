@@ -39,6 +39,7 @@ translators for the languages currently available:
 
 Additional larger translation contributions:
 
+* **Dutch:** Lise Blok (risingphoenix73)
 * **French:** Albert Aribaud (aaribaud)
 * **Portuguese:** Oli Maia (olimaia)
 

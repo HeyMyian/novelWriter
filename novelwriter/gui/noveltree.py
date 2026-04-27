@@ -32,7 +32,7 @@ import logging
 from enum import Enum
 
 from PyQt6.QtCore import QModelIndex, QPoint, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QActionGroup, QFont, QPainter, QPalette, QResizeEvent
+from PyQt6.QtGui import QActionGroup, QPainter, QPalette, QResizeEvent
 from PyQt6.QtWidgets import (
     QAbstractItemView, QFrame, QHBoxLayout, QInputDialog, QMenu,
     QStyleOptionViewItem, QToolTip, QVBoxLayout, QWidget
@@ -183,11 +183,8 @@ class GuiNovelToolBar(QWidget):
         self.setAutoFillBackground(True)
 
         # Novel Selector
-        selFont = self.font()
-        selFont.setWeight(QFont.Weight.Bold)
-
         self.novelValue = NovelSelector(self)
-        self.novelValue.setFont(selFont)
+        self.novelValue.setFont(SHARED.theme.guiFontB)
         self.novelValue.setListFormat(self.tr("Outline of {0}"))
         self.novelValue.setMinimumWidth(150)
         self.novelValue.setSizePolicy(QtSizeExpanding, QtSizeExpanding)

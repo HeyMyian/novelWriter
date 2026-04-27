@@ -3,7 +3,7 @@ name: i18n
 on:
   push:
     branches:
-      - i18n/*
+      - i18n*
 
 jobs:
   buildI18n:

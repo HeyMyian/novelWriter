@@ -53,15 +53,9 @@ class GuiItemDetails(QWidget):
         # Internal Variables
         self._handle = None
 
-        # Sizes
-        fPt = SHARED.theme.fontPointSize
-
-        fntLabel = self.font()
-        fntLabel.setBold(True)
-        fntLabel.setPointSizeF(0.9*fPt)
-
-        fntValue = self.font()
-        fntValue.setPointSizeF(0.9*fPt)
+        # Predefined
+        fntLabel = SHARED.theme.guiFontSmallB
+        fntValue = SHARED.theme.guiFontSmall
 
         trStats1 = trStats(nwLabels.STATS_NAME[nwStats.CHARS])
         trStats2 = trStats(nwLabels.STATS_NAME[nwStats.WORDS])

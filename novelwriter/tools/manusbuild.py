@@ -42,6 +42,7 @@ from novelwriter.constants import nwLabels
 from novelwriter.core.docbuild import NWBuildDocument
 from novelwriter.core.item import NWItem
 from novelwriter.enum import nwBuildFmt, nwStandardButton, nwToolButton
+from novelwriter.extensions.configlayout import NColorLabel
 from novelwriter.extensions.modified import NDialog, NIconToolButton, NPushButton
 from novelwriter.extensions.progressbars import NProgressSimple
 from novelwriter.types import QtAlignCenter, QtRoleAction, QtRoleDestruct, QtUserRole
@@ -132,14 +133,10 @@ class GuiManuscriptBuild(NDialog):
         # Dialog Controls
         # ===============
 
-        font = self.font()
-        font.setBold(True)
-        font.setUnderline(True)
-        font.setPointSizeF(1.5*font.pointSizeF())
-
-        self.lblMain = QLabel(self._build.name, self)
-        self.lblMain.setWordWrap(True)
-        self.lblMain.setFont(font)
+        self.lblMain = NColorLabel(
+            self.tr("Build: {0}").format(self._build.name), self,
+            color=SHARED.theme.helpText, scale=NColorLabel.HEADER_SCALE,
+        )
 
         # Build Path
         self.lblPath = QLabel(self.tr("Path"), self)

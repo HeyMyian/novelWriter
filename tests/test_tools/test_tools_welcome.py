@@ -33,8 +33,11 @@ from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwFiles
 from novelwriter.core.projectdata import NWProjectData
 from novelwriter.enum import nwItemClass
-from novelwriter.tools.welcome import SAMPLE_KEY, SAMPLE_NAME, GuiWelcome
-from novelwriter.types import QtMouseLeft
+from novelwriter.tools.welcome import SAMPLE_KEY, SAMPLE_NAME, GuiWelcome, _ProjectListEntry
+from novelwriter.types import (
+    QtAccessibleTextRole, QtDecorationRole, QtDisplayRole, QtFontRole,
+    QtMouseLeft, QtTextAlignmentRole, QtToolTipRole, QtUserRole
+)
 
 
 @pytest.mark.gui
@@ -96,7 +99,7 @@ def testToolWelcome_Main(qtbot, monkeypatch, nwGUI, fncPath):
 
 
 @pytest.mark.gui
-def testToolWelcome_Open(qtbot, monkeypatch, nwGUI, fncPath):
+def testToolWelcome_Open(qtbot, monkeypatch, nwGUI):
     """Test the open tab in the Welcome window."""
     monkeypatch.setattr(QMenu, "exec", lambda *a: None)
     monkeypatch.setattr(QMenu, "setParent", lambda *a: None)
@@ -129,12 +132,31 @@ def testToolWelcome_Open(qtbot, monkeypatch, nwGUI, fncPath):
     posTwo = tabOpen.listWidget.rectForIndex(listModel.createIndex(1, 0)).center()
 
     # Check items, which should be in opposite order
-    assert listModel.data(listModel.createIndex(0, 0)) == (
-        "Project Two", "/stuff/project_two", f"Last Opened: {dateOne}, Word Count: 54.3\u2009k"
-    )
-    assert listModel.data(listModel.createIndex(1, 0)) == (
-        "Project One", "/stuff/project_one", f"Last Opened: {dateTwo}, Word Count: 12.3\u2009k"
-    )
+    entry = listModel.data(listModel.createIndex(0, 0), QtDisplayRole)
+    assert isinstance(entry, _ProjectListEntry)
+    assert entry.title == "Project Two"
+    assert entry.path == "/stuff/project_two"
+    assert entry.details == f"Last Opened: {dateOne}, Word Count: 54.3\u2009k"
+    assert entry.accessible == f"Project Two, Last Opened {dateOne}, Word Count 54.3\u2009k"
+    assert listModel.data(listModel.createIndex(0, 0), QtAccessibleTextRole) == entry.accessible
+
+    entry = listModel.data(listModel.createIndex(1, 0), QtDisplayRole)
+    assert isinstance(entry, _ProjectListEntry)
+    assert entry.title == "Project One"
+    assert entry.path == "/stuff/project_one"
+    assert entry.details == f"Last Opened: {dateTwo}, Word Count: 12.3\u2009k"
+    assert entry.accessible == f"Project One, Last Opened {dateTwo}, Word Count 12.3\u2009k"
+    assert listModel.data(listModel.createIndex(1, 0), QtAccessibleTextRole) == entry.accessible
+
+    # Check other model data roles
+    assert listModel.data(listModel.createIndex(0, 0), QtDecorationRole) is None
+    assert listModel.data(listModel.createIndex(0, 0), QtFontRole) is None
+    assert listModel.data(listModel.createIndex(0, 0), QtTextAlignmentRole) is None
+    assert listModel.data(listModel.createIndex(0, 0), QtToolTipRole) is None
+    assert listModel.data(listModel.createIndex(0, 0), QtUserRole) is None
+
+    # Check out of range index
+    assert listModel.data(listModel.createIndex(2, 0), QtDisplayRole) is None
 
     # Change selection with arrow keys
     assert tabOpen.selectedPath.text() == "Path: /stuff/project_two"
@@ -207,17 +229,13 @@ def testToolWelcome_Open(qtbot, monkeypatch, nwGUI, fncPath):
     ctxMenu.deleteLater()
 
     # Check removing entry error handling
-    assert listModel.data(listModel.createIndex(1, 0)) == ("", "", "")
+    assert listModel.data(listModel.createIndex(1, 0), QtDisplayRole) is None
     assert listModel.removeEntry(listModel.createIndex(1, 0)) is False
-    with monkeypatch.context() as mp:
-        mp.setattr(listModel, "data", lambda *a: ("a", "b", "c"))
-        assert listModel.removeEntry(listModel.createIndex(1, 0)) is False
 
     # qtbot.stop()
     welcome.close()
 
 
-# @pytest.mark.skip
 @pytest.mark.gui
 def testToolWelcome_New(qtbot, caplog, monkeypatch, nwGUI, fncPath):
     """Test the new project tab in the Welcome window."""

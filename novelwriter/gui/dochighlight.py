@@ -31,8 +31,8 @@ from time import time
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import (
-    QBrush, QColor, QFont, QSyntaxHighlighter, QTextBlockUserData,
-    QTextCharFormat, QTextDocument
+    QBrush, QColor, QSyntaxHighlighter, QTextBlockUserData, QTextCharFormat,
+    QTextDocument
 )
 
 from novelwriter import CONFIG, SHARED
@@ -41,7 +41,7 @@ from novelwriter.constants import nwStyles, nwUnicode
 from novelwriter.enum import nwComment
 from novelwriter.text.formats import processComment
 from novelwriter.text.patterns import REGEX_PATTERNS, DialogParser
-from novelwriter.types import QtTextUserProperty
+from novelwriter.types import QtFontBold, QtTextUserProperty
 
 logger = logging.getLogger(__name__)
 
@@ -487,7 +487,7 @@ class GuiDocHighlighter(QSyntaxHighlighter):
         if style:
             styles = style.split(",")
             if "b" in styles:
-                charFormat.setFontWeight(QFont.Weight.Bold)
+                charFormat.setFontWeight(QtFontBold)
             if "i" in styles:
                 charFormat.setFontItalic(True)
             if "u" in styles:

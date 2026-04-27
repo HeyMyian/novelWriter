@@ -117,7 +117,8 @@ class GuiManuscript(NToolDialog):
         self.tbEdit.setToolTip(self.tr("Edit Selected Build"))
         self.tbEdit.clicked.connect(self._editSelectedBuild)
 
-        self.lblBuilds = QLabel("<b>{0}</b>".format(self.tr("Builds")), self)
+        self.lblBuilds = QLabel(self.tr("Builds"), self)
+        self.lblBuilds.setFont(SHARED.theme.guiFontB)
 
         self.listToolBox = QHBoxLayout()
         self.listToolBox.addWidget(self.lblBuilds)
@@ -678,13 +679,9 @@ class _OutlineWidget(QWidget):
         if isinstance(data, dict) and (data != self._outline or force):
             self.listView.clear()
 
-            tFont = self.font()
-            tFont.setBold(True)
+            tFont = SHARED.theme.guiFontB
+            hFont = SHARED.theme.guiFontBU
             tBrush = self.palette().highlight()
-
-            hFont = self.font()
-            hFont.setBold(True)
-            hFont.setUnderline(True)
 
             indent = False
             if root := self.listView.invisibleRootItem():

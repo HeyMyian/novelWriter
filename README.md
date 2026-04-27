@@ -5,7 +5,6 @@
 [![MacOS](https://github.com/vkbo/novelWriter/actions/workflows/test_mac.yml/badge.svg)](https://github.com/vkbo/novelWriter/actions/workflows/test_mac.yml)
 [![Linting](https://github.com/vkbo/novelWriter/actions/workflows/syntax.yml/badge.svg)](https://github.com/vkbo/novelWriter/actions/workflows/syntax.yml)
 [![CodeCov](https://codecov.io/gh/vkbo/novelWriter/branch/main/graph/badge.svg)](https://codecov.io/gh/vkbo/novelWriter)
-[![PDM](https://img.shields.io/endpoint?url=https%3A%2F%2Fcdn.jsdelivr.net%2Fgh%2Fpdm-project%2F.github%2Fbadge.json)](https://pdm-project.org)
 
 <img align="left" style="margin: 0 0 4px 0;" src="https://raw.githubusercontent.com/vkbo/novelWriter/main/setup/novelwriter_readme.png">
 

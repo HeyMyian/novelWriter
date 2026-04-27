@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import pytest
 
-from PyQt6.QtGui import QFont, QTextBlock, QTextCharFormat, QTextCursor
+from PyQt6.QtGui import QTextBlock, QTextCharFormat, QTextCursor
 
 from novelwriter import CONFIG
 from novelwriter.constants import nwHeadFmt, nwUnicode
@@ -32,8 +32,8 @@ from novelwriter.formats.shared import BlockFmt, BlockTyp, TextDocumentTheme
 from novelwriter.formats.toqdoc import ToQTextDocument
 from novelwriter.types import (
     QtAlignAbsolute, QtAlignCenter, QtAlignJustify, QtAlignLeft, QtAlignRight,
-    QtPageBreakAfter, QtPageBreakAuto, QtPageBreakBefore, QtTransparent,
-    QtVAlignNormal, QtVAlignSub, QtVAlignSuper
+    QtFontBold, QtPageBreakAfter, QtPageBreakAuto, QtPageBreakBefore,
+    QtTransparent, QtVAlignNormal, QtVAlignSub, QtVAlignSuper
 )
 
 THEME = TextDocumentTheme()
@@ -79,7 +79,7 @@ def testFmtToQTextDocument_ConvertHeaders(mockGUI):
     assert bFmt.topMargin() == doc._mHead[BlockTyp.TITLE][0]
     assert bFmt.bottomMargin() == doc._mHead[BlockTyp.TITLE][1]
     cFmt = charFmtInBlock(block, 1)
-    assert cFmt.fontWeight() == QFont.Weight.Bold
+    assert cFmt.fontWeight() == QtFontBold
     assert cFmt.fontPointSize() == doc._sHead[BlockTyp.TITLE]
     assert cFmt.foreground().color() == THEME.text
 
@@ -90,7 +90,7 @@ def testFmtToQTextDocument_ConvertHeaders(mockGUI):
     assert bFmt.topMargin() == doc._mHead[BlockTyp.PART][0]
     assert bFmt.bottomMargin() == doc._mHead[BlockTyp.PART][1]
     cFmt = charFmtInBlock(block, 1)
-    assert cFmt.fontWeight() == QFont.Weight.Bold
+    assert cFmt.fontWeight() == QtFontBold
     assert cFmt.fontPointSize() == doc._sHead[BlockTyp.PART]
     assert cFmt.foreground().color() == THEME.head
 
@@ -102,7 +102,7 @@ def testFmtToQTextDocument_ConvertHeaders(mockGUI):
     assert bFmt.topMargin() == doc._mHead[BlockTyp.HEAD1][0]
     assert bFmt.bottomMargin() == doc._mHead[BlockTyp.HEAD1][1]
     cFmt = charFmtInBlock(block, 1)
-    assert cFmt.fontWeight() == QFont.Weight.Bold
+    assert cFmt.fontWeight() == QtFontBold
     assert cFmt.fontPointSize() == doc._sHead[BlockTyp.HEAD1]
     assert cFmt.foreground().color() == THEME.head
 
@@ -114,7 +114,7 @@ def testFmtToQTextDocument_ConvertHeaders(mockGUI):
     assert bFmt.topMargin() == doc._mHead[BlockTyp.HEAD1][0]
     assert bFmt.bottomMargin() == doc._mHead[BlockTyp.HEAD1][1]
     cFmt = charFmtInBlock(block, 1)
-    assert cFmt.fontWeight() == QFont.Weight.Bold
+    assert cFmt.fontWeight() == QtFontBold
     assert cFmt.fontPointSize() == doc._sHead[BlockTyp.HEAD1]
     assert cFmt.foreground().color() == THEME.head
 
@@ -126,7 +126,7 @@ def testFmtToQTextDocument_ConvertHeaders(mockGUI):
     assert bFmt.topMargin() == doc._mHead[BlockTyp.HEAD2][0]
     assert bFmt.bottomMargin() == doc._mHead[BlockTyp.HEAD2][1]
     cFmt = charFmtInBlock(block, 1)
-    assert cFmt.fontWeight() == QFont.Weight.Bold
+    assert cFmt.fontWeight() == QtFontBold
     assert cFmt.fontPointSize() == doc._sHead[BlockTyp.HEAD2]
     assert cFmt.foreground().color() == THEME.head
 
@@ -138,7 +138,7 @@ def testFmtToQTextDocument_ConvertHeaders(mockGUI):
     assert bFmt.topMargin() == doc._mHead[BlockTyp.HEAD3][0]
     assert bFmt.bottomMargin() == doc._mHead[BlockTyp.HEAD3][1]
     cFmt = charFmtInBlock(block, 1)
-    assert cFmt.fontWeight() == QFont.Weight.Bold
+    assert cFmt.fontWeight() == QtFontBold
     assert cFmt.fontPointSize() == doc._sHead[BlockTyp.HEAD3]
     assert cFmt.foreground().color() == THEME.head
 
@@ -503,7 +503,7 @@ def testFmtToQTextDocument_TextCharFormats(mockGUI):
     cFmt = charFmtInBlock(block, 1)
     assert cFmt.fontWeight() == doc._dWeight
     cFmt = charFmtInBlock(block, 6)
-    assert cFmt.fontWeight() == QFont.Weight.Bold
+    assert cFmt.fontWeight() == QtFontBold
     cFmt = charFmtInBlock(block, 10)
     assert cFmt.fontWeight() == doc._dWeight
 

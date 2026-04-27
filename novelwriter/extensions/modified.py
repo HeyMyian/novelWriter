@@ -216,9 +216,19 @@ class NSpinBox(QSpinBox):
     window of many widgets.
     """
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        *,
+        minVal: int = 0,
+        maxVal: int = 15,
+        step: int = 1,
+    ) -> None:
         super().__init__(parent=parent)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setMinimum(minVal)
+        self.setMaximum(maxVal)
+        self.setSingleStep(step)
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         """Only capture the mouse wheel if the widget has focus."""
@@ -226,6 +236,10 @@ class NSpinBox(QSpinBox):
             super().wheelEvent(event)
         else:
             event.ignore()
+
+    def setFixedNumbersWidth(self, count: int) -> None:
+        """Set a fixed with for a certain amount of numbers."""
+        self.setFixedWidth(count*SHARED.theme.textNWidth + 24)
 
 
 class NDoubleSpinBox(QDoubleSpinBox):
@@ -258,6 +272,10 @@ class NDoubleSpinBox(QDoubleSpinBox):
             super().wheelEvent(event)
         else:
             event.ignore()
+
+    def setFixedNumbersWidth(self, count: int) -> None:
+        """Set a fixed with for a certain amount of numbers."""
+        self.setFixedWidth(count*SHARED.theme.textNWidth + 24)
 
 
 class NPushButton(QPushButton):

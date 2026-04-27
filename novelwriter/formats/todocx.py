@@ -1023,6 +1023,7 @@ class ToDocX(Tokenizer):
         xmlSubElem(xSet, _wTag("numFmt"), attrib={W_VAL: "decimal"})
 
         xSet = xmlSubElem(xRoot, _wTag("compat"))
+        xmlSubElem(xSet, _wTag("doNotExpandShiftReturn"))
         xmlSubElem(xSet, _wTag("compatSetting"), attrib={
             _wTag("name"): "compatibilityMode",
             _wTag("uri"): "http://schemas.microsoft.com/office/word",

@@ -250,6 +250,7 @@ def testDlgPreferences_Settings(qtbot, monkeypatch, nwGUI, fncPath, tstPaths):
     prefs.autoSelect.setChecked(False)
     prefs.cursorWidth.setValue(5)
     prefs.scaleHeadings.setChecked(False)
+    prefs.singleStarBold.setChecked(True)
     prefs.lineHighlight.setChecked(False)
     prefs.showTabsNSpaces.setChecked(True)
     prefs.showLineEndings.setChecked(True)
@@ -258,6 +259,7 @@ def testDlgPreferences_Settings(qtbot, monkeypatch, nwGUI, fncPath, tstPaths):
     assert CONFIG.autoSelect is True
     assert CONFIG.cursorWidth == 1
     assert CONFIG.scaleHeadings is True
+    assert CONFIG.singleStarBold is False
     assert CONFIG.lineHighlight is True
     assert CONFIG.showTabsNSpaces is False
     assert CONFIG.showLineEndings is False
@@ -403,6 +405,7 @@ def testDlgPreferences_Settings(qtbot, monkeypatch, nwGUI, fncPath, tstPaths):
     assert CONFIG.autoSelect is False
     assert CONFIG.cursorWidth == 5
     assert CONFIG.scaleHeadings is False
+    assert CONFIG.singleStarBold is True
     assert CONFIG.lineHighlight is False
     assert CONFIG.showTabsNSpaces is True
     assert CONFIG.showLineEndings is True

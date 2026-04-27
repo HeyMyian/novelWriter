@@ -40,7 +40,7 @@ from novelwriter.constants import nwLabels, nwLists, nwStyles, trConst
 from novelwriter.enum import nwChange, nwDocMode, nwItemClass
 from novelwriter.extensions.modified import NIconToolButton
 from novelwriter.gui.theme import STYLES_FLAT_TABS, STYLES_MIN_TOOLBUTTON
-from novelwriter.types import QtDecoration, QtHeaderFixed, QtHeaderToContents, QtUserRole
+from novelwriter.types import QtDecorationRole, QtHeaderFixed, QtHeaderToContents, QtUserRole
 
 if TYPE_CHECKING:
     from novelwriter.core.indexdata import IndexHeading, IndexNode
@@ -340,7 +340,7 @@ class _ViewPanelBackRefs(QTreeWidget):
             trItem.setToolTip(self.C_DOC, nwItem.itemName)
             trItem.setIcon(self.C_EDIT, self._editIcon)
             trItem.setIcon(self.C_VIEW, self._viewIcon)
-            trItem.setData(self.C_TITLE, QtDecoration, hDec)
+            trItem.setData(self.C_TITLE, QtDecorationRole, hDec)
             trItem.setText(self.C_TITLE, hItem.title)
             trItem.setToolTip(self.C_TITLE, hItem.title)
             trItem.setData(self.C_DATA, self.D_HANDLE, tHandle)
@@ -442,7 +442,7 @@ class _ViewPanelKeyWords(QTreeWidget):
         trItem.setIcon(self.C_DOC, nwItem.getMainIcon())
         trItem.setText(self.C_DOC, nwItem.itemName)
         trItem.setToolTip(self.C_DOC, nwItem.itemName)
-        trItem.setData(self.C_TITLE, QtDecoration, hDec)
+        trItem.setData(self.C_TITLE, QtDecorationRole, hDec)
         trItem.setText(self.C_TITLE, hItem.title)
         trItem.setToolTip(self.C_TITLE, hItem.title)
         trItem.setText(self.C_SHORT, hItem.synopsis)

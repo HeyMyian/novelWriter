@@ -44,7 +44,7 @@ from novelwriter.extensions.modified import NNonBlockingDialog
 from novelwriter.extensions.novelselector import NovelSelector
 from novelwriter.extensions.pagedsidebar import NPagedSideBar
 from novelwriter.extensions.switch import NSwitch
-from novelwriter.types import QtAlignRight, QtDecoration, QtRoleDestruct
+from novelwriter.types import QtAlignRight, QtDecorationRole, QtFontSemiBold, QtRoleDestruct
 
 if TYPE_CHECKING:
     from PyQt6.QtGui import QCloseEvent
@@ -205,12 +205,12 @@ class _OverviewPage(NScrollablePage):
         self.projEditTime = QLabel("", self)
 
         self.projForm = QFormLayout()
-        self.projForm.addRow("<b>{0}</b>".format(self.tr("Name")), self.projName)
-        self.projForm.addRow("<b>{0}</b>".format(self.tr("Revisions")), self.projRevisions)
-        self.projForm.addRow("<b>{0}</b>".format(self.tr("Editing Time")), self.projEditTime)
-        self.projForm.addRow("<b>{0}</b>".format(self.tr("Word Count")), self.projWords)
-        self.projForm.addRow("<b>\u2026 {0}</b>".format(self.tr("In Novels")), self.projNovels)
-        self.projForm.addRow("<b>\u2026 {0}</b>".format(self.tr("In Notes")), self.projNotes)
+        self.projForm.addRow(self.tr("Name"), self.projName)
+        self.projForm.addRow(self.tr("Revisions"), self.projRevisions)
+        self.projForm.addRow(self.tr("Editing Time"), self.projEditTime)
+        self.projForm.addRow(self.tr("Word Count"), self.projWords)
+        self.projForm.addRow(f'\u2026 {self.tr("In Novels")}', self.projNovels)
+        self.projForm.addRow(f'\u2026 {self.tr("In Notes")}', self.projNotes)
         self.projForm.setContentsMargins(8, 0, 0, 0)
         self.projForm.setHorizontalSpacing(24)
         self.projForm.setVerticalSpacing(4)
@@ -227,10 +227,10 @@ class _OverviewPage(NScrollablePage):
         self.novelScenes = QLabel("", self)
 
         self.novelForm = QFormLayout()
-        self.novelForm.addRow("<b>{0}</b>".format(self.tr("Name")), self.novelName)
-        self.novelForm.addRow("<b>{0}</b>".format(self.tr("Word Count")), self.novelWords)
-        self.novelForm.addRow("<b>{0}</b>".format(self.tr("Chapters")), self.novelChapters)
-        self.novelForm.addRow("<b>{0}</b>".format(self.tr("Scenes")), self.novelScenes)
+        self.novelForm.addRow(self.tr("Name"), self.novelName)
+        self.novelForm.addRow(self.tr("Word Count"), self.novelWords)
+        self.novelForm.addRow(self.tr("Chapters"), self.novelChapters)
+        self.novelForm.addRow(self.tr("Scenes"), self.novelScenes)
         self.novelForm.setContentsMargins(8, 0, 0, 0)
         self.novelForm.setHorizontalSpacing(24)
         self.novelForm.setVerticalSpacing(4)
@@ -459,7 +459,7 @@ class _ContentsPage(NFixedPage):
             if tTitle.strip() == "":
                 tTitle = self.tr("Untitled")
 
-            newItem.setData(self.C_TITLE, QtDecoration, hDec)
+            newItem.setData(self.C_TITLE, QtDecorationRole, hDec)
             newItem.setText(self.C_TITLE, tTitle)
             newItem.setText(self.C_WORDS, f"{wCount:n}")
             newItem.setText(self.C_PAGES, f"{pCount:n}")
@@ -477,7 +477,7 @@ class _ContentsPage(NFixedPage):
                 if tLevel == 0:
                     bFont.setItalic(True)
                 else:
-                    bFont.setBold(True)
+                    bFont.setWeight(QtFontSemiBold)
                     bFont.setUnderline(True)
                 newItem.setFont(self.C_TITLE, bFont)
 

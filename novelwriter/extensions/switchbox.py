@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QGridLayout, QLabel, QScrollArea, QWidget
 
+from novelwriter import SHARED
 from novelwriter.extensions.switch import NSwitch
 from novelwriter.types import (
     QtAlignLeft, QtAlignRight, QtAlignRightMiddle, QtSizeMinimum,
@@ -74,9 +75,7 @@ class NSwitchBox(QScrollArea):
     def addLabel(self, text: str) -> None:
         """Add a header label to the content box."""
         label = QLabel(text, self)
-        font = label.font()
-        font.setBold(True)
-        label.setFont(font)
+        label.setFont(SHARED.theme.guiFontB)
         self._content.addWidget(label, self._index, 0, 1, 3, QtAlignLeft)
         self._widgets.append(label)
         self._bumpIndex()

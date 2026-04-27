@@ -40,9 +40,9 @@ from novelwriter.formats.shared import BlockFmt, BlockTyp, T_Formats, TextFmt, s
 from novelwriter.formats.tokenizer import HEADING_BLOCKS, META_BLOCKS, Tokenizer
 from novelwriter.types import (
     QtAlignAbsolute, QtAlignCenter, QtAlignJustify, QtAlignLeft, QtAlignRight,
-    QtKeepAnchor, QtMoveAnchor, QtMoveEnd, QtPageBreakAfter, QtPageBreakAuto,
-    QtPageBreakBefore, QtPropLineHeight, QtTransparent, QtVAlignNormal,
-    QtVAlignSub, QtVAlignSuper
+    QtFontBold, QtFontNormal, QtKeepAnchor, QtMoveAnchor, QtMoveEnd,
+    QtPageBreakAfter, QtPageBreakAuto, QtPageBreakBefore, QtPropLineHeight,
+    QtTransparent, QtVAlignNormal, QtVAlignSub, QtVAlignSuper
 )
 
 if TYPE_CHECKING:
@@ -90,8 +90,8 @@ class ToQTextDocument(Tokenizer):
         self._newPage = False
         self._anchors = True
 
-        self._hWeight = QFont.Weight.Bold
-        self._dWeight = QFont.Weight.Normal
+        self._hWeight = QtFontBold
+        self._dWeight = QtFontNormal
         self._dItalic = False
         self._dStrike = False
         self._dUnderline = False
@@ -162,7 +162,7 @@ class ToQTextDocument(Tokenizer):
         self._dUnderline = self._textFont.underline()
 
         # Header Weight
-        self._hWeight = QFont.Weight.Bold if self._boldHeads else self._dWeight
+        self._hWeight = QtFontBold if self._boldHeads else self._dWeight
 
         # Scaled Sizes
         fPt = self._textFont.pointSizeF()
@@ -347,7 +347,7 @@ class ToQTextDocument(Tokenizer):
 
             # Construct next format
             if fmt == TextFmt.B_B:
-                cFmt.setFontWeight(QFont.Weight.Bold)
+                cFmt.setFontWeight(QtFontBold)
             elif fmt == TextFmt.B_E:
                 cFmt.setFontWeight(self._dWeight)
             elif fmt == TextFmt.I_B:
@@ -456,7 +456,7 @@ class ToQTextDocument(Tokenizer):
             cFmt.setFontItalic(False)
             cFmt.setFontUnderline(False)
             cFmt.setFontStrikeOut(False)
-            cFmt.setFontWeight(QFont.Weight.Normal)
+            cFmt.setFontWeight(QtFontNormal)
             cFmt.setFontPointSize(0.75*self._textFont.pointSizeF())
             cFmt.setForeground(fgCol)
 

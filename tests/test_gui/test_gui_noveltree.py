@@ -24,13 +24,14 @@ from pathlib import Path
 
 import pytest
 
-from PyQt6.QtCore import QModelIndex, QPoint, Qt
+from PyQt6.QtCore import QModelIndex, QPoint
 from PyQt6.QtWidgets import QInputDialog, QToolTip
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.core.novelmodel import NovelModel
 from novelwriter.dialogs.editlabel import GuiEditLabel
 from novelwriter.enum import nwFocus, nwItemType, nwNovelExtra, nwView
+from novelwriter.types import QtDisplayRole
 
 from tests.tools import C, buildTestProject
 
@@ -100,10 +101,10 @@ def testGuiNovelView_Content(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     # Check the items
     assert model.rowCount(root) == 3
     assert model.columnCount(root) == 3
-    assert model.data(model.createIndex(2, 1), Qt.ItemDataRole.DisplayRole) == "2"  # Word Count
+    assert model.data(model.createIndex(2, 1), QtDisplayRole) == "2"  # Word Count
 
     nwGUI.rebuildIndex()  # This should update the word count to the edited scene
-    assert model.data(model.createIndex(2, 1), Qt.ItemDataRole.DisplayRole) == "10"  # Word Count
+    assert model.data(model.createIndex(2, 1), QtDisplayRole) == "10"  # Word Count
 
     # Extra Column
     # ============
@@ -112,7 +113,7 @@ def testGuiNovelView_Content(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     assert model.columnCount(root) == 4
 
     # Scene column should contain the POV character
-    assert model.data(model.createIndex(2, 2), Qt.ItemDataRole.DisplayRole) == "Jane"
+    assert model.data(model.createIndex(2, 2), QtDisplayRole) == "Jane"
 
     # Resize the last column
     assert novelTree.lastColSize == 25

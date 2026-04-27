@@ -1,5 +1,78 @@
 # novelWriter Changelog
 
+## Version 26.1 [2026-04-26]
+
+### Release Notes
+
+The 2026.1 release is based on the features added in 2026.1 Beta 1, Beta 2, RC 1.
+
+See the website for complete [Release Notes](https://novelwriter.io/releases/release_26_1.html).
+
+### Detailed Changelog
+
+**Improvements**
+
+* When exporting manuscripts to DocX (Word), the document will no longer expand hard line breaks by
+  when default when justified margins are enabled. Issue #2690. PR #2732.
+* The "Add titles for notes" label in **Manuscript Build** settings has been updated and should now
+  be clearer. Issue #2727. PR #2729.
+
+**Internationalisation**
+
+* A missing translation string for projects was added. Issue #2730. PR #2731.
+* Norwegian and US English translations updated by @vkbo. PR #2738.
+* Japanese translation updated bu @hebekeg. PR #2738.
+* Dutch translation updated by @risingphoenix73. PR #2738.
+* German translation updated by @HeyMyian. PR #2738.
+* Polish translation updated by @Nauthizz. PR #2738.
+* Latin American Spanish translation updated by @tmarplatt. PR #2738.
+* Czech translation updated by Tomáš Zmek. PR #2738.
+* Italian translation updated by Lou Cyper. PR #2738.
+
+----
+
+## Version 26.1 RC 1 [2026-04-13]
+
+### Release Notes
+
+This is a release candidate of the next release version, and is intended for testing purposes.
+Please be careful when using this version on live writing projects, and make sure you take frequent
+backups.
+
+Note: There are no longer any Mac releases produced for novelWriter. See #2618.
+
+### Detailed Changelog
+
+**Bugfixes**
+
+* Fixed an issue where the editor and viewer header no longer changed colour when losing or gaining
+  focus. Issue #2716. PR #2717.
+* Fixed the project list tooltip on the Welcome dialog. Issue #2714. PR #2715.
+* Fixed the size of spin boxes on config forms. Issue #2703. PR #2711.
+
+**Features**
+
+* A new setting in Preferences allows for the usage of single asterisks for bold formatting.
+  Enabling this setting does not disable double asterisk bold. Issue #2718. PR #2719.
+
+**User Interface**
+
+* Adjusted some colours of icons in several themes to bring them visually in line with the rest of
+  the theme. Contributed by @HeyMyian. PR #2712.
+
+**Internationalisation**
+
+* Updated translation strings. PRs #2721 and #2722.
+* Updated Dutch translation by @risingphoenix73. PRs #2721 and #2722.
+* Updated US English and Norwegian translation by @vkbo. PRs #2721 and #2722.
+
+**Other Changes**
+
+* GUI font emphasis is now handled by the theme class, and bold text on the GUI has been reduced in
+  weight to semibold. Issue #2709. PR #2710.
+
+----
+
 ## Version 26.1 Beta 2 [2026-04-04]
 
 ### Release Notes
@@ -40,33 +113,33 @@ Note: There are no longer any Mac releases produced for novelWriter. See #2618.
 **Features**
 
 * The novelWriter version number is now year-based. Instead of the next release being 2.9, it is
-  instead 26.1 or 2026.1 as shown in the app. Discussion #2667. PR #2669.
+  now 26.1 or 2026.1 as shown in the app. Discussion #2667. PR #2669.
 * Added the Lucide icon theme as a user-selectable icon theme. Issue #2605. PR #2632.
-* It is now possible to split a document via text selection or at the cursor position from the
+* It is now possible to split a document via text selection, or at the cursor position, from the
   right-click menu in the editor. Issues #1486 and #2571. PR #2688.
-* The shortcuts `Ctrl+Up` and `Ctrl+Down` now move between paragraphs in the editor. Issue #2635.
-  PR #2679.
+* The shortcuts `Ctrl+Up` and `Ctrl+Down` now move the cursor between paragraphs in the editor.
+  Issue #2635. PR #2679.
 * The size of the different heading levels can now be adjusted in the Manuscript Build settings
   tool. Issue #2439. PR #2650.
 * Added a setting for manuscripts to use blank lines instead of margins in manuscript document
   formats. Issue #2648. Discussion #2646. PR #2649.
-* A new "Heading Format" sections is available in Manuscript Build settings where the previous
-  settings for bold and colourised headings have been moved, and a new setting to make them
-  uppercase is added. PR #2647.
+* A new "Heading Format" sections is available in Manuscript Build settings. The settings for bold
+  and colourised headings have been moved there, and a new setting to make them uppercase has been
+  added. PR #2647.
 
 **Improvements**
 
-* Added word or characters units to count tooltip labels in project tree and novel view. PR #2698.
+* Added word or character units to count tooltip labels in project tree and novel view. PR #2698.
 * The note document associated with a reference can now be opened in the editor from the
   right-click menu. Issue #2448. PR #2697.
-* The `Shift+Enter` shortcut now also works in the project search and opens the document in the
+* The `Shift+Enter` shortcut now also works in the project search, and opens the document in the
   viewer. However, it cannot show the actual search result since the search itself is performed on
   the raw plain text document and doesn't apply to the generated document in the viewer.
   Issue #2661. PR #2697.
 * Backward searches in the editor can now also iterate backwards in project documents if the option
   to continue search in the next document is enabled. Issue #1451. PR #2696.
-* Error handling when encountering file system problems has been improved and hardened. It should
-  further prevent application crashes when encountering such issues. Issue #2529 and #2671.
+* Error handling when encountering file system issues has been improved and hardened. It should
+  further prevent application crashes when encountering such issues. Issues #2529 and #2671.
   PRs #2675 and #2683.
 * The document header in the editor and viewer panels have been improved. An issue with clipping of
   the descending characters have been fixed, and each part of the path can be clicked to highlight
@@ -75,7 +148,7 @@ Note: There are no longer any Mac releases produced for novelWriter. See #2618.
   consistent with plain text where all text is the same size. Issue #2636. PR #2670.
 * Improved the way version numbers are shown in the Welcome dialog, allows the selected project to
   be opened with the Enter key, and using the arrow keys will move the selection up and down
-  without first having to switch focus to the project list. PR #2668.
+  without first having to switch focus to the recent projects list. PR #2668.
 
 **Accessibility**
 
@@ -96,7 +169,7 @@ Note: There are no longer any Mac releases produced for novelWriter. See #2618.
 * The fun Discworld themed titles shown on error windows have been extended with new titles to
   randomly select from. PR #2684.
 * PDM has replaced UV as the dependency manager for development and testing. This should not matter
-  to end users. PRs #2678 and #2685.
+  to end users. Issue #2685. PR #2678.
 
 ----
 
@@ -1131,7 +1204,7 @@ See the website for complete [Release Notes](https://novelwriter.io/releases/rel
 * Portuguese translation updated by Oli Maia. PR #1955.
 * Japanese translation updated by @hebekeg. PR #1955.
 * French translation updated by Albert Aribaud (@aaribaud). PR #1955.
-* Polish translation added by Anna Maria Polak (@Nauthiz). PR #1955.
+* Polish translation added by Anna Maria Polak (@Nauthizz). PR #1955.
 
 **Packaging**
 

@@ -93,8 +93,8 @@ class Config:
         "searchMatchCap", "searchNextFile", "searchProjCase", "searchProjRegEx", "searchProjWord",
         "searchRegEx", "searchWord", "showEditToolBar", "showFullPath", "showLineEndings",
         "showMultiSpaces", "showSessionTime", "showTabsNSpaces", "showViewerPanel",
-        "spellLanguage", "stopWhenIdle", "tabWidth", "textFont", "textMargin", "textWidth",
-        "themeMode", "useCharCount", "userIdleTime", "verPyQtString", "verPyQtValue",
+        "singleStarBold", "spellLanguage", "stopWhenIdle", "tabWidth", "textFont", "textMargin",
+        "textWidth", "themeMode", "useCharCount", "userIdleTime", "verPyQtString", "verPyQtValue",
         "verPyString", "verQtString", "verQtValue", "viewComments", "viewNotes", "viewPanePos",
         "viewSynopsis", "vimMode", "welcomeWinSize",
     )
@@ -220,6 +220,7 @@ class Config:
         self.showLineEndings = False    # Show line endings in editor
         self.showMultiSpaces = False    # Highlight multiple spaces in the text
         self.scaleHeadings   = True     # Use a larger size for headings
+        self.singleStarBold  = False    # Allow single asterisk bold
 
         self.doReplace       = True     # Enable auto-replace as you type
         self.doReplaceSQuote = True     # Smart single quotes
@@ -723,6 +724,7 @@ class Config:
         self.showLineEndings = conf.rdBool(sec, "showlineendings", self.showLineEndings)
         self.showMultiSpaces = conf.rdBool(sec, "showmultispaces", self.showMultiSpaces)
         self.scaleHeadings   = conf.rdBool(sec, "scaleheadings", self.scaleHeadings)
+        self.singleStarBold  = conf.rdBool(sec, "singlestarbold", self.singleStarBold)
         self.incNotesWCount  = conf.rdBool(sec, "incnoteswcount", self.incNotesWCount)
         self.showFullPath    = conf.rdBool(sec, "showfullpath", self.showFullPath)
         self.dialogStyle     = conf.rdInt(sec, "dialogstyle", self.dialogStyle)
@@ -856,6 +858,7 @@ class Config:
             "showlineendings": str(self.showLineEndings),
             "showmultispaces": str(self.showMultiSpaces),
             "scaleheadings":   str(self.scaleHeadings),
+            "singlestarbold":  str(self.singleStarBold),
             "incnoteswcount":  str(self.incNotesWCount),
             "showfullpath":    str(self.showFullPath),
             "dialogstyle":     str(self.dialogStyle),

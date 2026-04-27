@@ -158,7 +158,7 @@ SETTINGS_LABELS = {
     "text.includeNotes":       QT_TRANSLATE_NOOP("Builds", "Include manuscript notes"),
     "text.includeKeywords":    QT_TRANSLATE_NOOP("Builds", "Include keywords"),
     "text.ignoredKeywords":    QT_TRANSLATE_NOOP("Builds", "Ignore these keywords"),
-    "text.addNoteHeadings":    QT_TRANSLATE_NOOP("Builds", "Add titles for notes"),
+    "text.addNoteHeadings":    QT_TRANSLATE_NOOP("Builds", "Add titles for note root folders"),
 
     "format.grpFormat":        QT_TRANSLATE_NOOP("Builds", "Text Format"),
     "format.textFont":         QT_TRANSLATE_NOOP("Builds", "Text font"),

@@ -945,8 +945,14 @@ def testFmtToken_MarginFormat(mockGUI):
 
 
 @pytest.mark.core
-def testFmtToken_ExtractFormats(mockGUI):
-    """Test the extraction of formats in the Tokenizer class."""
+@pytest.mark.parametrize("singleBold", (True, False))
+def testFmtToken_ExtractFormats(mockGUI, singleBold):
+    """Test the extraction of formats in the Tokenizer class.
+    This test is run twice, with single and with double asterisk support
+    for bold.
+    """
+    CONFIG.singleStarBold = singleBold
+
     project = NWProject()
     tokens = BareTokenizer(project)
 
@@ -957,6 +963,16 @@ def testFmtToken_ExtractFormats(mockGUI):
     text, fmt = tokens._extractFormats("Text with **bold** in it.")
     assert text == "Text with bold in it."
     assert fmt == [(10, TextFmt.B_B, ""), (14, TextFmt.B_E, "")]
+
+    if singleBold:
+        text, fmt = tokens._extractFormats("Text with *bold* in it.")
+        assert text == "Text with bold in it."
+        assert fmt == [(10, TextFmt.B_B, ""), (14, TextFmt.B_E, "")]
+    else:
+        # If single bold is off, this format is ignored
+        text, fmt = tokens._extractFormats("Text with *bold* in it.")
+        assert text == "Text with *bold* in it."
+        assert fmt == []
 
     # Plain italics
     text, fmt = tokens._extractFormats("Text with _italics_ in it.")
@@ -981,11 +997,35 @@ def testFmtToken_ExtractFormats(mockGUI):
         (26, TextFmt.I_E, ""), (26, TextFmt.B_E, ""),
     ]
 
+    if singleBold:
+        text, fmt = tokens._extractFormats("Text with *bold and _italics_* in it.")
+        assert text == "Text with bold and italics in it."
+        assert fmt == [
+            (10, TextFmt.B_B, ""), (19, TextFmt.I_B, ""),
+            (26, TextFmt.I_E, ""), (26, TextFmt.B_E, ""),
+        ]
+    else:
+        # If single bold is off, only italics is recognised
+        text, fmt = tokens._extractFormats("Text with *bold and _italics_* in it.")
+        assert text == "Text with *bold and italics* in it."
+        assert fmt == [
+            (20, TextFmt.I_B, ""), (27, TextFmt.I_E, ""),
+        ]
+
     # Bold with overlapping italics
-    # Here, bold is ignored because it is not on word boundary
-    text, fmt = tokens._extractFormats("Text with **bold and overlapping _italics**_ in it.")
-    assert text == "Text with **bold and overlapping italics** in it."
-    assert fmt == [(33, TextFmt.I_B, ""), (42, TextFmt.I_E, "")]
+    if singleBold:
+        # Here bold is accepted because the second closing asterisk is itself a valid boundary
+        text, fmt = tokens._extractFormats("Text with **bold and overlapping _italics**_ in it.")
+        assert text == "Text with *bold and overlapping italics* in it."
+        assert fmt == [
+            (11, TextFmt.B_B, ""), (32, TextFmt.I_B, ""),
+            (39, TextFmt.B_E, ""), (40, TextFmt.I_E, ""),
+        ]
+    else:
+        # Here, bold is ignored because it is not on word boundary
+        text, fmt = tokens._extractFormats("Text with **bold and overlapping _italics**_ in it.")
+        assert text == "Text with **bold and overlapping italics** in it."
+        assert fmt == [(33, TextFmt.I_B, ""), (42, TextFmt.I_E, "")]
 
     # Shortcodes
     # ==========

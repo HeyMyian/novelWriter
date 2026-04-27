@@ -28,15 +28,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor, QFont, QPalette
+from PyQt6.QtGui import QColor, QPalette
 from PyQt6.QtWidgets import (
     QAbstractButton, QFrame, QHBoxLayout, QLabel, QLayout, QScrollArea,
     QVBoxLayout, QWidget
 )
 
+from novelwriter import SHARED
 from novelwriter.constants import nwUnicode
 from novelwriter.enum import nwState
-from novelwriter.types import QtHexArgb, QtScrollAsNeeded
+from novelwriter.types import QtFontNormal, QtFontSemiBold, QtHexArgb, QtScrollAsNeeded
 
 DEFAULT_SCALE = 0.9
 
@@ -161,7 +162,8 @@ class NScrollableForm(QScrollArea):
 
     def addGroupLabel(self, label: str, identifier: int | None = None) -> None:
         """Add a text label to separate groups of settings."""
-        qLabel = QLabel(f"<b>{label}</b>", self)
+        qLabel = QLabel(label, self)
+        qLabel.setFont(SHARED.theme.guiFontB)
         qLabel.setContentsMargins(0, 4, 0, 4)
         if not self._first:
             self._layout.addSpacing(20)
@@ -273,7 +275,7 @@ class NColorLabel(QLabel):
 
         font = self.font()
         font.setPointSizeF(scale*font.pointSizeF())
-        font.setWeight(QFont.Weight.Bold if bold else QFont.Weight.Normal)
+        font.setWeight(QtFontSemiBold if bold else QtFontNormal)
 
         self.setTextFormat(Qt.TextFormat.RichText)
         self.setFont(font)
@@ -289,15 +291,15 @@ class NColorLabel(QLabel):
         self._color = color or self._color
         self._faded = faded or self._faded
         self._error = error or self._error
-        self._refeshTextColor()
+        self._refreshTextColor()
 
     def setColorState(self, state: nwState) -> None:
         """Change the colour state."""
         if self._state is not state:
             self._state = state
-            self._refeshTextColor()
+            self._refreshTextColor()
 
-    def _refeshTextColor(self) -> None:
+    def _refreshTextColor(self) -> None:
         """Refresh the colour of the text on the label."""
         palette = self.palette()
         match self._state:
@@ -327,12 +329,12 @@ class NPathColorLabel(NColorLabel):
                     for h, n in value
                 ]))
             ))
-            self._refeshTextColor()
+            self._refreshTextColor()
 
-    def _refeshTextColor(self) -> None:
+    def _refreshTextColor(self) -> None:
         """Refresh the colour of the text on the label."""
-        super()._refeshTextColor()
-        color = self.palette().text().color().name(QtHexArgb)
+        super()._refreshTextColor()
+        color = self.palette().windowText().color().name(QtHexArgb)
         super().setText(self._text.replace("#000000", color))
 
 

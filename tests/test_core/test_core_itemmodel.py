@@ -31,6 +31,7 @@ from novelwriter.core.item import NWItem
 from novelwriter.core.itemmodel import INV_ROOT, NODE_FLAGS, ProjectModel, ProjectNode
 from novelwriter.core.project import NWProject
 from novelwriter.enum import nwItemLayout, nwItemType
+from novelwriter.types import QtDisplayRole, QtToolTipRole
 
 from tests.tools import buildTestProject
 
@@ -239,15 +240,15 @@ def testCoreItemModel_ProjectNode_Data(mockGUI, mockRnd, fncPath):
     assert scene.item.itemName == "New Scene"
 
     # Check Data
-    assert novel.data(0, Qt.ItemDataRole.DisplayRole) == "Novel"
-    assert novel.data(1, Qt.ItemDataRole.DisplayRole) == "9"
-    assert scene.data(0, Qt.ItemDataRole.DisplayRole) == "New Scene"
-    assert scene.data(1, Qt.ItemDataRole.DisplayRole) == "2"
+    assert novel.data(0, QtDisplayRole) == "Novel"
+    assert novel.data(1, QtDisplayRole) == "9"
+    assert scene.data(0, QtDisplayRole) == "New Scene"
+    assert scene.data(1, QtDisplayRole) == "2"
 
-    assert novel.data(2, Qt.ItemDataRole.ToolTipRole) == ""
-    assert novel.data(3, Qt.ItemDataRole.ToolTipRole) == "New"
-    assert scene.data(2, Qt.ItemDataRole.ToolTipRole) == "Active"
-    assert scene.data(3, Qt.ItemDataRole.ToolTipRole) == "New"
+    assert novel.data(2, QtToolTipRole) == ""
+    assert novel.data(3, QtToolTipRole) == "New"
+    assert scene.data(2, QtToolTipRole) == "Active"
+    assert scene.data(3, QtToolTipRole) == "New"
 
     # Check Flags
     assert novel.flags() == NODE_FLAGS
@@ -304,9 +305,9 @@ def testCoreItemModel_ProjectModel_Interface(mockGUI, mockRnd, fncPath):
     assert parent.isValid() is False
 
     # Data and Flags
-    assert model.data(novelIdx, Qt.ItemDataRole.DisplayRole) == "Novel"
-    assert model.data(sceneIdx, Qt.ItemDataRole.DisplayRole) == "New Scene"
-    assert model.data(invalidIdx, Qt.ItemDataRole.DisplayRole) is None
+    assert model.data(novelIdx, QtDisplayRole) == "Novel"
+    assert model.data(sceneIdx, QtDisplayRole) == "New Scene"
+    assert model.data(invalidIdx, QtDisplayRole) is None
     assert model.flags(novelIdx) == NODE_FLAGS
     assert model.flags(sceneIdx) == NODE_FLAGS | Qt.ItemFlag.ItemIsDragEnabled
     assert model.flags(invalidIdx) == Qt.ItemFlag.NoItemFlags

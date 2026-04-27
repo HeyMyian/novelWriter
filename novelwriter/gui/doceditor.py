@@ -790,7 +790,7 @@ class GuiDocEditor(QPlainTextEdit):
         elif action == nwDocAction.MD_ITALIC and not noFormat:
             self._toggleFormat(1, "_")
         elif action == nwDocAction.MD_BOLD and not noFormat:
-            self._toggleFormat(2, "*")
+            self._toggleFormat(1 if CONFIG.singleStarBold else 2, "*")
         elif action == nwDocAction.MD_STRIKE and not noFormat:
             self._toggleFormat(2, "~")
         elif action == nwDocAction.MD_MARK and not noFormat:

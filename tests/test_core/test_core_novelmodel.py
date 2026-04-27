@@ -22,13 +22,14 @@ from __future__ import annotations
 
 import pytest
 
-from PyQt6.QtCore import QModelIndex, Qt
+from PyQt6.QtCore import QModelIndex
 from PyQt6.QtTest import QAbstractItemModelTester
 
 from novelwriter.core.indexdata import IndexHeading
 from novelwriter.core.novelmodel import NovelModel
 from novelwriter.core.project import NWProject
 from novelwriter.enum import nwNovelExtra
+from novelwriter.types import QtDisplayRole
 
 from tests.tools import C, buildTestProject
 
@@ -56,14 +57,14 @@ def testCoreNovelModel_Interface(nwGUI, fncPath, mockRnd):
     # Initial structure
     assert model.rowCount(root) == 3
     assert model.columnCount(root) == 3
-    assert model.data(model.createIndex(0, 0), Qt.ItemDataRole.DisplayRole) == "New Novel"
+    assert model.data(model.createIndex(0, 0), QtDisplayRole) == "New Novel"
     assert model.handle(model.createIndex(0, 0)) == C.hTitlePage
     assert model.key(model.createIndex(0, 0)) == "T0001"
 
     # Clear the model and check error handling
     model.clear()
 
-    assert model.data(root, Qt.ItemDataRole.DisplayRole) is None
+    assert model.data(root, QtDisplayRole) is None
     assert model.handle(root) is None
     assert model.key(root) is None
 
@@ -103,7 +104,7 @@ def testCoreNovelModel_Extra(nwGUI, fncPath, mockRnd):
     assert model.columns == 4
     assert model._extraKey == "@pov"
     assert model._extraLabel == "Point of View"
-    assert model.data(model.createIndex(2, 2), Qt.ItemDataRole.DisplayRole) == "Jane"
+    assert model.data(model.createIndex(2, 2), QtDisplayRole) == "Jane"
 
     model.setExtraColumn(nwNovelExtra.HIDDEN)
     assert model.columns == 3
@@ -114,7 +115,7 @@ def testCoreNovelModel_Extra(nwGUI, fncPath, mockRnd):
     assert model.columns == 4
     assert model._extraKey == "@focus"
     assert model._extraLabel == "Focus"
-    assert model.data(model.createIndex(2, 2), Qt.ItemDataRole.DisplayRole) == "John"
+    assert model.data(model.createIndex(2, 2), QtDisplayRole) == "John"
 
     model.setExtraColumn(nwNovelExtra.HIDDEN)
     assert model.columns == 3
@@ -125,7 +126,7 @@ def testCoreNovelModel_Extra(nwGUI, fncPath, mockRnd):
     assert model.columns == 4
     assert model._extraKey == "@plot"
     assert model._extraLabel == "Plot"
-    assert model.data(model.createIndex(2, 2), Qt.ItemDataRole.DisplayRole) == "Main, Side"
+    assert model.data(model.createIndex(2, 2), QtDisplayRole) == "Main, Side"
 
     model.setExtraColumn(nwNovelExtra.HIDDEN)
     assert model.columns == 3
@@ -168,7 +169,7 @@ def testCoreNovelModel_Data(nwGUI, fncPath, mockRnd):
     scene.addHeading(IndexHeading(scene._cache, "T0003", 10, "H4", "Another Section"))
     assert model.refresh(scene) is True
     assert [
-        model.data(model.createIndex(i, 0), Qt.ItemDataRole.DisplayRole)
+        model.data(model.createIndex(i, 0), QtDisplayRole)
         for i in range(model.rowCount(root))
     ] == [
         "New Novel", "New Chapter", "New Scene", "A Section", "Another Section",
@@ -179,7 +180,7 @@ def testCoreNovelModel_Data(nwGUI, fncPath, mockRnd):
     del scene._headings["T0003"]
     assert model.refresh(scene) is True
     assert [
-        model.data(model.createIndex(i, 0), Qt.ItemDataRole.DisplayRole)
+        model.data(model.createIndex(i, 0), QtDisplayRole)
         for i in range(model.rowCount(root))
     ] == [
         "New Novel", "New Chapter", "New Scene",

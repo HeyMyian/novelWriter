@@ -87,7 +87,7 @@ class NWSessionLog:
         sTime = now - self._start
 
         logger.info(
-            "The session lasted %d sec and added %d words abd %d characters",
+            "The session lasted %d seconds and added %d words and %d characters",
             int(sTime), wDiff, cDiff
         )
         if sTime < 300 and (wDiff == 0 or cDiff == 0):

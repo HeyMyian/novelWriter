@@ -50,7 +50,7 @@ from novelwriter.error import logException
 from novelwriter.extensions.configlayout import NColorLabel
 from novelwriter.extensions.novelselector import NovelSelector
 from novelwriter.types import (
-    QtAlignLeftTop, QtAlignRight, QtAlignRightTop, QtDecoration,
+    QtAlignLeftTop, QtAlignRight, QtAlignRightTop, QtDecorationRole,
     QtScrollAlwaysOff, QtScrollAsNeeded, QtSizeExpanding, QtUserRole
 )
 
@@ -380,14 +380,13 @@ class GuiOutlineTree(QTreeWidget):
             header.sectionMoved.connect(self._columnMoved)
 
         # Pre-Generate Tree Formatting
-        fH1 = self.font()
-        fH1.setBold(True)
-        fH1.setUnderline(True)
-
-        fH2 = self.font()
-        fH2.setBold(True)
-
-        self._hFonts = [self.font(), fH1, fH2, self.font(), self.font()]
+        self._hFonts = [
+            SHARED.theme.guiFont,
+            SHARED.theme.guiFontBU,
+            SHARED.theme.guiFontB,
+            SHARED.theme.guiFont,
+            SHARED.theme.guiFont,
+        ]
         self._dIcon: dict[str, QIcon] = {}
 
         # Internals
@@ -681,7 +680,7 @@ class GuiOutlineTree(QTreeWidget):
             item = QTreeWidgetItem()
             hDec = SHARED.theme.getHeaderDecoration(iLevel)
 
-            item.setData(self._colIdx[nwOutline.TITLE], QtDecoration, hDec)
+            item.setData(self._colIdx[nwOutline.TITLE], QtDecorationRole, hDec)
             item.setText(self._colIdx[nwOutline.TITLE], novIdx.title)
             item.setData(self._colIdx[nwOutline.TITLE], self.D_HANDLE, tHandle)
             item.setData(self._colIdx[nwOutline.TITLE], self.D_TITLE, sTitle)

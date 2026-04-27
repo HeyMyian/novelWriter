@@ -40,8 +40,9 @@ class RegExPatterns:
     _rxUrl     = re.compile(nwRegEx.URL, re.ASCII)
     _rxWords   = re.compile(nwRegEx.WORDS)
     _rxBreak   = re.compile(nwRegEx.BREAK)
-    _rxItalic  = re.compile(nwRegEx.FMT_EI)
-    _rxBold    = re.compile(nwRegEx.FMT_EB)
+    _rxItalic  = re.compile(nwRegEx.FMT_IT)
+    _rxBold1   = re.compile(nwRegEx.FMT_B1)
+    _rxBold2   = re.compile(nwRegEx.FMT_B2)
     _rxStrike  = re.compile(nwRegEx.FMT_ST)
     _rxMark    = re.compile(nwRegEx.FMT_HL)
     _rxSCPlain = re.compile(nwRegEx.FMT_SC)
@@ -70,7 +71,7 @@ class RegExPatterns:
     @property
     def markdownBold(self) -> re.Pattern:
         """Markdown bold style."""
-        return self._rxBold
+        return self._rxBold1 if CONFIG.singleStarBold else self._rxBold2
 
     @property
     def markdownStrike(self) -> re.Pattern:

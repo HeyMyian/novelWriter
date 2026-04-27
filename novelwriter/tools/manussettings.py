@@ -1012,8 +1012,6 @@ class _FormattingTab(NScrollableForm):
         iSp = 6
         iPx = SHARED.theme.baseIconHeight
         iSz = SHARED.theme.baseIconSize
-        spW = 6*SHARED.theme.textNWidth
-        dbW = 7*SHARED.theme.textNWidth
 
         # Text Content
         # ============
@@ -1080,12 +1078,8 @@ class _FormattingTab(NScrollableForm):
         )
 
         # Line Height
-        self.lineHeight = NDoubleSpinBox(self)
-        self.lineHeight.setFixedWidth(spW)
-        self.lineHeight.setMinimum(0.75)
-        self.lineHeight.setMaximum(3.0)
-        self.lineHeight.setSingleStep(0.05)
-        self.lineHeight.setDecimals(2)
+        self.lineHeight = NDoubleSpinBox(self, minVal=0.75, maxVal=3.0, step=0.05, prec=2)
+        self.lineHeight.setFixedNumbersWidth(4)
         self.addRow(self._build.getLabel("format.lineHeight"), self.lineHeight, unit="em")
 
         # Text Options
@@ -1128,12 +1122,8 @@ class _FormattingTab(NScrollableForm):
         self.firstIndent = NSwitch(self, height=iPx)
         self.indentFirstPar = NSwitch(self, height=iPx)
 
-        self.indentWidth = NDoubleSpinBox(self)
-        self.indentWidth.setFixedWidth(spW)
-        self.indentWidth.setMinimum(0.1)
-        self.indentWidth.setMaximum(9.9)
-        self.indentWidth.setSingleStep(0.1)
-        self.indentWidth.setDecimals(1)
+        self.indentWidth = NDoubleSpinBox(self, minVal=0.1, maxVal=9.9, step=0.1, prec=1)
+        self.indentWidth.setFixedNumbersWidth(4)
 
         self.addRow(self._build.getLabel("format.firstLineIndent"), self.firstIndent)
         self.addRow(self._build.getLabel("format.firstIndentWidth"), self.indentWidth, unit="em")
@@ -1149,11 +1139,11 @@ class _FormattingTab(NScrollableForm):
 
         # Title
         self.titleSize = NDoubleSpinBox(self, minVal=0.8, maxVal=10.0, step=0.05)
-        self.titleSize.setFixedWidth(dbW)
-        self.titleMarginT = NDoubleSpinBox(self)
-        self.titleMarginT.setFixedWidth(dbW)
-        self.titleMarginB = NDoubleSpinBox(self)
-        self.titleMarginB.setFixedWidth(dbW)
+        self.titleSize.setFixedNumbersWidth(4)
+        self.titleMarginT = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.titleMarginT.setFixedNumbersWidth(4)
+        self.titleMarginB = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.titleMarginB.setFixedNumbersWidth(4)
         self.btnTitleProps = SHARED.theme.getToolButton(nwToolButton.REVERT, self)
         self.btnTitleProps.clicked.connect(self._resetTitleProps)
 
@@ -1173,11 +1163,11 @@ class _FormattingTab(NScrollableForm):
 
         # Heading 1
         self.h1Size = NDoubleSpinBox(self, minVal=0.8, maxVal=10.0, step=0.05)
-        self.h1Size.setFixedWidth(dbW)
-        self.h1MarginT = NDoubleSpinBox(self)
-        self.h1MarginT.setFixedWidth(dbW)
-        self.h1MarginB = NDoubleSpinBox(self)
-        self.h1MarginB.setFixedWidth(dbW)
+        self.h1Size.setFixedNumbersWidth(4)
+        self.h1MarginT = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.h1MarginT.setFixedNumbersWidth(4)
+        self.h1MarginB = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.h1MarginB.setFixedNumbersWidth(4)
         self.btnH1Props = SHARED.theme.getToolButton(nwToolButton.REVERT, self)
         self.btnH1Props.clicked.connect(self._resetH1Props)
 
@@ -1197,11 +1187,11 @@ class _FormattingTab(NScrollableForm):
 
         # Heading 2
         self.h2Size = NDoubleSpinBox(self, minVal=0.8, maxVal=10.0, step=0.05)
-        self.h2Size.setFixedWidth(dbW)
-        self.h2MarginT = NDoubleSpinBox(self)
-        self.h2MarginT.setFixedWidth(dbW)
-        self.h2MarginB = NDoubleSpinBox(self)
-        self.h2MarginB.setFixedWidth(dbW)
+        self.h2Size.setFixedNumbersWidth(4)
+        self.h2MarginT = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.h2MarginT.setFixedNumbersWidth(4)
+        self.h2MarginB = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.h2MarginB.setFixedNumbersWidth(4)
         self.btnH2Props = SHARED.theme.getToolButton(nwToolButton.REVERT, self)
         self.btnH2Props.clicked.connect(self._resetH2Props)
 
@@ -1221,11 +1211,11 @@ class _FormattingTab(NScrollableForm):
 
         # Heading 3
         self.h3Size = NDoubleSpinBox(self, minVal=0.8, maxVal=10.0, step=0.05)
-        self.h3Size.setFixedWidth(dbW)
-        self.h3MarginT = NDoubleSpinBox(self)
-        self.h3MarginT.setFixedWidth(dbW)
-        self.h3MarginB = NDoubleSpinBox(self)
-        self.h3MarginB.setFixedWidth(dbW)
+        self.h3Size.setFixedNumbersWidth(4)
+        self.h3MarginT = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.h3MarginT.setFixedNumbersWidth(4)
+        self.h3MarginB = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.h3MarginB.setFixedNumbersWidth(4)
         self.btnH3Props = SHARED.theme.getToolButton(nwToolButton.REVERT, self)
         self.btnH3Props.clicked.connect(self._resetH3Props)
 
@@ -1245,11 +1235,11 @@ class _FormattingTab(NScrollableForm):
 
         # Heading 4
         self.h4Size = NDoubleSpinBox(self, minVal=0.8, maxVal=10.0, step=0.05)
-        self.h4Size.setFixedWidth(dbW)
-        self.h4MarginT = NDoubleSpinBox(self)
-        self.h4MarginT.setFixedWidth(dbW)
-        self.h4MarginB = NDoubleSpinBox(self)
-        self.h4MarginB.setFixedWidth(dbW)
+        self.h4Size.setFixedNumbersWidth(4)
+        self.h4MarginT = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.h4MarginT.setFixedNumbersWidth(4)
+        self.h4MarginB = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.h4MarginB.setFixedNumbersWidth(4)
         self.btnH4Props = SHARED.theme.getToolButton(nwToolButton.REVERT, self)
         self.btnH4Props.clicked.connect(self._resetH4Props)
 
@@ -1268,10 +1258,10 @@ class _FormattingTab(NScrollableForm):
         )
 
         # Text
-        self.textMarginT = NDoubleSpinBox(self)
-        self.textMarginT.setFixedWidth(dbW)
-        self.textMarginB = NDoubleSpinBox(self)
-        self.textMarginB.setFixedWidth(dbW)
+        self.textMarginT = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.textMarginT.setFixedNumbersWidth(4)
+        self.textMarginB = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.textMarginB.setFixedNumbersWidth(4)
         self.btnTextProps = SHARED.theme.getToolButton(nwToolButton.REVERT, self)
         self.btnTextProps.clicked.connect(self._resetTextProps)
 
@@ -1285,10 +1275,10 @@ class _FormattingTab(NScrollableForm):
         )
 
         # Separator
-        self.sepMarginT = NDoubleSpinBox(self)
-        self.sepMarginT.setFixedWidth(dbW)
-        self.sepMarginB = NDoubleSpinBox(self)
-        self.sepMarginB.setFixedWidth(dbW)
+        self.sepMarginT = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.sepMarginT.setFixedNumbersWidth(4)
+        self.sepMarginB = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.sepMarginB.setFixedNumbersWidth(4)
         self.btnSepProps = SHARED.theme.getToolButton(nwToolButton.REVERT, self)
         self.btnSepProps.clicked.connect(self._resetSepProps)
 
@@ -1327,12 +1317,12 @@ class _FormattingTab(NScrollableForm):
         for key, name in nwLabels.PAPER_NAME.items():
             self.pageSize.addItem(trConst(name), key)
 
-        self.pageWidth = NDoubleSpinBox(self, maxVal=500.0)
-        self.pageWidth.setFixedWidth(dbW)
+        self.pageWidth = NDoubleSpinBox(self, minVal=1.0, maxVal=500.0)
+        self.pageWidth.setFixedNumbersWidth(5)
         self.pageWidth.valueChanged.connect(self._pageSizeValueChanged)
 
-        self.pageHeight = NDoubleSpinBox(self, maxVal=500.0)
-        self.pageHeight.setFixedWidth(dbW)
+        self.pageHeight = NDoubleSpinBox(self, minVal=1.0, maxVal=500.0)
+        self.pageHeight.setFixedNumbersWidth(5)
         self.pageHeight.valueChanged.connect(self._pageSizeValueChanged)
 
         self.pixPSH = QLabel(self)
@@ -1345,16 +1335,16 @@ class _FormattingTab(NScrollableForm):
 
         # Page Margins
         self.topMargin = NDoubleSpinBox(self)
-        self.topMargin.setFixedWidth(dbW)
+        self.topMargin.setFixedNumbersWidth(5)
 
         self.bottomMargin = NDoubleSpinBox(self)
-        self.bottomMargin.setFixedWidth(dbW)
+        self.bottomMargin.setFixedNumbersWidth(5)
 
         self.leftMargin = NDoubleSpinBox(self)
-        self.leftMargin.setFixedWidth(dbW)
+        self.leftMargin.setFixedNumbersWidth(5)
 
         self.rightMargin = NDoubleSpinBox(self)
-        self.rightMargin.setFixedWidth(dbW)
+        self.rightMargin.setFixedNumbersWidth(5)
 
         self.pixPMT = QLabel(self)
         self.pixPMB = QLabel(self)
@@ -1388,11 +1378,8 @@ class _FormattingTab(NScrollableForm):
             button=self.btnPageHeader, stretch=(1, 1)
         )
 
-        self.pageCountOffset = NSpinBox(self)
-        self.pageCountOffset.setMinimum(0)
-        self.pageCountOffset.setMaximum(999)
-        self.pageCountOffset.setSingleStep(1)
-        self.pageCountOffset.setMinimumWidth(spW)
+        self.pageCountOffset = NSpinBox(self, minVal=0, maxVal=999)
+        self.pageCountOffset.setFixedNumbersWidth(4)
         self.addRow(self._build.getLabel("doc.pageCountOffset"), self.pageCountOffset)
 
         # Meta Language
@@ -1701,12 +1688,14 @@ class _FormattingTab(NScrollableForm):
         nDec = 1 if isMM else 2
         nStep = 1.0 if isMM else 0.1
         pMax = 500.0 if isMM else 50.0
+        pMin = 10.0 if isMM else 1.0
         mMax = 150.0 if isMM else 15.0
 
         self.pageWidth.blockSignals(True)
         self.pageWidth.setDecimals(nDec)
         self.pageWidth.setSingleStep(nStep)
         self.pageWidth.setMaximum(pMax)
+        self.pageWidth.setMinimum(pMin)
         self.pageWidth.setValue(pageWidth)
         self.pageWidth.blockSignals(False)
 
@@ -1714,6 +1703,7 @@ class _FormattingTab(NScrollableForm):
         self.pageHeight.setDecimals(nDec)
         self.pageHeight.setSingleStep(nStep)
         self.pageHeight.setMaximum(pMax)
+        self.pageHeight.setMinimum(pMin)
         self.pageHeight.setValue(pageHeight)
         self.pageHeight.blockSignals(False)
 

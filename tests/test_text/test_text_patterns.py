@@ -95,8 +95,8 @@ def testTextPatterns_Words():
         [("one", 0, 3)], [("two", 4, 7)], [("three", 8, 13)]
     ]
 
-    # Em Dashes
-    assert allMatches(regEx, "one\u2014two\u2014three") == [
+    # En Dashes
+    assert allMatches(regEx, "one\u2013two\u2013three") == [
         [("one", 0, 3)], [("two", 4, 7)], [("three", 8, 13)]
     ]
 
@@ -129,14 +129,62 @@ def testTextPatterns_Words():
 @pytest.mark.core
 def testTextPatterns_Markdown():
     """Test the markdown pattern regexes."""
-    # Bold
+    # Bold, 2 Stars
+    # Allowing only 2 asterisks
+    CONFIG.singleStarBold = False
     regEx = REGEX_PATTERNS.markdownBold
+    # Correct format
     assert allMatches(regEx, "one **two** three") == [
         [("**two**", 4, 11), ("**", 4, 6), ("two", 6, 9), ("**", 9, 11)]
     ]
+
+    # Single asterisk format is ignored
+    assert allMatches(regEx, "one *two* three") == []
+
+    # Incorrect closing format
     assert allMatches(regEx, "one **two* three") == []
+
+    # Incorrect opening format
     assert allMatches(regEx, "one *two** three") == []
+
+    # Not on word boundary
     assert allMatches(regEx, "one**two**three") == []
+
+    # Not on word boundary, and mismatch
+    assert allMatches(regEx, "one*two*three") == []
+
+    # Bold, 1 Stars
+    # Allowing both 1 and 2 asterisks
+    CONFIG.singleStarBold = True
+    regEx = REGEX_PATTERNS.markdownBold
+
+    # Two asterisks work as before
+    assert allMatches(regEx, "one **two** three") == [
+        [("**two**", 4, 11), ("**", 4, 6), ("two", 6, 9), ("**", 9, 11)]
+    ]
+
+    # Single asterisk format is now allowed
+    assert allMatches(regEx, "one *two* three") == [
+         [("*two*", 4, 9), ("*", 4, 5), ("two", 5, 8), ("*", 8, 9)]
+    ]
+
+    # This is now a valid bold, and the extra asterisk is just kept as-is
+    assert allMatches(regEx, "one **two* three") == [
+        [("*two*", 5, 10), ("*", 5, 6), ("two", 6, 9), ("*", 9, 10)]
+    ]
+
+    # This is now a valid bold, and the extra asterisk is just kept as-is
+    assert allMatches(regEx, "one *two** three") == [
+        [("*two*", 4, 9), ("*", 4, 5), ("two", 5, 8), ("*", 8, 9)]
+    ]
+
+    # This is now a valid bold, because the asterisk itself is a valid boundary
+    assert allMatches(regEx, "one**two**three") == [
+        [("*two*", 4, 9), ("*", 4, 5), ("two", 5, 8), ("*", 8, 9)]
+    ]
+
+    # However, this is still invalid
+    assert allMatches(regEx, "one*two*three") == []
 
     # Italic
     regEx = REGEX_PATTERNS.markdownItalic
