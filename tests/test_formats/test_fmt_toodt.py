@@ -722,12 +722,12 @@ def testFmtToOdt_ConvertParagraphs(mockGUI):
         "with\nbreak\n\n"
         "Left Align <<\n\n"
     )
-    odt.setJustify(True)
+    odt.setJustify(True, False)
     odt.tokenizeText()
     odt.initDocument()
     odt.doConvert()
     odt.closeDocument()
-    odt.setJustify(False)
+    odt.setJustify(False, False)
     assert odt.errData == []
     assert xmlToText(odt._xText) == (
         '<office:text>'
@@ -929,6 +929,7 @@ def testFmtToOdt_SaveFlatWithEmptyLines(mockGUI, fncPath, tstPaths, ipsumText):
     odt._isNovel = True
     odt.setHeaderFormat(nwHeadFmt.DOC_AUTO, 1)
     odt.setLineForMargin(True)
+    odt.setJustify(True, False)
     assert odt._headerFormat == nwHeadFmt.DOC_AUTO
 
     odt.setPageLayout(148, 210, 20, 18, 17, 15)
