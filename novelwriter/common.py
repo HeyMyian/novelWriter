@@ -2,9 +2,6 @@
 novelWriter – Common Functions
 ==============================
 
-File History:
-Created: 2019-05-12 [0.1.0]
-
 This file is a part of novelWriter
 Copyright (C) 2019 Veronica Berglyd Olsen and novelWriter contributors
 
@@ -21,6 +18,7 @@ General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
+
 from __future__ import annotations
 
 import json
@@ -56,6 +54,7 @@ _Type = TypeVar("_Type")
 ##
 #  Checker Functions
 ##
+
 
 def checkStringNone(value: Any, default: str | None) -> str | None:
     """Check if a variable is a string or a None."""
@@ -123,15 +122,15 @@ def checkPath(value: Any, default: Path) -> Path:
     """Check if a value is a valid path."""
     if isinstance(value, Path):
         return value
-    elif isinstance(value, str):
-        if value.strip():
-            return Path(value)
+    elif isinstance(value, str) and value.strip():
+        return Path(value)
     return default
 
 
 ##
 #  Validator Functions
 ##
+
 
 def isHandle(value: Any) -> TypeGuard[str]:
     """Check if a string is a valid novelWriter handle.
@@ -141,10 +140,7 @@ def isHandle(value: Any) -> TypeGuard[str]:
         return False
     if len(value) != 13:
         return False
-    for c in value:
-        if c not in "0123456789abcdef":
-            return False
-    return True
+    return all(c in "0123456789abcdef" for c in value)
 
 
 def isTitleTag(value: Any) -> TypeGuard[str]:
@@ -155,10 +151,7 @@ def isTitleTag(value: Any) -> TypeGuard[str]:
         return False
     if not value.startswith("T"):
         return False
-    for c in value[1:]:
-        if c not in "0123456789":
-            return False
-    return True
+    return all(c in "0123456789" for c in value[1:])
 
 
 def isItemClass(value: Any) -> TypeGuard[str]:
@@ -200,9 +193,8 @@ def checkIntTuple(value: int, valid: tuple | list | set, default: int) -> int:
     """Check that an int is an element of a tuple. If it isn't, return
     the default value.
     """
-    if isinstance(value, int):
-        if value in valid:
-            return value
+    if isinstance(value, int) and value in valid:
+        return value
     return default
 
 
@@ -217,6 +209,7 @@ def firstFloat(*args: Any) -> float:
 ##
 #  Formatting Functions
 ##
+
 
 def formatInt(value: int) -> str:
     """Format an integer with k, M, G etc."""
@@ -254,9 +247,9 @@ def formatTime(t: int) -> str:
     """
     if isinstance(t, int):
         if t >= 86400:
-            return f"{t//86400:d}-{t%86400//3600:02d}:{t%3600//60:02d}:{t%60:02d}"
+            return f"{t // 86400:d}-{t % 86400 // 3600:02d}:{t % 3600 // 60:02d}:{t % 60:02d}"
         else:
-            return f"{t//3600:02d}:{t%3600//60:02d}:{t%60:02d}"
+            return f"{t // 3600:02d}:{t % 3600 // 60:02d}:{t % 60:02d}"
     return "ERROR"
 
 
@@ -296,6 +289,7 @@ def formatLink(link: str, text: str = "") -> str:
 ##
 #  String Functions
 ##
+
 
 def simplified(text: str) -> str:
     """Take a string and strip leading and trailing whitespaces, and
@@ -350,7 +344,7 @@ def languageName(code: str) -> str:
 def elide(text: str, length: int) -> str:
     """Elide a piece of text to a maximum length."""
     if len(text) > (cut := max(4, length)):
-        return f"{text[:cut-4].rstrip()} ..."
+        return f"{text[: cut - 4].rstrip()} ..."
     return text
 
 
@@ -384,61 +378,33 @@ def transferCase(source: str, target: str) -> str:
 def fuzzyTime(seconds: int) -> str:
     """Convert a time difference in seconds into a fuzzy time string."""
     if seconds < 0:
-        return QCoreApplication.translate(
-            "Common", "in the future"
-        )
+        return QCoreApplication.translate("Common", "in the future")
     elif seconds < 30:
-        return QCoreApplication.translate(
-            "Common", "just now"
-        )
+        return QCoreApplication.translate("Common", "just now")
     elif seconds < 90:
-        return QCoreApplication.translate(
-            "Common", "a minute ago"
-        )
+        return QCoreApplication.translate("Common", "a minute ago")
     elif seconds < 3300:  # 55 minutes
-        return QCoreApplication.translate(
-            "Common", "{0} minutes ago"
-        ).format(round(seconds/60))
+        return QCoreApplication.translate("Common", "{0} minutes ago").format(round(seconds / 60))
     elif seconds < 5400:  # 90 minutes
-        return QCoreApplication.translate(
-            "Common", "an hour ago"
-        )
+        return QCoreApplication.translate("Common", "an hour ago")
     elif seconds < 84600:  # 23.5 hours
-        return QCoreApplication.translate(
-            "Common", "{0} hours ago"
-        ).format(round(seconds/3600))
+        return QCoreApplication.translate("Common", "{0} hours ago").format(round(seconds / 3600))
     elif seconds < 129600:  # 1.5 days
-        return QCoreApplication.translate(
-            "Common", "a day ago"
-        )
+        return QCoreApplication.translate("Common", "a day ago")
     elif seconds < 561600:  # 6.5 days
-        return QCoreApplication.translate(
-            "Common", "{0} days ago"
-        ).format(round(seconds/86400))
+        return QCoreApplication.translate("Common", "{0} days ago").format(round(seconds / 86400))
     elif seconds < 907200:  # 10.5 days
-        return QCoreApplication.translate(
-            "Common", "a week ago"
-        )
+        return QCoreApplication.translate("Common", "a week ago")
     elif seconds < 2419200:  # 28 days
-        return QCoreApplication.translate(
-            "Common", "{0} weeks ago"
-        ).format(round(seconds/604800))
+        return QCoreApplication.translate("Common", "{0} weeks ago").format(round(seconds / 604800))
     elif seconds < 3888000:  # 45 days
-        return QCoreApplication.translate(
-            "Common", "a month ago"
-        )
+        return QCoreApplication.translate("Common", "a month ago")
     elif seconds < 29808000:  # 345 days
-        return QCoreApplication.translate(
-            "Common", "{0} months ago"
-        ).format(round(seconds/2592000))
+        return QCoreApplication.translate("Common", "{0} months ago").format(round(seconds / 2592000))
     elif seconds < 47336400:  # 1.5 years
-        return QCoreApplication.translate(
-            "Common", "a year ago"
-        )
+        return QCoreApplication.translate("Common", "a year ago")
     else:
-        return QCoreApplication.translate(
-            "Common", "{0} years ago"
-        ).format(round(seconds/31557600))
+        return QCoreApplication.translate("Common", "{0} years ago").format(round(seconds / 31557600))
 
 
 def numberToRoman(value: int, toLower: bool = False) -> str:
@@ -449,15 +415,26 @@ def numberToRoman(value: int, toLower: bool = False) -> str:
         return "OOR"
 
     lookup = [
-        (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"), (100, "C"), (90, "XC"),
-        (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"),
+        (1000, "M"),
+        (900, "CM"),
+        (500, "D"),
+        (400, "CD"),
+        (100, "C"),
+        (90, "XC"),
+        (50, "L"),
+        (40, "XL"),
+        (10, "X"),
+        (9, "IX"),
+        (5, "V"),
+        (4, "IV"),
+        (1, "I"),
     ]
 
     roman = ""
     for divisor, symbol in lookup:
-        n = value//divisor
-        roman += n*symbol
-        value -= n*divisor
+        n = value // divisor
+        roman += n * symbol
+        value -= n * divisor
         if value <= 0:
             break
 
@@ -468,6 +445,7 @@ def numberToRoman(value: int, toLower: bool = False) -> str:
 #  Safe I/O Wrappers
 ##
 
+
 def safeIterDir(path: Path, *, alert: bool = False) -> Generator[Path, None, None]:
     """Call Path.iterdir() with exception handling."""
     try:
@@ -476,6 +454,7 @@ def safeIterDir(path: Path, *, alert: bool = False) -> Generator[Path, None, Non
         logException()
         if alert:
             from novelwriter import SHARED
+
             SHARED.newStatusMessage(exc, "warning")
 
 
@@ -487,6 +466,7 @@ def safeExists(path: Path, *, alert: bool = False) -> bool:
         logException()
         if alert:
             from novelwriter import SHARED
+
             SHARED.newStatusMessage(exc, "warning")
         return False
 
@@ -499,6 +479,7 @@ def safeIsFile(path: Path, *, alert: bool = False) -> bool:
         logException()
         if alert:
             from novelwriter import SHARED
+
             SHARED.newStatusMessage(exc, "warning")
         return False
 
@@ -511,6 +492,7 @@ def safeIsDir(path: Path, *, alert: bool = False) -> bool:
         logException()
         if alert:
             from novelwriter import SHARED
+
             SHARED.newStatusMessage(exc, "warning")
         return False
 
@@ -518,6 +500,7 @@ def safeIsDir(path: Path, *, alert: bool = False) -> bool:
 ##
 #  Qt Helpers
 ##
+
 
 def describeFont(font: QFont) -> str:
     """Describe a font in a way that can be displayed on the GUI."""
@@ -555,8 +538,10 @@ def fontMatcher(font: QFont) -> QFont:
 
 def qtLambda(func: Callable, *args: Any, **kwargs: Any) -> Callable:
     """A replacement for Python lambdas that works for Qt slots."""  # noqa: D401
+
     def wrapper(*a_: Any) -> None:
         func(*args, **kwargs)
+
     return wrapper
 
 
@@ -590,10 +575,10 @@ def utf16CharMap(text: str) -> list[int]:
     ASCII, UCS-2 or UCS-4. QStrings are in UTF-16, so wide characters
     use 2 indices, and thus create an offset.
     """
-    utf16Map = list(range(0, len(text) + 1))
+    utf16Map = list(range(len(text) + 1))
     offset = 0
     for i, c in enumerate(text, 1):
-        if ord(c) > 0xffff:
+        if ord(c) > 0xFFFF:
             offset += 1
         utf16Map[i] = i + offset
     return utf16Map
@@ -602,6 +587,7 @@ def utf16CharMap(text: str) -> list[int]:
 ##
 #  Encoder Functions
 ##
+
 
 def jsonEncode(data: dict | list | tuple, n: int = 0, nmax: int = 0) -> str:
     """Encode a dictionary, list or tuple as a json object or array, and
@@ -624,7 +610,7 @@ def jsonEncode(data: dict | list | tuple, n: int = 0, nmax: int = 0) -> str:
 
         elif first in ("{", "["):
             n += 1
-            indent = "\n"+"  "*n
+            indent = "\n" + "  " * n
             if n > nmax > 0:
                 buffer.append(chunk)
             else:
@@ -632,7 +618,7 @@ def jsonEncode(data: dict | list | tuple, n: int = 0, nmax: int = 0) -> str:
 
         elif first in ("}", "]"):
             n -= 1
-            indent = "\n"+"  "*n
+            indent = "\n" + "  " * n
             if n >= nmax > 0:
                 buffer.append(chunk)
             else:
@@ -659,6 +645,7 @@ def jsonCombine(data: dict[str, str]) -> str:
 ##
 #  XML Helpers
 ##
+
 
 def xmlIndent(xml: ET.Element | ET.ElementTree) -> None:
     """A modified version of the XML indent function in the standard
@@ -743,6 +730,7 @@ def xmlSubElem(
 #  File and File System Functions
 ##
 
+
 def readTextFile(path: str | Path) -> str:
     """Read the content of a text file in a robust manner."""
     path = Path(path)
@@ -776,9 +764,7 @@ def getFileSize(path: Path) -> int:
 def openExternalPath(path: Path) -> bool:
     """Open a path by passing it to the desktop environment."""
     if Path(path).exists():
-        QDesktopServices.openUrl(
-            QUrl(urljoin("file:", pathname2url(str(path))))
-        )
+        QDesktopServices.openUrl(QUrl(urljoin("file:", pathname2url(str(path)))))
         return True
     return False
 

@@ -2,11 +2,6 @@
 novelWriter – Project Index
 ===========================
 
-File History:
-Created: 2019-05-27 [0.1.4]  Index
-Created: 2022-05-29 [2.0rc1] TagsIndex
-Created: 2022-05-29 [2.0rc1] ItemIndex
-
 This file is a part of novelWriter
 Copyright (C) 2019 Veronica Berglyd Olsen and novelWriter contributors
 
@@ -23,6 +18,7 @@ General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
+
 from __future__ import annotations
 
 import json
@@ -34,10 +30,7 @@ from time import time
 from typing import TYPE_CHECKING
 
 from novelwriter import SHARED, __hexversion__
-from novelwriter.common import (
-    formatTimeStamp, isHandle, isItemClass, isTitleTag, jsonCombine,
-    jsonEncode, safeExists
-)
+from novelwriter.common import formatTimeStamp, isHandle, isItemClass, isTitleTag, jsonCombine, jsonEncode, safeExists
 from novelwriter.constants import nwFiles, nwKeyWords, nwStyles
 from novelwriter.core.indexdata import NOTE_TYPES, TT_NONE, IndexHeading, IndexNode, T_NoteTypes
 from novelwriter.core.novelmodel import NovelModel
@@ -86,8 +79,15 @@ class Index:
     """
 
     __slots__ = (
-        "_indexBroken", "_indexChange", "_indexUpgrade", "_itemIndex", "_novelExtra",
-        "_novelModels", "_project", "_rootChange", "_tagsIndex",
+        "_indexBroken",
+        "_indexChange",
+        "_indexUpgrade",
+        "_itemIndex",
+        "_novelExtra",
+        "_novelModels",
+        "_project",
+        "_rootChange",
+        "_tagsIndex",
     )
 
     def __init__(self, project: NWProject) -> None:
@@ -109,6 +109,7 @@ class Index:
         self._rootChange = {}
 
     def __repr__(self) -> str:
+        """Return a string representation of the index."""
         return f"<Index project='{self._project.data.name}'>"
 
     ##
@@ -275,7 +276,7 @@ class Index:
         self._indexChange = time()
         SHARED.emitIndexAvailable(self._project)
 
-        logger.debug("Index loaded in %.3f ms", (time() - tStart)*1000)
+        logger.debug("Index loaded in %.3f ms", (time() - tStart) * 1000)
 
         return True
 
@@ -293,18 +294,20 @@ class Index:
         try:
             meta = {"version": __hexversion__, "timestamp": formatTimeStamp(start)}
             with open(indexFile, mode="w+", encoding="utf-8") as outFile:
-                outFile.write(jsonCombine({
-                    "novelWriter.meta": jsonEncode(meta, n=1),
-                    "novelWriter.tagsIndex": jsonEncode(self._tagsIndex.packData(), n=1, nmax=2),
-                    "novelWriter.itemIndex": jsonEncode(self._itemIndex.packData(), n=1, nmax=4),
-                }))
+                outFile.write(
+                    jsonCombine({
+                        "novelWriter.meta": jsonEncode(meta, n=1),
+                        "novelWriter.tagsIndex": jsonEncode(self._tagsIndex.packData(), n=1, nmax=2),
+                        "novelWriter.itemIndex": jsonEncode(self._itemIndex.packData(), n=1, nmax=4),
+                    })
+                )
         except Exception as exc:
             SHARED.appendErrorMessage(exc)
             logger.error("Failed to save index file")
             logException()
             return False
 
-        logger.debug("Index saved in %.3f ms", (time() - start)*1000)
+        logger.debug("Index saved in %.3f ms", (time() - start) * 1000)
 
         return True
 
@@ -320,6 +323,7 @@ class Index:
         text.
         """
         tItem = self._project.tree[tHandle]
+        oldRefs = self._itemRefHandles(tHandle)
         if tItem is None:
             logger.info("Not indexing unknown item '%s'", tHandle)
             return False
@@ -352,15 +356,16 @@ class Index:
         else:
             self._scanActive(tHandle, tItem, text, itemTags)
 
-        if tItem.itemClass == nwItemClass.NOVEL and not blockSignal:
-            if not self.updateNovelModelData(tItem):
-                self.refreshNovelModel(tItem.itemRoot)
+        if tItem.itemClass == nwItemClass.NOVEL and not blockSignal and not self.updateNovelModelData(tItem):
+            self.refreshNovelModel(tItem.itemRoot)
 
         # Update timestamps for index changes
         nowTime = time()
         self._indexChange = nowTime
         self._rootChange[tItem.itemRoot] = nowTime
         if not blockSignal:
+            if changedRefs := sorted(oldRefs | self._itemRefHandles(tHandle)):
+                SHARED.emitIndexChangedRefs(self._project, changedRefs)
             tItem.notifyToRefresh()
 
         return True
@@ -371,14 +376,13 @@ class Index:
 
     def _scanActive(self, tHandle: str, nwItem: NWItem, text: str, tags: dict[str, bool]) -> None:
         """Scan an active document for meta data."""
-        nTitle = 0         # Line Number of the previous title
-        cTitle = TT_NONE   # Tag of the current title
-        pTitle = TT_NONE   # Tag of the previous title
+        nTitle = 0  # Line Number of the previous title
+        cTitle = TT_NONE  # Tag of the current title
+        pTitle = TT_NONE  # Tag of the previous title
         canSetHead = True  # First heading has not yet been set
 
         lines = text.splitlines()
         for n, line in enumerate(lines, start=1):
-
             if line.strip() == "":
                 continue
 
@@ -395,7 +399,7 @@ class Index:
                 if cTitle != TT_NONE:
                     if nTitle > 0:
                         # We have a new title, so we need to count the words of the previous one
-                        lastText = "\n".join(lines[nTitle-1:n-1])
+                        lastText = "\n".join(lines[nTitle - 1 : n - 1])
                         self._indexWordCounts(tHandle, lastText, pTitle)
                     nTitle = n
                     pTitle = cTitle
@@ -413,7 +417,7 @@ class Index:
 
         # Count words for remaining text after last heading
         if pTitle != TT_NONE:
-            lastText = "\n".join(lines[nTitle-1:])
+            lastText = "\n".join(lines[nTitle - 1 :])
             self._indexWordCounts(tHandle, lastText, pTitle)
 
         # Also count words on a page with no titles
@@ -449,7 +453,12 @@ class Index:
         self._itemIndex.setHeadingCounts(tHandle, sTitle, cC, wC, pC)
 
     def _indexKeyword(
-        self, tHandle: str, line: str, sTitle: str, itemClass: nwItemClass, tags: dict[str, bool]
+        self,
+        tHandle: str,
+        line: str,
+        sTitle: str,
+        itemClass: nwItemClass,
+        tags: dict[str, bool],
     ) -> None:
         """Validate and save the information about a reference to a tag
         in another file, or the setting of a tag in the file. A record
@@ -480,18 +489,26 @@ class Index:
         if (item := self._project.tree[tHandle]) and item.isRootType() and item.isNovelLike():
             model = NovelModel()
             model.setExtraColumn(self._novelExtra)
-            self._appendSubTreeToModel(tHandle, model)
+            self._appendSubTreeToModel(tHandle, model, notify=False)
             self._novelModels[tHandle] = model
 
-    def _appendSubTreeToModel(self, tHandle: str, model: NovelModel) -> None:
+    def _appendSubTreeToModel(self, tHandle: str, model: NovelModel, notify: bool = False) -> None:
         """Append all active novel documents to a novel model."""
         for handle in self._project.tree.subTree(tHandle):
-            if (
-                (node := self._itemIndex[handle])
-                and node.item.isDocumentLayout()
-                and node.item.isActive
-            ):
-                model.append(node)
+            if (node := self._itemIndex[handle]) and node.item.isDocumentLayout() and node.item.isActive:
+                model.append(node, notify=notify)
+
+    def _itemRefHandles(self, tHandle: str) -> set[str]:
+        """Get the handles referenced by an indexed item."""
+        if iItem := self._itemIndex[tHandle]:
+            return {
+                rHandle
+                for sTitle in iItem.headings()
+                if (hItem := iItem[sTitle])
+                for tTag in hItem.references
+                if (rHandle := self._tagsIndex.tagHandle(tTag))
+            }
+        return set()
 
     ##
     #  Check @ Lines
@@ -502,7 +519,7 @@ class Index:
         split it up into its elements and positions as two arrays.
         """
         tBits = []  # The elements of the string
-        tPos  = []  # The absolute position of each element
+        tPos = []  # The absolute position of each element
 
         line = line.rstrip()  # Remove all trailing white spaces
         nChar = len(line)
@@ -538,7 +555,7 @@ class Index:
     def checkThese(self, tBits: list[str], tHandle: str) -> list[bool]:
         """Check tags against the index to see if they are valid."""
         nBits = len(tBits)
-        isGood = [False]*nBits
+        isGood = [False] * nBits
         if nBits == 0:
             return []
 
@@ -625,32 +642,30 @@ class Index:
 
     def getNovelWordCount(self, rootHandle: str | None = None, activeOnly: bool = True) -> int:
         """Count the number of words in one or all novel roots."""
-        return sum(hItem.wordCount for _, _, hItem in self._itemIndex.iterNovelStructure(
-            rHandle=rootHandle, activeOnly=activeOnly
-        ))
+        return sum(
+            hItem.wordCount
+            for _, _, hItem in self._itemIndex.iterNovelStructure(rHandle=rootHandle, activeOnly=activeOnly)
+        )
 
-    def getNovelTitleCounts(
-        self, rootHandle: str | None = None, activeOnly: bool = True
-    ) -> list[int]:
+    def getNovelTitleCounts(self, rootHandle: str | None = None, activeOnly: bool = True) -> list[int]:
         """Count the number of titles in one or all novel roots."""
         hCount = [0, 0, 0, 0, 0]
-        for _, _, hItem in self._itemIndex.iterNovelStructure(
-            rHandle=rootHandle, activeOnly=activeOnly
-        ):
+        for _, _, hItem in self._itemIndex.iterNovelStructure(rHandle=rootHandle, activeOnly=activeOnly):
             iLevel = nwStyles.H_LEVEL.get(hItem.level, 0)
             hCount[iLevel] += 1
         return hCount
 
     def getTableOfContents(
-        self, rHandle: str | None, maxDepth: int, activeOnly: bool = True
+        self,
+        rHandle: str | None,
+        maxDepth: int,
+        activeOnly: bool = True,
     ) -> list[tuple[str, int, str, int]]:
         """Generate a table of contents up to a maximum depth."""
         tOrder = []
         tData = {}
         pKey = None
-        for tHandle, sTitle, hItem in self._itemIndex.iterNovelStructure(
-            rHandle=rHandle, activeOnly=activeOnly
-        ):
+        for tHandle, sTitle, hItem in self._itemIndex.iterNovelStructure(rHandle=rHandle, activeOnly=activeOnly):
             tKey = f"{tHandle}:{sTitle}"
             iLevel = nwStyles.H_LEVEL.get(hItem.level, 0)
             if iLevel > maxDepth:
@@ -665,12 +680,7 @@ class Index:
                     "words": hItem.wordCount,
                 }
 
-        return [(
-            tKey,
-            tData[tKey]["level"],
-            tData[tKey]["title"],
-            tData[tKey]["words"]
-        ) for tKey in tOrder]
+        return [(tKey, tData[tKey]["level"], tData[tKey]["title"], tData[tKey]["words"]) for tKey in tOrder]
 
     def getCounts(self, tHandle: str, sTitle: str | None = None) -> tuple[int, int, int]:
         """Return the counts for a file, or a section of a file,
@@ -709,10 +719,9 @@ class Index:
         """Get the display names for a tags class for insertion into a
         heading by one of the build classes.
         """
-        if iItem := self._itemIndex[tHandle]:
-            if hItem := iItem[f"T{nHead:04d}"]:
-                hRefs = [k for k, v in hItem.references.items() if keyClass in v]
-                return [self._tagsIndex.tagDisplay(k) for k in hRefs]
+        if (iItem := self._itemIndex[tHandle]) and (hItem := iItem[f"T{nHead:04d}"]):
+            hRefs = [k for k, v in hItem.references.items() if keyClass in v]
+            return [self._tagsIndex.tagDisplay(k) for k in hRefs]
         return []
 
     def getBackReferenceList(self, tHandle: str) -> dict[str, tuple[str, IndexHeading]]:
@@ -775,6 +784,7 @@ class Index:
 # The Tags Index Object
 # =====================
 
+
 class TagsIndex:
     """Core: Tags Index Wrapper Class.
 
@@ -789,12 +799,15 @@ class TagsIndex:
         self._tags: dict[str, dict[str, str]] = {}
 
     def __contains__(self, tagKey: str) -> bool:
+        """Return True if the given tag key is in the index."""
         return tagKey.lower() in self._tags
 
     def __delitem__(self, tagKey: str) -> None:
+        """Delete the data dictionary for a given tag key."""
         self._tags.pop(tagKey.lower(), None)
 
     def __getitem__(self, tagKey: str) -> dict | None:
+        """Return the data dictionary for a given tag key."""
         return self._tags.get(tagKey.lower(), None)
 
     ##
@@ -809,8 +822,7 @@ class TagsIndex:
         """Return a dictionary view of all tags."""
         return self._tags.items()
 
-    def add(self, tagKey: str, displayName: str, tHandle: str,
-            sTitle: str, className: str) -> None:
+    def add(self, tagKey: str, displayName: str, tHandle: str, sTitle: str, className: str) -> None:
         """Add a key to the index and set all values."""
         self._tags[tagKey.lower()] = {
             "name": tagKey,
@@ -843,13 +855,9 @@ class TagsIndex:
     def filterTagNames(self, className: str | None) -> list[str]:
         """Get a list of tag names for a given class."""
         if className is None:
-            return [
-                x.get("name", "") for x in self._tags.values()
-            ]
+            return [x.get("name", "") for x in self._tags.values()]
         else:
-            return [
-                x.get("name", "") for x in self._tags.values() if x.get("class", "") == className
-            ]
+            return [x.get("name", "") for x in self._tags.values() if x.get("class", "") == className]
 
     def updateClass(self, tHandle: str, className: str) -> None:
         """Update the class name of an item. This must be called when a
@@ -919,6 +927,7 @@ class IndexCache:
 # The Item Index Objects
 # ======================
 
+
 class ItemIndex:
     """Core: Item Index Wrapper Class.
 
@@ -937,12 +946,15 @@ class ItemIndex:
         self._items: dict[str, IndexNode] = {}
 
     def __contains__(self, tHandle: str) -> bool:
+        """Return True if the given handle is in the index."""
         return tHandle in self._items
 
     def __delitem__(self, tHandle: str) -> None:
+        """Delete the IndexNode for the given handle."""
         self._items.pop(tHandle, None)
 
     def __getitem__(self, tHandle: str) -> IndexNode | None:
+        """Return the IndexNode for the given handle."""
         return self._items.get(tHandle, None)
 
     ##
@@ -1002,11 +1014,7 @@ class ItemIndex:
             if tHandle is None or tHandle not in self._items:
                 continue
 
-            if rHandle is None:
-                for sTitle in self._items[tHandle].headings():
-                    if hItem := self._items[tHandle][sTitle]:
-                        yield tHandle, sTitle, hItem
-            elif tItem.itemRoot == rHandle:
+            if rHandle is None or tItem.itemRoot == rHandle:
                 for sTitle in self._items[tHandle].headings():
                     if hItem := self._items[tHandle][sTitle]:
                         yield tHandle, sTitle, hItem
@@ -1033,10 +1041,7 @@ class ItemIndex:
         if tHandle in self._items:
             self._items[tHandle].setHeadingCounts(sTitle, cC, wC, pC)
 
-    def setHeadingComment(
-        self, tHandle: str, sTitle: str,
-        comment: nwComment, key: str, text: str,
-    ) -> None:
+    def setHeadingComment(self, tHandle: str, sTitle: str, comment: nwComment, key: str, text: str) -> None:
         """Set a story comment for a heading on a given item."""
         if tHandle in self._items:
             self._items[tHandle].setHeadingComment(sTitle, comment, key, text)

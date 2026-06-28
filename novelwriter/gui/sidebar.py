@@ -2,9 +2,6 @@
 novelWriter – GUI Main Window SideBar
 =====================================
 
-File History:
-Created: 2022-05-10 [2.0rc1] GuiSideBar
-
 This file is a part of novelWriter
 Copyright (C) 2022 Veronica Berglyd Olsen and novelWriter contributors
 
@@ -21,6 +18,7 @@ General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
+
 from __future__ import annotations
 
 import logging
@@ -91,7 +89,7 @@ class GuiSideBar(QWidget):
         self.tbStats.clicked.connect(self.mainGui.showWritingStatsDialog)
 
         self.tbBuild = NIconToolButton(self, iSz)
-        self.tbBuild.setToolTip("{0} [F5]".format(self.tr("Build Manuscript")))
+        self.tbBuild.setToolTip("{0} [F5]".format(self.tr("Manuscript Build")))
         self.tbBuild.clicked.connect(self.mainGui.showBuildManuscriptDialog)
 
         # Settings Menu
@@ -180,11 +178,9 @@ class GuiSideBar(QWidget):
 
 
 class _PopRightMenu(QMenu):
-
     def event(self, event: QEvent) -> bool:
         """Overload the show event and move the menu popup location."""
-        if event.type() == QEvent.Type.Show:
-            if isinstance(parent := self.parent(), QWidget):
-                offset = QPoint(parent.width(), parent.height() - self.height())
-                self.move(parent.mapToGlobal(offset))
+        if event.type() == QEvent.Type.Show and isinstance(parent := self.parent(), QWidget):
+            offset = QPoint(parent.width(), parent.height() - self.height())
+            self.move(parent.mapToGlobal(offset))
         return super().event(event)

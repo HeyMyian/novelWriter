@@ -2,9 +2,6 @@
 novelWriter – GUI Document Viewer Panel
 =======================================
 
-File History:
-Created: 2023-11-14 [2.2rc1] GuiDocViewerPanel
-
 This file is a part of novelWriter
 Copyright (C) 2023 Veronica Berglyd Olsen and novelWriter contributors
 
@@ -21,6 +18,7 @@ General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
+
 from __future__ import annotations
 
 import logging
@@ -30,8 +28,15 @@ from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QModelIndex, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
-    QAbstractItemView, QFrame, QMenu, QTabWidget, QToolButton, QTreeWidget,
-    QTreeWidgetItem, QVBoxLayout, QWidget
+    QAbstractItemView,
+    QFrame,
+    QMenu,
+    QTabWidget,
+    QToolButton,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
 
 from novelwriter import SHARED
@@ -190,6 +195,12 @@ class GuiDocViewerPanel(QWidget):
                 logger.warning("Could not remove tag '%s' from view panel", key)
         self._updateTabVisibility()
 
+    @pyqtSlot(list)
+    def updateChangedRefs(self, updated: list[str]) -> None:
+        """Refresh back references when a tracked handle has changed."""
+        if self._lastHandle in updated:
+            self.tabBackRefs.refreshContent(self._lastHandle)
+
     @pyqtSlot(str)
     def updateStatusLabels(self, kind: str) -> None:
         """Update the importance labels."""
@@ -227,11 +238,10 @@ class GuiDocViewerPanel(QWidget):
 
 
 class _ViewPanelBackRefs(QTreeWidget):
-
-    C_DATA  = 0
-    C_DOC   = 0
-    C_EDIT  = 1
-    C_VIEW  = 2
+    C_DATA = 0
+    C_DOC = 0
+    C_EDIT = 1
+    C_VIEW = 2
     C_TITLE = 3
 
     D_HANDLE = QtUserRole
@@ -351,15 +361,14 @@ class _ViewPanelBackRefs(QTreeWidget):
 
 
 class _ViewPanelKeyWords(QTreeWidget):
-
-    C_DATA   = 0
-    C_NAME   = 0
-    C_EDIT   = 1
-    C_VIEW   = 2
+    C_DATA = 0
+    C_NAME = 0
+    C_EDIT = 1
+    C_VIEW = 2
     C_IMPORT = 3
-    C_DOC    = 4
-    C_TITLE  = 5
-    C_SHORT  = 6
+    C_DOC = 4
+    C_TITLE = 5
+    C_SHORT = 6
 
     D_TAG = QtUserRole
 
@@ -374,8 +383,13 @@ class _ViewPanelKeyWords(QTreeWidget):
         iSz = SHARED.theme.baseIconSize
 
         self.setHeaderLabels([
-            self.tr("Tag"), "", "", self.tr("Importance"), self.tr("Document"),
-            self.tr("Heading"), self.tr("Short Description")
+            self.tr("Tag"),
+            "",
+            "",
+            self.tr("Importance"),
+            self.tr("Document"),
+            self.tr("Heading"),
+            self.tr("Short Description"),
         ])
         self.setIndentation(0)
         self.setIconSize(iSz)
@@ -464,10 +478,10 @@ class _ViewPanelKeyWords(QTreeWidget):
     def setColumnWidths(self, widths: list[int]) -> None:
         """Set the column widths."""
         if isinstance(widths, list) and len(widths) >= 4:
-            self.setColumnWidth(self.C_NAME,   checkInt(widths[0], 100))
+            self.setColumnWidth(self.C_NAME, checkInt(widths[0], 100))
             self.setColumnWidth(self.C_IMPORT, checkInt(widths[1], 100))
-            self.setColumnWidth(self.C_DOC,    checkInt(widths[2], 100))
-            self.setColumnWidth(self.C_TITLE,  checkInt(widths[3], 100))
+            self.setColumnWidth(self.C_DOC, checkInt(widths[2], 100))
+            self.setColumnWidth(self.C_TITLE, checkInt(widths[3], 100))
 
     def getColumnWidths(self) -> list[int]:
         """Get the widths of the user-adjustable columns."""

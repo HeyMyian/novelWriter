@@ -2,10 +2,6 @@
 novelWriter – DocX Text Converter
 =================================
 
-File History:
-Created: 2024-10-18 [2.6b1] ToDocX
-Created: 2024-10-18 [2.6b1] DocXParagraph
-
 This file is a part of novelWriter
 Copyright (C) 2024 Veronica Berglyd Olsen and novelWriter contributors
 
@@ -22,6 +18,7 @@ General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
+
 from __future__ import annotations
 
 import logging
@@ -29,7 +26,7 @@ import re
 import xml.etree.ElementTree as ET
 
 from datetime import datetime
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, Literal, NamedTuple
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from PyQt6.QtCore import QMargins, QSize
@@ -39,7 +36,7 @@ from novelwriter.common import firstFloat, xmlElement, xmlSubElem
 from novelwriter.constants import nwHeadFmt, nwStyles
 from novelwriter.formats.shared import BlockFmt, BlockTyp, T_Formats, TextFmt, stripEscape
 from novelwriter.formats.tokenizer import COMMENT_BLOCKS, Tokenizer
-from novelwriter.types import QtHexRgb
+from novelwriter.types import QtBlack, QtHexRgb
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -61,13 +58,13 @@ RELS_BASE = f"{OOXML_SCM}/officeDocument/2006/relationships"
 
 # Main XML NameSpaces
 XML_NS = {
-    "cp":      f"{OOXML_SCM}/package/2006/metadata/core-properties",
-    "dc":      "http://purl.org/dc/elements/1.1/",
+    "cp": f"{OOXML_SCM}/package/2006/metadata/core-properties",
+    "dc": "http://purl.org/dc/elements/1.1/",
     "dcterms": "http://purl.org/dc/terms/",
-    "r":       RELS_BASE,
-    "w":       f"{OOXML_SCM}/wordprocessingml/2006/main",
-    "xml":     "http://www.w3.org/XML/1998/namespace",
-    "xsi":     "http://www.w3.org/2001/XMLSchema-instance",
+    "r": RELS_BASE,
+    "w": f"{OOXML_SCM}/wordprocessingml/2006/main",
+    "xml": "http://www.w3.org/XML/1998/namespace",
+    "xsi": "http://www.w3.org/2001/XMLSchema-instance",
 }
 for ns, uri in XML_NS.items():
     ET.register_namespace(ns, uri)
@@ -101,7 +98,7 @@ def _wText(parent: ET.Element, text: str) -> ET.Element:
 
 def _mmToSz(value: float) -> int:
     """Convert millimetres to internal margin size units."""
-    return int(value*20.0*72.0/25.4)
+    return int(value * 20.0 * 72.0 / 25.4)
 
 
 # Cached
@@ -130,15 +127,15 @@ M_COL = ~X_COL
 M_HRF = ~X_HRF
 
 # DocX Styles
-S_NORM  = "Normal"
+S_NORM = "Normal"
 S_TITLE = "Title"
 S_HEAD1 = "Heading1"
 S_HEAD2 = "Heading2"
 S_HEAD3 = "Heading3"
 S_HEAD4 = "Heading4"
-S_SEP   = "Separator"
-S_META  = "MetaText"
-S_HEAD  = "Header"
+S_SEP = "Separator"
+S_META = "MetaText"
+S_HEAD = "Header"
 S_FNOTE = "FootnoteText"
 
 
@@ -178,6 +175,16 @@ class DocXParStyle(NamedTuple):
     bold: bool = False
 
 
+class DocXBorder(NamedTuple):
+    """DocX Border Data."""
+
+    line: Literal["single", "double", "dashed", "dotted"] = "single"
+    color: QColor = QtBlack
+    size: int = 6
+    space: int = 1
+    margin: int = 0
+
+
 class ToDocX(Tokenizer):
     """Core: DocX Document Writer.
 
@@ -189,13 +196,14 @@ class ToDocX(Tokenizer):
 
         # Properties
         self._headerFormat = ""
-        self._pageOffset   = 0
+        self._pageOffset = 0
 
         # Internal
-        self._fontFamily  = "Liberation Serif"
-        self._fontSize    = 12.0
-        self._pageSize    = QSize(_mmToSz(210.0), _mmToSz(297.0))
+        self._fontFamily = "Liberation Serif"
+        self._fontSize = 12.0
+        self._pageSize = QSize(_mmToSz(210.0), _mmToSz(297.0))
         self._pageMargins = QMargins(_mmToSz(20.0), _mmToSz(20.0), _mmToSz(20.0), _mmToSz(20.0))
+        self._mHorLine = _mmToSz(42.5 / 20.0)
 
         # Data Variables
         self._pars: list[DocXParagraph] = []
@@ -209,12 +217,11 @@ class ToDocX(Tokenizer):
     #  Setters
     ##
 
-    def setPageLayout(
-        self, width: float, height: float, top: float, bottom: float, left: float, right: float
-    ) -> None:
+    def setPageLayout(self, width: float, height: float, top: float, bottom: float, left: float, right: float) -> None:
         """Set the document page size and margins in millimetres."""
         self._pageSize = QSize(_mmToSz(width), _mmToSz(height))
         self._pageMargins = QMargins(_mmToSz(left), _mmToSz(top), _mmToSz(right), _mmToSz(bottom))
+        self._mHorLine = _mmToSz((width - left - right) / 80.0)
 
     def setHeaderFormat(self, value: str, offset: int) -> None:
         """Set the document header format."""
@@ -237,7 +244,6 @@ class ToDocX(Tokenizer):
         bIndent = self._fontSize * self._blockIndent
 
         for tType, _, tText, tFormat, tStyle in self._blocks:
-
             # Create Paragraph
             par = DocXParagraph()
             self._pars.append(par)
@@ -291,13 +297,16 @@ class ToDocX(Tokenizer):
             elif tType == BlockTyp.SEP:
                 self._processFragments(par, S_SEP, tText)
 
+            elif tType == BlockTyp.HRULE:
+                par.setBorder("bottom", DocXBorder(line="single", color=self._theme.comment))
+                par.setMarginLeft(self._mHorLine)
+                par.setMarginRight(self._mHorLine)
+                self._processFragments(par, S_NORM, "")
+
             elif tType == BlockTyp.SKIP:
                 self._processFragments(par, S_NORM, "")
 
-            elif tType in COMMENT_BLOCKS:
-                self._processFragments(par, S_META, tText, tFormat)
-
-            elif tType == BlockTyp.KEYWORD:
+            elif tType in COMMENT_BLOCKS or tType == BlockTyp.KEYWORD:
                 self._processFragments(par, S_META, tText, tFormat)
 
     def closeDocument(self) -> None:
@@ -330,12 +339,8 @@ class ToDocX(Tokenizer):
         cDocs.append(("/word/_rels/document.xml.rels", RELS_TYPE))
 
         # Relationships XML
-        rRels = xmlElement("Relationships", attrib={
-            "xmlns": f"{OOXML_SCM}/package/2006/relationships"
-        })
-        wRels = xmlElement("Relationships", attrib={
-            "xmlns": f"{OOXML_SCM}/package/2006/relationships"
-        })
+        rRels = xmlElement("Relationships", attrib={"xmlns": f"{OOXML_SCM}/package/2006/relationships"})
+        wRels = xmlElement("Relationships", attrib={"xmlns": f"{OOXML_SCM}/package/2006/relationships"})
         for name, rel in self._rels.items():
             isRoot = name in ("core.xml", "app.xml", "document.xml")
             if xml := self._files.get(name):
@@ -349,9 +354,7 @@ class ToDocX(Tokenizer):
             xmlSubElem(rRels if isRoot else wRels, "Relationship", attrib=attrib)
 
         # Content Types XML
-        dTypes = xmlElement("Types", attrib={
-            "xmlns": f"{OOXML_SCM}/package/2006/content-types"
-        })
+        dTypes = xmlElement("Types", attrib={"xmlns": f"{OOXML_SCM}/package/2006/content-types"})
         for name, content in cExts:
             xmlSubElem(dTypes, "Default", attrib={"Extension": name, "ContentType": content})
         for name, content in cDocs:
@@ -371,9 +374,7 @@ class ToDocX(Tokenizer):
     #  Internal Functions
     ##
 
-    def _processFragments(
-        self, par: DocXParagraph, pStyle: str, text: str, tFmt: T_Formats | None = None
-    ) -> None:
+    def _processFragments(self, par: DocXParagraph, pStyle: str, text: str, tFmt: T_Formats | None = None) -> None:
         """Apply formatting tags to text."""
         par.setStyle(self._styles.get(pStyle))
         xFmt = 0x00
@@ -382,7 +383,6 @@ class ToDocX(Tokenizer):
         fLink = ""
         fClass = ""
         for fPos, fFmt, fData in tFmt or []:
-
             if xNode is not None:
                 par.addContent(xNode)
                 xNode = None
@@ -457,9 +457,14 @@ class ToDocX(Tokenizer):
         if fmt & X_UND:
             xmlSubElem(rPr, _wTag("u"), attrib={W_VAL: "single"})
         if fmt & X_MRK:
-            xmlSubElem(rPr, _wTag("shd"), attrib={
-                _wTag("fill"): _docXCol(self._theme.highlight), W_VAL: "clear",
-            })
+            xmlSubElem(
+                rPr,
+                _wTag("shd"),
+                attrib={
+                    _wTag("fill"): _docXCol(self._theme.highlight),
+                    W_VAL: "clear",
+                },
+            )
         if fmt & X_DEL:
             xmlSubElem(rPr, _wTag("strike"))
         if fmt & X_SUP:
@@ -480,9 +485,12 @@ class ToDocX(Tokenizer):
 
         if fmt & X_HRF and fLink:
             xmlSubElem(rPr, _wTag("rStyle"), attrib={W_VAL: "InternetLink"})
-            xH = xmlElement(_wTag("hyperlink"), attrib={
-                _mkTag("r", "id"): self._appendExternalRel(fLink),
-            })
+            xH = xmlElement(
+                _wTag("hyperlink"),
+                attrib={
+                    _mkTag("r", "id"): self._appendExternalRel(fLink),
+                },
+            )
             xH.append(xR)
             return xH
 
@@ -521,137 +529,157 @@ class ToDocX(Tokenizer):
         fSz = self._fontSize
 
         # Add Normal Style
-        styles.append(DocXParStyle(
-            name="Normal",
-            styleId=S_NORM,
-            size=fSz,
-            default=True,
-            before=fSz * self._marginText[0],
-            after=fSz * self._marginText[1],
-            line=fSz * self._lineHeight,
-            indentFirst=fSz * self._firstWidth,
-            align=self._defaultAlign,
-        ))
+        styles.append(
+            DocXParStyle(
+                name="Normal",
+                styleId=S_NORM,
+                size=fSz,
+                default=True,
+                before=fSz * self._marginText[0],
+                after=fSz * self._marginText[1],
+                line=fSz * self._lineHeight,
+                indentFirst=fSz * self._firstWidth,
+                align=self._defaultAlign,
+            )
+        )
 
         # Add Title
-        styles.append(DocXParStyle(
-            name="Title",
-            styleId=S_TITLE,
-            size=fSz * self._sizeTitle,
-            basedOn=S_NORM,
-            nextStyle=S_NORM,
-            before=fSz * self._marginTitle[0],
-            after=fSz * self._marginTitle[1],
-            line=fSz * self._lineHeight,
-            level=0,
-            bold=self._boldHeads,
-        ))
+        styles.append(
+            DocXParStyle(
+                name="Title",
+                styleId=S_TITLE,
+                size=fSz * self._sizeTitle,
+                basedOn=S_NORM,
+                nextStyle=S_NORM,
+                before=fSz * self._marginTitle[0],
+                after=fSz * self._marginTitle[1],
+                line=fSz * self._lineHeight,
+                level=0,
+                bold=self._boldHeads,
+            )
+        )
 
         # Add Heading 1
-        styles.append(DocXParStyle(
-            name="Heading 1",
-            styleId=S_HEAD1,
-            size=fSz * self._sizeHead1,
-            basedOn=S_NORM,
-            nextStyle=S_NORM,
-            before=fSz * self._marginHead1[0],
-            after=fSz * self._marginHead1[1],
-            line=fSz * self._lineHeight,
-            level=0,
-            color=hColor,
-            bold=self._boldHeads,
-        ))
+        styles.append(
+            DocXParStyle(
+                name="Heading 1",
+                styleId=S_HEAD1,
+                size=fSz * self._sizeHead1,
+                basedOn=S_NORM,
+                nextStyle=S_NORM,
+                before=fSz * self._marginHead1[0],
+                after=fSz * self._marginHead1[1],
+                line=fSz * self._lineHeight,
+                level=0,
+                color=hColor,
+                bold=self._boldHeads,
+            )
+        )
 
         # Add Heading 2
-        styles.append(DocXParStyle(
-            name="Heading 2",
-            styleId=S_HEAD2,
-            size=fSz * self._sizeHead2,
-            basedOn=S_NORM,
-            nextStyle=S_NORM,
-            before=fSz * self._marginHead2[0],
-            after=fSz * self._marginHead2[1],
-            line=fSz * self._lineHeight,
-            level=1,
-            color=hColor,
-            bold=self._boldHeads,
-        ))
+        styles.append(
+            DocXParStyle(
+                name="Heading 2",
+                styleId=S_HEAD2,
+                size=fSz * self._sizeHead2,
+                basedOn=S_NORM,
+                nextStyle=S_NORM,
+                before=fSz * self._marginHead2[0],
+                after=fSz * self._marginHead2[1],
+                line=fSz * self._lineHeight,
+                level=1,
+                color=hColor,
+                bold=self._boldHeads,
+            )
+        )
 
         # Add Heading 3
-        styles.append(DocXParStyle(
-            name="Heading 3",
-            styleId=S_HEAD3,
-            size=fSz * self._sizeHead3,
-            basedOn=S_NORM,
-            nextStyle=S_NORM,
-            before=fSz * self._marginHead3[0],
-            after=fSz * self._marginHead3[1],
-            line=fSz * self._lineHeight,
-            level=1,
-            color=hColor,
-            bold=self._boldHeads,
-        ))
+        styles.append(
+            DocXParStyle(
+                name="Heading 3",
+                styleId=S_HEAD3,
+                size=fSz * self._sizeHead3,
+                basedOn=S_NORM,
+                nextStyle=S_NORM,
+                before=fSz * self._marginHead3[0],
+                after=fSz * self._marginHead3[1],
+                line=fSz * self._lineHeight,
+                level=1,
+                color=hColor,
+                bold=self._boldHeads,
+            )
+        )
 
         # Add Heading 4
-        styles.append(DocXParStyle(
-            name="Heading 4",
-            styleId=S_HEAD4,
-            size=fSz * self._sizeHead4,
-            basedOn=S_NORM,
-            nextStyle=S_NORM,
-            before=fSz * self._marginHead4[0],
-            after=fSz * self._marginHead4[1],
-            line=fSz * self._lineHeight,
-            level=1,
-            color=hColor,
-            bold=self._boldHeads,
-        ))
+        styles.append(
+            DocXParStyle(
+                name="Heading 4",
+                styleId=S_HEAD4,
+                size=fSz * self._sizeHead4,
+                basedOn=S_NORM,
+                nextStyle=S_NORM,
+                before=fSz * self._marginHead4[0],
+                after=fSz * self._marginHead4[1],
+                line=fSz * self._lineHeight,
+                level=1,
+                color=hColor,
+                bold=self._boldHeads,
+            )
+        )
 
         # Add Separator
-        styles.append(DocXParStyle(
-            name="Separator",
-            styleId=S_SEP,
-            size=fSz,
-            basedOn=S_NORM,
-            nextStyle=S_NORM,
-            before=fSz * self._marginSep[0],
-            after=fSz * self._marginSep[1],
-            line=fSz * self._lineHeight,
-            align="center",
-        ))
+        styles.append(
+            DocXParStyle(
+                name="Separator",
+                styleId=S_SEP,
+                size=fSz,
+                basedOn=S_NORM,
+                nextStyle=S_NORM,
+                before=fSz * self._marginSep[0],
+                after=fSz * self._marginSep[1],
+                line=fSz * self._lineHeight,
+                align="center",
+            )
+        )
 
         # Add Text Meta Style
-        styles.append(DocXParStyle(
-            name="Meta Text",
-            styleId=S_META,
-            size=fSz,
-            basedOn=S_NORM,
-            nextStyle=S_NORM,
-            before=fSz * self._marginMeta[0],
-            after=fSz * self._marginMeta[1],
-            line=fSz * self._lineHeight,
-        ))
+        styles.append(
+            DocXParStyle(
+                name="Meta Text",
+                styleId=S_META,
+                size=fSz,
+                basedOn=S_NORM,
+                nextStyle=S_NORM,
+                before=fSz * self._marginMeta[0],
+                after=fSz * self._marginMeta[1],
+                line=fSz * self._lineHeight,
+            )
+        )
 
         # Header
-        styles.append(DocXParStyle(
-            name="Header",
-            styleId=S_HEAD,
-            size=fSz,
-            basedOn=S_NORM,
-            align="right",
-        ))
+        styles.append(
+            DocXParStyle(
+                name="Header",
+                styleId=S_HEAD,
+                size=fSz,
+                basedOn=S_NORM,
+                align="right",
+            )
+        )
 
         # Footnote
-        styles.append(DocXParStyle(
-            name="Footnote Text",
-            styleId=S_FNOTE,
-            size=nwStyles.T_SMALL * fSz,
-            basedOn=S_NORM,
-            before=0.0,
-            after=fSz * self._marginFoot[1],
-            left=fSz * self._marginFoot[0],
-            line=fSz * self._lineHeight,
-        ))
+        styles.append(
+            DocXParStyle(
+                name="Footnote Text",
+                styleId=S_FNOTE,
+                size=nwStyles.T_SMALL * fSz,
+                basedOn=S_NORM,
+                before=0.0,
+                after=fSz * self._marginFoot[1],
+                left=fSz * self._marginFoot[0],
+                line=fSz * self._lineHeight,
+            )
+        )
 
         # Add to Cache
         for style in styles:
@@ -666,19 +694,13 @@ class ToDocX(Tokenizer):
         if rel := self._rels.get(target):
             return rel.rId
         rId = self._nextRelId()
-        self._rels[target] = DocXXmlRel(
-            rId=rId,
-            relType=f"{RELS_BASE}/hyperlink",
-            targetMode="External"
-        )
+        self._rels[target] = DocXXmlRel(rId=rId, relType=f"{RELS_BASE}/hyperlink", targetMode="External")
         return rId
 
     def _appXml(self) -> str:
         """Populate app.xml."""
         rId = self._nextRelId()
-        xRoot = xmlElement("Properties", attrib={
-            "xmlns": f"{OOXML_SCM}/officeDocument/2006/extended-properties"
-        })
+        xRoot = xmlElement("Properties", attrib={"xmlns": f"{OOXML_SCM}/officeDocument/2006/extended-properties"})
         self._rels["app.xml"] = DocXXmlRel(
             rId=rId,
             relType=f"{RELS_BASE}/extended-properties",
@@ -752,11 +774,15 @@ class ToDocX(Tokenizer):
         size = str(int(2.0 * self._fontSize))
         line = str(int(20.0 * self._lineHeight * self._fontSize))
 
-        xmlSubElem(xRPr, _wTag("rFonts"), attrib={
-            _wTag("ascii"): self._fontFamily,
-            _wTag("hAnsi"): self._fontFamily,
-            _wTag("cs"): self._fontFamily,
-        })
+        xmlSubElem(
+            xRPr,
+            _wTag("rFonts"),
+            attrib={
+                _wTag("ascii"): self._fontFamily,
+                _wTag("hAnsi"): self._fontFamily,
+                _wTag("cs"): self._fontFamily,
+            },
+        )
         xmlSubElem(xRPr, _wTag("sz"), attrib={W_VAL: size})
         xmlSubElem(xRPr, _wTag("szCs"), attrib={W_VAL: size})
         xmlSubElem(xRPr, _wTag("lang"), attrib={W_VAL: self._dLocale.name()})
@@ -781,16 +807,24 @@ class ToDocX(Tokenizer):
 
             # pPr Node
             pPr = xmlSubElem(xStyl, _wTag("pPr"))
-            xmlSubElem(pPr, _wTag("spacing"), attrib={
-                _wTag("before"): str(int(20.0 * firstFloat(style.before))),
-                _wTag("after"): str(int(20.0 * firstFloat(style.after))),
-                _wTag("line"): str(int(20.0 * firstFloat(style.line, size))),
-                _wTag("lineRule"): "auto",
-            })
+            xmlSubElem(
+                pPr,
+                _wTag("spacing"),
+                attrib={
+                    _wTag("before"): str(int(20.0 * firstFloat(style.before))),
+                    _wTag("after"): str(int(20.0 * firstFloat(style.after))),
+                    _wTag("line"): str(int(20.0 * firstFloat(style.line, size))),
+                    _wTag("lineRule"): "auto",
+                },
+            )
             if style.left is not None:
-                xmlSubElem(pPr, _wTag("ind"), attrib={
-                    _wTag("left"): str(int(20.0 * style.left)),
-                })
+                xmlSubElem(
+                    pPr,
+                    _wTag("ind"),
+                    attrib={
+                        _wTag("left"): str(int(20.0 * style.left)),
+                    },
+                )
             if style.align:
                 xmlSubElem(pPr, _wTag("jc"), attrib={W_VAL: style.align})
             if style.level is not None:
@@ -806,10 +840,11 @@ class ToDocX(Tokenizer):
             xmlSubElem(rPr, _wTag("szCs"), attrib={W_VAL: str(int(2.0 * size))})
 
         # Character Style
-        xStyl = xmlSubElem(xRoot, _wTag("style"), attrib={
-            _wTag("type"): "character",
-            _wTag("styleId"): "InternetLink"
-        })
+        xStyl = xmlSubElem(
+            xRoot,
+            _wTag("style"),
+            attrib={_wTag("type"): "character", _wTag("styleId"): "InternetLink"},
+        )
         xmlSubElem(xStyl, _wTag("name"), attrib={W_VAL: "Hyperlink"})
         rPr = xmlSubElem(xStyl, _wTag("rPr"))
         xmlSubElem(rPr, _wTag("color"), attrib={W_VAL: _docXCol(self._theme.link)})
@@ -906,7 +941,7 @@ class ToDocX(Tokenizer):
         pars: list[DocXParagraph] = []
         for i, par in enumerate(self._pars):
             if i > 0 and par.pageBreakBefore:
-                prev = self._pars[i-1]
+                prev = self._pars[i - 1]
                 par.setPageBreakBefore(False)
                 prev.setPageBreakAfter(True)
 
@@ -925,36 +960,62 @@ class ToDocX(Tokenizer):
         # Write Settings
         xSect = xmlSubElem(xBody, _wTag("sectPr"))
         if hFirst and hDefault:
-            xmlSubElem(xSect, _wTag("headerReference"), attrib={
-                _wTag("type"): "first", _mkTag("r", "id"): hFirst,
-            })
-            xmlSubElem(xSect, _wTag("headerReference"), attrib={
-                _wTag("type"): "default", _mkTag("r", "id"): hDefault,
-            })
+            xmlSubElem(
+                xSect,
+                _wTag("headerReference"),
+                attrib={
+                    _wTag("type"): "first",
+                    _mkTag("r", "id"): hFirst,
+                },
+            )
+            xmlSubElem(
+                xSect,
+                _wTag("headerReference"),
+                attrib={
+                    _wTag("type"): "default",
+                    _mkTag("r", "id"): hDefault,
+                },
+            )
 
         xFn = xmlSubElem(xSect, _wTag("footnotePr"))
-        xmlSubElem(xFn, _wTag("numFmt"), attrib={
-            W_VAL: "decimal",
-        })
+        xmlSubElem(
+            xFn,
+            _wTag("numFmt"),
+            attrib={
+                W_VAL: "decimal",
+            },
+        )
 
-        xmlSubElem(xSect, _wTag("pgSz"), attrib={
-            _wTag("w"): str(self._pageSize.width()),
-            _wTag("h"): str(self._pageSize.height()),
-            _wTag("orient"): "portrait",
-        })
-        xmlSubElem(xSect, _wTag("pgMar"), attrib={
-            _wTag("top"): str(self._pageMargins.top()),
-            _wTag("right"): str(self._pageMargins.right()),
-            _wTag("bottom"): str(self._pageMargins.bottom()),
-            _wTag("left"): str(self._pageMargins.left()),
-            _wTag("header"): str(self._pageMargins.top() - int(35.0*self._fontSize)),
-            _wTag("footer"): "0",
-            _wTag("gutter"): "0",
-        })
-        xmlSubElem(xSect, _wTag("pgNumType"), attrib={
-            _wTag("start"): str(1 - self._pageOffset),
-            _wTag("fmt"): "decimal",
-        })
+        xmlSubElem(
+            xSect,
+            _wTag("pgSz"),
+            attrib={
+                _wTag("w"): str(self._pageSize.width()),
+                _wTag("h"): str(self._pageSize.height()),
+                _wTag("orient"): "portrait",
+            },
+        )
+        xmlSubElem(
+            xSect,
+            _wTag("pgMar"),
+            attrib={
+                _wTag("top"): str(self._pageMargins.top()),
+                _wTag("right"): str(self._pageMargins.right()),
+                _wTag("bottom"): str(self._pageMargins.bottom()),
+                _wTag("left"): str(self._pageMargins.left()),
+                _wTag("header"): str(self._pageMargins.top() - int(35.0 * self._fontSize)),
+                _wTag("footer"): "0",
+                _wTag("gutter"): "0",
+            },
+        )
+        xmlSubElem(
+            xSect,
+            _wTag("pgNumType"),
+            attrib={
+                _wTag("start"): str(1 - self._pageOffset),
+                _wTag("fmt"): "decimal",
+            },
+        )
         xmlSubElem(xSect, _wTag("titlePg"))
 
         return rId
@@ -996,12 +1057,20 @@ class ToDocX(Tokenizer):
             contentType=f"{WORD_BASE}.fontTable+xml",
         )
 
-        xFont = xmlSubElem(xRoot, _wTag("font"), attrib={
-            _wTag("name"): self._textFont.family(),
-        })
-        xmlSubElem(xFont, _wTag("pitch"), attrib={
-            W_VAL: "fixed" if self._textFont.fixedPitch() else "variable",
-        })
+        xFont = xmlSubElem(
+            xRoot,
+            _wTag("font"),
+            attrib={
+                _wTag("name"): self._textFont.family(),
+            },
+        )
+        xmlSubElem(
+            xFont,
+            _wTag("pitch"),
+            attrib={
+                W_VAL: "fixed" if self._textFont.fixedPitch() else "variable",
+            },
+        )
 
         return rId
 
@@ -1023,20 +1092,29 @@ class ToDocX(Tokenizer):
         xmlSubElem(xSet, _wTag("numFmt"), attrib={W_VAL: "decimal"})
 
         xSet = xmlSubElem(xRoot, _wTag("compat"))
-        xmlSubElem(xSet, _wTag("doNotExpandShiftReturn"))
-        xmlSubElem(xSet, _wTag("compatSetting"), attrib={
-            _wTag("name"): "compatibilityMode",
-            _wTag("uri"): "http://schemas.microsoft.com/office/word",
-            W_VAL: "12",
-        })
+        if not self._justifyOnBreak:
+            xmlSubElem(xSet, _wTag("doNotExpandShiftReturn"))
+        xmlSubElem(
+            xSet,
+            _wTag("compatSetting"),
+            attrib={
+                _wTag("name"): "compatibilityMode",
+                _wTag("uri"): "http://schemas.microsoft.com/office/word",
+                W_VAL: "12",
+            },
+        )
 
         if self._counts:
             xVars = xmlSubElem(xRoot, _wTag("docVars"))
             for key, value in self._counts.items():
-                xmlSubElem(xVars, _wTag("docVar"), attrib={
-                    _wTag("name"): f"Manuscript{key[:1].upper()}{key[1:]}",
-                    W_VAL: str(value),
-                })
+                xmlSubElem(
+                    xVars,
+                    _wTag("docVar"),
+                    attrib={
+                        _wTag("name"): f"Manuscript{key[:1].upper()}{key[1:]}",
+                        W_VAL: str(value),
+                    },
+                )
 
         return rId
 
@@ -1048,9 +1126,18 @@ class DocXParagraph:
     """
 
     __slots__ = (
-        "_bottomMargin", "_breakAfter", "_breakBefore", "_content",
-        "_footnoteRef", "_indentFirst", "_leftMargin", "_rightMargin",
-        "_style", "_textAlign", "_topMargin",
+        "_borders",
+        "_bottomMargin",
+        "_breakAfter",
+        "_breakBefore",
+        "_content",
+        "_footnoteRef",
+        "_indentFirst",
+        "_leftMargin",
+        "_rightMargin",
+        "_style",
+        "_textAlign",
+        "_topMargin",
     )
 
     def __init__(self) -> None:
@@ -1065,6 +1152,7 @@ class DocXParagraph:
         self._breakBefore = False
         self._breakAfter = False
         self._footnoteRef = False
+        self._borders: dict[str, DocXBorder] = {}
 
     ##
     #  Properties
@@ -1103,6 +1191,10 @@ class DocXParagraph:
     def setMarginRight(self, value: float) -> None:
         """Set margin right in pt."""
         self._rightMargin = value
+
+    def setBorder(self, position: str, value: DocXBorder) -> None:
+        """Set border for a specific position."""
+        self._borders[position] = value
 
     def setIndentFirst(self, state: bool) -> None:
         """Set first line indent."""
@@ -1146,12 +1238,29 @@ class DocXParagraph:
             pPr = xmlSubElem(xP, _wTag("pPr"))
             xmlSubElem(pPr, _wTag("pStyle"), attrib={W_VAL: style.styleId})
             if self._topMargin is not None or self._bottomMargin is not None:
-                xmlSubElem(pPr, _wTag("spacing"), attrib={
-                    _wTag("before"): str(int(20.0 * firstFloat(self._topMargin, style.before))),
-                    _wTag("after"): str(int(20.0 * firstFloat(self._bottomMargin, style.after))),
-                    _wTag("line"): str(int(20.0 * firstFloat(style.line, style.size))),
-                    _wTag("lineRule"): "auto",
-                })
+                xmlSubElem(
+                    pPr,
+                    _wTag("spacing"),
+                    attrib={
+                        _wTag("before"): str(int(20.0 * firstFloat(self._topMargin, style.before))),
+                        _wTag("after"): str(int(20.0 * firstFloat(self._bottomMargin, style.after))),
+                        _wTag("line"): str(int(20.0 * firstFloat(style.line, style.size))),
+                        _wTag("lineRule"): "auto",
+                    },
+                )
+            if self._borders:
+                pBdr = xmlSubElem(pPr, _wTag("pBdr"))
+                for position, border in self._borders.items():
+                    xmlSubElem(
+                        pBdr,
+                        _wTag(position),
+                        attrib={
+                            _wTag("val"): border.line,
+                            _wTag("color"): _docXCol(border.color),
+                            _wTag("sz"): str(border.size),
+                            _wTag("space"): str(border.space),
+                        },
+                    )
             if indent:
                 xmlSubElem(pPr, _wTag("ind"), attrib=indent)
             if self._textAlign:
