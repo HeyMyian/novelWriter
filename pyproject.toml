@@ -143,6 +143,7 @@ ignore-decorators = [
 [tool.ruff.lint.isort]
 lines-between-types = 1
 forced-separate = ["tests"]
+required-imports = ["from __future__ import annotations"]
 
 [tool.ruff.lint.pylint]
 max-nested-blocks = 10
@@ -167,9 +168,8 @@ markers = [
 ]
 
 [tool.coverage.run]
-branch = false
+branch = true
 source = ["novelwriter"]
 
 [tool.coverage.report]
 precision = 2
-exclude_also = ["if TYPE_CHECKING:"]

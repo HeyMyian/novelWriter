@@ -191,6 +191,22 @@ class ToDocX(Tokenizer):
     Extend the Tokenizer class to writer DocX Document files.
     """
 
+    __slots__ = (
+        "_files",
+        "_fontFamily",
+        "_fontSize",
+        "_headerFormat",
+        "_mHorLine",
+        "_pageMargins",
+        "_pageOffset",
+        "_pageSize",
+        "_pars",
+        "_rels",
+        "_styles",
+        "_usedFields",
+        "_usedNotes",
+    )
+
     def __init__(self, project: NWProject) -> None:
         super().__init__(project)
 
@@ -308,6 +324,9 @@ class ToDocX(Tokenizer):
 
             elif tType in COMMENT_BLOCKS or tType == BlockTyp.KEYWORD:
                 self._processFragments(par, S_META, tText, tFormat)
+
+            else:  # pragma: no cover
+                pass
 
     def closeDocument(self) -> None:
         """Generate all the XML."""
@@ -1037,7 +1056,7 @@ class ToDocX(Tokenizer):
         for key, idx in self._usedNotes.items():
             par = DocXParagraph()
             par.setIsFootnote(True)
-            if content := self._footnotes.get(key):
+            if content := self._footnotes.get(key):  # pragma: no branch
                 self._processFragments(par, S_FNOTE, content[0], content[1])
             par.toXml(xmlSubElem(xRoot, _wTag("footnote"), attrib={_wTag("id"): str(idx)}))
 

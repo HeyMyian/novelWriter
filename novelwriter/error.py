@@ -69,7 +69,7 @@ class NWErrorMessage(QDialog):
 
         # Widgets
         self.msgIcon = QLabel()
-        if style := QApplication.style():
+        if style := QApplication.style():  # pragma: no branch
             self.msgIcon.setPixmap(style.standardIcon(QStyle.StandardPixmap.SP_MessageBoxCritical).pixmap(64, 64))
 
         self.msgHead = QLabel()
@@ -184,7 +184,7 @@ def exceptionHandler(exType: type, exValue: BaseException, exTrace: TracebackTyp
     try:
         nwGUI = None
         for qWin in QApplication.topLevelWidgets():
-            if qWin.objectName() == "GuiMain":
+            if qWin.objectName() == "GuiMain":  # pragma: no branch (this branch is flaky)
                 nwGUI = qWin
                 break
 

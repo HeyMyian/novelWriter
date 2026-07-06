@@ -47,9 +47,9 @@ __license__ = "GPLv3"
 __author__ = "Veronica Berglyd Olsen"
 __maintainer__ = "Veronica Berglyd Olsen"
 __email__ = "code@vkbo.net"
-__version__ = "26.2a0"
-__hexversion__ = "0x260200a0"
-__date__ = "2026-04-13"
+__version__ = "26.2a1"
+__hexversion__ = "0x260200a1"
+__date__ = "2026-07-02"
 __status__ = "Stable"
 __domain__ = "novelwriter.io"
 
@@ -166,6 +166,8 @@ def main(sysArgs: list | None = None) -> GuiMain | None:
             confPath = inArg
         elif inOpt == "--data":
             dataPath = inArg
+        else:  # pragma: no cover
+            pass
 
     if fmtColor:
         # This will overwrite the default level names, and also ensure that

@@ -60,6 +60,10 @@ from novelwriter.types import (
     QtAlignRightTop,
     QtDisplayRole,
     QtHexArgb,
+    QtKeyDown,
+    QtKeyEnter,
+    QtKeyReturn,
+    QtKeyUp,
     QtScrollAsNeeded,
     QtSelected,
 )
@@ -272,7 +276,7 @@ class _OpenProjectPage(QWidget):
         self.listWidget.doubleClicked.connect(self._projectDoubleClicked)
         self.listWidget.customContextMenuRequested.connect(self._openContextMenu)
 
-        if selectionModel := self.listWidget.selectionModel():
+        if selectionModel := self.listWidget.selectionModel():  # pragma: no branch
             selectionModel.currentChanged.connect(self._selectionChange)
 
         # Info / Tool
@@ -286,7 +290,7 @@ class _OpenProjectPage(QWidget):
         self._trPath = self.tr("Path")
 
         self.keyEnter = QShortcut(self.listWidget)
-        self.keyEnter.setKeys([Qt.Key.Key_Enter, Qt.Key.Key_Return])
+        self.keyEnter.setKeys([QtKeyEnter, QtKeyReturn])
         self.keyEnter.setContext(Qt.ShortcutContext.WidgetShortcut)
         self.keyEnter.activated.connect(self.openSelectedItem)
 
@@ -318,7 +322,7 @@ class _OpenProjectPage(QWidget):
 
     def keyPressEvent(self, event: QKeyEvent | None) -> None:
         """Capture key press events."""
-        if event and event.key() in (Qt.Key.Key_Up, Qt.Key.Key_Down):
+        if event and event.key() in (QtKeyUp, QtKeyDown):
             self.listWidget.setFocus()
             self.listWidget.keyPressEvent(event)
         else:
@@ -434,7 +438,7 @@ class _ProjectListItem(QStyledItemDelegate):
 
     def paint(self, painter: QPainter, opt: QStyleOptionViewItem, index: QModelIndex) -> None:
         """Paint a project entry on the canvas."""
-        if isinstance(entry := index.data(QtDisplayRole), _ProjectListEntry):
+        if isinstance(entry := index.data(QtDisplayRole), _ProjectListEntry):  # pragma: no branch
             rect = opt.rect
             tFlag = Qt.TextFlag.TextSingleLine
             x, y = self._pPx
@@ -833,6 +837,8 @@ class _NewProjectForm(QWidget):
             text = self.tr("Example Project")
         elif self._fillMode == self.FILL_COPY:
             text = self.tr("Template: {0}").format(str(self._copyPath))
+        else:  # pragma: no cover
+            pass
 
         self.projFill.setText(text)
         self.projFill.setToolTip(text)

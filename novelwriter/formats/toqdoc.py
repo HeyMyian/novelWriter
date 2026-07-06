@@ -91,6 +91,31 @@ class ToQTextDocument(Tokenizer):
     is intended for usage in the document viewer and build tool preview.
     """
 
+    __slots__ = (
+        "_blockFmt",
+        "_charFmt",
+        "_dItalic",
+        "_dStrike",
+        "_dUnderline",
+        "_dWeight",
+        "_document",
+        "_hWeight",
+        "_init",
+        "_mHead",
+        "_mIndent",
+        "_mMeta",
+        "_mSep",
+        "_mText",
+        "_newPage",
+        "_pageMargins",
+        "_pageSize",
+        "_printer",
+        "_sHead",
+        "_tIndent",
+        "_usedFields",
+        "_usedNotes",
+    )
+
     def __init__(self, project: NWProject, pdf: bool = False) -> None:
         super().__init__(project)
         self._document = QTextDocument()
@@ -109,7 +134,6 @@ class ToQTextDocument(Tokenizer):
 
         self._init = False
         self._newPage = False
-        self._anchors = True
 
         self._hWeight = QtFontBold
         self._dWeight = QtFontNormal
@@ -119,6 +143,16 @@ class ToQTextDocument(Tokenizer):
 
         self._pageSize = QPageSize(QPageSize.PageSizeId.A4)
         self._pageMargins = QMarginsF(20.0, 20.0, 20.0, 20.0)
+
+        self._mHead: dict[BlockTyp, tuple[float, float]] = {}
+        self._sHead: dict[BlockTyp, float] = {}
+        self._mText: tuple[float, float] = (1.0, 1.0)
+        self._mMeta: tuple[float, float] = (1.0, 1.0)
+        self._mSep: tuple[float, float] = (1.0, 1.0)
+        self._mIndent = 1.0
+        self._tIndent = 1.0
+        self._blockFmt = QTextBlockFormat()
+        self._charFmt = QTextCharFormat()
 
     ##
     #  Properties
@@ -141,10 +175,6 @@ class ToQTextDocument(Tokenizer):
     def setShowNewPage(self, state: bool) -> None:
         """Add markers for page breaks."""
         self._newPage = state
-
-    def disableAnchors(self) -> None:
-        """Disable anchors for when writing to file."""
-        self._anchors = False
 
     ##
     #  Class Methods
@@ -169,7 +199,7 @@ class ToQTextDocument(Tokenizer):
             self._printer.setPageMargins(self._pageMargins, QPageLayout.Unit.Millimeter)
             self._textFont.setHintingPreference(QFont.HintingPreference.PreferNoHinting)
             self._document.setPageSize(self._printer.pageRect(QPrinter.Unit.DevicePixel).size())
-            if layout := self._document.documentLayout():
+            if layout := self._document.documentLayout():  # pragma: no branch
                 layout.setPaintDevice(self._printer)
 
         self._document.setDefaultFont(self._textFont)
@@ -214,13 +244,11 @@ class ToQTextDocument(Tokenizer):
         self._tIndent = mPx * self._firstWidth
 
         # Text Formats
-        self._blockFmt = QTextBlockFormat()
         self._blockFmt.setTopMargin(self._mText[0])
         self._blockFmt.setBottomMargin(self._mText[1])
         self._blockFmt.setAlignment(QtAlignAbsolute)
         self._blockFmt.setLineHeight(100.0 * self._lineHeight, QtPropLineHeight)
 
-        self._charFmt = QTextCharFormat()
         self._charFmt.setBackground(QtTransparent)
         self._charFmt.setForeground(self._theme.text)
 
@@ -297,6 +325,9 @@ class ToQTextDocument(Tokenizer):
                 newBlock(cursor, bFmt)
                 cursor.insertText(nwUnicode.U_NBSP, self._charFmt)
 
+            else:  # pragma: no cover
+                pass
+
             if tStyle & BlockFmt.PBA:
                 self._insertNewPageMarker(cursor)
 
@@ -306,7 +337,7 @@ class ToQTextDocument(Tokenizer):
 
     def saveDocument(self, path: Path) -> None:
         """Save the document as a PDF file."""
-        if self._printer:
+        if self._printer:  # pragma: no branch
             logger.info("Writing PDF ...")
             self._printer.setOutputFileName(str(path))
             self._document.print(self._printer)
@@ -335,7 +366,7 @@ class ToQTextDocument(Tokenizer):
             cursor.insertText(self._localLookup("Footnotes"), cFmt)
 
             for key, index in self._usedNotes.items():
-                if content := self._footnotes.get(key):
+                if content := self._footnotes.get(key):  # pragma: no branch
                     cFmt = QTextCharFormat(self._charFmt)
                     cFmt.setForeground(self._theme.code)
                     cFmt.setAnchor(True)
@@ -390,29 +421,25 @@ class ToQTextDocument(Tokenizer):
             elif fmt == TextFmt.SUB_E:
                 cFmt.setVerticalAlignment(QtVAlignNormal)
             elif fmt == TextFmt.COL_B:
-                if color := self._classes.get(data):
+                if color := self._classes.get(data):  # pragma: no branch
                     cFmt.setForeground(color)
                     primary = color
             elif fmt == TextFmt.COL_E:
                 cFmt.setForeground(self._theme.text)
                 primary = None
             elif fmt == TextFmt.ANM_B:
-                if self._anchors:
-                    cFmt.setAnchor(True)
-                    cFmt.setAnchorNames([data])
+                cFmt.setAnchor(True)
+                cFmt.setAnchorNames([data])
             elif fmt == TextFmt.ANM_E:
-                if self._anchors:
-                    cFmt.setAnchor(False)
+                cFmt.setAnchor(False)
             elif fmt == TextFmt.ARF_B:
-                if self._anchors:
-                    cFmt.setFontUnderline(True)
-                    cFmt.setAnchor(True)
-                    cFmt.setAnchorHref(data)
+                cFmt.setFontUnderline(True)
+                cFmt.setAnchor(True)
+                cFmt.setAnchorHref(data)
             elif fmt == TextFmt.ARF_E:
-                if self._anchors:
-                    cFmt.setFontUnderline(False)
-                    cFmt.setAnchor(False)
-                    cFmt.setAnchorHref("")
+                cFmt.setFontUnderline(False)
+                cFmt.setAnchor(False)
+                cFmt.setAnchorHref("")
             elif fmt == TextFmt.HRF_B:
                 cFmt.setForeground(self._theme.link)
                 cFmt.setFontUnderline(True)
@@ -477,7 +504,7 @@ class ToQTextDocument(Tokenizer):
             cursor.insertFrame(fFmt)
             cursor.setBlockFormat(bFmt)
             cursor.insertText(self._project.localLookup("New Page"), cFmt)
-            if root := self._document.rootFrame():
+            if root := self._document.rootFrame():  # pragma: no branch
                 cursor.swap(root.lastCursorPosition())
 
     def _insertHorizontalRule(self, cursor: QTextCursor) -> None:
@@ -508,7 +535,7 @@ class ToQTextDocument(Tokenizer):
         cFmt.setForeground(self._theme.head if hCol else self._theme.text)
         cFmt.setFontWeight(self._hWeight)
         cFmt.setFontPointSize(self._sHead.get(hType, 1.0))
-        if hKey and self._anchors:
+        if hKey and self._useAnchors:
             cFmt.setAnchorNames([hKey])
             cFmt.setAnchor(True)
 

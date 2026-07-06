@@ -139,6 +139,50 @@ class ToOdt(Tokenizer):
     Test with: https://odfvalidator.org/
     """
 
+    __slots__ = (
+        "_autoPara",
+        "_autoText",
+        "_dCont",
+        "_dCountry",
+        "_dFlat",
+        "_dLanguage",
+        "_dMeta",
+        "_dSett",
+        "_dStyl",
+        "_errData",
+        "_fBlockIndent",
+        "_fontBold",
+        "_fontFamily",
+        "_fontPitch",
+        "_fontSize",
+        "_fontStyle",
+        "_fontWeight",
+        "_headWeight",
+        "_headerFormat",
+        "_isFlat",
+        "_mDocBtm",
+        "_mDocHeight",
+        "_mDocLeft",
+        "_mDocRight",
+        "_mDocTop",
+        "_mDocWidth",
+        "_mHorLine",
+        "_mainPara",
+        "_nNote",
+        "_pageOffset",
+        "_textFont",
+        "_xAut2",
+        "_xAuto",
+        "_xBody",
+        "_xFnt2",
+        "_xFont",
+        "_xMast",
+        "_xMeta",
+        "_xSett",
+        "_xStyl",
+        "_xText",
+    )
+
     def __init__(self, project: NWProject, isFlat: bool) -> None:
         super().__init__(project)
 
@@ -414,6 +458,9 @@ class ToOdt(Tokenizer):
 
             elif tType in COMMENT_BLOCKS or tType == BlockTyp.KEYWORD:
                 self._addTextPar(xText, S_META, oStyle, tText, tFmt=tFormat)
+
+            else:  # pragma: no cover
+                pass
 
     def closeDocument(self) -> None:
         """Add additional collected information to the XML."""
@@ -1095,6 +1142,8 @@ class ODTParagraphStyle:
     minimal and fast.
     """
 
+    __slots__ = ("_mAttr", "_name", "_pAttr", "_tAttr")
+
     VALID_ALIGN: Final[list[str]] = ["start", "center", "end", "justify", "left", "right"]
     VALID_BREAK: Final[list[str]] = ["auto", "page", "even-page", "odd-page", "inherit"]
     VALID_LEVEL: Final[list[str]] = ["1", "2", "3", "4"]
@@ -1340,6 +1389,8 @@ class ODTTextStyle:
     and fast.
     """
 
+    __slots__ = ("_name", "_tAttr")
+
     VALID_WEIGHT: Final[list[str]] = ["normal", "bold", *FONT_WEIGHT_NUM]
     VALID_STYLE: Final[list[str]] = ["normal", "italic", "oblique"]
     VALID_POS: Final[list[str]] = ["super", "sub"]
@@ -1490,6 +1541,8 @@ class XMLParagraph:
     object and attribute is written to,
     """
 
+    __slots__ = ("_chrPos", "_nState", "_rawTxt", "_xRoot", "_xSing", "_xTail")
+
     def __init__(self, xRoot: ET.Element) -> None:
 
         self._xRoot = xRoot
@@ -1624,7 +1677,7 @@ class XMLParagraph:
         See: http://docs.oasis-open.org/office/v1.2/os/OpenDocument-v1.2-os-part1.html
         Sections: 6.1.2, 6.1.3, and 19.763
         """
-        if nSpaces > 0:
+        if nSpaces > 0:  # pragma: no branch
             if self._chrPos > 0:
                 if self._nState == X_ROOT_TEXT:
                     self._xRoot.text = (self._xRoot.text or "") + " "
@@ -1647,7 +1700,6 @@ class XMLParagraph:
                 self._xTail.tail = ""
                 self._nState = X_ROOT_TAIL
                 self._chrPos += nSpaces - 1
-
             elif self._nState in (X_SPAN_TEXT, X_SPAN_SING):
                 self._xSing = ET.SubElement(self._xTail, TAG_SPC)
                 self._xSing.tail = ""
@@ -1660,7 +1712,6 @@ class XMLParagraph:
                 self._xTail.tail = ""
                 self._nState = X_ROOT_TAIL
                 self._chrPos += nSpaces - 1
-
             elif self._nState in (X_SPAN_TEXT, X_SPAN_SING):
                 self._xSing = ET.SubElement(self._xTail, TAG_SPC, attrib={TAG_NSPC: str(nSpaces - 1)})
                 self._xSing.tail = ""

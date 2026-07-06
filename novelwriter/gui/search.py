@@ -52,6 +52,8 @@ from novelwriter.types import (
     QtHeaderStretch,
     QtHeaderToContents,
     QtHexArgb,
+    QtKeyDown,
+    QtKeyUp,
     QtModShift,
     QtUserRole,
 )
@@ -142,7 +144,7 @@ class GuiProjectSearch(QWidget):
         self.searchResult.itemSelectionChanged.connect(self._searchResultSelected)
         self.searchResult.setAccessibleName(self.viewLabel.text())
 
-        if header := self.searchResult.header():
+        if header := self.searchResult.header():  # pragma: no branch
             header.setStretchLastSection(False)
             header.setSectionResizeMode(self.C_NAME, QtHeaderStretch)
             header.setSectionResizeMode(self.C_COUNT, QtHeaderToContents)
@@ -231,15 +233,11 @@ class GuiProjectSearch(QWidget):
         """Process key press events. This handles up and down arrow key
         presses to jump between search text box and result tree.
         """
-        if (
-            event.key() == Qt.Key.Key_Down
-            and self.searchText.hasFocus()
-            and (first := self.searchResult.topLevelItem(0))
-        ):
+        if event.key() == QtKeyDown and self.searchText.hasFocus() and (first := self.searchResult.topLevelItem(0)):
             first.setSelected(True)
             self.searchResult.setFocus()
         elif (
-            event.key() == Qt.Key.Key_Up
+            event.key() == QtKeyUp
             and self.searchResult.hasFocus()
             and (first := self.searchResult.topLevelItem(0))
             and first.isSelected()
@@ -295,6 +293,8 @@ class GuiProjectSearch(QWidget):
                 self.selectedItemChanged.emit(str(data[0]))
             elif data := items[0].data(0, self.D_HANDLE):
                 self.selectedItemChanged.emit(str(data))
+            else:  # pragma: no cover
+                pass
 
     @pyqtSlot("QTreeWidgetItem*", int)
     def _searchResultDoubleClicked(self, item: QTreeWidgetItem, column: int) -> None:

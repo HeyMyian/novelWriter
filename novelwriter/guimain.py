@@ -46,14 +46,12 @@ from novelwriter import CONFIG, SHARED, __hexversion__, __version__
 from novelwriter.common import formatFileFilter, formatVersion, hexToInt, minmax, safeIsFile
 from novelwriter.constants import nwConst
 from novelwriter.dialogs.about import GuiAbout
-from novelwriter.dialogs.preferences import GuiPreferences
+from novelwriter.dialogs.preferences import GuiNeedsUpdate, GuiPreferences
 from novelwriter.dialogs.projectsettings import GuiProjectSettings
 from novelwriter.dialogs.wordlist import GuiWordList
+from novelwriter.editor.editor import GuiDocEditor
 from novelwriter.enum import nwDocAction, nwDocInsert, nwDocMode, nwFocus, nwItemType, nwView, nwVimMode
 from novelwriter.extensions.progressbars import NProgressSimple
-from novelwriter.gui.doceditor import GuiDocEditor
-from novelwriter.gui.docviewer import GuiDocViewer
-from novelwriter.gui.docviewerpanel import GuiDocViewerPanel
 from novelwriter.gui.itemdetails import GuiItemDetails
 from novelwriter.gui.mainmenu import GuiMainMenu
 from novelwriter.gui.noveltree import GuiNovelView
@@ -62,12 +60,14 @@ from novelwriter.gui.projtree import GuiProjectView
 from novelwriter.gui.search import GuiProjectSearch
 from novelwriter.gui.sidebar import GuiSideBar
 from novelwriter.gui.statusbar import GuiMainStatus
+from novelwriter.manuscript.manuscript import GuiManuscript
 from novelwriter.tools.dictionaries import GuiDictionaries
-from novelwriter.tools.manuscript import GuiManuscript
 from novelwriter.tools.noveldetails import GuiNovelDetails
 from novelwriter.tools.welcome import GuiWelcome
 from novelwriter.tools.writingstats import GuiWritingStats
 from novelwriter.types import QtModShift
+from novelwriter.viewer.viewer import GuiDocViewer
+from novelwriter.viewer.viewerpanel import GuiDocViewerPanel
 
 logger = logging.getLogger(__name__)
 
@@ -627,7 +627,7 @@ class GuiMain(QMainWindow):
                 # Since editor width changes, we need to make sure we
                 # restore cursor visibility in the editor. See #1302
                 if cursorVisible:
-                    self.docEditor.ensureCursorVisibleNoCentre()
+                    self.docEditor.ensureCursorVisible(centre=False)
 
             if sTitle:
                 self.docViewer.navigateTo(f"#{tHandle}:{sTitle}")
@@ -871,7 +871,7 @@ class GuiMain(QMainWindow):
         # Since editor width changes, we need to make sure we restore
         # cursor visibility in the editor. See #1302
         if cursorVisible:
-            self.docEditor.ensureCursorVisibleNoCentre()
+            self.docEditor.ensureCursorVisible(centre=False)
 
         return not self.splitView.isVisible()
 
@@ -992,7 +992,7 @@ class GuiMain(QMainWindow):
             self.splitView.setVisible(True)
 
         if cursorVisible:
-            self.docEditor.ensureCursorVisibleNoCentre()
+            self.docEditor.ensureCursorVisible(centre=False)
 
     @pyqtSlot(nwFocus)
     def _switchFocus(self, paneNo: nwFocus) -> None:
@@ -1040,23 +1040,25 @@ class GuiMain(QMainWindow):
             self._changeView(nwView.OUTLINE, exitFocus=True)
             self.outlineView.setTreeFocus()
 
-    @pyqtSlot(bool, bool, bool, bool)
-    def _processConfigChanges(self, restart: bool, tree: bool, theme: bool, syntax: bool) -> None:
+    @pyqtSlot(GuiNeedsUpdate)
+    def _processConfigChanges(self, updateFlags: GuiNeedsUpdate) -> None:
         """Refresh GUI based on flags from the Preferences dialog."""
         logger.debug("Applying new preferences")
         self.initMain()
         self.saveDocument()
 
-        if tree and not theme:
+        if updateFlags.tree and not updateFlags.theme:
             # These are also updated by a theme refresh
             SHARED.project.tree.refreshAllItems()
             self.novelView.refreshCurrentTree()
 
-        if theme:
-            self.refreshThemeColors(syntax=syntax, force=True)
+        if updateFlags.theme:
+            self.refreshThemeColors(syntax=updateFlags.syntax, force=True)
+        if updateFlags.editor or updateFlags.theme:
+            self.docEditor.initEditor()
+        if updateFlags.viewer or updateFlags.theme:
+            self.docViewer.initViewer()
 
-        self.docEditor.initEditor()
-        self.docViewer.initViewer()
         self.projView.initSettings()
         self.novelView.initSettings()
         self.outlineView.initSettings()
@@ -1066,7 +1068,7 @@ class GuiMain(QMainWindow):
         self._lastTotalCount = 0
         self._updateStatusWordCount()
 
-        if restart:
+        if updateFlags.restart:
             SHARED.info(self.tr("Some changes will not be applied until novelWriter has been restarted."))
 
     @pyqtSlot()
@@ -1102,6 +1104,8 @@ class GuiMain(QMainWindow):
                 self.openDocument(tHandle, sTitle=sTitle)
             elif mode == nwDocMode.VIEW:
                 self.viewDocument(tHandle=tHandle, sTitle=sTitle)
+            else:  # pragma: no cover
+                pass
 
     @pyqtSlot(Path)
     def _openProjectFromWelcome(self, path: Path) -> None:
@@ -1119,6 +1123,8 @@ class GuiMain(QMainWindow):
                 self.openDocument(tHandle, sTitle=sTitle, changeFocus=setFocus)
             elif mode == nwDocMode.VIEW:
                 self.viewDocument(tHandle=tHandle, sTitle=sTitle)
+            else:  # pragma: no cover
+                pass
 
     @pyqtSlot(str, int, int, bool)
     def _openDocumentSelection(self, tHandle: str, selStart: int, selLength: int, changeFocus: bool) -> None:
@@ -1155,6 +1161,8 @@ class GuiMain(QMainWindow):
             self.projSearch.beginSearch(self.docEditor.getSelectedText() if self.docEditor.anyFocus() else "")
         elif view == nwView.OUTLINE:
             self.mainStack.setCurrentWidget(self.outlineView)
+        else:  # pragma: no cover
+            pass
 
         # Set active status
         isMain = self.mainStack.currentWidget() == self.splitMain
