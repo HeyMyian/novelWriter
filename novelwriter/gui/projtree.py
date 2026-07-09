@@ -40,7 +40,7 @@ from PyQt6.QtWidgets import (
 )
 
 from novelwriter import CONFIG, SHARED
-from novelwriter.common import qtAddAction, qtAddMenu, qtLambda
+from novelwriter.common import qtAddAction, qtAddMenu, qtLambda, qtWeakLambda
 from novelwriter.constants import nwLabels, nwStyles, nwUnicode, trConst
 from novelwriter.core.coretools import DocDuplicator, DocMerger, DocSplitter
 from novelwriter.core.item import NWItem
@@ -61,6 +61,7 @@ from novelwriter.types import (
     QtScrollAlwaysOff,
     QtScrollAsNeeded,
     QtSizeExpanding,
+    QtWidgetShortcut,
 )
 
 logger = logging.getLogger(__name__)
@@ -98,37 +99,37 @@ class GuiProjectView(QWidget):
         # Keyboard Shortcuts
         self.keyMoveUp = QShortcut(self.projTree)
         self.keyMoveUp.setKey("Ctrl+Up")
-        self.keyMoveUp.setContext(Qt.ShortcutContext.WidgetShortcut)
+        self.keyMoveUp.setContext(QtWidgetShortcut)
         self.keyMoveUp.activated.connect(self.projTree.moveItemUp)
 
         self.keyMoveDn = QShortcut(self.projTree)
         self.keyMoveDn.setKey("Ctrl+Down")
-        self.keyMoveDn.setContext(Qt.ShortcutContext.WidgetShortcut)
+        self.keyMoveDn.setContext(QtWidgetShortcut)
         self.keyMoveDn.activated.connect(self.projTree.moveItemDown)
 
         self.keyGoPrev = QShortcut(self.projTree)
         self.keyGoPrev.setKey("Alt+Up")
-        self.keyGoPrev.setContext(Qt.ShortcutContext.WidgetShortcut)
+        self.keyGoPrev.setContext(QtWidgetShortcut)
         self.keyGoPrev.activated.connect(self.projTree.goToSiblingUp)
 
         self.keyGoNext = QShortcut(self.projTree)
         self.keyGoNext.setKey("Alt+Down")
-        self.keyGoNext.setContext(Qt.ShortcutContext.WidgetShortcut)
+        self.keyGoNext.setContext(QtWidgetShortcut)
         self.keyGoNext.activated.connect(self.projTree.goToSiblingDown)
 
         self.keyGoUp = QShortcut(self.projTree)
         self.keyGoUp.setKey("Alt+Left")
-        self.keyGoUp.setContext(Qt.ShortcutContext.WidgetShortcut)
+        self.keyGoUp.setContext(QtWidgetShortcut)
         self.keyGoUp.activated.connect(self.projTree.goToParent)
 
         self.keyGoDown = QShortcut(self.projTree)
         self.keyGoDown.setKey("Alt+Right")
-        self.keyGoDown.setContext(Qt.ShortcutContext.WidgetShortcut)
+        self.keyGoDown.setContext(QtWidgetShortcut)
         self.keyGoDown.activated.connect(self.projTree.goToFirstChild)
 
         self.keyContext = QShortcut(self.projTree)
         self.keyContext.setKey("Ctrl+.")
-        self.keyContext.setContext(Qt.ShortcutContext.WidgetShortcut)
+        self.keyContext.setContext(QtWidgetShortcut)
         self.keyContext.activated.connect(self.projTree.openContextMenu)
 
         # Signals
@@ -1171,10 +1172,10 @@ class _TreeContextMenu(QMenu):
             mSub = qtAddMenu(self, self.tr("Set Active to ..."))
             aOne = qtAddAction(mSub, self._tree.trActive)
             aOne.setIcon(SHARED.theme.getIcon("checked", "accept"))
-            aOne.triggered.connect(qtLambda(self._iterItemActive, True))
+            aOne.triggered.connect(qtWeakLambda(self._iterItemActive, True))
             aTwo = qtAddAction(mSub, self._tree.trInactive)
             aTwo.setIcon(SHARED.theme.getIcon("unchecked", "reject"))
-            aTwo.triggered.connect(qtLambda(self._iterItemActive, False))
+            aTwo.triggered.connect(qtWeakLambda(self._iterItemActive, False))
         else:
             action = qtAddAction(self, self.tr("Toggle Active"))
             action.triggered.connect(self._toggleItemActive)
@@ -1182,10 +1183,10 @@ class _TreeContextMenu(QMenu):
                 mSub = qtAddMenu(self, self.tr("Set Children to ..."))
                 aOne = qtAddAction(mSub, self._tree.trActive)
                 aOne.setIcon(SHARED.theme.getIcon("checked", "accept"))
-                aOne.triggered.connect(qtLambda(self._recurseItemActive, True))
+                aOne.triggered.connect(qtWeakLambda(self._recurseItemActive, True))
                 aTwo = qtAddAction(mSub, self._tree.trInactive)
                 aTwo.setIcon(SHARED.theme.getIcon("unchecked", "reject"))
-                aTwo.triggered.connect(qtLambda(self._recurseItemActive, False))
+                aTwo.triggered.connect(qtWeakLambda(self._recurseItemActive, False))
 
     def _itemStatusImport(self, multi: bool) -> None:
         """Add actions for changing status or importance."""
@@ -1199,9 +1200,9 @@ class _TreeContextMenu(QMenu):
                 action = qtAddAction(menu, name)
                 action.setIcon(entry.icon)
                 if multi:
-                    action.triggered.connect(qtLambda(self._iterSetItemStatus, key))
+                    action.triggered.connect(qtWeakLambda(self._iterSetItemStatus, key))
                 else:
-                    action.triggered.connect(qtLambda(self._changeItemStatus, key))
+                    action.triggered.connect(qtWeakLambda(self._changeItemStatus, key))
             menu.addSeparator()
             action = qtAddAction(menu, self.tr("Manage Labels ..."))
             action.triggered.connect(qtLambda(self._view.projectSettingsRequest.emit, GuiProjectSettings.PAGE_STATUS))
@@ -1215,9 +1216,9 @@ class _TreeContextMenu(QMenu):
                 action = qtAddAction(menu, name)
                 action.setIcon(entry.icon)
                 if multi:
-                    action.triggered.connect(qtLambda(self._iterSetItemImport, key))
+                    action.triggered.connect(qtWeakLambda(self._iterSetItemImport, key))
                 else:
-                    action.triggered.connect(qtLambda(self._changeItemImport, key))
+                    action.triggered.connect(qtWeakLambda(self._changeItemImport, key))
             menu.addSeparator()
             action = qtAddAction(menu, self.tr("Manage Labels ..."))
             action.triggered.connect(qtLambda(self._view.projectSettingsRequest.emit, GuiProjectSettings.PAGE_IMPORT))
@@ -1235,19 +1236,19 @@ class _TreeContextMenu(QMenu):
 
         if isNoteFile and self._item.documentAllowed():
             action = qtAddAction(menu, self.tr("Convert to {0}").format(trDoc))
-            action.triggered.connect(qtLambda(self._changeItemLayout, loDoc))
+            action.triggered.connect(qtWeakLambda(self._changeItemLayout, loDoc))
 
         if isDocFile:
             action = qtAddAction(menu, self.tr("Convert to {0}").format(trNote))
-            action.triggered.connect(qtLambda(self._changeItemLayout, loNote))
+            action.triggered.connect(qtWeakLambda(self._changeItemLayout, loNote))
 
         if isFolder and self._item.documentAllowed():
             action = qtAddAction(menu, self.tr("Convert to {0}").format(trDoc))
-            action.triggered.connect(qtLambda(self._convertFolderToFile, loDoc))
+            action.triggered.connect(qtWeakLambda(self._convertFolderToFile, loDoc))
 
         if isFolder:
             action = qtAddAction(menu, self.tr("Convert to {0}").format(trNote))
-            action.triggered.connect(qtLambda(self._convertFolderToFile, loNote))
+            action.triggered.connect(qtWeakLambda(self._convertFolderToFile, loNote))
 
         if self._children and isFile:
             action = qtAddAction(menu, self.tr("Merge Child Items into Self"))

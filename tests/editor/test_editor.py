@@ -1,5 +1,5 @@
 """
-novelWriter – Main GUI Editor Class Tester
+novelWriter – Document Editor Class Tester
 ==========================================
 
 This file is a part of novelWriter
@@ -26,7 +26,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from PyQt6.QtCore import QEvent, QMimeData, QPointF, QRect, Qt, QThreadPool, QUrl, QVariant
+from PyQt6.QtCore import QEvent, QMimeData, QPoint, QPointF, QRect, Qt, QThreadPool, QUrl, QVariant
 from PyQt6.QtGui import (
     QAction,
     QClipboard,
@@ -42,11 +42,12 @@ from PyQt6.QtGui import (
     QTextCursor,
     QTextDocument,
     QTextOption,
+    QWheelEvent,
 )
 from PyQt6.QtWidgets import QApplication, QMenu, QTextEdit
 
 from novelwriter import CONFIG, SHARED
-from novelwriter.common import decodeMimeHandles
+from novelwriter.common import decodeMimeHandles, utf16CharMap
 from novelwriter.constants import nwKeyWords, nwUnicode
 from novelwriter.core.item import NWItem
 from novelwriter.core.spellcheck import NWSpellEnchant
@@ -54,7 +55,7 @@ from novelwriter.dialogs.editlabel import GuiEditLabel
 from novelwriter.editor.autoreplace import TextAutoReplace
 from novelwriter.editor.completer import CommandCompleter
 from novelwriter.editor.editor import GuiDocEditor, _TagAction
-from novelwriter.editor.textblock import TextBlockData
+from novelwriter.editor.textblock import TextBlockData, formatCheckText
 from novelwriter.enum import nwComment, nwDocAction, nwDocInsert, nwItemClass, nwItemLayout, nwState, nwVimMode
 from novelwriter.shared import _GuiAlert
 from novelwriter.text.counting import standardCounter
@@ -103,7 +104,7 @@ def getMenuForPos(editor: GuiDocEditor, pos: int, select: bool = False) -> QMenu
 
 
 @pytest.mark.gui
-def testGuiEditor_Init(qtbot, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiDocEditor_Init(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test initialising the editor."""
     # Open project
     buildTestProject(nwGUI, projPath)
@@ -194,7 +195,7 @@ def testGuiEditor_Init(qtbot, nwGUI, projPath, ipsumText, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_LoadText(qtbot, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiDocEditor_LoadText(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test loading text into the editor."""
     buildTestProject(nwGUI, projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
@@ -226,7 +227,7 @@ def testGuiEditor_LoadText(qtbot, nwGUI, projPath, ipsumText, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_SaveText(qtbot, monkeypatch, caplog, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiDocEditor_SaveText(qtbot, monkeypatch, caplog, nwGUI, projPath, ipsumText, mockRnd):
     """Test saving text from the editor."""
     buildTestProject(nwGUI, projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
@@ -265,7 +266,7 @@ def testGuiEditor_SaveText(qtbot, monkeypatch, caplog, nwGUI, projPath, ipsumTex
 
 
 @pytest.mark.gui
-def testGuiEditor_SaveTextEdgeCases(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiDocEditor_SaveTextEdgeCases(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
     """Test defensive branches in saveText not covered by the main save
     text test: a write failure with no hash mismatch, and a successful
     forced overwrite after a hash mismatch.
@@ -297,7 +298,7 @@ def testGuiEditor_SaveTextEdgeCases(qtbot, monkeypatch, nwGUI, projPath, ipsumTe
 
 
 @pytest.mark.gui
-def testGuiEditor_DragAndDrop(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_DragAndDrop(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test drag and drop in the editor."""
     docEditor = nwGUI.docEditor
 
@@ -372,7 +373,7 @@ def testGuiEditor_DragAndDrop(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_MetaData(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_MetaData(qtbot, nwGUI, projPath, mockRnd):
     """Test extracting various meta data and other values."""
     buildTestProject(nwGUI, projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
@@ -437,7 +438,7 @@ def testGuiEditor_MetaData(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_ContextMenu(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_ContextMenu(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
     """Test the editor context menu."""
     monkeypatch.setattr(QMenu, "exec", lambda *a: None)
     monkeypatch.setattr(QMenu, "setParent", lambda *a: None)
@@ -610,7 +611,7 @@ def testGuiEditor_ContextMenu(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_SpellChecking(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiDocEditor_SpellChecking(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
     """Test the document spell checker."""
     monkeypatch.setattr(QMenu, "exec", lambda *a: None)
     monkeypatch.setattr(QMenu, "setParent", lambda *a: None)
@@ -687,7 +688,7 @@ def testGuiEditor_SpellChecking(qtbot, monkeypatch, nwGUI, projPath, ipsumText, 
     data._spellErrors = [(0, 5, "Lorem")]
 
     # The spell error should be rendered as an extra selection
-    docEditor._updateSpellSelections()
+    docEditor._updateCheckSelections()
     spellSel = [
         s
         for s in docEditor.extraSelections()
@@ -699,7 +700,7 @@ def testGuiEditor_SpellChecking(qtbot, monkeypatch, nwGUI, projPath, ipsumText, 
 
     # With spell check disabled, the selections should be cleared
     SHARED.project.data.setSpellCheck(False)
-    docEditor._updateSpellSelections()
+    docEditor._updateCheckSelections()
     assert docEditor._spellSelections == []
     SHARED.project.data.setSpellCheck(True)
 
@@ -765,75 +766,183 @@ def testGuiEditor_SpellChecking(qtbot, monkeypatch, nwGUI, projPath, ipsumText, 
         ctxMenu.deleteLater()
 
     # Editing a block flags it for the debounced spell check
-    docEditor._dirtySpell.clear()
+    docEditor._dirtyBlocks.clear()
     docEditor.setCursorPosition(blockPos + 5)
     docEditor.textCursor().insertText("x")
-    assert docEditor._dirtySpell != {}
-    assert docEditor._timerSpellCheck.isActive()
+    assert docEditor._dirtyBlocks != {}
+    assert docEditor._timerTextCheck.isActive()
 
     # Running the check dispatches the dirty blocks to the worker
-    docEditor._dispatchSpellCheck()
-    assert docEditor._dirtySpell == {}
-    assert docEditor._spellJob is None
+    docEditor._dispatchTextCheck()
+    assert docEditor._dirtyBlocks == {}
+    assert docEditor._checkJob is None
 
     # An error under the caret is not underlined
     data = docEditor.textCursor().block().userData()
     assert isinstance(data, TextBlockData)
     data._spellErrors = [(0, 5, "Lorem")]
     docEditor.setCursorPosition(blockPos + 3)
-    docEditor._updateSpellSelections()
+    docEditor._updateCheckSelections()
     assert docEditor._suppressed is True
     assert docEditor._spellSelections == []
 
     # Moving the caret out of the word restores the underline
     docEditor.setCursorPosition(blockPos + 10)
-    docEditor._updateSpellSelections()
+    docEditor._updateCheckSelections()
     assert docEditor._suppressed is False
     assert len(docEditor._spellSelections) == 1
 
     # Background Spell Pass
     # =====================
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.editor.editor.SPELL_PASS_CHUNK", 2)
+        mp.setattr("novelwriter.constants.nwConst.CHECK_PASS_CHUNK", 2)
 
         # A full pass runs chunked worker jobs until the document is
         # done, which with a synchronous worker completes immediately
-        docEditor._beginSpellPass()
-        assert docEditor._spellPassNo == -1
-        assert docEditor._spellJob is None
+        docEditor._beginCheckPass()
+        assert docEditor._checkPassNo == -1
+        assert docEditor._checkJob is None
 
         # A full spell check notifies when the pass completes
         docEditor.spellCheckDocument()
         assert docEditor._spellPassNotify is False
 
     # Results from a cancelled job are dropped
-    docEditor._spellCheckResults(docEditor._spellJobId + 1, [])
-    assert docEditor._spellJob is None
+    docEditor._textCheckResults(docEditor._checkJobId + 1, [])
+    assert docEditor._checkJob is None
 
     # Results for blocks modified while checking are discarded
     block = docEditor.textCursor().block()
     data = block.userData()
     assert isinstance(data, TextBlockData)
     data._spellErrors = []
-    docEditor._spellJobId += 1
-    docEditor._spellJob = (docEditor._spellJobId, [(block, data, data.revision - 1)])
-    docEditor._spellCheckResults(docEditor._spellJobId, [(0, [(0, 5, "wrong")])])
+    docEditor._checkJobId += 1
+    docEditor._checkJob = (docEditor._checkJobId, [(block, data, data.revision - 1)])
+    docEditor._textCheckResults(docEditor._checkJobId, [(0, [(0, 5, "wrong")], [])])
     assert data.spellErrors == []
-    assert docEditor._spellJob is None
+    assert docEditor._checkJob is None
 
     # No new dispatch is made while a job is still in flight
-    docEditor._dirtySpell[block.blockNumber()] = block
-    docEditor._spellJob = (docEditor._spellJobId, [])
-    docEditor._dispatchSpellCheck()
-    assert docEditor._dirtySpell != {}
-    docEditor._spellJob = None
-    docEditor._dirtySpell.clear()
+    docEditor._dirtyBlocks[block.blockNumber()] = block
+    docEditor._checkJob = (docEditor._checkJobId, [])
+    docEditor._dispatchTextCheck()
+    assert docEditor._dirtyBlocks != {}
+    docEditor._checkJob = None
+    docEditor._dirtyBlocks.clear()
 
     # qtbot.stop()
 
 
+def testGuiDocEditor_FormatCheckText():
+    """Test the raw multi-space and trailing-space checker function."""
+    # Multiple runs of multiple spaces
+    assert formatCheckText("one  two   three", 0, None) == [(3, 5, "multi"), (8, 11, "multi")]
+
+    # Trailing space only
+    assert formatCheckText("one two ", 0, None) == [(7, 8, "trail")]
+
+    # A trailing run is reported as both kinds
+    assert formatCheckText("one  two  ", 0, None) == [(3, 5, "multi"), (8, 10, "multi"), (8, 10, "trail")]
+
+    # No errors
+    assert formatCheckText("one two three", 0, None) == []
+
+    # The offset is respected
+    assert formatCheckText("one  two", 4, None) == []
+
+    # Positions are translated through a UTF-16 map
+    text = "a\U0001f605  b "
+    utf16Map = utf16CharMap(text)
+    assert formatCheckText(text, 0, utf16Map) == [(3, 5, "multi"), (6, 7, "trail")]
+
+    # A URL padded to spaces of equal length by TextBlockData.processText
+    # must not be mistaken for a real run of multiple spaces, or every
+    # comment/text line containing a URL would be flagged
+    data = TextBlockData()
+    text = "See http://example.com for details.  "
+    data.processText(text, 0, None)
+    assert formatCheckText(data._text, 0, None) == [(3, 23, "multi"), (35, 37, "multi"), (35, 37, "trail")]
+    assert data.formatCheck() == [(35, 37, "multi"), (35, 37, "trail")]
+
+    # A cached spell/format error may hold a position past the end of a
+    # shortened block, e.g. right after an undo removes previously typed
+    # text. processText() must drop the stale cache immediately, rather
+    # than waiting for the debounced recheck, or the stale, out-of-range
+    # positions can briefly render into the following block
+    data.setSpellErrors([(0, 100, "wrong")])
+    data.setFormatErrors([(0, 100, "multi")])
+    data.processText("short", 0, None)
+    assert data.spellErrors == []
+    assert data.formatErrors == []
+
+
 @pytest.mark.gui
-def testGuiEditor_Actions(qtbot, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiDocEditor_FormatChecking(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+    """Test the document multi-space and trailing-space checker."""
+    buildTestProject(nwGUI, projPath)
+    monkeypatch.setattr(SHARED, "runInThreadPool", lambda r: r.run())
+
+    assert nwGUI.openDocument(C.hSceneDoc) is True
+    docEditor = nwGUI.docEditor
+
+    text = "### A Scene\n\nA  double space, and a trailing space \n"
+    docEditor.replaceText(text)
+
+    blockPos = text.index("A  double")
+
+    # With the feature disabled, no markers are generated
+    CONFIG.showMultiSpaces = False
+    docEditor._beginCheckPass()
+    assert docEditor._formatSelections == []
+
+    # With the feature enabled, both errors are found and rendered as
+    # extra selections with the same format, regardless of kind
+    CONFIG.showMultiSpaces = True
+    docEditor._beginCheckPass()
+
+    data = docEditor.textCursor().document().findBlock(blockPos).userData()
+    assert isinstance(data, TextBlockData)
+    assert data.formatErrors == [(1, 3, "multi"), (37, 38, "trail")]
+
+    formatSel = sorted(
+        (
+            s
+            for s in docEditor.extraSelections()
+            if s.format.underlineStyle() == QTextCharFormat.UnderlineStyle.SingleUnderline
+        ),
+        key=lambda s: s.cursor.selectionStart(),
+    )
+    assert len(formatSel) == 2
+    assert formatSel[0].cursor.selectionStart() == blockPos + 1
+    assert formatSel[0].cursor.selectionEnd() == blockPos + 3
+
+    assert formatSel[1].cursor.selectionStart() == blockPos + 37
+    assert formatSel[1].cursor.selectionEnd() == blockPos + 38
+
+    # A trailing space right under the caret is not yet flagged, since
+    # it's a natural, transient state while the line is still being
+    # typed. Other errors in the same block remain visible
+    docEditor.setCursorPosition(blockPos + 38)
+    docEditor._updateCheckSelections()
+    assert docEditor._suppressed is True
+    assert len(docEditor._formatSelections) == 1
+    assert docEditor._formatSelections[0].cursor.selectionStart() == blockPos + 1
+
+    # Moving the caret elsewhere in the same block, away from the
+    # trailing space itself, does not suppress it
+    docEditor.setCursorPosition(blockPos + 5)
+    docEditor._updateCheckSelections()
+    assert docEditor._suppressed is False
+    assert len(docEditor._formatSelections) == 2
+
+    # Toggling the feature back off clears the markers
+    CONFIG.showMultiSpaces = False
+    docEditor._beginCheckPass()
+    assert docEditor._formatSelections == []
+
+
+@pytest.mark.gui
+def testGuiDocEditor_Actions(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test the document actions. This is not an extensive test of the
     action features, just that the actions are actually called. The
     various action features are tested when their respective functions
@@ -1188,7 +1297,90 @@ def testGuiEditor_Actions(qtbot, nwGUI, projPath, ipsumText, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_Navigation(qtbot, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiDocEditor_Zoom(qtbot, nwGUI, projPath, mockRnd):
+    """Test zooming the editor font via docAction and Ctrl+Scroll, and
+    resetting it back to the configured font size.
+    """
+    buildTestProject(nwGUI, projPath)
+    assert nwGUI.openDocument(C.hSceneDoc)
+    docEditor = nwGUI.docEditor
+
+    basePt = docEditor.font().pointSizeF()
+
+    # Zoom in and out via docAction (menu and shortcut path)
+    assert docEditor.docAction(nwDocAction.ZOOM_IN) is True
+    assert docEditor.font().pointSizeF() == basePt + 1
+
+    assert docEditor.docAction(nwDocAction.ZOOM_OUT) is True
+    assert docEditor.font().pointSizeF() == basePt
+
+    assert docEditor.docAction(nwDocAction.ZOOM_IN) is True
+    assert docEditor.docAction(nwDocAction.ZOOM_IN) is True
+    assert docEditor.font().pointSizeF() == basePt + 2
+
+    assert docEditor.docAction(nwDocAction.ZOOM_RESET) is True
+    assert docEditor.font().pointSizeF() == basePt
+
+    # Zoom in and out with Ctrl+Scroll wheel
+    position = QPointF(10, 10)
+    zoomInEvent = QWheelEvent(
+        position,
+        position,
+        QPoint(0, 0),
+        QPoint(0, 120),
+        Qt.MouseButton.NoButton,
+        QtModCtrl,
+        Qt.ScrollPhase.NoScrollPhase,
+        False,
+    )
+    docEditor.wheelEvent(zoomInEvent)
+    assert docEditor.font().pointSizeF() == basePt + 1
+
+    zoomOutEvent = QWheelEvent(
+        position,
+        position,
+        QPoint(0, 0),
+        QPoint(0, -120),
+        Qt.MouseButton.NoButton,
+        QtModCtrl,
+        Qt.ScrollPhase.NoScrollPhase,
+        False,
+    )
+    docEditor.wheelEvent(zoomOutEvent)
+    assert docEditor.font().pointSizeF() == basePt
+
+    # A no-op Ctrl+Scroll (no vertical delta) does not zoom either way
+    noopEvent = QWheelEvent(
+        position,
+        position,
+        QPoint(0, 0),
+        QPoint(0, 0),
+        Qt.MouseButton.NoButton,
+        QtModCtrl,
+        Qt.ScrollPhase.NoScrollPhase,
+        False,
+    )
+    docEditor.wheelEvent(noopEvent)
+    assert docEditor.font().pointSizeF() == basePt
+
+    # A regular (non-Ctrl) wheel scroll does not zoom, and instead falls
+    # through to the normal scroll handling
+    scrollEvent = QWheelEvent(
+        position,
+        position,
+        QPoint(0, 0),
+        QPoint(0, 120),
+        Qt.MouseButton.NoButton,
+        QtModNone,
+        Qt.ScrollPhase.NoScrollPhase,
+        False,
+    )
+    docEditor.wheelEvent(scrollEvent)
+    assert docEditor.font().pointSizeF() == basePt
+
+
+@pytest.mark.gui
+def testGuiDocEditor_Navigation(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test editor navigation."""
     buildTestProject(nwGUI, projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
@@ -1216,7 +1408,7 @@ def testGuiEditor_Navigation(qtbot, nwGUI, projPath, ipsumText, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_ToolBar(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_ToolBar(qtbot, nwGUI, projPath, mockRnd):
     """Test the document actions. This is not an extensive test of the
     action features, just that the actions are actually called. The
     various action features are tested when their respective functions
@@ -1318,7 +1510,7 @@ def testGuiEditor_ToolBar(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_Insert(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiDocEditor_Insert(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
     """Test the document insert functions."""
     buildTestProject(nwGUI, projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
@@ -1427,7 +1619,7 @@ def testGuiEditor_Insert(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd
 
 
 @pytest.mark.gui
-def testGuiEditor_TextManipulation(qtbot, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiDocEditor_TextManipulation(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test the text manipulation functions."""
     buildTestProject(nwGUI, projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
@@ -1652,7 +1844,7 @@ def testGuiEditor_TextManipulation(qtbot, nwGUI, projPath, ipsumText, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_BlockFormatting(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiDocEditor_BlockFormatting(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
     """Test the block formatting function."""
     buildTestProject(nwGUI, projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
@@ -1988,7 +2180,7 @@ def testGuiEditor_BlockFormatting(qtbot, monkeypatch, nwGUI, projPath, ipsumText
 
 
 @pytest.mark.gui
-def testGuiEditor_MultiBlockFormatting(qtbot, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiDocEditor_MultiBlockFormatting(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test the block formatting function."""
     buildTestProject(nwGUI, projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
@@ -2139,7 +2331,7 @@ def testGuiEditor_MultiBlockFormatting(qtbot, nwGUI, projPath, ipsumText, mockRn
 
 
 @pytest.mark.gui
-def testGuiEditor_Tags(qtbot, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiDocEditor_Tags(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test the document editor tags functionality."""
     buildTestProject(nwGUI, projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
@@ -2222,7 +2414,7 @@ def testGuiEditor_Tags(qtbot, nwGUI, projPath, ipsumText, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_ProcessTagEdgeCases(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_ProcessTagEdgeCases(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test defensive branches in tag processing not covered by the
     main tags test: an exhausted tag search, a cursor past the last
     tag's end, a missing document handle, and a declined note-creation
@@ -2275,7 +2467,7 @@ def testGuiEditor_ProcessTagEdgeCases(qtbot, monkeypatch, nwGUI, projPath, mockR
 
 
 @pytest.mark.gui
-def testGuiEditor_MoveTextToNewDocument(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiDocEditor_MoveTextToNewDocument(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
     """Test the moving text to new document feature."""
     monkeypatch.setattr(GuiEditLabel, "getLabel", lambda *a, text, info: (text, True))
 
@@ -2346,7 +2538,7 @@ def testGuiEditor_MoveTextToNewDocument(qtbot, monkeypatch, nwGUI, projPath, ips
 
 
 @pytest.mark.gui
-def testGuiEditor_Links(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiDocEditor_Links(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
     """Test the document editor links functionality."""
     buildTestProject(nwGUI, projPath)
     nwGUI.openDocument(C.hSceneDoc)
@@ -2368,7 +2560,7 @@ def testGuiEditor_Links(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd)
 
 
 @pytest.mark.gui
-def testGuiEditor_InternalSlotEdgeCases(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_InternalSlotEdgeCases(qtbot, nwGUI, projPath, mockRnd):
     """Test defensive branches in a few internal slots and functions
     that aren't covered by their respective feature tests.
     """
@@ -2424,7 +2616,7 @@ def testGuiEditor_InternalSlotEdgeCases(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_Completer(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_Completer(qtbot, nwGUI, projPath, mockRnd):
     """Test the document editor meta completer functionality."""
     buildTestProject(nwGUI, projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
@@ -2573,7 +2765,7 @@ def testGuiEditor_Completer(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_UpdateDocMargins(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_UpdateDocMargins(qtbot, nwGUI, projPath, mockRnd):
     """Test that the margins collapse to the viewport padding when no
     fixed text width or Focus Mode is in effect.
     """
@@ -2587,7 +2779,7 @@ def testGuiEditor_UpdateDocMargins(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_ScrollPastEnd(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_ScrollPastEnd(qtbot, nwGUI, projPath, mockRnd):
     """Test the scroll-past-end feature, which fakes QPlainTextEdit's
     centerOnScroll via a bottom margin on the document's root frame.
     """
@@ -2610,7 +2802,7 @@ def testGuiEditor_ScrollPastEnd(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_TypewriterScrolling(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_TypewriterScrolling(qtbot, nwGUI, projPath, mockRnd):
     """Test the typewriter scrolling (auto-scroll) feature, which
     animates the scrollbar by the actual pixel movement of the cursor.
     """
@@ -2642,7 +2834,7 @@ def testGuiEditor_TypewriterScrolling(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_LineHeight(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_LineHeight(qtbot, nwGUI, projPath, mockRnd):
     """Test that CONFIG.lineHeight is applied to all blocks in the
     document, both on load and when settings are refreshed.
     """
@@ -2668,7 +2860,7 @@ def testGuiEditor_LineHeight(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_LineHeightDoubleReturn(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_LineHeightDoubleReturn(qtbot, nwGUI, projPath, mockRnd):
     """Test that a blank-line paragraph break (two consecutive Return
     presses) works normally with a non-default line height set on
     every block. Qt's own Return handling otherwise treats the second
@@ -2692,7 +2884,7 @@ def testGuiEditor_LineHeightDoubleReturn(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_CursorVisibility(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_CursorVisibility(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test the custom ensure cursor visible feature."""
     buildTestProject(nwGUI, projPath)
     nwGUI.openDocument(C.hSceneDoc)
@@ -2749,7 +2941,7 @@ def testGuiEditor_CursorVisibility(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
 
 
 @pytest.mark.gui
-def testGuiEditor_ReplaceNextEdgeCases(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_ReplaceNextEdgeCases(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test defensive branches in replaceNext not covered by the main
     search test: replacing with match-case disabled, and a selection
     that doesn't match the last recorded find.
@@ -2787,7 +2979,7 @@ def testGuiEditor_ReplaceNextEdgeCases(qtbot, monkeypatch, nwGUI, projPath, mock
 
 
 @pytest.mark.gui
-def testGuiEditor_WordCounters(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiDocEditor_WordCounters(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
     """Test the word counter."""
     docEditor = nwGUI.docEditor
 
@@ -2866,17 +3058,22 @@ def testGuiEditor_WordCounters(qtbot, monkeypatch, nwGUI, projPath, ipsumText, m
     docEditor._wCounterSel.run()
     assert docEditor.docFooter.wordsText.text() == f"Selected: {wC}"
 
-    # If the last edit is old, no document tasks are run
+    # Document tasks run regardless of how long ago the last edit was,
+    # since the timer is only started in response to an actual edit,
+    # fires once, and then stops rather than polling indefinitely
     threadPool._objID = None
     docEditor._lastEdit = time() - 100.0
     docEditor._runDocumentTasks()
-    assert threadPool.objectID() is None
+    assert threadPool.objectID() == id(docEditor._wCounterDoc)
+
+    assert docEditor._timerDoc.isSingleShot() is True
+    assert docEditor._timerSel.isSingleShot() is True
 
     # qtbot.stop()
 
 
 @pytest.mark.gui
-def testGuiEditor_Search(qtbot, monkeypatch, nwGUI, prjLipsum):
+def testGuiDocEditor_Search(qtbot, monkeypatch, nwGUI, prjLipsum):
     """Test the document editor search functionality."""
     monkeypatch.setattr(GuiDocEditor, "hasFocus", lambda *a: True)
 
@@ -3173,7 +3370,7 @@ def testGuiEditor_Search(qtbot, monkeypatch, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testGuiEditor_TextAutoReplaceSymbols():
+def testGuiDocEditor_TextAutoReplaceSymbols():
     """Test the editor auto-replace functionality."""
     CONFIG.fmtSQuoteOpen = nwUnicode.U_LSQUO
     CONFIG.fmtSQuoteClose = nwUnicode.U_RSQUO
@@ -3250,7 +3447,7 @@ def testGuiEditor_TextAutoReplaceSymbols():
 
 
 @pytest.mark.gui
-def testGuiEditor_TextAutoReplaceProcess():
+def testGuiDocEditor_TextAutoReplaceProcess():
     """Test the editor auto-replace functionality."""
     CONFIG.fmtDQuoteOpen = nwUnicode.U_LAQUO
     CONFIG.fmtDQuoteClose = nwUnicode.U_RAQUO
@@ -3312,7 +3509,7 @@ def testGuiEditor_TextAutoReplaceProcess():
 
 
 @pytest.mark.gui
-def testGuiEditor_BigFixes(qtbot, nwGUI):
+def testGuiDocEditor_BigFixes(qtbot, nwGUI):
     """Test specific bug fixes in the editor."""
     docEditor = nwGUI.docEditor
 
@@ -3329,7 +3526,7 @@ def testGuiEditor_BigFixes(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiEditor_Vim_EnableVimMode(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_Vim_EnableVimMode(qtbot, nwGUI, projPath, mockRnd):
     """Test that enabling CONFIG.vimMode activates vim behavior."""
     inputDelay = 2
     buildTestProject(nwGUI, projPath)
@@ -3362,7 +3559,7 @@ def testGuiEditor_Vim_EnableVimMode(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_Vim_StateInsertModeNoOp(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_Vim_StateInsertModeNoOp(qtbot, nwGUI, projPath, mockRnd):
     """Test that the vim state machine ignores command keys while in
     INSERT mode, which is a state neither the NORMAL nor VISUAL mode
     key handlers ever pass through.
@@ -3380,7 +3577,7 @@ def testGuiEditor_Vim_StateInsertModeNoOp(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_Vim_InsertMode(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_Vim_InsertMode(qtbot, nwGUI, projPath, mockRnd):
     """Test vim hjkl movements and insert commands (i, I, A)."""
     inputDelay = 2
     buildTestProject(nwGUI, projPath)
@@ -3474,7 +3671,7 @@ def testGuiEditor_Vim_InsertMode(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_Vim_DeleteYankPaste(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_Vim_DeleteYankPaste(qtbot, nwGUI, projPath, mockRnd):
     """Test vim delete (dd, x), yank (yy) and paste (p, P) commands."""
     inputDelay = 2
     buildTestProject(nwGUI, projPath)
@@ -3593,7 +3790,7 @@ def testGuiEditor_Vim_DeleteYankPaste(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_Vim_VisualMode(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_Vim_VisualMode(qtbot, nwGUI, projPath, mockRnd):
     """Test vim visual mode selection, yank and paste."""
     inputDelay = 2
     buildTestProject(nwGUI, projPath)
@@ -3785,7 +3982,7 @@ def testGuiEditor_Vim_VisualMode(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiEditor_Vim_NormalMode(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocEditor_Vim_NormalMode(qtbot, nwGUI, projPath, mockRnd):
     """Test vim NORMAL mode commands."""
     inputDelay = 2
     buildTestProject(nwGUI, projPath)

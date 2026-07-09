@@ -1,5 +1,5 @@
 """
-novelWriter – Main GUI Viewer Class Tester
+novelWriter – Document Viewer Class Tester
 ==========================================
 
 This file is a part of novelWriter
@@ -41,7 +41,7 @@ from tests.mocked import causeException
 
 
 @pytest.mark.gui
-def testGuiViewer_OpenAndNavigate(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocViewer_OpenAndNavigate(qtbot, nwGUI, projPath, mockRnd):
     """Test opening documents in the viewer and navigating to them via
     the project tree and the header link.
     """
@@ -96,7 +96,7 @@ def testGuiViewer_OpenAndNavigate(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiViewer_Selection(qtbot, monkeypatch, nwGUI, projPath, mockRnd, ipsumText):
+def testGuiDocViewer_Selection(qtbot, monkeypatch, nwGUI, projPath, mockRnd, ipsumText):
     """Test text selection and document actions in the viewer, and the
     context menu these selections feed into.
     """
@@ -199,7 +199,37 @@ def testGuiViewer_Selection(qtbot, monkeypatch, nwGUI, projPath, mockRnd, ipsumT
 
 
 @pytest.mark.gui
-def testGuiViewer_Links(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiDocViewer_Zoom(qtbot, nwGUI, projPath, mockRnd, ipsumText):
+    """Test zooming the viewer font via docAction, and resetting it
+    back to the configured font size.
+    """
+    buildTestProject(nwGUI, projPath)
+    docEditor = nwGUI.docEditor
+    docViewer = nwGUI.docViewer
+
+    nwGUI.openDocument(C.hSceneDoc)
+    docEditor.setPlainText(f"### Scene\n\n{ipsumText[0]}\n\n")
+    nwGUI.saveDocument()
+    nwGUI.viewDocument(C.hSceneDoc)
+
+    basePt = docViewer.font().pointSizeF()
+
+    assert docViewer.docAction(nwDocAction.ZOOM_IN) is True
+    assert docViewer.font().pointSizeF() == basePt + 1
+
+    assert docViewer.docAction(nwDocAction.ZOOM_OUT) is True
+    assert docViewer.font().pointSizeF() == basePt
+
+    assert docViewer.docAction(nwDocAction.ZOOM_IN) is True
+    assert docViewer.docAction(nwDocAction.ZOOM_IN) is True
+    assert docViewer.font().pointSizeF() == basePt + 2
+
+    assert docViewer.docAction(nwDocAction.ZOOM_RESET) is True
+    assert docViewer.font().pointSizeF() == basePt
+
+
+@pytest.mark.gui
+def testGuiDocViewer_Links(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test clicking links in the document viewer."""
     buildTestProject(nwGUI, projPath)
     docEditor = nwGUI.docEditor
@@ -250,7 +280,7 @@ def testGuiViewer_Links(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiViewer_MouseNavigation(qtbot, nwGUI, projPath, mockRnd, ipsumText):
+def testGuiDocViewer_MouseNavigation(qtbot, nwGUI, projPath, mockRnd, ipsumText):
     """Test navigating the view history with the mouse back/forward
     buttons, including the edge cases at either end of the history.
     """
@@ -297,7 +327,7 @@ def testGuiViewer_MouseNavigation(qtbot, nwGUI, projPath, mockRnd, ipsumText):
 
 
 @pytest.mark.gui
-def testGuiViewer_ScrollAndMargins(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiDocViewer_ScrollAndMargins(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test the scroll bar and document margin behaviour of the
     viewer, along with the navigateTo edge cases.
     """
@@ -334,7 +364,7 @@ def testGuiViewer_ScrollAndMargins(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
 
 
 @pytest.mark.gui
-def testGuiViewer_HeaderTitle(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocViewer_HeaderTitle(qtbot, nwGUI, projPath, mockRnd):
     """Test the document header title breadcrumb and outline menu."""
     buildTestProject(nwGUI, projPath)
     docViewer = nwGUI.docViewer
@@ -370,7 +400,7 @@ def testGuiViewer_HeaderTitle(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiViewer_FooterAndErrors(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiDocViewer_FooterAndErrors(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test the document footer show/hide toggles for synopsis,
     comments and notes, as well as error handling when rendering
     fails.
@@ -419,7 +449,7 @@ def testGuiViewer_FooterAndErrors(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiViewer_DragAndDrop(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiDocViewer_DragAndDrop(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test drag and drop in the viewer."""
     docViewer = nwGUI.docViewer
 

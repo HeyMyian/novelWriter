@@ -80,7 +80,7 @@ BUILD_CONF = {
 
 
 @pytest.mark.core
-def testManusDocBuild_OpenDocument(monkeypatch, mockGUI, prjLipsum, fncPath, tstPaths):
+def testNWBuildDocument_OpenDocument(monkeypatch, mockGUI, prjLipsum, fncPath, tstPaths):
     """Test building an open document manuscript."""
     project = NWProject()
     project.openProject(prjLipsum)
@@ -114,7 +114,7 @@ def testManusDocBuild_OpenDocument(monkeypatch, mockGUI, prjLipsum, fncPath, tst
     assert error == []
 
     copyfile(docFile, tstFile)
-    assert cmpFiles(tstFile, cmpFile, ignoreStart=ODT_IGNORE)
+    assert cmpFiles(tstFile, cmpFile, ignStart=ODT_IGNORE)
 
     # Check ODT Build
     # ===============
@@ -186,7 +186,7 @@ def testManusDocBuild_OpenDocument(monkeypatch, mockGUI, prjLipsum, fncPath, tst
 
 
 @pytest.mark.core
-def testManusDocBuild_HTML(monkeypatch, mockGUI, prjLipsum, fncPath, tstPaths):
+def testNWBuildDocument_HTML(monkeypatch, mockGUI, prjLipsum, fncPath, tstPaths):
     """Test building an HTML manuscript."""
     project = NWProject()
     project.openProject(prjLipsum)
@@ -237,7 +237,7 @@ def testManusDocBuild_HTML(monkeypatch, mockGUI, prjLipsum, fncPath, tstPaths):
     assert error == []
 
     copyfile(docFile, tstFile)
-    assert cmpFiles(tstFile, cmpFile, ignoreLines=[5, 6])
+    assert cmpFiles(tstFile, cmpFile, ignLines=[5, 6])
 
     # Check Error Handling
     # ====================
@@ -262,7 +262,7 @@ def testManusDocBuild_HTML(monkeypatch, mockGUI, prjLipsum, fncPath, tstPaths):
 
 
 @pytest.mark.core
-def testManusDocBuild_Markdown(monkeypatch, mockGUI, prjLipsum, fncPath, tstPaths):
+def testNWBuildDocument_Markdown(monkeypatch, mockGUI, prjLipsum, fncPath, tstPaths):
     """Test building an Markdown manuscript."""
     project = NWProject()
     project.openProject(prjLipsum)
@@ -330,7 +330,7 @@ def testManusDocBuild_Markdown(monkeypatch, mockGUI, prjLipsum, fncPath, tstPath
 
 
 @pytest.mark.core
-def testManusDocBuild_DocX(mockGUI, prjLipsum, fncPath):
+def testNWBuildDocument_DocX(mockGUI, prjLipsum, fncPath):
     """Test building a Word manuscript."""
     project = NWProject()
     project.openProject(prjLipsum)
@@ -363,7 +363,7 @@ def testManusDocBuild_DocX(mockGUI, prjLipsum, fncPath):
 
 
 @pytest.mark.core
-def testManusDocBuild_PDF(mockGUI, prjLipsum, fncPath):
+def testNWBuildDocument_PDF(mockGUI, prjLipsum, fncPath):
     """Test building a PDF manuscript."""
     project = NWProject()
     project.openProject(prjLipsum)
@@ -395,7 +395,7 @@ def testManusDocBuild_PDF(mockGUI, prjLipsum, fncPath):
 
 
 @pytest.mark.core
-def testManusDocBuild_NWD(mockGUI, prjLipsum, fncPath, tstPaths):
+def testNWBuildDocument_NWD(mockGUI, prjLipsum, fncPath, tstPaths):
     """Test building a NWD manuscript."""
     project = NWProject()
     project.openProject(prjLipsum)
@@ -446,11 +446,11 @@ def testManusDocBuild_NWD(mockGUI, prjLipsum, fncPath, tstPaths):
     assert error == []
 
     copyfile(docFile, tstFile)
-    assert cmpFiles(tstFile, cmpFile, ignoreLines=[5, 6])
+    assert cmpFiles(tstFile, cmpFile, ignLines=[5, 6])
 
 
 @pytest.mark.core
-def testManusDocBuild_Custom(mockGUI, fncPath: Path, mockRnd):
+def testNWBuildDocument_Custom(mockGUI, fncPath: Path, mockRnd):
     """Test custom builds and some error handling."""
     project = NWProject()
     buildTestProject(project, fncPath)
@@ -529,7 +529,7 @@ def testManusDocBuild_Custom(mockGUI, fncPath: Path, mockRnd):
 
 
 @pytest.mark.core
-def testManusDocBuild_IterBuild(mockGUI, fncPath: Path, mockRnd):
+def testNWBuildDocument_IterBuild(mockGUI, fncPath: Path, mockRnd):
     """Test iter build wrapper."""
     project = NWProject()
     buildTestProject(project, fncPath)

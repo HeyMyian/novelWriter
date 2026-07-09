@@ -26,7 +26,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QMenuBar
 
@@ -45,6 +45,7 @@ from novelwriter.constants import (
 )
 from novelwriter.enum import nwDocAction, nwDocInsert, nwFocus, nwView
 from novelwriter.extensions.eventfilters import StatusTipFilter
+from novelwriter.types import QtWidgetShortcut
 
 if TYPE_CHECKING:
     from novelwriter.guimain import GuiMain
@@ -192,7 +193,7 @@ class GuiMainMenu(QMenuBar):
         # Project > Delete
         self.aDeleteItem = qtAddAction(self.projMenu, self.tr("Delete Item"))
         self.aDeleteItem.setShortcut("Del")
-        self.aDeleteItem.setShortcutContext(Qt.ShortcutContext.WidgetShortcut)
+        self.aDeleteItem.setShortcutContext(QtWidgetShortcut)
 
         # Project > Empty Trash
         self.aEmptyTrash = qtAddAction(self.projMenu, self.tr("Empty Trash"))
@@ -340,14 +341,14 @@ class GuiMainMenu(QMenuBar):
         # View > Go Backward
         self.aViewPrev = qtAddAction(self.viewMenu, self.tr("Navigate Backward"))
         self.aViewPrev.setShortcut("Alt+Left")
-        self.aViewPrev.setShortcutContext(Qt.ShortcutContext.WidgetShortcut)
+        self.aViewPrev.setShortcutContext(QtWidgetShortcut)
         self.aViewPrev.triggered.connect(self.mainGui.docViewer.navBackward)
         self.mainGui.docViewer.addAction(self.aViewPrev)
 
         # View > Go Forward
         self.aViewNext = qtAddAction(self.viewMenu, self.tr("Navigate Forward"))
         self.aViewNext.setShortcut("Alt+Right")
-        self.aViewNext.setShortcutContext(Qt.ShortcutContext.WidgetShortcut)
+        self.aViewNext.setShortcutContext(QtWidgetShortcut)
         self.aViewNext.triggered.connect(self.mainGui.docViewer.navForward)
         self.mainGui.docViewer.addAction(self.aViewNext)
 
@@ -365,6 +366,27 @@ class GuiMainMenu(QMenuBar):
         self.aFullScreen.setShortcut("F11")
         self.aFullScreen.triggered.connect(self.mainGui.toggleFullScreenMode)
         self.mainGui.addAction(self.aFullScreen)
+
+        # View > Separator
+        self.viewMenu.addSeparator()
+
+        # View > Zoom In
+        self.aZoomIn = qtAddAction(self.viewMenu, self.tr("Zoom In"))
+        self.aZoomIn.setShortcuts(["Ctrl++", "Ctrl+="])
+        self.aZoomIn.triggered.connect(lambda: self.requestDocAction.emit(nwDocAction.ZOOM_IN))
+        self.mainGui.addAction(self.aZoomIn)
+
+        # View > Zoom Out
+        self.aZoomOut = qtAddAction(self.viewMenu, self.tr("Zoom Out"))
+        self.aZoomOut.setShortcuts(["Ctrl+-", "Ctrl+_"])
+        self.aZoomOut.triggered.connect(lambda: self.requestDocAction.emit(nwDocAction.ZOOM_OUT))
+        self.mainGui.addAction(self.aZoomOut)
+
+        # View > Reset Zoom
+        self.aZoomReset = qtAddAction(self.viewMenu, self.tr("Reset Zoom"))
+        self.aZoomReset.setShortcut("Ctrl+0")
+        self.aZoomReset.triggered.connect(lambda: self.requestDocAction.emit(nwDocAction.ZOOM_RESET))
+        self.mainGui.addAction(self.aZoomReset)
 
     def _buildInsertMenu(self) -> None:
         """Assemble the Insert menu."""
@@ -753,7 +775,7 @@ class GuiMainMenu(QMenuBar):
 
         # Format > Remove Block Format
         self.aFmtNoFormat = qtAddAction(self.fmtMenu, self.tr("Remove Block Format"))
-        self.aFmtNoFormat.setShortcuts(["Ctrl+0", "Ctrl+Shift+/"])
+        self.aFmtNoFormat.setShortcut("Ctrl+Shift+/")
         self.aFmtNoFormat.triggered.connect(lambda: self.requestDocAction.emit(nwDocAction.BLOCK_TXT))
         self.mainGui.addAction(self.aFmtNoFormat)
 
