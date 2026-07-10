@@ -1,6 +1,6 @@
 """
-novelWriter – Project Settings Dialog Class Tester
-==================================================
+novelWriter – Project Settings Dialog Tests
+===========================================
 
 This file is a part of novelWriter
 Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors
@@ -27,13 +27,13 @@ from PyQt6.QtGui import QAction, QColor
 from PyQt6.QtWidgets import QColorDialog, QFileDialog, QToolButton
 
 from novelwriter import CONFIG, SHARED
-from novelwriter.core.spellcheck import NWSpellEnchant
+from novelwriter.core.spellcheck import SpellEnchant
 from novelwriter.dialogs.editlabel import GuiEditLabel
 from novelwriter.dialogs.projectsettings import GuiProjectSettings
 from novelwriter.enum import nwItemType, nwStatusShape
 from novelwriter.types import QtAccepted, QtMouseLeft
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, buildTestProject, checkDialogFreedOnClose
 from tests.mocked import causeOSError
 
 KEY_DELAY = 1
@@ -95,7 +95,7 @@ def testGuiProjectSettings_Dialog(qtbot, monkeypatch, nwGUI):
 def testGuiProjectSettings_SettingsPage(qtbot, monkeypatch, nwGUI, fncPath, projPath, mockRnd):
     """Test the settings page of the dialog."""
     languages = [("en", "English"), ("de", "German")]
-    monkeypatch.setattr(NWSpellEnchant, "listDictionaries", lambda *a: languages)
+    monkeypatch.setattr(SpellEnchant, "listDictionaries", lambda *a: languages)
 
     (fncPath / "nw_en.qm").touch()
     (fncPath / "nw_de.qm").touch()
@@ -233,8 +233,15 @@ def testGuiProjectSettings_StatusImport(qtbot, monkeypatch, nwGUI, projPath, moc
         status.listBox.setCurrentItem(status.listBox.topLevelItem(3))
         status._onNameEdit("Final")
         status.colorButton.click()
-        status._selectShape(nwStatusShape.CIRCLE)
+        shapeAction = QAction(status)
+        shapeAction.setData(nwStatusShape.CIRCLE)
+        status._shapeSelected(shapeAction)
         assert status.listBox.topLevelItemCount() == 4
+
+        # Non-shape data is ignored
+        otherAction = QAction(status)
+        otherAction.setData("not-a-shape")
+        status._shapeSelected(otherAction)
 
     assert status.changed is True
     update = status.getNewList()
@@ -300,7 +307,9 @@ def testGuiProjectSettings_StatusImport(qtbot, monkeypatch, nwGUI, projPath, moc
         importance.listBox.setCurrentItem(importance.listBox.topLevelItem(3))
         importance._onNameEdit("Final")
         importance.colorButton.click()
-        importance._selectShape(nwStatusShape.TRIANGLE)
+        shapeAction = QAction(importance)
+        shapeAction.setData(nwStatusShape.TRIANGLE)
+        importance._shapeSelected(shapeAction)
         assert importance.listBox.topLevelItemCount() == 4
 
     assert importance.changed is True
@@ -517,3 +526,10 @@ def testGuiProjectSettings_Replace(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
     assert project.data.autoReplace == {"A": "B", "C": "D", "This": "With This Stuff"}
 
     # qtbot.stop()
+
+
+@pytest.mark.gui
+def testGuiProjectSettings_MemoryLeakRegression(qtbot, nwGUI, projPath, mockRnd):
+    """Test that the dialog is freed when it is closed."""
+    buildTestProject(nwGUI, projPath)
+    checkDialogFreedOnClose(qtbot, lambda: GuiProjectSettings(nwGUI))

@@ -1,6 +1,6 @@
 """
-novelWriter – Manuscript Build Settings Dialog Tester
-=====================================================
+novelWriter – Manuscript Build Settings Dialog Tests
+====================================================
 
 This file is a part of novelWriter
 Copyright (C) 2023 Veronica Berglyd Olsen and novelWriter contributors
@@ -24,7 +24,7 @@ from __future__ import annotations
 import pytest
 
 from PyQt6.QtCore import pyqtSlot
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QAction, QFont
 
 from novelwriter import SHARED
 from novelwriter.common import describeFont
@@ -34,7 +34,7 @@ from novelwriter.manuscript.buildsettings import BuildSettings, FilterMode
 from novelwriter.manuscript.manussettings import GuiBuildSettings, _FilterTab, _FormattingTab, _HeadingsTab
 from novelwriter.shared import _GuiAlert
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, buildTestProject, checkDialogFreedOnClose
 
 
 @pytest.mark.gui
@@ -591,6 +591,17 @@ def testGuiBuildSettings_FormatTextContent(qtbot, nwGUI):
     fmtTab._updateIgnoredKeywords("@custom")  # Adding a new should trigger cleanup
     assert fmtTab.ignoredKeywords.text() in ("@custom, @object", "@object, @custom")
 
+    # Selecting a keyword from the menu should also trigger cleanup
+    fmtTab.mnKeywords.actions()[0].trigger()
+    assert fmtTab.ignoredKeywords.text() != ""
+    fmtTab.ignoredKeywords.setText("@custom, @object")
+
+    # Non-string data is ignored
+    otherAction = QAction(fmtTab)
+    otherAction.setData(1)
+    fmtTab._ignoredKeywordSelected(otherAction)
+    assert fmtTab.ignoredKeywords.text() == "@custom, @object"
+
     # Save values
     fmtTab.saveContent()
     sBuild = bSettings._build
@@ -1046,3 +1057,16 @@ def testGuiBuildSettings_FormatOutput(qtbot, nwGUI):
     # Finish
     bSettings._dialogButtonClicked(bSettings.btnClose)
     # qtbot.stop()
+
+
+@pytest.mark.gui
+def testGuiBuildSettings_MemoryLeakRegression(qtbot, nwGUI, projPath, mockRnd):
+    """Test that the dialog is freed when it is closed."""
+    buildTestProject(nwGUI, projPath)
+
+    def factory() -> GuiBuildSettings:
+        dialog = GuiBuildSettings(nwGUI, BuildSettings())
+        dialog.loadContent()
+        return dialog
+
+    checkDialogFreedOnClose(qtbot, factory)

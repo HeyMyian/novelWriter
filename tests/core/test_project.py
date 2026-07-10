@@ -1,6 +1,6 @@
 """
-novelWriter – NWProject Class Tester
-====================================
+novelWriter – NWProject Tests
+=============================
 
 This file is a part of novelWriter
 Copyright (C) 2019 Veronica Berglyd Olsen and novelWriter contributors
@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from datetime import datetime
 from shutil import copyfile
 from zipfile import ZipFile
 
@@ -280,7 +281,7 @@ def testNWProject_Open(monkeypatch, caplog, mockGUI, fncPath, mockRnd):
 
     # Fail getting xml reader
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.NWStorage.getXmlReader", lambda *a: None)
+        mp.setattr("novelwriter.core.storage.ProjectStorage.getXmlReader", lambda *a: None)
         assert project.openProject(fncPath, clearLock=True) is False
 
     # Not a novelwriter XML file
@@ -325,12 +326,12 @@ def testNWProject_Open(monkeypatch, caplog, mockGUI, fncPath, mockRnd):
 
     # If the storage path is unavailable, recent projects are not updated
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.NWStorage.storagePath", property(lambda *a: None))
+        mp.setattr("novelwriter.core.storage.ProjectStorage.storagePath", property(lambda *a: None))
         assert project.openProject(fncPath, clearLock=True) is True
 
     # Fail checking items should still pass
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.tree.NWTree.checkConsistency", lambda *a: (1, 0))
+        mp.setattr("novelwriter.core.tree.ProjectTree.checkConsistency", lambda *a: (1, 0))
         assert project.openProject(fncPath, clearLock=True) is True
 
     # Trigger an index rebuild
@@ -358,7 +359,7 @@ def testNWProject_Save(monkeypatch, mockGUI, mockRnd, fncPath):
 
     # Fail getting xml writer
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.NWStorage.getXmlWriter", lambda *a: None)
+        mp.setattr("novelwriter.core.storage.ProjectStorage.getXmlWriter", lambda *a: None)
         assert project.saveProject() is False
 
     # Fail writing
@@ -372,7 +373,7 @@ def testNWProject_Save(monkeypatch, mockGUI, mockRnd, fncPath):
 
     # If the storage path is unavailable, recent projects are not updated
     with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.storage.NWStorage.storagePath", property(lambda *a: None))
+        mp.setattr("novelwriter.core.storage.ProjectStorage.storagePath", property(lambda *a: None))
         assert project.saveProject() is True
 
     project.closeProject()
@@ -529,3 +530,28 @@ def testNWProject_Backup(monkeypatch, mockGUI, fncPath, tstPaths):
 
     # Check that the main project file was restored
     assert cmpFiles(fncPath / "nwProject.nwx", tstPaths.tmpDir / "extract" / "nwProject.nwx")
+
+    # Test intervals
+    fixedTime = 1783722600.0
+    fixedLocal = datetime.fromtimestamp(fixedTime)
+    with monkeypatch.context() as mp:
+        mp.setattr("novelwriter.core.project.time", lambda *a, **k: fixedTime)
+        CONFIG.backupInterval = "session"
+        assert project.backupProject(doNotify=False) is True
+        stamp = fixedLocal.strftime("%Y-%m-%d %H.%M.%S")
+        assert (tstPaths.tmpDir / "Test Minimal" / f"Test Minimal {stamp}.zip").exists()
+
+        CONFIG.backupInterval = "day"
+        assert project.backupProject(doNotify=False) is True
+        stamp = fixedLocal.strftime("%Y-%m-%d")
+        assert (tstPaths.tmpDir / "Test Minimal" / f"Test Minimal {stamp}.zip").exists()
+
+        CONFIG.backupInterval = "week"
+        assert project.backupProject(doNotify=False) is True
+        stamp = fixedLocal.strftime("%Y-%V")
+        assert (tstPaths.tmpDir / "Test Minimal" / f"Test Minimal {stamp}.zip").exists()
+
+        CONFIG.backupInterval = "month"
+        assert project.backupProject(doNotify=False) is True
+        stamp = fixedLocal.strftime("%Y-%m")
+        assert (tstPaths.tmpDir / "Test Minimal" / f"Test Minimal {stamp}.zip").exists()

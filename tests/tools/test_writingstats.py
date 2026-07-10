@@ -1,6 +1,6 @@
 """
-novelWriter – Writing Stats Dialog Class Tester
-===============================================
+novelWriter – Writing Stats Dialog Tests
+========================================
 
 This file is a part of novelWriter
 Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors
@@ -34,7 +34,7 @@ from novelwriter.constants import nwFiles
 from novelwriter.tools.writingstats import GuiWritingStats
 from novelwriter.types import QtMouseLeft
 
-from tests.helpers import buildTestProject
+from tests.helpers import buildTestProject, checkDialogFreedOnClose
 from tests.mocked import causeOSError
 
 
@@ -135,8 +135,9 @@ def testGuiWritingStats_Export(qtbot, monkeypatch, nwGUI, projPath, tstPaths):
         assert not sessLog._saveData(sessLog.FMT_CSV)
         assert not sessLog._saveData(sessLog.FMT_JSON)
         assert not sessLog._saveData(None)  # type: ignore
-        sessLog.saveJSON.trigger()
-        sessLog.saveCSV.trigger()
+        saveJSON, saveCSV = sessLog.saveMenu.actions()
+        saveJSON.trigger()
+        saveCSV.trigger()
 
     # Sort by time
     sessLog.listBox.sortByColumn(sessLog.C_TIME, Qt.SortOrder.AscendingOrder)
@@ -848,3 +849,10 @@ def testGuiWritingStats_Filters(qtbot, monkeypatch, nwGUI, projPath, tstPaths):
 
     sessLog.closeDialog()
     nwGUI.closeProject()
+
+
+@pytest.mark.gui
+def testGuiWritingStats_MemoryLeakRegression(qtbot, nwGUI, projPath):
+    """Test that the dialog is freed when it is closed."""
+    buildTestProject(nwGUI, projPath)
+    checkDialogFreedOnClose(qtbot, lambda: GuiWritingStats(nwGUI))

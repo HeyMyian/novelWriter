@@ -1,6 +1,6 @@
 """
-novelWriter – Novel Details Tool Tester
-=======================================
+novelWriter – Novel Details Tool Tests
+======================================
 
 This file is a part of novelWriter
 Copyright (C) 2024 Veronica Berglyd Olsen and novelWriter contributors
@@ -28,6 +28,8 @@ from PyQt6.QtGui import QAction
 from novelwriter import SHARED
 from novelwriter.enum import nwItemClass
 from novelwriter.tools.noveldetails import GuiNovelDetails
+
+from tests.helpers import checkDialogFreedOnClose
 
 
 @pytest.mark.gui
@@ -149,3 +151,10 @@ def testGuiNovelDetails_Main(qtbot, nwGUI, prjLipsum, ipsumText):
 
     # qtbot.stop()
     details.close()
+
+
+@pytest.mark.gui
+def testGuiNovelDetails_MemoryLeakRegression(qtbot, nwGUI, prjLipsum):
+    """Test that the dialog is freed when it is closed."""
+    nwGUI.openProject(prjLipsum)
+    checkDialogFreedOnClose(qtbot, lambda: GuiNovelDetails(nwGUI))

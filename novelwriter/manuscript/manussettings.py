@@ -26,7 +26,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QEvent, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QFont, QIcon, QSyntaxHighlighter, QTextCharFormat, QTextDocument
+from PyQt6.QtGui import QAction, QFont, QIcon, QSyntaxHighlighter, QTextCharFormat, QTextDocument
 from PyQt6.QtWidgets import (
     QAbstractButton,
     QAbstractItemView,
@@ -853,12 +853,12 @@ class _HeadingsTab(NScrollablePage):
         logger.debug("Theme Update: _HeadingsTab")
 
         if not onInit:
-            self.btnPart.refreshIcon()
-            self.btnChapter.refreshIcon()
-            self.btnUnnumbered.refreshIcon()
-            self.btnScene.refreshIcon()
-            self.btnAScene.refreshIcon()
-            self.btnSection.refreshIcon()
+            self.btnPart.refreshTheme()
+            self.btnChapter.refreshTheme()
+            self.btnUnnumbered.refreshTheme()
+            self.btnScene.refreshTheme()
+            self.btnAScene.refreshTheme()
+            self.btnSection.refreshTheme()
 
         self.formSyntax.initHighlighter()
         self.formSyntax.rehighlight()
@@ -1070,11 +1070,9 @@ class _FormattingTab(NScrollableForm):
         self.ignoredKeywords = QLineEdit(self)
 
         self.mnKeywords = QMenu(self)
+        self.mnKeywords.triggered.connect(self._ignoredKeywordSelected)
         for keyword in nwKeyWords.VALID_KEYS:
-            self.mnKeywords.addAction(
-                trConst(nwLabels.KEY_NAME[keyword]),
-                lambda keyword=keyword: self._updateIgnoredKeywords(keyword),
-            )
+            qtAddAction(self.mnKeywords, trConst(nwLabels.KEY_NAME[keyword]), data=keyword)
 
         self.ignoredKeywordsButton = NIconToolButton(self, iSz, "add", "add")
         self.ignoredKeywordsButton.setToolTip(self.tr("Select Keyword"))
@@ -1479,16 +1477,16 @@ class _FormattingTab(NScrollableForm):
         logger.debug("Theme Update: _FormattingTab")
 
         if not onInit:
-            self.ignoredKeywordsButton.refreshIcon()
-            self.btnTextFont.refreshIcon()
-            self.btnPageHeader.refreshIcon()
-            self.btnTitleProps.refreshIcon()
-            self.btnH1Props.refreshIcon()
-            self.btnH2Props.refreshIcon()
-            self.btnH3Props.refreshIcon()
-            self.btnH4Props.refreshIcon()
-            self.btnTextProps.refreshIcon()
-            self.btnSepProps.refreshIcon()
+            self.ignoredKeywordsButton.refreshTheme()
+            self.btnTextFont.refreshTheme()
+            self.btnPageHeader.refreshTheme()
+            self.btnTitleProps.refreshTheme()
+            self.btnH1Props.refreshTheme()
+            self.btnH2Props.refreshTheme()
+            self.btnH3Props.refreshTheme()
+            self.btnH4Props.refreshTheme()
+            self.btnTextProps.refreshTheme()
+            self.btnSepProps.refreshTheme()
 
         iPx = SHARED.theme.baseIconHeight
 
@@ -1890,6 +1888,12 @@ class _FormattingTab(NScrollableForm):
         self.textMarginB.setEnabled(enabled)
         self.sepMarginT.setEnabled(enabled)
         self.sepMarginB.setEnabled(enabled)
+
+    @pyqtSlot(QAction)
+    def _ignoredKeywordSelected(self, action: QAction) -> None:
+        """Process the user selecting an ignored keyword from the menu."""
+        if isinstance(keyword := action.data(), str):
+            self._updateIgnoredKeywords(keyword)
 
     ##
     #  Internal Functions

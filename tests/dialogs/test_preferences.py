@@ -1,6 +1,6 @@
 """
-novelWriter – Preferences Dialog Class Tester
-=============================================
+novelWriter – Preferences Dialog Test
+=====================================
 
 This file is a part of novelWriter
 Copyright (C) 2020 Veronica Berglyd Olsen and novelWriter contributors
@@ -30,12 +30,14 @@ from PyQt6.QtWidgets import QFileDialog
 from novelwriter import CONFIG, SHARED
 from novelwriter.config import DEF_GUI_DARK, DEF_GUI_LIGHT, DEF_TREECOL
 from novelwriter.constants import nwUnicode
-from novelwriter.core.spellcheck import NWSpellEnchant
+from novelwriter.core.spellcheck import SpellEnchant
 from novelwriter.dialogs.preferences import GuiNeedsUpdate, GuiPreferences
 from novelwriter.dialogs.quotes import GuiQuoteSelect
 from novelwriter.extensions.modified import NFontDialog
 from novelwriter.gui.theme import ThemeEntry
 from novelwriter.types import QtKeyEscape, QtModNone
+
+from tests.helpers import checkDialogFreedOnClose
 
 KEY_DELAY = 1
 
@@ -43,7 +45,7 @@ KEY_DELAY = 1
 @pytest.mark.gui
 def testGuiPreferences_Main(qtbot, monkeypatch, nwGUI, tstPaths):
     """Test the preferences dialog loading."""
-    monkeypatch.setattr(NWSpellEnchant, "listDictionaries", lambda *a: [("en", "English [en]")])
+    monkeypatch.setattr(SpellEnchant, "listDictionaries", lambda *a: [("en", "English [en]")])
     monkeypatch.setattr(GuiPreferences, "exec", lambda *a: None)
 
     # Load GUI with standard values
@@ -90,7 +92,7 @@ def testGuiPreferences_Main(qtbot, monkeypatch, nwGUI, tstPaths):
 @pytest.mark.gui
 def testGuiPreferences_Actions(qtbot, monkeypatch, nwGUI):
     """Test the preferences dialog actions."""
-    monkeypatch.setattr(NWSpellEnchant, "listDictionaries", lambda *a: [("en", "English [en]")])
+    monkeypatch.setattr(SpellEnchant, "listDictionaries", lambda *a: [("en", "English [en]")])
     prefs = GuiPreferences(nwGUI)
     with qtbot.waitExposed(prefs):
         prefs.show()
@@ -149,7 +151,7 @@ def testGuiPreferences_Actions(qtbot, monkeypatch, nwGUI):
 def testGuiPreferences_Settings(qtbot, monkeypatch, nwGUI, fncPath, tstPaths):
     """Test the preferences dialog settings."""
     spelling = [("en", "English [en]"), ("de", "Deutch [de]")]
-    monkeypatch.setattr(NWSpellEnchant, "listDictionaries", lambda *a: spelling)
+    monkeypatch.setattr(SpellEnchant, "listDictionaries", lambda *a: spelling)
 
     (fncPath / "nw_en_US.qm").touch()
     (fncPath / "project_en_US.json").touch()
@@ -236,11 +238,14 @@ def testGuiPreferences_Settings(qtbot, monkeypatch, nwGUI, fncPath, tstPaths):
         mp.setattr(QFileDialog, "getExistingDirectory", lambda *a, **k: str(tstPaths.testDir))
         prefs.backupGetPath.click()
         assert prefs.backupPath == str(tstPaths.testDir)
+
+    prefs.backupInterval.setCurrentData("day", "session")
     prefs.backupOnClose.setChecked(True)
     assert prefs.askBeforeBackup.isEnabled() is True
     prefs.askBeforeBackup.setChecked(False)
 
     assert CONFIG._backupPath != tstPaths.testDir
+    assert CONFIG.backupInterval == "session"
     assert CONFIG.backupOnClose is False
     assert CONFIG.askBeforeBackup is True
 
@@ -423,6 +428,7 @@ def testGuiPreferences_Settings(qtbot, monkeypatch, nwGUI, fncPath, tstPaths):
 
     # Project Backup
     assert CONFIG._backupPath == tstPaths.testDir
+    assert CONFIG.backupInterval == "day"
     assert CONFIG.backupOnClose is True
     assert CONFIG.askBeforeBackup is False
 
@@ -490,3 +496,10 @@ def testGuiPreferences_Settings(qtbot, monkeypatch, nwGUI, fncPath, tstPaths):
     ]
 
     # qtbot.stop()
+
+
+@pytest.mark.gui
+def testGuiPreferences_MemoryLeakRegression(qtbot, monkeypatch, nwGUI):
+    """Test that the dialog is freed when it is closed."""
+    monkeypatch.setattr(SpellEnchant, "listDictionaries", lambda *a: [("en", "English [en]")])
+    checkDialogFreedOnClose(qtbot, lambda: GuiPreferences(nwGUI))
