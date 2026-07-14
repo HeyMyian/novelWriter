@@ -233,16 +233,25 @@ def formatInt(value: int) -> str:
     return str(value)
 
 
+def formatPercent(value: float | int, *, divisor: float | int | None = None, prec: int = 1) -> str:
+    """Format a number and optionally a divisor as a percentage."""
+    if not isinstance(value, (float, int)):
+        return "ERR"
+    if isinstance(divisor, (float, int)) and divisor != 0:
+        value = value / divisor
+    fmt = f"{{0:.{prec}f}}\u202f%"
+    return fmt.format(value * 100.0)
+
+
 def formatTimeStamp(value: float, fileSafe: bool = False, fmt: str | None = None) -> str:
     """Take a number (on the format returned by time.time()) and convert
     it to a timestamp string.
     """
-    if fmt is not None:
-        return datetime.fromtimestamp(value).strftime(fmt)
-    if fileSafe:
-        return datetime.fromtimestamp(value).strftime(nwConst.FMT_FSTAMP)
-    else:
-        return datetime.fromtimestamp(value).strftime(nwConst.FMT_TSTAMP)
+    try:
+        result = datetime.fromtimestamp(value).strftime(nwConst.FMT_TSTAMP if fmt is None else fmt)
+        return result.replace(":", ".") if fileSafe else result
+    except Exception:
+        return "ERROR"
 
 
 def formatTime(t: int) -> str:

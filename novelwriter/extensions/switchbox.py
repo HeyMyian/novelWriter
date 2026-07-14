@@ -21,17 +21,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import QGridLayout, QLabel, QScrollArea, QWidget
+from PyQt6.QtWidgets import QFrame, QGridLayout, QLabel, QScrollArea, QWidget
 
 from novelwriter import SHARED
 from novelwriter.extensions.switch import NSwitch
-from novelwriter.types import QtAlignLeft, QtAlignRight, QtAlignRightMiddle, QtSizeMinimum, QtSizeMinimumExpanding
-
-if TYPE_CHECKING:
-    from PyQt6.QtGui import QIcon
+from novelwriter.types import QtAlignLeft, QtAlignRight, QtSizeMinimum, QtSizeMinimumExpanding
 
 
 class NSwitchBox(QScrollArea):
@@ -48,14 +43,51 @@ class NSwitchBox(QScrollArea):
         self._index = 0
         self._hSwitch = baseSize
         self._wSwitch = 2 * self._hSwitch
-        self._sIcon = baseSize
-        self._widgets = []
+        self._size = baseSize
+        self._icons = {}
+        self._labels = {}
+        self._pixmaps = {}
+        self._switches = {}
         self.clear()
+        self.setFrameStyle(QFrame.Shape.NoFrame)
+
+    ##
+    #  State Methods
+    ##
+
+    def setSwitchState(self, state: dict[str, bool]) -> None:
+        """Set the state of the switches in the box."""
+        if isinstance(state, dict):  # pragma: no branch
+            for identifier, value in state.items():
+                if isinstance(switch := self._switches.get(identifier), NSwitch):  # pragma: no branch
+                    switch.setChecked(bool(value))
+
+    def getSwitchState(self) -> dict[str, bool]:
+        """Get the state of the switches in the box."""
+        state = {}
+        for identifier, switch in self._switches.items():
+            if isinstance(switch, NSwitch):  # pragma: no branch
+                state[identifier] = switch.isChecked()
+        return state
+
+    def updateTheme(self) -> None:
+        """Update the theme of the switches in the box."""
+        for pix, name, color in self._icons.values():
+            icon = SHARED.theme.getIcon(name, color)
+            pix.setFixedSize(self._size, self._size)
+            pix.setPixmap(icon.pixmap(self._size, self._size))
+
+    ##
+    #  Builder Methods
+    ##
 
     def clear(self) -> None:
         """Rebuild the content of the core widget."""
         self._index = 0
-        self._widgets = []
+        self._switches.clear()
+        self._icons.clear()
+        self._labels.clear()
+        self._pixmaps.clear()
 
         self._content = QGridLayout()
         self._content.setColumnStretch(1, 1)
@@ -72,18 +104,42 @@ class NSwitchBox(QScrollArea):
         label = QLabel(text, self)
         label.setFont(SHARED.theme.guiFontB)
         self._content.addWidget(label, self._index, 0, 1, 3, QtAlignLeft)
-        self._widgets.append(label)
         self._bumpIndex()
 
-    def addItem(self, qIcon: QIcon, text: str, identifier: str, default: bool = False) -> None:
-        """Add an item to the content box."""
-        icon = QLabel("", self)
-        icon.setAlignment(QtAlignRightMiddle)
-        icon.setPixmap(qIcon.pixmap(self._sIcon, self._sIcon))
-        self._content.addWidget(icon, self._index, 0, QtAlignLeft)
+    def addItem(
+        self,
+        text: str,
+        identifier: str,
+        *,
+        icon: str | None = None,
+        color: str = "default",
+        default: bool = False,
+    ) -> None:
+        """Add an item to the content box. If the identifier is already
+        in use, the existing entry is updated in place instead, which
+        keeps its position and current switch state.
+        """
+        if switch := self._switches.get(identifier):
+            if label := self._labels.get(identifier):  # pragma: no branch
+                label.setText(text)
+            if icon and (pixmap := self._pixmaps.get(identifier)):  # pragma: no branch
+                qIcon = SHARED.theme.getIcon(icon, color)
+                pixmap.setPixmap(qIcon.pixmap(self._size, self._size))
+                self._icons[identifier] = (pixmap, icon, color)
+            return
+
+        if icon:  # pragma: no branch
+            pixmap = QLabel("", self)
+            qIcon = SHARED.theme.getIcon(icon, color)
+            pixmap.setFixedSize(self._size, self._size)
+            pixmap.setPixmap(qIcon.pixmap(self._size, self._size))
+            self._icons[identifier] = (pixmap, icon, color)
+            self._pixmaps[identifier] = pixmap
+            self._content.addWidget(pixmap, self._index, 0, QtAlignLeft)
 
         label = QLabel(text, self)
         self._content.addWidget(label, self._index, 1, QtAlignLeft)
+        self._labels[identifier] = label
 
         switch = NSwitch(self, height=self._hSwitch)
         switch.setChecked(default)
@@ -91,15 +147,27 @@ class NSwitchBox(QScrollArea):
         self._content.addWidget(switch, self._index, 2, QtAlignRight)
 
         label.setBuddy(switch)
-        self._widgets.append(switch)
+        self._switches[identifier] = switch
         self._bumpIndex()
+
+    def removeItem(self, identifier: str) -> None:
+        """Remove an item from the content box, if it exists."""
+        if switch := self._switches.pop(identifier, None):
+            self._content.removeWidget(switch)
+            switch.setParent(None)
+        if label := self._labels.pop(identifier, None):
+            self._content.removeWidget(label)
+            label.setParent(None)
+        if pixmap := self._pixmaps.pop(identifier, None):
+            self._content.removeWidget(pixmap)
+            pixmap.setParent(None)
+        self._icons.pop(identifier, None)
 
     def addSeparator(self) -> None:
         """Add a blank entry in the content box."""
         spacer = QWidget(self)
-        spacer.setFixedHeight(int(0.5 * self._sIcon))
+        spacer.setFixedHeight(int(0.5 * self._size))
         self._content.addWidget(spacer, self._index, 0, 1, 3, QtAlignLeft)
-        self._widgets.append(spacer)
         self._bumpIndex()
 
     ##
