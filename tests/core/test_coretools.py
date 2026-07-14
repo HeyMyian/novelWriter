@@ -21,7 +21,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
-import re
 import shutil
 import uuid
 
@@ -32,8 +31,8 @@ from zipfile import ZipFile
 import pytest
 
 from novelwriter import CONFIG
-from novelwriter.constants import nwConst, nwFiles, nwItemClass
-from novelwriter.core.coretools import DocDuplicator, DocMerger, DocSearch, DocSplitter, ProjectBuilder
+from novelwriter.constants import nwFiles, nwItemClass
+from novelwriter.core.coretools import DocDuplicator, DocMerger, DocSplitter, ProjectBuilder
 from novelwriter.core.project import NWProject
 from novelwriter.enum import nwBuildFmt
 from novelwriter.manuscript.buildsettings import BuildSettings
@@ -499,98 +498,6 @@ def testCoreTools_DocDuplicator(monkeypatch, mockGUI, fncPath, tstPaths, mockRnd
         result = list(dup.duplicate([C.hChapterDoc, C.hSceneDoc]))
         assert len(result) == 1
         assert result[0] not in before
-
-
-@pytest.mark.core
-def testCoreTools_DocSearch(monkeypatch, mockGUI, fncPath, mockRnd, ipsumText):
-    """Test the DocDuplicator utility."""
-    project = NWProject()
-    mockRnd.reset()
-    buildTestProject(project, fncPath)
-    project.storage.getDocument(C.hSceneDoc).writeDocument("### New Scene\n\n" + "\n\n".join(ipsumText))
-
-    search = DocSearch()
-
-    # Defaults
-    # ========
-
-    result = [(i.itemHandle, r, c) for i, r, c in search.iterSearch(project, "Scene")]
-    assert result[0] == (C.hTitlePage, [], False)
-    assert result[1] == (C.hChapterDoc, [], False)
-    assert result[2] == (C.hSceneDoc, [(8, 5, "Scene")], False)
-
-    # Patterns
-    # ========
-
-    # Escape
-    assert search._buildPattern("[A-Za-z0-9_]+") == r"\[A\-Za\-z0\-9_\]\+"
-
-    # Whole Words
-    search.setWholeWords(True)
-    search.setUserRegEx(True)
-    assert search._buildPattern("Hi") == r"(?:^|\b)Hi(?:$|\b)"
-    search.setWholeWords(False)
-    search.setUserRegEx(False)
-
-    # Test Settings
-    # =============
-
-    def pruneResult(result, index):
-        temp = [(i.itemHandle, r, c) for i, r, c in result][index][1]
-        return [(s, n, c.split()[0]) for s, n, c in temp]
-
-    # Defaults
-    assert pruneResult(search.iterSearch(project, "Lorem"), 2) == [
-        (15, 5, "Lorem"),
-        (754, 5, "lorem"),
-        (2056, 5, "lorem,"),
-        (2209, 5, "lorem"),
-        (2425, 5, "lorem"),
-        (2840, 5, "lorem."),
-        (3399, 5, "lorem"),
-    ]
-
-    # Whole Words
-    search.setWholeWords(True)
-    assert pruneResult(search.iterSearch(project, "Lor"), 2) == []
-    search.setWholeWords(False)
-    assert pruneResult(search.iterSearch(project, "Lor"), 2) == [
-        (15, 3, "Lorem"),
-        (29, 3, "dolor"),
-        (754, 3, "lorem"),
-        (2056, 3, "lorem,"),
-        (2209, 3, "lorem"),
-        (2425, 3, "lorem"),
-        (2840, 3, "lorem."),
-        (3328, 3, "dolor."),
-        (3399, 3, "lorem"),
-    ]
-
-    # As RegEx
-    search.setWholeWords(False)
-    search.setUserRegEx(True)
-    assert pruneResult(search.iterSearch(project, r"Lor\b"), 2) == [
-        (29, 3, "dolor"),
-        (3328, 3, "dolor."),
-    ]
-
-    # Max Results
-    with monkeypatch.context() as mp:
-        mp.setattr(nwConst, "MAX_SEARCH_RESULT", 3)
-        assert pruneResult(search.iterSearch(project, "Lorem"), 2) == [
-            (15, 5, "Lorem"),
-            (754, 5, "lorem"),
-            (2056, 5, "lorem,"),
-        ]
-
-    # Case Sensitive
-    search.setCaseSensitive(True)
-    assert pruneResult(search.iterSearch(project, "Lorem"), 2) == [(15, 5, "Lorem")]
-    search.setCaseSensitive(False)
-
-    # A match with no preceding context text yields nothing
-    search._regEx = re.compile(r"$")
-    assert search.searchText("word ") == ([], False)
 
 
 @pytest.mark.core

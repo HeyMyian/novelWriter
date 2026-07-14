@@ -58,8 +58,14 @@ VALID_MAP: dict[str, set[str]] = {
         "showIdleTime",
         "histMax",
     },
-    "GuiDocSplit": {"spLevel", "intoFolder", "docHierarchy"},
-    "GuiOutline": {"columnState"},
+    "GuiDocSplit": {
+        "spLevel",
+        "intoFolder",
+        "docHierarchy",
+    },
+    "GuiOutline": {
+        "columnState",
+    },
     "GuiProjectSettings": {
         "winWidth",
         "winHeight",
@@ -67,8 +73,14 @@ VALID_MAP: dict[str, set[str]] = {
         "statusColW",
         "importColW",
     },
-    "GuiWordList": {"winWidth", "winHeight"},
-    "GuiNovelView": {"lastCol", "lastColSize"},
+    "GuiWordList": {
+        "winWidth",
+        "winHeight",
+    },
+    "GuiNovelView": {
+        "lastCol",
+        "lastColSize",
+    },
     "GuiBuildSettings": {
         "winWidth",
         "winHeight",
@@ -85,6 +97,7 @@ VALID_MAP: dict[str, set[str]] = {
         "detailsHeight",
         "detailsWidth",
         "detailsExpanded",
+        "statsExpanded",
         "showNewPage",
     },
     "GuiManuscriptBuild": {
@@ -113,6 +126,9 @@ VALID_MAP: dict[str, set[str]] = {
     "GuiOutlineDetails": {
         "detailsWidth",
         "tagsWidth",
+    },
+    "GuiProjectSearch": {
+        "searchFilters",
     },
 }
 
@@ -214,6 +230,22 @@ class OptionState:
         """
         if group in self._state:
             return self._state[group].get(name, default)
+        return default
+
+    def getList(self, group: str, name: str, default: list[Any]) -> list[Any]:
+        """Return the value as a list, if it exists. Otherwise, return
+        the default value.
+        """
+        if group in self._state and isinstance(value := self._state[group].get(name, default), list):
+            return value
+        return default
+
+    def getDict(self, group: str, name: str, default: dict[str, Any]) -> dict[str, Any]:
+        """Return the value as a dict, if it exists. Otherwise, return
+        the default value.
+        """
+        if group in self._state and isinstance(value := self._state[group].get(name, default), dict):
+            return value
         return default
 
     def getString(self, group: str, name: str, default: str) -> str:

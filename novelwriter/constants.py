@@ -43,7 +43,6 @@ class nwConst:
 
     # Date and Time Formats
     FMT_TSTAMP = "%Y-%m-%d %H:%M:%S"  # Default format
-    FMT_FSTAMP = "%Y-%m-%d %H.%M.%S"  # FileName safe format
     FMT_DSTAMP = "%Y-%m-%d"  # Date only format
 
     # URLs
@@ -258,6 +257,7 @@ class nwStats:
     CHARS = "allChars"
     CHARS_TEXT = "textChars"
     CHARS_TITLE = "titleChars"
+    CHARS_DIALOG = "dialogChars"
     PARAGRAPHS = "paragraphCount"
     TITLES = "titleCount"
     WCHARS_ALL = "allWordChars"
@@ -266,6 +266,7 @@ class nwStats:
     WORDS = "allWords"
     WORDS_TEXT = "textWords"
     WORDS_TITLE = "titleWords"
+    DIALOG_RATIO = "dialogRatio"
 
     # Note: The order here affects the order of menu entries
     ALL_FIELDS: Final[list[str]] = [
@@ -388,6 +389,7 @@ class nwLabels:
         nwStats.CHARS: QT_TRANSLATE_NOOP("Stats", "Characters"),
         nwStats.CHARS_TEXT: QT_TRANSLATE_NOOP("Stats", "Characters in text"),
         nwStats.CHARS_TITLE: QT_TRANSLATE_NOOP("Stats", "Characters in headings"),
+        nwStats.CHARS_DIALOG: QT_TRANSLATE_NOOP("Stats", "Characters in dialogue"),
         nwStats.PARAGRAPHS: QT_TRANSLATE_NOOP("Stats", "Paragraphs"),
         nwStats.TITLES: QT_TRANSLATE_NOOP("Stats", "Headings"),
         nwStats.WCHARS_ALL: QT_TRANSLATE_NOOP("Stats", "Characters, no spaces"),
@@ -396,6 +398,7 @@ class nwLabels:
         nwStats.WORDS: QT_TRANSLATE_NOOP("Stats", "Words"),
         nwStats.WORDS_TEXT: QT_TRANSLATE_NOOP("Stats", "Words in text"),
         nwStats.WORDS_TITLE: QT_TRANSLATE_NOOP("Stats", "Words in headings"),
+        nwStats.DIALOG_RATIO: QT_TRANSLATE_NOOP("Stats", "Dialogue"),
     }
     STATS_DISPLAY: Final[dict[str, str]] = {
         nwStats.CHARS: QT_TRANSLATE_NOOP("Stats", "Characters: {0} ({1})"),
@@ -515,6 +518,19 @@ class nwLabels:
         "day": QT_TRANSLATE_NOOP("Constant", "Per Day"),
         "week": QT_TRANSLATE_NOOP("Constant", "Per Week"),
         "month": QT_TRANSLATE_NOOP("Constant", "Per Month"),
+    }
+    FILTER_GROUPS: Final[dict[str, str]] = {
+        "documents": QT_TRANSLATE_NOOP("Constant", "Document Filters"),
+        "content": QT_TRANSLATE_NOOP("Constant", "Content Filters"),
+    }
+    FILTER_TYPES: Final[dict[str, str]] = {
+        "novel": QT_TRANSLATE_NOOP("Constant", "Novel documents"),
+        "notes": QT_TRANSLATE_NOOP("Constant", "Project notes"),
+        "inactive": QT_TRANSLATE_NOOP("Constant", "Inactive documents"),
+        "headings": QT_TRANSLATE_NOOP("Constant", "Headings"),
+        "text": QT_TRANSLATE_NOOP("Constant", "Body text paragraphs"),
+        "meta": QT_TRANSLATE_NOOP("Constant", "Tags and references"),
+        "comments": QT_TRANSLATE_NOOP("Constant", "Comments and footnotes"),
     }
 
 

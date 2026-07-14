@@ -53,6 +53,7 @@ from novelwriter.common import (
     formatFileFilter,
     formatInt,
     formatLink,
+    formatPercent,
     formatTime,
     formatTimeStamp,
     formatVersion,
@@ -356,9 +357,10 @@ def testCommon_firstFloat():
 def testCommon_formatTimeStamp():
     """Test the formatTimeStamp function."""
     tTime = time.mktime(time.gmtime(0))
-    assert formatTimeStamp(tTime, True, "%Y") == "1970"
+    assert formatTimeStamp(tTime, False, "%Y") == "1970"
     assert formatTimeStamp(tTime, False) == "1970-01-01 00:00:00"
     assert formatTimeStamp(tTime, True) == "1970-01-01 00.00.00"
+    assert formatTimeStamp(tTime, False, 123) == "ERROR"  # type: ignore
 
 
 @pytest.mark.base
@@ -557,6 +559,31 @@ def testCommon_formatInt():
     assert formatInt(12.3) == "ERR"  # type: ignore
     assert formatInt(None) == "ERR"  # type: ignore
     assert formatInt("42") == "ERR"  # type: ignore
+
+
+@pytest.mark.base
+def testCommon_formatPercent():
+    """Test the formatPercent function."""
+    # Plain fraction, no divisor
+    assert formatPercent(0.5) == "50.0\u202f%"
+    assert formatPercent(1.0) == "100.0\u202f%"
+    assert formatPercent(0) == "0.0\u202f%"
+
+    # With a divisor
+    assert formatPercent(50, divisor=100) == "50.0\u202f%"
+    assert formatPercent(1, divisor=3) == "33.3\u202f%"
+
+    # Divisor of zero is ignored, value is used as-is
+    assert formatPercent(0, divisor=0) == "0.0\u202f%"
+
+    # Precision
+    assert formatPercent(1, divisor=3, prec=0) == "33\u202f%"
+    assert formatPercent(1, divisor=3, prec=3) == "33.333\u202f%"
+
+    # Exceptions
+    assert formatPercent(None) == "ERR"  # type: ignore
+    assert formatPercent("42") == "ERR"  # type: ignore
+    assert formatPercent("42", divisor=3) == "ERR"  # type: ignore
 
 
 @pytest.mark.base

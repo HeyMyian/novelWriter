@@ -101,6 +101,10 @@ class GuiMain(QMainWindow):
         # Core Classes
         # ============
 
+        # Internal Variables
+        self._lastTotalCount = 0
+        self._switchingDocument = False
+
         # Initialise UserData Instance
         SHARED.initSharedData(self)
 
@@ -232,6 +236,7 @@ class GuiMain(QMainWindow):
         SHARED.rootFolderChanged.connect(self.novelView.updateRootItem)
         SHARED.rootFolderChanged.connect(self.outlineView.updateRootItem)
         SHARED.rootFolderChanged.connect(self.projView.updateRootItem)
+        SHARED.rootFolderChanged.connect(self.projSearch.updateRootItem)
         SHARED.spellLanguageChanged.connect(self.docEditor.processSpellCheckChange)
         SHARED.spellLanguageChanged.connect(self.mainStatus.setLanguage)
         SHARED.statusLabelsChanged.connect(self.docViewerPanel.updateStatusLabels)
@@ -303,9 +308,6 @@ class GuiMain(QMainWindow):
         self.keyEscape = QShortcut(self)
         self.keyEscape.setKey("Esc")
         self.keyEscape.activated.connect(self._keyPressEscape)
-
-        # Internal Variables
-        self._lastTotalCount = 0
 
         # Initialise Main GUI
         self.initMain()
@@ -463,6 +465,7 @@ class GuiMain(QMainWindow):
         self.projView.openProjectTasks()
         self.novelView.openProjectTasks()
         self.outlineView.openProjectTasks()
+        self.projSearch.openProjectTasks()
         self.docViewerPanel.openProjectTasks()
         self._updateStatusWordCount()
 
@@ -531,6 +534,10 @@ class GuiMain(QMainWindow):
             logger.error("Nothing to open")
             return False
 
+        if self._switchingDocument:
+            logger.debug("Ignoring re-entrant request to open '%s'", tHandle)
+            return False
+
         if sTitle and tLine is None and (hItem := SHARED.project.index.getItemHeading(tHandle, sTitle)):
             tLine = hItem.line
 
@@ -538,11 +545,15 @@ class GuiMain(QMainWindow):
         if tHandle == self.docEditor.docHandle:
             self.docEditor.setCursorLine(tLine)
         else:
-            self.closeDocument()
-            if self.docEditor.loadText(tHandle, tLine):
-                self.projView.setSelectedHandle(tHandle, doScroll=doScroll)
-            else:
-                return False
+            self._switchingDocument = True
+            try:
+                self.closeDocument()
+                if self.docEditor.loadText(tHandle, tLine):
+                    self.projView.setSelectedHandle(tHandle, doScroll=doScroll)
+                else:
+                    return False
+            finally:
+                self._switchingDocument = False
 
         if changeFocus:
             self.docEditor.setFocus()
@@ -837,9 +848,11 @@ class GuiMain(QMainWindow):
         if not SHARED.focusMode:
             CONFIG.mainPanePos = self.splitMain.sizes()
             CONFIG.outlinePanePos = self.outlineView.splitSizes()
+            CONFIG.searchPanePos = self.projSearch.splitSizes()
             if self.docViewerPanel.isVisible():
                 CONFIG.viewPanePos = self.splitView.sizes()
 
+        CONFIG.showDetailsPanel = self.itemDetails.isExpanded()
         CONFIG.showViewerPanel = self.docViewerPanel.isVisible()
         wFull = Qt.WindowState.WindowFullScreen
         if self.windowState() & wFull != wFull:
@@ -1054,9 +1067,9 @@ class GuiMain(QMainWindow):
 
         if updateFlags.theme:
             self.refreshThemeColors(syntax=updateFlags.syntax, force=True)
-        if updateFlags.editor or updateFlags.theme:
+        if updateFlags.editor or updateFlags.syntax or updateFlags.theme:
             self.docEditor.initEditor()
-        if updateFlags.viewer or updateFlags.theme:
+        if updateFlags.viewer or updateFlags.syntax or updateFlags.theme:
             self.docViewer.initViewer()
 
         self.projView.initSettings()

@@ -62,6 +62,9 @@ QtTextUserProperty = QTextFormat.Property.UserProperty
 
 QtPropLineHeight = 1  # QTextBlockFormat.LineHeightTypes.ProportionalHeight
 
+QtElideLeft = Qt.TextElideMode.ElideLeft
+QtElideRight = Qt.TextElideMode.ElideRight
+
 # Painter Types
 
 QtTransparent = QColor(0, 0, 0, 0)
@@ -89,6 +92,7 @@ QtAccessibleTextRole = Qt.ItemDataRole.AccessibleTextRole
 QtDecorationRole = Qt.ItemDataRole.DecorationRole
 QtDisplayRole = Qt.ItemDataRole.DisplayRole
 QtFontRole = Qt.ItemDataRole.FontRole
+QtForegroundRole = Qt.ItemDataRole.ForegroundRole
 QtTextAlignmentRole = Qt.ItemDataRole.TextAlignmentRole
 QtToolTipRole = Qt.ItemDataRole.ToolTipRole
 QtUserRole = Qt.ItemDataRole.UserRole
