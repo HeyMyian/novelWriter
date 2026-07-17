@@ -29,7 +29,7 @@ from pathlib import Path
 from time import time
 
 from PyQt6.QtCore import QEvent, Qt, QTimer, pyqtSlot
-from PyQt6.QtGui import QCloseEvent, QCursor, QIcon, QShortcut
+from PyQt6.QtGui import QCloseEvent, QCursor, QIcon
 from PyQt6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -50,7 +50,7 @@ from novelwriter.dialogs.preferences import GuiNeedsUpdate, GuiPreferences
 from novelwriter.dialogs.projectsettings import GuiProjectSettings
 from novelwriter.dialogs.wordlist import GuiWordList
 from novelwriter.editor.editor import GuiDocEditor
-from novelwriter.enum import nwDocAction, nwDocInsert, nwDocMode, nwFocus, nwItemType, nwView, nwVimMode
+from novelwriter.enum import nwDocAction, nwDocInsert, nwDocMode, nwFocus, nwView
 from novelwriter.extensions.progressbars import NProgressSimple
 from novelwriter.gui.itemdetails import GuiItemDetails
 from novelwriter.gui.mainmenu import GuiMainMenu
@@ -65,7 +65,6 @@ from novelwriter.tools.dictionaries import GuiDictionaries
 from novelwriter.tools.noveldetails import GuiNovelDetails
 from novelwriter.tools.welcome import GuiWelcome
 from novelwriter.tools.writingstats import GuiWritingStats
-from novelwriter.types import QtModShift
 from novelwriter.viewer.viewer import GuiDocViewer
 from novelwriter.viewer.viewerpanel import GuiDocViewerPanel
 
@@ -223,6 +222,7 @@ class GuiMain(QMainWindow):
         SHARED.indexAvailable.connect(self.docViewerPanel.indexHasAppeared)
         SHARED.indexChangedRefs.connect(self.docViewerPanel.updateChangedRefs)
         SHARED.indexChangedTags.connect(self.docEditor.updateChangedTags)
+        SHARED.indexChangedTags.connect(self.docViewer.updateChangedTags)
         SHARED.indexChangedTags.connect(self.docViewerPanel.updateChangedTags)
         SHARED.indexCleared.connect(self.docViewerPanel.indexWasCleared)
         SHARED.mainClockTick.connect(self._timeTick)
@@ -235,8 +235,8 @@ class GuiMain(QMainWindow):
         SHARED.projectStatusMessage.connect(self.mainStatus.setStatusMessage)
         SHARED.rootFolderChanged.connect(self.novelView.updateRootItem)
         SHARED.rootFolderChanged.connect(self.outlineView.updateRootItem)
-        SHARED.rootFolderChanged.connect(self.projView.updateRootItem)
         SHARED.rootFolderChanged.connect(self.projSearch.updateRootItem)
+        SHARED.rootFolderChanged.connect(self.projView.updateRootItem)
         SHARED.spellLanguageChanged.connect(self.docEditor.processSpellCheckChange)
         SHARED.spellLanguageChanged.connect(self.mainStatus.setLanguage)
         SHARED.statusLabelsChanged.connect(self.docViewerPanel.updateStatusLabels)
@@ -299,15 +299,6 @@ class GuiMain(QMainWindow):
         # Set Up Auto-Save Document Timer
         self.asDocTimer = QTimer(self)
         self.asDocTimer.timeout.connect(self._autoSaveDocument)
-
-        # Shortcuts
-        self.keyReturn = QShortcut(self)
-        self.keyReturn.setKeys(["Return", "Enter", "Shift+Return", "Shift+Enter"])
-        self.keyReturn.activated.connect(self._keyPressReturn)
-
-        self.keyEscape = QShortcut(self)
-        self.keyEscape.setKey("Esc")
-        self.keyEscape.activated.connect(self._keyPressEscape)
 
         # Initialise Main GUI
         self.initMain()
@@ -694,30 +685,19 @@ class GuiMain(QMainWindow):
 
     @pyqtSlot()
     def openSelectedItem(self) -> None:
-        """Open the selected item from the tree that is currently
-        active. It is not checked that the item is actually a document.
-        That should be handled by the openDocument function.
+        """Open the selected item in the tree view that is currently
+        active. Used by the main menu's Open Document action to forward
+        the request to whichever tree widget is visible.
         """
         if SHARED.hasProject:
-            tHandle = None
-            sTitle = None
             if self.projView.treeHasFocus():
-                tHandle = self.projView.getSelectedHandle()
+                self.projView.projTree.openSelectedItem()
             elif self.novelView.treeHasFocus():
-                tHandle, sTitle = self.novelView.getSelectedHandle()
+                self.novelView.novelTree.openSelectedItem()
             elif self.outlineView.treeHasFocus():
-                tHandle, sTitle = self.outlineView.getSelectedHandle()
+                self.outlineView.outlineTree.openSelectedItem()
             else:
                 logger.warning("No item selected")
-                return
-
-            if tHandle and SHARED.project.tree.checkType(tHandle, nwItemType.FILE):
-                if QApplication.keyboardModifiers() == QtModShift:
-                    self.viewDocument(tHandle)
-                else:
-                    self.openDocument(tHandle, sTitle=sTitle, changeFocus=False, doScroll=False)
-
-        return
 
     def rebuildIndex(self) -> None:
         """Rebuild the entire index."""
@@ -1266,24 +1246,6 @@ class GuiMain(QMainWindow):
                     cTotal = SHARED.project.data.currCounts[0]
 
             self.mainStatus.setProjectStats(cTotal, cTotal - iTotal)
-
-    @pyqtSlot()
-    def _keyPressReturn(self) -> None:
-        """Process a return or enter keypress in the main window."""
-        if self.projStack.currentWidget() == self.projSearch:
-            self.projSearch.processReturn()
-        else:
-            self.openSelectedItem()
-
-    @pyqtSlot()
-    def _keyPressEscape(self) -> None:
-        """Process an escape keypress in the main window."""
-        if self.docEditor.searchVisible():
-            self.docEditor.closeSearch()
-        elif CONFIG.vimMode:
-            self.docEditor.setVimMode(nwVimMode.NORMAL)
-        elif SHARED.focusMode:
-            SHARED.setFocusMode(False)
 
     @pyqtSlot(int)
     def _mainStackChanged(self, index: int) -> None:

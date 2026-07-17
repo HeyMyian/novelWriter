@@ -43,7 +43,7 @@ from novelwriter.editor.editor import GuiDocEditor
 from novelwriter.enum import nwDocAction, nwDocMode, nwFocus, nwItemClass, nwItemType, nwState, nwTheme, nwView
 from novelwriter.gui.noveltree import GuiNovelView
 from novelwriter.gui.outline import GuiOutlineView
-from novelwriter.gui.projtree import GuiProjectTree
+from novelwriter.gui.projtree import GuiProjectTree, GuiProjectView
 from novelwriter.guimain import GuiMain
 from novelwriter.manuscript.manuscript import GuiManuscript
 from novelwriter.shared import _GuiAlert
@@ -230,9 +230,11 @@ def testGuiMain_ProjectTreeItems(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     nwGUI.projStack.setCurrentIndex(0)
     with monkeypatch.context() as mp:
         mp.setattr(GuiProjectTree, "hasFocus", lambda *a: True)
+        mp.setattr(GuiNovelView, "treeHasFocus", lambda *a: False)
+        mp.setattr(GuiOutlineView, "treeHasFocus", lambda *a: False)
         assert nwGUI.docEditor.docHandle is None
         nwGUI.projView.projTree.setSelectedHandle(sHandle)
-        nwGUI._keyPressReturn()
+        nwGUI.projView.projTree.openSelectedItem()
         assert nwGUI.docEditor.docHandle == sHandle
         nwGUI.closeDocument()
 
@@ -244,24 +246,57 @@ def testGuiMain_ProjectTreeItems(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     # Novel Tree has focus
     nwGUI._changeView(nwView.NOVEL)
     with monkeypatch.context() as mp:
+        mp.setattr(GuiProjectView, "treeHasFocus", lambda *a: False)
         mp.setattr(GuiNovelView, "treeHasFocus", lambda *a: True)
         assert nwGUI.docEditor.docHandle is None
+
         model = nwGUI.novelView.novelTree._getModel()
         assert model is not None
+
+        # No selection is ignored
+        nwGUI.novelView.novelTree.setCurrentIndex(model.createIndex(9999, 0))
+        nwGUI.novelView.novelTree.openSelectedItem()
+        assert nwGUI.docEditor.docHandle is None
+
         nwGUI.novelView.novelTree.setCurrentIndex(model.createIndex(2, 0))
-        nwGUI._keyPressReturn()
+        nwGUI.novelView.novelTree.openSelectedItem()
         assert nwGUI.docEditor.docHandle == sHandle
         nwGUI.closeDocument()
+
+        # The main GUI dispatcher also routes to the novel tree
+        nwGUI.openSelectedItem()
+        assert nwGUI.docEditor.docHandle == sHandle
+        nwGUI.closeDocument()
+
+        # ... and to viewing the document when Shift is held
+        with monkeypatch.context() as mpShift:
+            mpShift.setattr(QApplication, "keyboardModifiers", lambda: QtModShift)
+            nwGUI.openSelectedItem()
+        assert nwGUI.docViewer.docHandle == sHandle
+        nwGUI.closeDocViewer()
 
     # Project Outline has focus
     nwGUI._changeView(nwView.OUTLINE)
     nwGUI._switchFocus(nwFocus.OUTLINE)
     with monkeypatch.context() as mp:
+        mp.setattr(GuiProjectView, "treeHasFocus", lambda *a: False)
+        mp.setattr(GuiNovelView, "treeHasFocus", lambda *a: False)
         mp.setattr(GuiOutlineView, "treeHasFocus", lambda *a: True)
         assert nwGUI.docEditor.docHandle is None
+
+        # No selection is ignored
+        nwGUI.outlineView.outlineTree.clearSelection()
+        nwGUI.outlineView.outlineTree.openSelectedItem()
+        assert nwGUI.docEditor.docHandle is None
+
         selItem = nwGUI.outlineView.outlineTree.topLevelItem(2)
         nwGUI.outlineView.outlineTree.setCurrentItem(selItem)
-        nwGUI._keyPressReturn()
+        nwGUI.outlineView.outlineTree.openSelectedItem()
+        assert nwGUI.docEditor.docHandle == sHandle
+        nwGUI.closeDocument()
+
+        # The main GUI dispatcher also routes to the outline tree
+        nwGUI.openSelectedItem()
         assert nwGUI.docEditor.docHandle == sHandle
         nwGUI.closeDocument()
 
@@ -807,9 +842,8 @@ def testGuiMain_Viewing(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     nwGUI.closeDocViewer()
     assert nwGUI.docViewer.docHandle is None
     nwGUI.projView.setSelectedHandle(C.hSceneDoc)
-    with monkeypatch.context() as mp:
-        mp.setattr(nwGUI.projView.projTree, "hasFocus", lambda *a: True)
-        qtbot.keyClick(nwGUI.projView.projTree, QtKeyReturn, modifier=QtModShift, delay=KEY_DELAY)
+    nwGUI.projView.projTree.setFocus()
+    qtbot.keyClick(nwGUI.projView.projTree, QtKeyReturn, modifier=QtModShift, delay=KEY_DELAY)
     assert nwGUI.docViewer.docHandle == C.hSceneDoc
 
     # If the viewer fails to load the document, nothing else happens
@@ -905,27 +939,42 @@ def testGuiMain_Features(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     assert SHARED.focusMode is False
     nwGUI.openDocument(C.hSceneDoc)
 
-    # Pressing Escape turns off focus mode
+    # Pressing Escape turns off focus mode. Focus mode puts focus on the
+    # editor itself, which is where GuiDocEditor.keyPressEvent handles it.
     nwGUI.toggleFocusMode()
     assert SHARED.focusMode is True
-    qtbot.keyClick(nwGUI, QtKeyEscape)
+    assert nwGUI.docEditor.hasFocus() is True
+    qtbot.keyClick(nwGUI.docEditor, QtKeyEscape)
     assert SHARED.focusMode is False
 
-    # If search is active, Escape is redirected to editor
+    # If search is active, focus is in the search box instead, and Escape
+    # there just closes the search, leaving focus mode untouched
     nwGUI.toggleFocusMode()
     assert SHARED.focusMode is True
     nwGUI.docEditor.beginSearch()
-    qtbot.keyClick(nwGUI, QtKeyEscape)
+    assert nwGUI.docEditor.docSearch.searchBox.hasFocus() is True
+    qtbot.keyClick(nwGUI.docEditor.docSearch.searchBox, QtKeyEscape)
+    assert nwGUI.docEditor.searchVisible() is False
+    assert SHARED.focusMode is True
+
+    # If search is active but focus is in the editor itself rather than
+    # the search box, Escape still closes the search, this time via the
+    # editor's own keyPressEvent rather than the search box's event filter
+    nwGUI.docEditor.beginSearch()
+    nwGUI.docEditor.setFocus()
+    assert nwGUI.docEditor.hasFocus() is True
+    assert nwGUI.docEditor.searchVisible() is True
+    qtbot.keyClick(nwGUI.docEditor, QtKeyEscape)
+    assert nwGUI.docEditor.searchVisible() is False
     assert SHARED.focusMode is True
 
     # With search closed, Vim mode off, and Focus Mode inactive, Escape
     # does nothing
-    nwGUI.docEditor.closeSearch()
     nwGUI.toggleFocusMode()
     assert nwGUI.docEditor.searchVisible() is False
     assert CONFIG.vimMode is False
     assert SHARED.focusMode is False
-    nwGUI._keyPressEscape()
+    qtbot.keyClick(nwGUI.docEditor, QtKeyEscape)
 
     # Full Screen Mode
     # ================
