@@ -53,6 +53,7 @@ from novelwriter.extensions.expandpanel import NExpandablePanel, NExpandablePane
 from novelwriter.extensions.modified import NIconToolButton
 from novelwriter.extensions.switchbox import NSwitchBox
 from novelwriter.models.searchmodel import SearchNode, SearchResultModel
+from novelwriter.text.autoreplace import LineEditAutoReplace
 from novelwriter.types import (
     QtAlignMiddle,
     QtDisplayRole,
@@ -101,6 +102,8 @@ class GuiProjectSearch(QWidget):
         self.setBackgroundRole(QPalette.ColorRole.Base)
         self.setAutoFillBackground(True)
 
+        self.autoReplace = LineEditAutoReplace()
+
         # Header
         self.viewLabel = QLabel(self.tr("Project Search"), self)
         self.viewLabel.setFont(SHARED.theme.guiFontB)
@@ -111,6 +114,13 @@ class GuiProjectSearch(QWidget):
         self.searchOpt.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.searchOpt.setIconSize(iSz)
         self.searchOpt.setContentsMargins(0, 0, 0, 0)
+
+        self.tbAuto = NIconToolButton(self, iSz, "search_auto:tool")
+        self.tbAuto.setToolTip(self.tr("Auto-Replace Symbols"))
+        self.tbAuto.setCheckable(True)
+        self.tbAuto.setChecked(CONFIG.searchProjAuto)
+        self.tbAuto.clicked.connect(self._toggleAuto)
+        self.searchOpt.addWidget(self.tbAuto)
 
         self.tbCase = NIconToolButton(self, iSz, "search_case:tool")
         self.tbCase.setToolTip(self.tr("Case Sensitive"))
@@ -140,9 +150,9 @@ class GuiProjectSearch(QWidget):
 
         self.searchText = QLineEdit(self)
         self.searchText.setPlaceholderText(self.tr("Search for"))
-        self.searchText.setClearButtonEnabled(True)
         self.searchText.addAction(self.searchAction, QLineEdit.ActionPosition.TrailingPosition)
         self.searchText.returnPressed.connect(self._processSearch)
+        self.searchText.textEdited.connect(self._editSearchText)
 
         # Search Filters
         self.searchFilters = _SearchFilters(self)
@@ -201,6 +211,7 @@ class GuiProjectSearch(QWidget):
         self.outerBox.setSpacing(2)
 
         self.setLayout(self.outerBox)
+        self.initSettings()
         self.updateTheme(init=True)
 
         logger.debug("Ready: GuiProjectSearch")
@@ -213,6 +224,11 @@ class GuiProjectSearch(QWidget):
     def splitSizes(self) -> list[int]:
         """Get the sizes of the splitter widget in its expanded state."""
         return self.searchSplit.panelSizes()
+
+    def initSettings(self) -> None:
+        """Initialise the settings."""
+        self.tbAuto.setChecked(CONFIG.searchAuto if CONFIG.doReplace else False)
+        self.tbAuto.setEnabled(CONFIG.doReplace)
 
     ##
     #  Methods
@@ -239,6 +255,7 @@ class GuiProjectSearch(QWidget):
             viewport.update()
 
         if not init:
+            self.tbAuto.refreshTheme()
             self.tbCase.refreshTheme()
             self.tbWord.refreshTheme()
             self.tbRegEx.refreshTheme()
@@ -369,6 +386,17 @@ class GuiProjectSearch(QWidget):
         if result := self._model.result(index):
             handle, start, length = result
             self.openDocumentSelectRequest.emit(handle, start, length, True)
+
+    @pyqtSlot(str)
+    def _editSearchText(self, text: str) -> None:
+        """Update the search results when the search text changes."""
+        if CONFIG.searchProjAuto:
+            self.autoReplace(self.searchText)
+
+    @pyqtSlot(bool)
+    def _toggleAuto(self, state: bool) -> None:
+        """Enable/disable auto-replace symbols mode."""
+        CONFIG.searchProjAuto = state
 
     @pyqtSlot(bool)
     def _toggleCase(self, state: bool) -> None:

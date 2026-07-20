@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 
+from contextlib import suppress
 from enum import Enum
 
 from PyQt6.QtCore import QModelIndex, QPoint, Qt, pyqtSignal, pyqtSlot
@@ -155,9 +156,9 @@ class GuiProjectView(QWidget):
         logger.debug("Theme Update: GuiProjectView")
         self.projBar.updateTheme()
 
-    def initSettings(self) -> None:
-        """Initialise GUI elements that depend on specific settings."""
-        self.projTree.initSettings()
+    def initViewport(self) -> None:
+        """Initialise viewport settings."""
+        self.projTree.initViewport()
 
     def closeProjectTasks(self) -> None:
         """Clear project-related GUI content."""
@@ -301,7 +302,7 @@ class GuiProjectToolBar(QWidget):
 
         self.mTemplates = _UpdatableMenu(self.mAdd)
         self.mTemplates.setActionsVisible(False)
-        self.mTemplates.menuItemTriggered.connect(lambda h: self.newDocumentFromTemplate.emit(h))
+        self.mTemplates.menuItemTriggered.connect(self._forwardTemplateTriggered)
         self.mAdd.addMenu(self.mTemplates)
 
         self.mAddRoot = qtAddMenu(self.mAdd, trConst(nwLabels.ITEM_DESCRIPTION["root"]))
@@ -442,6 +443,11 @@ class GuiProjectToolBar(QWidget):
         if isinstance(itemClass := action.data(), nwItemClass):  # pragma: no branch
             self.projTree.newTreeItem(nwItemType.ROOT, itemClass=itemClass)
 
+    @pyqtSlot(str)
+    def _forwardTemplateTriggered(self, tHandle: str) -> None:
+        """Forward the template menu's selected item handle."""
+        self.newDocumentFromTemplate.emit(tHandle)
+
     ##
     #  Internal Functions
     ##
@@ -519,12 +525,12 @@ class GuiProjectTree(QTreeView):
         self.expanded.connect(self._onNodeExpanded)
 
         # Set custom settings
-        self.initSettings()
+        self.initViewport()
 
         logger.debug("Ready: GuiProjectTree")
 
-    def initSettings(self) -> None:
-        """Set or update tree widget settings."""
+    def initViewport(self) -> None:
+        """Initialise viewport settings."""
         if CONFIG.hideVScroll:
             self.setVerticalScrollBarPolicy(QtScrollAlwaysOff)
         else:
@@ -559,7 +565,9 @@ class GuiProjectTree(QTreeView):
     def loadModel(self) -> None:
         """Load and prepare a new project model."""
         if selectModelOld := self.selectionModel():
-            selectModelOld.disconnect()
+            with suppress(TypeError):
+                selectModelOld.currentChanged.disconnect(self._onSelectionChange)
+            selectModelOld.setParent(None)
 
         self.setModel(SHARED.project.tree.model)
 

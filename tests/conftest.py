@@ -24,13 +24,14 @@ from __future__ import annotations
 import logging
 import shutil
 import sys
+import warnings
 
 from pathlib import Path
 
 import pytest
 
-from PyQt6.QtCore import QLocale
-from PyQt6.QtWidgets import QMessageBox
+from PyQt6.QtCore import QAbstractAnimation, QLocale, QThreadPool
+from PyQt6.QtWidgets import QApplication, QMessageBox, QWidget
 
 sys.path.insert(1, str(Path(__file__).parent.parent.absolute()))
 
@@ -171,6 +172,8 @@ def mockGUI(qtbot, monkeypatch):
     monkeypatch.setattr(SHARED, "_gui", gui)
     monkeypatch.setattr(SHARED, "_theme", theme)
 
+    qtbot.addWidget(gui)
+
     return gui
 
 
@@ -197,14 +200,23 @@ def nwGUI(qtbot, monkeypatch, functionFixture):
     CONFIG.loadConfig()
     SHARED.initTheme(GuiTheme())
     nwGUI = GuiMain()
-    qtbot.addWidget(nwGUI)
+    qtbot.addWidget(nwGUI, before_close_func=_checkNoLeftoverState)
     resetConfigVars()
     nwGUI.docEditor.initEditor()
 
     nwGUI.show()
     qtbot.wait(20)
 
-    return nwGUI
+    yield nwGUI
+
+    # Let any in-flight background jobs (word counter, text checker)
+    # finish and deliver their queued signals before the widget tree
+    # below them is closed and scheduled for deletion
+    if globalPool := QThreadPool.globalInstance():
+        globalPool.waitForDone(7000)
+        globalPool.clear()
+
+    nwGUI.close()
 
 
 ##
@@ -319,3 +331,21 @@ def ipsumText():
             "im."
         ),
     ]
+
+
+##
+#  Checker Functions
+##
+
+
+def _checkNoLeftoverState(widget: QWidget) -> None:
+    """Warn if the test left an animation still running or an extra
+    top-level widget open.
+    """
+    running = [a for a in widget.findChildren(QAbstractAnimation) if a.state() == QAbstractAnimation.State.Running]
+    if running:
+        warnings.warn(f"Test left {len(running)} animation(s) still running: {running}", stacklevel=2)
+
+    extra = [w for w in QApplication.topLevelWidgets() if w is not widget and w.isVisible()]
+    if extra:
+        warnings.warn(f"Test left extra top-level widget(s) open: {extra}", stacklevel=2)

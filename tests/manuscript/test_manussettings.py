@@ -26,9 +26,10 @@ import pytest
 from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtGui import QAction, QFont
 
-from novelwriter import SHARED
+from novelwriter import CONFIG, SHARED
 from novelwriter.common import describeFont
-from novelwriter.constants import nwHeadFmt, nwStyles
+from novelwriter.constants import nwHeadFmt, nwStyles, nwUnicode
+from novelwriter.core.project import NWProject
 from novelwriter.extensions.modified import NFontDialog
 from novelwriter.manuscript.buildsettings import BuildSettings, FilterMode
 from novelwriter.manuscript.manussettings import GuiBuildSettings, _FilterTab, _FormattingTab, _HeadingsTab
@@ -40,7 +41,7 @@ from tests.helpers import C, buildTestProject, checkDialogFreedOnClose
 @pytest.mark.gui
 def testGuiBuildSettings_Init(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test the initialisation of the GuiBuildSettings dialog."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
     build = BuildSettings()
 
@@ -121,7 +122,7 @@ def testGuiBuildSettings_Init(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
 @pytest.mark.gui
 def testGuiBuildSettings_Filter(qtbot, nwGUI, projPath, mockRnd):
     """Test the Filter Tab of the GuiBuildSettings dialog."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
     build = BuildSettings()
 
@@ -537,6 +538,44 @@ def testGuiBuildSettings_Headings(qtbot, nwGUI):
     # Finish
     bSettings._dialogButtonClicked(bSettings.btnClose)
     # qtbot.stop()
+
+
+@pytest.mark.gui
+def testGuiBuildSettings_HeadingsAutoReplace(qtbot, nwGUI):
+    """Test the auto-replace symbols feature of the heading edit box."""
+    build = BuildSettings()
+
+    bSettings = GuiBuildSettings(nwGUI, build)
+    bSettings.show()
+    bSettings.loadContent()
+
+    headTab = bSettings.optTabHeadings
+    button = bSettings.sidebar._group.button(bSettings.OPT_HEADINGS)
+    assert button is not None
+    button.click()
+
+    headTab.btnChapter.click()
+    assert headTab.editTextBox.isEnabled() is True
+    headTab.editTextBox.clear()
+
+    # Auto-replace is on by default, so typed text is converted as it is typed
+    assert CONFIG.doReplace is True
+    qtbot.keyClicks(headTab.editTextBox, "Some text...")
+    assert headTab.editTextBox.toPlainText() == f"Some text{nwUnicode.U_HELLIP}"
+
+    # Turning it off leaves typed text untouched
+    CONFIG.doReplace = False
+    headTab.editTextBox.clear()
+    qtbot.keyClicks(headTab.editTextBox, "Some text...")
+    assert headTab.editTextBox.toPlainText() == "Some text..."
+
+    # Inserting several characters at once, as the menu actions do, is not affected
+    CONFIG.doReplace = True
+    headTab.editTextBox.clear()
+    headTab.editTextBox.insertPlainText("Some text...")
+    assert headTab.editTextBox.toPlainText() == "Some text..."
+
+    bSettings._dialogButtonClicked(bSettings.btnClose)
 
 
 @pytest.mark.gui
@@ -1062,7 +1101,8 @@ def testGuiBuildSettings_FormatOutput(qtbot, nwGUI):
 @pytest.mark.gui
 def testGuiBuildSettings_MemoryLeakRegression(qtbot, nwGUI, projPath, mockRnd):
     """Test that the dialog is freed when it is closed."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
 
     def factory() -> GuiBuildSettings:
         dialog = GuiBuildSettings(nwGUI, BuildSettings())

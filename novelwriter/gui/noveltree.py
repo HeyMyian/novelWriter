@@ -41,7 +41,7 @@ from PyQt6.QtWidgets import (
 )
 
 from novelwriter import CONFIG, SHARED
-from novelwriter.common import minmax, qtAddAction, qtAddMenu, qtLambda
+from novelwriter.common import minmax, qtAddAction, qtAddMenu, qtWeakLambda
 from novelwriter.constants import nwKeyWords, nwLabels, trConst
 from novelwriter.enum import nwChange, nwDocMode, nwNovelExtra, nwOutline
 from novelwriter.extensions.modified import NIconToolButton, NTreeView
@@ -105,9 +105,9 @@ class GuiNovelView(QWidget):
         logger.debug("Theme Update: GuiNovelView")
         self.novelBar.updateTheme()
 
-    def initSettings(self) -> None:
-        """Initialise GUI elements that depend on specific settings."""
-        self.novelTree.initSettings()
+    def initViewport(self) -> None:
+        """Initialise viewport settings."""
+        self.novelTree.initViewport()
 
     def clearNovelView(self) -> None:
         """Clear project-related GUI content."""
@@ -352,7 +352,7 @@ class GuiNovelToolBar(QWidget):
         aLast = qtAddAction(self.mLastCol, actionLabel)
         aLast.setCheckable(True)
         aLast.setActionGroup(self.gLastCol)
-        aLast.triggered.connect(qtLambda(self.setLastColType, colType))
+        aLast.triggered.connect(qtWeakLambda(self.setLastColType, colType))
         self.aLastCol[colType] = aLast
 
 
@@ -390,12 +390,12 @@ class GuiNovelTree(NTreeView):
         self.middleClicked.connect(self._onMiddleClick)
 
         # Set custom settings
-        self.initSettings()
+        self.initViewport()
 
         logger.debug("Ready: GuiNovelTree")
 
-    def initSettings(self) -> None:
-        """Set or update tree widget settings."""
+    def initViewport(self) -> None:
+        """Initialise viewport settings."""
         if CONFIG.hideVScroll:
             self.setVerticalScrollBarPolicy(QtScrollAlwaysOff)
         else:
@@ -439,8 +439,11 @@ class GuiNovelTree(NTreeView):
         """Set the current novel model."""
         if tHandle and (model := SHARED.project.index.getNovelModel(tHandle)):
             if model is not self.model():
+                selectModelOld = self.selectionModel()
                 self.setModel(model)
                 self.resizeColumns()
+                if selectModelOld is not None:
+                    selectModelOld.setParent(None)
         else:
             self.clearContent()
 
@@ -469,7 +472,7 @@ class GuiNovelTree(NTreeView):
 
     def resizeColumns(self) -> None:
         """Set the correct column sizes."""
-        if (header := self.header()) and (model := self._getModel()) and (vp := self.viewport()):
+        if (header := self.header()) and (model := self._getModel()) and (vp := self.viewport()):  # pragma: no branch
             header.setStretchLastSection(False)
             header.setMinimumSectionSize(SHARED.theme.baseIconHeight + 6)
             header.setSectionResizeMode(0, QtHeaderStretch)

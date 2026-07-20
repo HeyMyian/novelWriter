@@ -25,6 +25,7 @@ import logging
 import re
 
 from time import time
+from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QBrush, QColor, QSyntaxHighlighter, QTextCharFormat, QTextDocument
@@ -38,6 +39,9 @@ from novelwriter.text.formats import processComment
 from novelwriter.text.patterns import REGEX_PATTERNS, DialogParser
 from novelwriter.types import QtFontBold, QtTextUserProperty
 
+if TYPE_CHECKING:
+    from novelwriter.editor.editordocument import GuiTextDocument
+
 logger = logging.getLogger(__name__)
 
 
@@ -45,6 +49,8 @@ BLOCK_NONE = 0
 BLOCK_TEXT = 1
 BLOCK_META = 2
 BLOCK_TITLE = 4
+
+MAX_BLOCK_LENGTH = 20000
 
 
 class GuiDocHighlighter(QSyntaxHighlighter):
@@ -256,6 +262,13 @@ class GuiDocHighlighter(QSyntaxHighlighter):
     #  Methods
     ##
 
+    def rehighlight(self) -> None:
+        """Mark the document layout busy before a full rehighlight."""
+        doc: GuiTextDocument = self.document()  # type: ignore[assignment]
+        if hasattr(doc, "markLayoutBusy"):
+            doc.markLayoutBusy()
+        super().rehighlight()
+
     def rehighlightByType(self, cType: int) -> None:
         """Loop through all blocks and re-highlight those of a given
         content type.
@@ -284,9 +297,13 @@ class GuiDocHighlighter(QSyntaxHighlighter):
             self._clearBlockData()
             return
 
+        origLen = len(text)
         blockLen = self.currentBlock().length()
+        if origLen > MAX_BLOCK_LENGTH:
+            text = text[:MAX_BLOCK_LENGTH]
+
         utf16Map = None
-        if blockLen > len(text) + 1:
+        if blockLen > origLen + 1:
             # If the lengths are different, the line contains 4 byte
             # Unicode characters, and we must use a map between Python
             # string indices and the UTF-16 indices used by Qt, where a

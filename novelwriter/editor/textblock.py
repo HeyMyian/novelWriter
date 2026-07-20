@@ -19,6 +19,8 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
+from __future__ import annotations
+
 import re
 
 from PyQt6.QtGui import QTextBlockUserData
@@ -69,6 +71,10 @@ class TextBlockData(QTextBlockUserData):
         self._spellErrors: T_TextCheckList = []
         self._formatErrors: T_TextCheckList = []
 
+    ##
+    #  Properties
+    ##
+
     @property
     def metaData(self) -> T_TextMetaList:
         """Return meta data from last check."""
@@ -88,6 +94,10 @@ class TextBlockData(QTextBlockUserData):
     def revision(self) -> int:
         """Return the revision number of the cached text."""
         return self._revision
+
+    ##
+    #  Methods
+    ##
 
     def clear(self) -> None:
         """Clear all cached data."""
@@ -121,18 +131,13 @@ class TextBlockData(QTextBlockUserData):
 
     def processText(self, text: str, offset: int, utf16Map: list[int] | None) -> None:
         """Extract meta data from the text. The map, when set, converts
-        cached positions to UTF-16 units.
-
-        The cached spell and format errors are also invalidated here,
-        since they may hold positions from before this edit that no
-        longer fit within the block's new, possibly shorter, text. They
-        are recomputed by the debounced background check shortly after.
-        Leaving them in place until then risks briefly rendering marker
-        selections that spill into the following block.
+        cached positions to UTF-16 units. Cached spell and format errors
+        are cleared and left for the debounced background check to
+        recompute.
         """
-        self._metaData = []
         self._spellErrors = []
         self._formatErrors = []
+        self._metaData = []
         self._rawText = text
         if "[" in text:
             # Strip shortcodes

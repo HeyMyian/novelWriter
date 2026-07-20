@@ -30,17 +30,28 @@ from unittest.mock import MagicMock, Mock
 import pytest
 
 from PyQt6.QtCore import QRect, QSize, Qt
-from PyQt6.QtGui import QPalette
+from PyQt6.QtGui import QCloseEvent, QGuiApplication, QPalette, QStyleHints
 from PyQt6.QtWidgets import QApplication, QFileDialog, QInputDialog, QWidget
 
 from novelwriter import CONFIG, SHARED, __hexversion__
 from novelwriter.common import jsonEncode
 from novelwriter.config import DEF_GUI_DARK, DEF_GUI_LIGHT
 from novelwriter.constants import nwFiles
+from novelwriter.core.project import NWProject
 from novelwriter.dialogs.editlabel import GuiEditLabel
 from novelwriter.dialogs.preferences import GuiNeedsUpdate
 from novelwriter.editor.editor import GuiDocEditor
-from novelwriter.enum import nwDocAction, nwDocMode, nwFocus, nwItemClass, nwItemType, nwState, nwTheme, nwView
+from novelwriter.enum import (
+    nwDocAction,
+    nwDocMode,
+    nwFocus,
+    nwItemClass,
+    nwItemType,
+    nwState,
+    nwTheme,
+    nwView,
+    nwVimMode,
+)
 from novelwriter.gui.noveltree import GuiNovelView
 from novelwriter.gui.outline import GuiOutlineView
 from novelwriter.gui.projtree import GuiProjectTree, GuiProjectView
@@ -58,6 +69,7 @@ from novelwriter.types import (
     QtKeyRight,
     QtModCtrl,
     QtModShift,
+    QtScrollAlwaysOff,
 )
 
 from tests.helpers import NWD_IGNORE, XML_IGNORE, C, buildTestProject, cmpFiles
@@ -94,7 +106,8 @@ def testGuiMain_Launch(qtbot, monkeypatch, nwGUI, projPath, fncPath):
     """Test the handling of launch tasks."""
     monkeypatch.setattr(GuiWelcome, "exec", lambda *a: None)
     CONFIG.lastNotes = "0x0"
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
 
     # Open Lipsum project
     nwGUI.postLaunchTasks(projPath)
@@ -218,7 +231,10 @@ def testGuiMain_Launch(qtbot, monkeypatch, nwGUI, projPath, fncPath):
 @pytest.mark.gui
 def testGuiMain_ProjectTreeItems(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test handling of project tree items based on GUI focus states."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+    nwGUI.rebuildIndex()  # A project built off-GUI has no index cache to load
+    nwGUI.closeDocument()  # Opening the project auto-restores a document
 
     sHandle = "000000000000f"
     nwGUI.openSelectedItem()
@@ -320,8 +336,8 @@ def testGuiMain_UpdateTheme(qtbot, nwGUI):
     theme.loadTheme()
     assert theme.isDarkTheme is True
 
-    nwGUI._processConfigChanges(GuiNeedsUpdate(False, True, False, False, False, False))
-    nwGUI._processConfigChanges(GuiNeedsUpdate(True, True, True, True, True, True))
+    nwGUI._processConfigChanges(GuiNeedsUpdate(False, True, False, False, False, False, False, False, False))
+    nwGUI._processConfigChanges(GuiNeedsUpdate(True, True, True, True, True, True, True, True, True))
 
     # Check editor syntax
     syntax = SHARED.theme.syntaxTheme
@@ -339,12 +355,155 @@ def testGuiMain_UpdateTheme(qtbot, nwGUI):
     nwGUI.checkThemeUpdate()
     assert theme.isDarkTheme is False
 
-    # Through change event
-    event = Mock()
-    event.type.return_value = 210
-    CONFIG.themeMode = nwTheme.DARK
-    nwGUI.changeEvent(event)
-    assert theme.isDarkTheme is True
+    # qtbot.stop()
+
+
+@pytest.mark.gui
+@pytest.mark.skipif(not CONFIG.checkMinQtVersion(0x060500), reason="Requires Qt 6.5+")
+def testGuiMain_OSThemeChangeAndClose(qtbot, monkeypatch, nwGUI, projPath):
+    """Test that the OS colour scheme change signal reaches the theme
+    loader via the connected slot, that isDesktopDarkMode falls back to
+    the palette check when there is no styleHints object, and that the
+    close event handles both a blocked close and a missing theme hints
+    object.
+    """
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+
+    CONFIG.themeMode = nwTheme.AUTO
+    CONFIG.darkTheme = DEF_GUI_DARK
+    CONFIG.lightTheme = DEF_GUI_LIGHT
+
+    # Emitting the real OS signal reaches the connected slot, which
+    # feeds the explicit colour scheme through to the theme loader. The
+    # desktop hint is mocked to agree, since checkThemeUpdate's own
+    # refreshThemeColors() call reloads the theme again without the
+    # explicit scheme, falling back to the live desktop hint.
+    assert nwGUI._themeHints is not None
+    with monkeypatch.context() as mp:
+        mp.setattr(QStyleHints, "colorScheme", lambda *a: Qt.ColorScheme.Dark)
+        nwGUI._themeHints.colorSchemeChanged.emit(Qt.ColorScheme.Dark)
+    assert SHARED.theme.isDarkTheme is True
+
+    with monkeypatch.context() as mp:
+        mp.setattr(QStyleHints, "colorScheme", lambda *a: Qt.ColorScheme.Light)
+        nwGUI._themeHints.colorSchemeChanged.emit(Qt.ColorScheme.Light)
+    assert SHARED.theme.isDarkTheme is False
+
+    # With no styleHints object at all, isDesktopDarkMode falls back to
+    # the palette check instead of raising
+    with monkeypatch.context() as mp:
+        mp.setattr(QGuiApplication, "styleHints", staticmethod(lambda: None))
+        SHARED.theme.isDesktopDarkMode()
+
+    # A blocked close ignores the event and leaves the hints connected
+    with monkeypatch.context() as mp:
+        mp.setattr(_GuiAlert, "finalState", False)
+        event = QCloseEvent()
+        nwGUI.closeEvent(event)
+        assert event.isAccepted() is False
+
+    # The theme hint object must be explicitly disconnected, since it is
+    # connected to a singleton and will therefore bleed over into other tests
+    nwGUI._themeHints.colorSchemeChanged.disconnect(nwGUI._themeChangedSlot)
+    nwGUI._themeHints = None
+    event = QCloseEvent()
+    nwGUI.closeEvent(event)
+    assert event.isAccepted() is True
+
+
+@pytest.mark.gui
+def testGuiMain_ProcessConfigChanges_LightweightSettings(qtbot, nwGUI, projPath, mockRnd):
+    """Test the lightweight settings path of _processConfigChanges, which
+    must refresh the document headers on every call, but must only reset
+    Vim mode when the Vim setting itself changed (issue: an unrelated
+    preferences save must not silently drop the user out of Insert mode).
+    """
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+    assert nwGUI.openDocument(C.hSceneDoc)
+    assert nwGUI.viewDocument(C.hSceneDoc)
+
+    docEditor = nwGUI.docEditor
+    docViewer = nwGUI.docViewer
+
+    CONFIG.vimMode = True
+    docEditor._vim.setMode(nwVimMode.INSERT)
+
+    # Clear the headers so we can tell if they were refreshed
+    docEditor.docHeader._docHandle = None
+    docViewer.docHeader._docHandle = None
+
+    # A save where nothing relevant changed, and Vim was not touched,
+    # must still refresh the headers, but must not reset Vim mode
+    noChange = GuiNeedsUpdate(
+        restart=False,
+        tree=False,
+        theme=False,
+        syntax=False,
+        spelling=False,
+        vim=False,
+        editor=False,
+        viewer=False,
+        viewport=False,
+    )
+    nwGUI._processConfigChanges(noChange)
+    assert docEditor.docHeader._docHandle == C.hSceneDoc
+    assert docViewer.docHeader._docHandle == C.hSceneDoc
+    assert docEditor._vim.mode == nwVimMode.INSERT
+
+    # A save where the Vim setting changed must reset the mode to Normal
+    vimChanged = GuiNeedsUpdate(
+        restart=False,
+        tree=False,
+        theme=False,
+        syntax=False,
+        spelling=False,
+        vim=True,
+        editor=False,
+        viewer=False,
+        viewport=False,
+    )
+    nwGUI._processConfigChanges(vimChanged)
+    assert docEditor._vim.mode == nwVimMode.NORMAL
+
+    # A save that fully reinitialises the editor and viewer must not
+    # additionally run the lightweight path
+    docEditor._vim.setMode(nwVimMode.INSERT)
+    fullReinit = GuiNeedsUpdate(
+        restart=False,
+        tree=False,
+        theme=False,
+        syntax=False,
+        spelling=False,
+        vim=False,
+        editor=True,
+        viewer=True,
+        viewport=False,
+    )
+    nwGUI._processConfigChanges(fullReinit)
+    assert docEditor._vim.mode == nwVimMode.NORMAL
+
+    # A viewport-only change must reinitialise the viewport on both the
+    # editor and viewer even though neither is otherwise reinitialised
+    CONFIG.hideVScroll = True
+    CONFIG.hideHScroll = True
+    viewportOnly = GuiNeedsUpdate(
+        restart=False,
+        tree=False,
+        theme=False,
+        syntax=False,
+        spelling=False,
+        vim=False,
+        editor=False,
+        viewer=False,
+        viewport=True,
+    )
+    nwGUI._processConfigChanges(viewportOnly)
+    assert docEditor.verticalScrollBarPolicy() == QtScrollAlwaysOff
+    assert docEditor.horizontalScrollBarPolicy() == QtScrollAlwaysOff
+    assert docViewer.verticalScrollBarPolicy() == QtScrollAlwaysOff
+    assert docViewer.horizontalScrollBarPolicy() == QtScrollAlwaysOff
 
     # qtbot.stop()
 
@@ -358,7 +517,8 @@ def testGuiMain_Editing(qtbot, monkeypatch, nwGUI, projPath, tstPaths, mockRnd):
     monkeypatch.setattr(GuiEditLabel, "getLabel", lambda *a, text: (text, True))
 
     # Create new, save, close project
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.saveProject()
     assert nwGUI.closeProject()
 
@@ -726,7 +886,7 @@ def testGuiMain_Editing(qtbot, monkeypatch, nwGUI, projPath, tstPaths, mockRnd):
     qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
     qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
 
-    docEditor._wCounterDoc.run()
+    docEditor._updateDocCounts(0, 0, 0)
 
     # Check Files
     # ===========
@@ -783,7 +943,8 @@ def testGuiMain_Editing(qtbot, monkeypatch, nwGUI, projPath, tstPaths, mockRnd):
 @pytest.mark.gui
 def testGuiMain_Viewing(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test the document viewer."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     nwGUI.closeProject()
 
     # View before a project is open does nothing
@@ -879,7 +1040,9 @@ def testGuiMain_Viewing(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
 @pytest.mark.gui
 def testGuiMain_Features(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test various features of the main window."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+    nwGUI.closeDocument()  # Opening the project auto-restores a document
     cHandle = SHARED.project.newFile("Jane", C.hCharRoot)
     newDoc = SHARED.project.storage.getDocument(cHandle)
     newDoc.writeDocument("# Jane\n\n@tag: Jane\n\n")
@@ -1043,19 +1206,31 @@ def testGuiMain_Features(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     # Reopening the manuscript and writing stats dialogs reuses the
     # existing instance rather than creating a new one
     nwGUI.showBuildManuscriptDialog()
-    dialog = SHARED.findTopLevelWidget(GuiManuscript)
-    assert dialog is not None
+    manuscriptDialog = SHARED.findTopLevelWidget(GuiManuscript)
+    assert manuscriptDialog is not None
     nwGUI.showBuildManuscriptDialog()
-    assert SHARED.findTopLevelWidget(GuiManuscript) is dialog
+    assert SHARED.findTopLevelWidget(GuiManuscript) is manuscriptDialog
+    manuscriptDialog.close()
+    manuscriptDialog.softDelete()
 
     nwGUI.showWritingStatsDialog()
-    dialog = SHARED.findTopLevelWidget(GuiWritingStats)
-    assert dialog is not None
+    statsDialog = SHARED.findTopLevelWidget(GuiWritingStats)
+    assert statsDialog is not None
     nwGUI.showWritingStatsDialog()
-    assert SHARED.findTopLevelWidget(GuiWritingStats) is dialog
+    assert SHARED.findTopLevelWidget(GuiWritingStats) is statsDialog
+    statsDialog.close()
+    statsDialog.softDelete()
 
-    # Closing Down
-    # ============
+    # qtbot.stop()
+
+
+@pytest.mark.gui
+def testGuiMain_CloseMain(qtbot, nwGUI, projPath, mockRnd):
+    """Test closeMain's pane-size and window-state save skips, across a
+    project close/reopen cycle..
+    """
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
 
     # closeMain skips saving pane sizes while Focus Mode is active
     assert nwGUI.openDocument(C.hSceneDoc)
@@ -1068,13 +1243,12 @@ def testGuiMain_Features(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     nwGUI.setWindowState(nwGUI.windowState() | Qt.WindowState.WindowFullScreen)
     assert nwGUI.closeMain() is True
 
-    # qtbot.stop()
-
 
 @pytest.mark.gui
 def testGuiMain_OpenClose(qtbot, monkeypatch, nwGUI: GuiMain, projPath, fncPath, mockRnd):
     """Test opening and closing projects and documents."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
 
     # Check open document and prev/next with no wraparound
     nwGUI.openNextDocument(C.hSceneDoc, False, True)  # Backwards
@@ -1187,7 +1361,8 @@ def testGuiMain_OpenDocument_ReentrancyGuard(qtbot, monkeypatch, nwGUI, projPath
     key-repeat event, it can re-trigger another document switch before
     the first one has finished.
     """
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
 
     reentered = []
     realProcessEvents = QApplication.processEvents
@@ -1208,7 +1383,8 @@ def testGuiMain_OpenDocument_ReentrancyGuard(qtbot, monkeypatch, nwGUI, projPath
 @pytest.mark.gui
 def testGuiMain_FocusView(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test switching focus and view of the main window."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
 
     nwGUI.openDocument(C.hSceneDoc)
     nwGUI.viewDocument(C.hSceneDoc)

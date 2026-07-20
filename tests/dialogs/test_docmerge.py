@@ -25,6 +25,7 @@ import pytest
 
 from PyQt6.QtCore import Qt
 
+from novelwriter.core.project import NWProject
 from novelwriter.dialogs.docmerge import GuiDocMerge
 from novelwriter.types import QtAccepted, QtRejected, QtUserRole
 
@@ -35,7 +36,8 @@ from tests.helpers import C, buildTestProject
 def testGuiDocMerge_Main(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test the merge documents tool."""
     monkeypatch.setattr(GuiDocMerge, "exec", lambda *a: None)
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
 
     # Check that the dialog kan handle invalid items
     nwMerge = GuiDocMerge(nwGUI, C.hInvalid, [C.hInvalid])
@@ -91,6 +93,7 @@ def testGuiDocMerge_Main(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     # Reset with no handle set does nothing
     nwMerge._data.pop("sHandle", None)
     nwMerge._resetList()
+    nwMerge.close()
 
     # Test Class Method
     with monkeypatch.context() as mp:

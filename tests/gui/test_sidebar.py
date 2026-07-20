@@ -25,29 +25,45 @@ import pytest
 
 from novelwriter import CONFIG
 from novelwriter.constants import nwLabels
-from novelwriter.enum import nwTheme
+from novelwriter.enum import nwTheme, nwView
 
 
 @pytest.mark.gui
-def testGuiSideBar_CycleColourTheme(nwGUI):
+def testGuiSideBar_ViewChange(qtbot, nwGUI):
+    """Test the view change buttons on the side bar."""
+    sidebar = nwGUI.sideBar
+    buttons = [
+        (sidebar.tbProject, nwView.PROJECT),
+        (sidebar.tbNovel, nwView.NOVEL),
+        (sidebar.tbSearch, nwView.SEARCH),
+        (sidebar.tbOutline, nwView.OUTLINE),
+    ]
+    for button, view in buttons:
+        with qtbot.waitSignal(sidebar.requestViewChange, timeout=1000) as signal:
+            button.click()
+        assert signal.args == [view]
+
+
+@pytest.mark.gui
+def testGuiSideBar_CycleColourTheme(monkeypatch, nwGUI):
     """Test theme cycle feature on the side bar."""
     CONFIG.themeMode = nwTheme.AUTO
     sidebar = nwGUI.sideBar
-    sidebar.mainGui.checkThemeUpdate = lambda *a: None
+    monkeypatch.setattr(sidebar.mainGui, "checkThemeUpdate", lambda *a: None)
 
     # Run 3 Cycles
     for _ in range(3):
         # Cycle Light
-        sidebar._cycleColurTheme()
+        sidebar._cycleColorTheme()
         assert CONFIG.themeMode == nwTheme.LIGHT
         assert sidebar.tbTheme.toolTip() == nwLabels.THEME_MODE_LABEL[nwTheme.LIGHT]
 
         # Cycle Dark
-        sidebar._cycleColurTheme()
+        sidebar._cycleColorTheme()
         assert CONFIG.themeMode == nwTheme.DARK
         assert sidebar.tbTheme.toolTip() == nwLabels.THEME_MODE_LABEL[nwTheme.DARK]
 
         # Cycle Auto
-        sidebar._cycleColurTheme()
+        sidebar._cycleColorTheme()
         assert CONFIG.themeMode == nwTheme.AUTO
         assert sidebar.tbTheme.toolTip() == nwLabels.THEME_MODE_LABEL[nwTheme.AUTO]

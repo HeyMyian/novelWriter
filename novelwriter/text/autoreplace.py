@@ -26,11 +26,11 @@ import logging
 from typing import TYPE_CHECKING
 
 from novelwriter import CONFIG
-from novelwriter.constants import nwUnicode
 from novelwriter.types import QtKeepAnchor, QtMoveLeft
 
 if TYPE_CHECKING:
     from PyQt6.QtGui import QTextCursor
+    from PyQt6.QtWidgets import QLineEdit
 
 logger = logging.getLogger(__name__)
 
@@ -38,44 +38,7 @@ logger = logging.getLogger(__name__)
 class TextAutoReplace:
     """Encapsulates the editor auto replace feature."""
 
-    __slots__ = (
-        "_doPadAfter",
-        "_doPadBefore",
-        "_padAfter",
-        "_padBefore",
-        "_padChar",
-        "_quoteDC",
-        "_quoteDO",
-        "_quoteSC",
-        "_quoteSO",
-        "_replaceDQuote",
-        "_replaceDash",
-        "_replaceDots",
-        "_replaceSQuote",
-    )
-
-    def __init__(self) -> None:
-        self.initSettings()
-
-    def initSettings(self) -> None:
-        """Initialise the auto-replace settings from config."""
-        self._quoteSO = CONFIG.fmtSQuoteOpen
-        self._quoteSC = CONFIG.fmtSQuoteClose
-        self._quoteDO = CONFIG.fmtDQuoteOpen
-        self._quoteDC = CONFIG.fmtDQuoteClose
-
-        self._replaceSQuote = CONFIG.doReplaceSQuote
-        self._replaceDQuote = CONFIG.doReplaceDQuote
-        self._replaceDash = CONFIG.doReplaceDash
-        self._replaceDots = CONFIG.doReplaceDots
-
-        self._padChar = nwUnicode.U_THNBSP if CONFIG.fmtPadThin else nwUnicode.U_NBSP
-        self._padBefore = CONFIG.fmtPadBefore
-        self._padAfter = CONFIG.fmtPadAfter
-        self._doPadBefore = bool(CONFIG.fmtPadBefore)
-        self._doPadAfter = bool(CONFIG.fmtPadAfter)
-
-    def process(self, text: str, cursor: QTextCursor) -> bool:
+    def __call__(self, text: str, cursor: QTextCursor) -> bool:
         """Auto-replace text elements based on main configuration.
         Returns True if anything was changed.
         """
@@ -91,27 +54,21 @@ class TextAutoReplace:
         delete, insert = self._determine(last, bPos)
 
         check = insert
-        if (
-            self._doPadBefore
-            and check
-            and check in self._padBefore
-            and not (check == ":" and length > 1 and text[0] == "@")
-        ):
+        padBefore = CONFIG.fmtPadBefore
+        padAfter = CONFIG.fmtPadAfter
+        if padBefore and check and check in padBefore and not (check == ":" and length > 1 and text[0] == "@"):
             delete = max(delete, 1)
             chkPos = len(last) - delete - 1
             if chkPos >= 0 and last[chkPos].isspace():
                 # Strip existing space before inserting a new (#1061)
                 delete += 1
-            insert = self._padChar + insert
+            padChar = "\u202f" if CONFIG.fmtPadThin else "\u00a0"
+            insert = padChar + insert
 
-        if (
-            self._doPadAfter
-            and check
-            and check in self._padAfter
-            and not (check == ":" and length > 1 and text[0] == "@")
-        ):
+        if padAfter and check and check in padAfter and not (check == ":" and length > 1 and text[0] == "@"):
             delete = max(delete, 1)
-            insert = insert + self._padChar
+            padChar = "\u202f" if CONFIG.fmtPadThin else "\u00a0"
+            insert = insert + padChar
 
         if delete > 0:
             cursor.setPosition(aPos)
@@ -128,7 +85,7 @@ class TextAutoReplace:
         t3 = text[-3:]
         t4 = text[-4:]
 
-        if self._replaceDQuote and t1 == '"':
+        if CONFIG.doReplaceDQuote and t1 == '"':
             # Process Double Quote
             if (
                 pos == 1
@@ -140,11 +97,11 @@ class TextAutoReplace:
                 or (pos == 3 and t3 in ('**"', '=="', '~~"'))
                 or (t4[:1].isspace() and t4.endswith(('**"', '=="', '~~"')))
             ):
-                return 1, self._quoteDO
+                return 1, CONFIG.fmtDQuoteOpen
             else:
-                return 1, self._quoteDC
+                return 1, CONFIG.fmtDQuoteClose
 
-        if self._replaceSQuote and t1 == "'":
+        if CONFIG.doReplaceSQuote and t1 == "'":
             # Process Single Quote
             if (
                 pos == 1
@@ -156,11 +113,11 @@ class TextAutoReplace:
                 or (pos == 3 and t3 in ("**'", "=='", "~~'"))
                 or (t4[:1].isspace() and t4.endswith(("**'", "=='", "~~'")))
             ):
-                return 1, self._quoteSO
+                return 1, CONFIG.fmtSQuoteOpen
             else:
-                return 1, self._quoteSC
+                return 1, CONFIG.fmtSQuoteClose
 
-        if self._replaceDash and t1 == "-":
+        if CONFIG.doReplaceDash and t1 == "-":
             # Process Dashes
             if t4 == "----":
                 return 4, "\u2015"  # Horizontal bar
@@ -173,7 +130,7 @@ class TextAutoReplace:
             elif t2 == "\u2014-":
                 return 2, "\u2015"  # Horizontal bar
 
-        if self._replaceDots and t3 == "...":
+        if CONFIG.doReplaceDots and t3 == "...":
             # Process Dots
             return 3, "\u2026"  # Ellipsis
 
@@ -182,3 +139,30 @@ class TextAutoReplace:
             return 1, "\u2029"  # Paragraph separator
 
         return 0, t1
+
+
+class LineEditAutoReplace(TextAutoReplace):
+    """Encapsulates the line edit auto replace feature."""
+
+    def __call__(self, edit: QLineEdit) -> bool:
+        """Auto-replace text elements based on main configuration.
+        Returns True if anything was changed.
+        """
+        pos = edit.cursorPosition()
+        text = edit.text()
+        length = len(text)
+        if length < 1:
+            return False
+
+        edit.setSelection(max(0, pos - 4), min(4, pos))
+        last = edit.selectedText()
+        edit.deselect()
+        delete, insert = self._determine(last, pos)
+
+        if delete > 0:
+            edit.setSelection(max(0, pos - delete), min(delete, pos))
+            edit.insert(insert)
+            edit.deselect()
+            return True
+
+        return False

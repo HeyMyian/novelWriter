@@ -24,6 +24,7 @@ from __future__ import annotations
 import pytest
 
 from novelwriter import SHARED
+from novelwriter.core.project import NWProject
 from novelwriter.dialogs.docsplit import GuiDocSplit
 from novelwriter.dialogs.editlabel import GuiEditLabel
 from novelwriter.types import QtAccepted, QtRejected
@@ -36,7 +37,8 @@ def testGuiDocSplit_Main(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test the split document tool."""
     monkeypatch.setattr(GuiEditLabel, "getLabel", lambda *a, text: (text, True))
     monkeypatch.setattr(GuiDocSplit, "exec", lambda *a: None)
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
 
     project = SHARED.project
     docText = (
@@ -98,6 +100,7 @@ def testGuiDocSplit_Main(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     # Reloading does nothing if no handle has been set yet
     nwSplit._data.pop("sHandle", None)
     nwSplit._reloadList()
+    nwSplit.close()
 
     # An invalid saved split level does not preselect an entry
     SHARED.project.options.setValue("GuiDocSplit", "spLevel", 99)

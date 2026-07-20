@@ -41,7 +41,6 @@ from PyQt6.QtGui import (
     QTextBlock,
     QTextCharFormat,
     QTextCursor,
-    QTextDocument,
     QTextOption,
     QWheelEvent,
 )
@@ -49,11 +48,11 @@ from PyQt6.QtWidgets import QApplication, QMenu, QTextEdit
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import decodeMimeHandles, utf16CharMap
-from novelwriter.constants import nwKeyWords, nwUnicode
+from novelwriter.constants import nwConst, nwKeyWords, nwUnicode
 from novelwriter.core.item import ProjectItem
+from novelwriter.core.project import NWProject
 from novelwriter.core.spellcheck import SpellEnchant
 from novelwriter.dialogs.editlabel import GuiEditLabel
-from novelwriter.editor.autoreplace import TextAutoReplace
 from novelwriter.editor.editor import GuiDocEditor, _TagAction
 from novelwriter.editor.editsearch import GuiDocEditSearch
 from novelwriter.editor.textblock import TextBlockData, formatCheckText
@@ -105,7 +104,8 @@ def getMenuForPos(editor: GuiDocEditor, pos: int, select: bool = False) -> QMenu
 def testGuiDocEditor_Init(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test initialising the editor."""
     # Open project
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
 
@@ -117,7 +117,7 @@ def testGuiDocEditor_Init(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     assert qDoc.defaultTextOption().alignment() == QtAlignLeft
     assert docEditor.verticalScrollBarPolicy() == QtScrollAsNeeded
     assert docEditor.horizontalScrollBarPolicy() == QtScrollAsNeeded
-    assert docEditor._autoReplace._padChar == nwUnicode.U_NBSP
+    assert CONFIG.fmtPadThin is False
     assert docEditor.docHeader.itemTitle.text() == (
         "<font style='color: #ff303030'>"
         "<a href='#0000000000008' style='color: #ff303030; text-decoration: none'>Novel</a>"
@@ -148,7 +148,7 @@ def testGuiDocEditor_Init(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     assert qDoc.defaultTextOption().flags() & QTextOption.Flag.ShowLineAndParagraphSeparators
     assert docEditor.verticalScrollBarPolicy() == QtScrollAlwaysOff
     assert docEditor.horizontalScrollBarPolicy() == QtScrollAlwaysOff
-    assert docEditor._autoReplace._padChar == nwUnicode.U_THNBSP
+    assert CONFIG.fmtPadThin is True
     assert docEditor.docHeader.itemTitle.text() == (
         "<font style='color: #ff303030'>"
         "<a href='#000000000000f' style='color: #ff303030; text-decoration: none'>New Scene</a>"
@@ -185,6 +185,14 @@ def testGuiDocEditor_Init(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     docEditor.docHeader.setHandle(C.hInvalid)
     assert docEditor.docHeader.itemTitle.text() == titleBefore
 
+    # Toggle tool bar from header
+    with qtbot.waitSignal(docEditor.docHeader.toggleToolBarRequest, timeout=1000):
+        docEditor.docHeader.tbButton.click()
+
+    # Toggle focus mode from header
+    with qtbot.waitSignal(docEditor.toggleFocusModeRequest, timeout=1000):
+        docEditor.docHeader.minmaxButton.click()
+
     # Close from header
     with qtbot.waitSignal(docEditor.docHeader.closeDocumentRequest, timeout=1000):
         docEditor.docHeader.closeButton.click()
@@ -201,7 +209,8 @@ def testGuiDocEditor_Init(qtbot, nwGUI, projPath, ipsumText, mockRnd):
 @pytest.mark.gui
 def testGuiDocEditor_LoadText(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test loading text into the editor."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
@@ -233,7 +242,8 @@ def testGuiDocEditor_LoadText(qtbot, nwGUI, projPath, ipsumText, mockRnd):
 @pytest.mark.gui
 def testGuiDocEditor_SaveText(qtbot, monkeypatch, caplog, nwGUI, projPath, ipsumText, mockRnd):
     """Test saving text from the editor."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
@@ -275,7 +285,8 @@ def testGuiDocEditor_SaveTextEdgeCases(qtbot, monkeypatch, nwGUI, projPath, ipsu
     text test: a write failure with no hash mismatch, and a successful
     forced overwrite after a hash mismatch.
     """
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
@@ -306,7 +317,8 @@ def testGuiDocEditor_DragAndDrop(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test drag and drop in the editor."""
     docEditor = nwGUI.docEditor
 
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hTitlePage) is True
     assert docEditor.docHandle == C.hTitlePage
 
@@ -379,7 +391,8 @@ def testGuiDocEditor_DragAndDrop(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
 @pytest.mark.gui
 def testGuiDocEditor_MetaData(qtbot, nwGUI, projPath, mockRnd):
     """Test extracting various meta data and other values."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
@@ -447,7 +460,8 @@ def testGuiDocEditor_ContextMenu(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
     monkeypatch.setattr(QMenu, "exec", lambda *a: None)
     monkeypatch.setattr(QMenu, "setParent", lambda *a: None)
 
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
     sceneItem = SHARED.project.tree[C.hSceneDoc]
@@ -505,7 +519,7 @@ def testGuiDocEditor_ContextMenu(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
         "More Actions",
     ]
     ctxMenu.actions()[0].trigger()
-    janeItem = SHARED.project.tree["0000000000010"]
+    janeItem = SHARED.project.tree["0000000000011"]
     assert janeItem is not None
     assert janeItem.itemName == "Jane"
     ctxMenu.setObjectName("")
@@ -525,7 +539,7 @@ def testGuiDocEditor_ContextMenu(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
         "More Actions",
     ]
     ctxMenu.actions()[0].trigger()
-    assert nwGUI.docViewer.docHandle == "0000000000010"
+    assert nwGUI.docViewer.docHandle == "0000000000011"
     ctxMenu.setObjectName("")
     ctxMenu.deleteLater()
 
@@ -620,7 +634,8 @@ def testGuiDocEditor_SpellChecking(qtbot, monkeypatch, nwGUI, projPath, ipsumTex
     monkeypatch.setattr(QMenu, "exec", lambda *a: None)
     monkeypatch.setattr(QMenu, "setParent", lambda *a: None)
 
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
 
     # The test must not depend on which dictionaries are available on
     # the host system, so all words are accepted from the start, and
@@ -884,7 +899,8 @@ def testGuiDocEditor_FormatCheckText():
 @pytest.mark.gui
 def testGuiDocEditor_FormatChecking(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test the document multi-space and trailing-space checker."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     monkeypatch.setattr(SHARED, "runInThreadPool", lambda r: r.run())
 
     assert nwGUI.openDocument(C.hSceneDoc) is True
@@ -953,7 +969,8 @@ def testGuiDocEditor_Actions(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     various action features are tested when their respective functions
     are tested.
     """
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
@@ -1306,7 +1323,8 @@ def testGuiDocEditor_Zoom(qtbot, nwGUI, projPath, mockRnd):
     """Test zooming the editor font via docAction and Ctrl+Scroll, and
     resetting it back to the configured font size.
     """
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
 
@@ -1387,7 +1405,8 @@ def testGuiDocEditor_Zoom(qtbot, nwGUI, projPath, mockRnd):
 @pytest.mark.gui
 def testGuiDocEditor_Navigation(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test editor navigation."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor: GuiDocEditor = nwGUI.docEditor
 
@@ -1419,7 +1438,8 @@ def testGuiDocEditor_ToolBar(qtbot, nwGUI, projPath, mockRnd):
     various action features are tested when their respective functions
     are tested.
     """
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
 
     docEditor = nwGUI.docEditor
@@ -1517,7 +1537,8 @@ def testGuiDocEditor_ToolBar(qtbot, nwGUI, projPath, mockRnd):
 @pytest.mark.gui
 def testGuiDocEditor_Insert(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
     """Test the document insert functions."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
     text = f"### A Scene\n\n{ipsumText[0]}"
@@ -1626,7 +1647,8 @@ def testGuiDocEditor_Insert(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mock
 @pytest.mark.gui
 def testGuiDocEditor_TextManipulation(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test the text manipulation functions."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
@@ -1845,13 +1867,18 @@ def testGuiDocEditor_TextManipulation(qtbot, nwGUI, projPath, ipsumText, mockRnd
     qtbot.keyClick(docEditor, Qt.Key.Key_Y, modifier=QtModCtrl, delay=KEY_DELAY)
     assert docEditor.getText() == ""
 
+    # Let the auto-scroll animation, if one was triggered by a cursor
+    # move above, finish before the widget tree is torn down
+    qtbot.wait(150)
+
     # qtbot.stop()
 
 
 @pytest.mark.gui
 def testGuiDocEditor_BlockFormatting(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
     """Test the block formatting function."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
@@ -2187,7 +2214,8 @@ def testGuiDocEditor_BlockFormatting(qtbot, monkeypatch, nwGUI, projPath, ipsumT
 @pytest.mark.gui
 def testGuiDocEditor_MultiBlockFormatting(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test the block formatting function."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
@@ -2338,7 +2366,8 @@ def testGuiDocEditor_MultiBlockFormatting(qtbot, nwGUI, projPath, ipsumText, moc
 @pytest.mark.gui
 def testGuiDocEditor_Tags(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test the document editor tags functionality."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
     docViewer = nwGUI.docViewer
@@ -2396,21 +2425,21 @@ def testGuiDocEditor_Tags(qtbot, nwGUI, projPath, ipsumText, mockRnd):
 
     # On Unknown Tag, Create It
     nwGUI.openDocument(C.hSceneDoc)
-    assert "0000000000011" not in SHARED.project.tree
+    assert "0000000000012" not in SHARED.project.tree
     docEditor.setCursorPosition(28)
     assert docEditor._processTag(create=True) == _TagAction.CREATE
-    assert "0000000000011" in SHARED.project.tree
+    assert "0000000000012" in SHARED.project.tree
 
     # On Unknown Tag, Missing Root
-    assert "0000000000012" not in SHARED.project.tree
+    assert "0000000000013" not in SHARED.project.tree
     docEditor.setCursorPosition(42)
     assert docEditor._processTag(create=True) == _TagAction.CREATE
     oHandle = SHARED.project.tree.findRoot(nwItemClass.OBJECT)
-    assert oHandle == "0000000000012"
+    assert oHandle == "0000000000013"
 
-    oItem = SHARED.project.tree["0000000000013"]
+    oItem = SHARED.project.tree["0000000000014"]
     assert oItem is not None
-    assert oItem.itemParent == "0000000000012"
+    assert oItem.itemParent == "0000000000013"
 
     docEditor.setCursorPosition(47)
     assert docEditor._processTag() == _TagAction.NONE
@@ -2427,7 +2456,8 @@ def testGuiDocEditor_HoverCard(qtbot, nwGUI, projPath, mockRnd):
     and moving off a tag or leaving the editor entirely schedules a
     delayed hide rather than closing it outright.
     """
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
@@ -2501,7 +2531,8 @@ def testGuiDocEditor_ProcessTagEdgeCases(qtbot, monkeypatch, nwGUI, projPath, mo
     tag's end, a missing document handle, and a declined note-creation
     prompt.
     """
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
     docEditor.replaceText("### A Scene\n\n@char: Jane\n\n")
@@ -2552,7 +2583,8 @@ def testGuiDocEditor_MoveTextToNewDocument(qtbot, monkeypatch, nwGUI, projPath, 
     """Test the moving text to new document feature."""
     monkeypatch.setattr(GuiEditLabel, "getLabel", lambda *a, text, info: (text, True))
 
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor: GuiDocEditor = nwGUI.docEditor
 
@@ -2560,7 +2592,7 @@ def testGuiDocEditor_MoveTextToNewDocument(qtbot, monkeypatch, nwGUI, projPath, 
     docEditor.replaceText(text)
 
     # Move from cursor
-    nHandle = "0000000000010"
+    nHandle = "0000000000011"
     docEditor.setCursorLine(6)
     docEditor.docAction(nwDocAction.MOVE_TEXT)
     item = SHARED.project.tree[nHandle]
@@ -2570,7 +2602,7 @@ def testGuiDocEditor_MoveTextToNewDocument(qtbot, monkeypatch, nwGUI, projPath, 
     assert docEditor.getText() == "### New Scene (1)\n\n{0}\n".format("\n\n".join(ipsumText[2:]))
 
     # New from selection, with existing header
-    nHandle = "0000000000011"
+    nHandle = "0000000000012"
     docEditor.setCursorLine(5)
     sPos = docEditor.getCursorPosition()
     docEditor.insertText("### Another Scene\n\n")
@@ -2621,7 +2653,8 @@ def testGuiDocEditor_MoveTextToNewDocument(qtbot, monkeypatch, nwGUI, projPath, 
 @pytest.mark.gui
 def testGuiDocEditor_Links(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
     """Test the document editor links functionality."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     nwGUI.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
     docEditor.replaceText("### Scene\n\nFoo http://www.example.com bar.\n\n")
@@ -2645,7 +2678,8 @@ def testGuiDocEditor_InternalSlotEdgeCases(qtbot, nwGUI, projPath, mockRnd):
     """Test defensive branches in a few internal slots and functions
     that aren't covered by their respective feature tests.
     """
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
     docEditor.replaceText("### A Scene\n\nSome text.\n\n")
@@ -2691,7 +2725,8 @@ def testGuiDocEditor_UpdateDocMargins(qtbot, nwGUI, projPath, mockRnd):
     """Test that the margins collapse to the viewport padding when no
     fixed text width or Focus Mode is in effect.
     """
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     nwGUI.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
 
@@ -2705,7 +2740,8 @@ def testGuiDocEditor_ScrollPastEnd(qtbot, nwGUI, projPath, mockRnd):
     """Test the scroll-past-end feature, which fakes QPlainTextEdit's
     centerOnScroll via a bottom margin on the document's root frame.
     """
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     nwGUI.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
     docEditor.resize(400, 300)
@@ -2728,7 +2764,8 @@ def testGuiDocEditor_TypewriterScrolling(qtbot, nwGUI, projPath, mockRnd):
     """Test the typewriter scrolling (auto-scroll) feature, which
     animates the scrollbar by the actual pixel movement of the cursor.
     """
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     nwGUI.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
     docEditor.resize(400, 300)
@@ -2760,7 +2797,8 @@ def testGuiDocEditor_LineHeight(qtbot, nwGUI, projPath, mockRnd):
     """Test that CONFIG.lineHeight is applied to all blocks in the
     document, both on load and when settings are refreshed.
     """
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     docEditor = nwGUI.docEditor
     document = docEditor.document()
 
@@ -2791,7 +2829,8 @@ def testGuiDocEditor_LineHeightDoubleReturn(qtbot, nwGUI, projPath, mockRnd):
     of inserting a new one (meant for escaping list/heading formatting
     in rich-text editors), silently eating the keypress.
     """
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     docEditor = nwGUI.docEditor
 
     CONFIG.lineHeight = 1.50
@@ -2808,7 +2847,8 @@ def testGuiDocEditor_LineHeightDoubleReturn(qtbot, nwGUI, projPath, mockRnd):
 @pytest.mark.gui
 def testGuiDocEditor_CursorVisibility(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test the custom ensure cursor visible feature."""
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     nwGUI.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
 
@@ -2870,7 +2910,8 @@ def testGuiDocEditor_ReplaceNextEdgeCases(qtbot, monkeypatch, nwGUI, projPath, m
     """
     monkeypatch.setattr(GuiDocEditor, "anyFocus", lambda *a: True)
 
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
     docSearch = docEditor.docSearch
@@ -2907,20 +2948,28 @@ def testGuiDocEditor_WordCounters(qtbot, monkeypatch, nwGUI, projPath, ipsumText
 
     class MockThreadPool:
         def __init__(self):
-            self._objID = None
+            self._runObj = None
 
         def start(self, runObj, priority=0):
-            self._objID = id(runObj)
+            self._runObj = runObj
 
-        def objectID(self):
-            return self._objID
+        def runnable(self):
+            return self._runObj
+
+        def waitForDone(self, msecs=-1):
+            return True
+
+        def clear(self):
+            pass
 
     threadPool = MockThreadPool()
     monkeypatch.setattr(QThreadPool, "globalInstance", lambda *a: threadPool)
     docEditor._timerDoc.blockSignals(True)
     docEditor._timerSel.blockSignals(True)
 
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+    nwGUI.closeDocument()  # Opening the project auto-restores a document
 
     # Run on an empty document
     docEditor._runDocumentTasks()
@@ -2934,9 +2983,11 @@ def testGuiDocEditor_WordCounters(qtbot, monkeypatch, nwGUI, projPath, ipsumText
     assert docEditor.docFooter.wordsText.text() == "Words: 0 (+0)"
 
     # Open a document and populate it
-    SHARED.project.tree[C.hSceneDoc]._wordInit = 0  # type: ignore
-    SHARED.project.tree[C.hSceneDoc]._wordCount = 0  # type: ignore
     assert nwGUI.openDocument(C.hSceneDoc) is True
+    SHARED.project.tree[C.hSceneDoc]._wordInit = 0  # type: ignore
+    SHARED.project.tree[C.hSceneDoc]._charInit = 0  # type: ignore
+    SHARED.project.tree[C.hSceneDoc]._wordCount = 0  # type: ignore
+    docEditor.docFooter.updateMainCount(0, False)
 
     text = "\n\n".join(ipsumText)
     cC, wC, pC = standardCounter(text)
@@ -2944,20 +2995,38 @@ def testGuiDocEditor_WordCounters(qtbot, monkeypatch, nwGUI, projPath, ipsumText
 
     # Check that a busy counter is blocked
     with monkeypatch.context() as mp:
-        mp.setattr(docEditor._wCounterDoc, "isRunning", lambda *a: True)
+        mp.setattr(docEditor._docCounter, "_busy", True)
         docEditor._runDocumentTasks()
         assert docEditor.docFooter.wordsText.text() == "Words: 0 (+0)"
 
     with monkeypatch.context() as mp:
-        mp.setattr(docEditor._wCounterSel, "isRunning", lambda *a: True)
+        mp.setattr(docEditor._selCounter, "_busy", True)
+        docEditor.docAction(nwDocAction.SEL_ALL)
         docEditor._runSelCounter()
         assert docEditor.docFooter.wordsText.text() == "Words: 0 (+0)"
+        docEditor.setCursorPosition(0)
+
+    # Opening the document already dispatched its own initial word count,
+    # which must complete before the real dispatch below can proceed
+    runnable = threadPool.runnable()
+    assert runnable is not None
+    runnable.run()
+    assert docEditor._docCounter.busy is False
 
     # Run the full word counter
     docEditor._runDocumentTasks()
-    assert threadPool.objectID() == id(docEditor._wCounterDoc)
+    assert docEditor._docCounter.busy is True
 
-    docEditor._wCounterDoc.run()
+    # The dispatcher also guards against re-dispatch on its own, not
+    # just via the busy check in the calling code
+    dispatched = threadPool.runnable()
+    docEditor._docCounter.count("some other text")
+    assert threadPool.runnable() is dispatched
+
+    runnable = threadPool.runnable()
+    assert runnable is not None
+    runnable.run()
+    assert docEditor._docCounter.busy is False
     assert SHARED.project.tree[C.hSceneDoc]._charCount == cC  # type: ignore
     assert SHARED.project.tree[C.hSceneDoc]._wordCount == wC  # type: ignore
     assert SHARED.project.tree[C.hSceneDoc]._paraCount == pC  # type: ignore
@@ -2975,18 +3044,21 @@ def testGuiDocEditor_WordCounters(qtbot, monkeypatch, nwGUI, projPath, ipsumText
     # Select all text and run the selection word counter
     docEditor.docAction(nwDocAction.SEL_ALL)
     docEditor._runSelCounter()
-    assert threadPool.objectID() == id(docEditor._wCounterSel)
+    assert docEditor._selCounter.busy is True
 
-    docEditor._wCounterSel.run()
+    runnable = threadPool.runnable()
+    assert runnable is not None
+    runnable.run()
+    assert docEditor._selCounter.busy is False
     assert docEditor.docFooter.wordsText.text() == f"Selected: {wC}"
 
     # Document tasks run regardless of how long ago the last edit was,
     # since the timer is only started in response to an actual edit,
     # fires once, and then stops rather than polling indefinitely
-    threadPool._objID = None
+    threadPool._runObj = None
     docEditor._lastEdit = time() - 100.0
     docEditor._runDocumentTasks()
-    assert threadPool.objectID() == id(docEditor._wCounterDoc)
+    assert threadPool.runnable() is not None
 
     assert docEditor._timerDoc.isSingleShot() is True
     assert docEditor._timerSel.isSingleShot() is True
@@ -3015,7 +3087,8 @@ def testGuiDocEditor_Search(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mock
         if button.isChecked() != state:
             button.click()
 
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
 
     # Add a couple of extra scenes to search across for the "next file" tests
     secondHandle = SHARED.project.newFile("Second Scene", C.hChapterDir)
@@ -3368,142 +3441,40 @@ def testGuiDocEditor_Search(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mock
 
 
 @pytest.mark.gui
-def testGuiDocEditor_TextAutoReplaceSymbols():
-    """Test the editor auto-replace functionality."""
-    CONFIG.fmtSQuoteOpen = nwUnicode.U_LSQUO
-    CONFIG.fmtSQuoteClose = nwUnicode.U_RSQUO
-    CONFIG.fmtDQuoteOpen = nwUnicode.U_LDQUO
-    CONFIG.fmtDQuoteClose = nwUnicode.U_RDQUO
+def testGuiDocEditor_SearchAutoReplace(qtbot, nwGUI, projPath, mockRnd):
+    """Test the auto-replace symbols feature of the search and replace boxes."""
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+    assert nwGUI.openDocument(C.hSceneDoc) is True
 
-    CONFIG.doReplaceSQuote = True
-    CONFIG.doReplaceDQuote = True
-    CONFIG.doReplaceDash = True
-    CONFIG.doReplaceDots = True
+    docEditor = nwGUI.docEditor
+    docSearch: GuiDocEditSearch = docEditor.docSearch
 
-    ar = TextAutoReplace()
+    docEditor.toggleSearch()
+    assert docSearch.isVisible()
 
-    def prep(text: str) -> tuple[str, int]:
-        return text, len(text)
+    # Auto-replace is off by default, so typed text is left untouched
+    assert CONFIG.searchAuto is False
+    qtbot.keyClicks(docSearch.searchBox, "Test...", delay=KEY_DELAY)
+    assert docSearch.searchText == "Test..."
 
-    # Double Quote Open
-    assert ar._determine(*prep('"')) == (1, nwUnicode.U_LDQUO)
-    assert ar._determine(*prep('Stuff "')) == (1, nwUnicode.U_LDQUO)
-    assert ar._determine(*prep('>"')) == (1, nwUnicode.U_LDQUO)
-    assert ar._determine(*prep('>>"')) == (1, nwUnicode.U_LDQUO)
-    assert ar._determine(*prep('_"')) == (1, nwUnicode.U_LDQUO)
-    assert ar._determine(*prep(' _"')) == (1, nwUnicode.U_LDQUO)
-    assert ar._determine(*prep('\u00a0_"')) == (1, nwUnicode.U_LDQUO)
-    assert ar._determine(*prep('**"')) == (1, nwUnicode.U_LDQUO)
-    assert ar._determine(*prep(' **"')) == (1, nwUnicode.U_LDQUO)
-    assert ar._determine(*prep('\u00a0**"')) == (1, nwUnicode.U_LDQUO)
-    assert ar._determine(*prep('=="')) == (1, nwUnicode.U_LDQUO)
-    assert ar._determine(*prep(' =="')) == (1, nwUnicode.U_LDQUO)
-    assert ar._determine(*prep('\u00a0=="')) == (1, nwUnicode.U_LDQUO)
-    assert ar._determine(*prep('~~"')) == (1, nwUnicode.U_LDQUO)
-    assert ar._determine(*prep(' ~~"')) == (1, nwUnicode.U_LDQUO)
-    assert ar._determine(*prep('\u00a0~~"')) == (1, nwUnicode.U_LDQUO)
+    qtbot.keyClicks(docSearch.replaceBox, "Test...", delay=KEY_DELAY)
+    assert docSearch.replaceText == "Test..."
 
-    # Double Quote Close
-    assert ar._determine(*prep('Stuff"')) == (1, nwUnicode.U_RDQUO)
+    docSearch.searchBox.clear()
+    docSearch.replaceBox.clear()
 
-    # Single Quote Open
-    assert ar._determine(*prep("'")) == (1, nwUnicode.U_LSQUO)
-    assert ar._determine(*prep("Stuff '")) == (1, nwUnicode.U_LSQUO)
-    assert ar._determine(*prep(">'")) == (1, nwUnicode.U_LSQUO)
-    assert ar._determine(*prep(">>'")) == (1, nwUnicode.U_LSQUO)
-    assert ar._determine(*prep("_'")) == (1, nwUnicode.U_LSQUO)
-    assert ar._determine(*prep(" _'")) == (1, nwUnicode.U_LSQUO)
-    assert ar._determine(*prep("\u00a0_'")) == (1, nwUnicode.U_LSQUO)
-    assert ar._determine(*prep("**'")) == (1, nwUnicode.U_LSQUO)
-    assert ar._determine(*prep(" **'")) == (1, nwUnicode.U_LSQUO)
-    assert ar._determine(*prep("\u00a0**'")) == (1, nwUnicode.U_LSQUO)
-    assert ar._determine(*prep("=='")) == (1, nwUnicode.U_LSQUO)
-    assert ar._determine(*prep(" =='")) == (1, nwUnicode.U_LSQUO)
-    assert ar._determine(*prep("\u00a0=='")) == (1, nwUnicode.U_LSQUO)
-    assert ar._determine(*prep("~~'")) == (1, nwUnicode.U_LSQUO)
-    assert ar._determine(*prep(" ~~'")) == (1, nwUnicode.U_LSQUO)
-    assert ar._determine(*prep("\u00a0~~'")) == (1, nwUnicode.U_LSQUO)
+    # Turn auto-replace on, and check that it now converts the text as it is typed
+    docSearch.tbAuto.click()
+    assert CONFIG.searchAuto is True
+    qtbot.keyClicks(docSearch.searchBox, "Test...", delay=KEY_DELAY)
+    assert docSearch.searchText == f"Test{nwUnicode.U_HELLIP}"
 
-    # Single Quote Close
-    assert ar._determine(*prep("Stuff'")) == (1, nwUnicode.U_RSQUO)
+    qtbot.keyClicks(docSearch.replaceBox, "Test...", delay=KEY_DELAY)
+    assert docSearch.replaceText == f"Test{nwUnicode.U_HELLIP}"
 
-    # Dashes
-    assert ar._determine(*prep("-")) == (0, "-")
-    assert ar._determine(*prep("--")) == (2, nwUnicode.U_ENDASH)
-    assert ar._determine(*prep("---")) == (3, nwUnicode.U_EMDASH)
-    assert ar._determine(*prep("----")) == (4, nwUnicode.U_HBAR)
-    assert ar._determine(*prep("\u2013-")) == (2, nwUnicode.U_EMDASH)
-    assert ar._determine(*prep("\u2014-")) == (2, nwUnicode.U_HBAR)
-
-    # Ellipsis
-    assert ar._determine(*prep(".")) == (0, ".")
-    assert ar._determine(*prep("..")) == (0, ".")
-    assert ar._determine(*prep("...")) == (3, nwUnicode.U_HELLIP)
-
-    # Block Typed Line Separator (#1150)
-    assert ar._determine(*prep("Text\u2028")) == (1, nwUnicode.U_PSEP)
-
-
-@pytest.mark.gui
-def testGuiDocEditor_TextAutoReplaceProcess():
-    """Test the editor auto-replace functionality."""
-    CONFIG.fmtDQuoteOpen = nwUnicode.U_LAQUO
-    CONFIG.fmtDQuoteClose = nwUnicode.U_RAQUO
-
-    CONFIG.doReplaceDQuote = True
-    CONFIG.doReplaceDots = True
-
-    ar = TextAutoReplace()
-    doc = QTextDocument()
-
-    def prep(text: str) -> tuple[str, QTextCursor]:
-        doc.setPlainText(text)
-        cursor = QTextCursor(doc)
-        cursor.setPosition(len(text))
-        return text, cursor
-
-    # Nothing to Process
-    assert ar.process(*prep("")) is False
-
-    # Standard Auto-Replace
-    assert ar.process(*prep("Text ...")) is True
-    assert doc.toRawText() == "Text \u2026"
-
-    # Pad Before, Normal
-    CONFIG.fmtPadBefore = ":\u00bb"
-    CONFIG.fmtPadThin = False
-    ar.initSettings()
-    assert ar.process(*prep("Text:")) is True
-    assert doc.toRawText() == "Text\u00a0:"
-    assert ar.process(*prep("Text :")) is True  # See #1061
-    assert doc.toRawText() == "Text\u00a0:"
-    assert ar.process(*prep('Text"')) is True
-    assert doc.toRawText() == "Text\u00a0»"
-    assert ar.process(*prep("@Synopsis:")) is False
-    assert doc.toRawText() == "@Synopsis:"
-
-    # Pad Before, Thin
-    CONFIG.fmtPadBefore = ":\u00bb"
-    CONFIG.fmtPadThin = True
-    ar.initSettings()
-    assert ar.process(*prep("Text:")) is True
-    assert doc.toRawText() == "Text\u202f:"
-    assert ar.process(*prep("Text :")) is True  # See #1061
-    assert doc.toRawText() == "Text\u202f:"
-
-    # Pad After, Normal
-    CONFIG.fmtPadAfter = "\u00ab"
-    CONFIG.fmtPadThin = False
-    ar.initSettings()
-    assert ar.process(*prep('Text "')) is True
-    assert doc.toRawText() == "Text «\u00a0"
-
-    # Pad After, Thin
-    CONFIG.fmtPadAfter = "\u00ab"
-    CONFIG.fmtPadThin = True
-    ar.initSettings()
-    assert ar.process(*prep('Text "')) is True
-    assert doc.toRawText() == "Text «\u202f"
+    docSearch.tbAuto.click()
+    assert CONFIG.searchAuto is False
 
 
 @pytest.mark.gui
@@ -3527,7 +3498,8 @@ def testGuiDocEditor_BigFixes(qtbot, nwGUI):
 def testGuiDocEditor_Vim_EnableVimMode(qtbot, nwGUI, projPath, mockRnd):
     """Test that enabling CONFIG.vimMode activates vim behavior."""
     inputDelay = 2
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc)
 
     docEditor = nwGUI.docEditor
@@ -3562,7 +3534,8 @@ def testGuiDocEditor_Vim_StateInsertModeNoOp(qtbot, nwGUI, projPath, mockRnd):
     INSERT mode, which is a state neither the NORMAL nor VISUAL mode
     key handlers ever pass through.
     """
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
 
@@ -3578,7 +3551,8 @@ def testGuiDocEditor_Vim_StateInsertModeNoOp(qtbot, nwGUI, projPath, mockRnd):
 def testGuiDocEditor_Vim_InsertMode(qtbot, nwGUI, projPath, mockRnd):
     """Test vim hjkl movements and insert commands (i, I, A)."""
     inputDelay = 2
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc)
 
     docEditor = nwGUI.docEditor
@@ -3672,7 +3646,8 @@ def testGuiDocEditor_Vim_InsertMode(qtbot, nwGUI, projPath, mockRnd):
 def testGuiDocEditor_Vim_DeleteYankPaste(qtbot, nwGUI, projPath, mockRnd):
     """Test vim delete (dd, x), yank (yy) and paste (p, P) commands."""
     inputDelay = 2
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc)
 
     docEditor = nwGUI.docEditor
@@ -3791,7 +3766,8 @@ def testGuiDocEditor_Vim_DeleteYankPaste(qtbot, nwGUI, projPath, mockRnd):
 def testGuiDocEditor_Vim_VisualMode(qtbot, nwGUI, projPath, mockRnd):
     """Test vim visual mode selection, yank and paste."""
     inputDelay = 2
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc)
 
     docEditor = nwGUI.docEditor
@@ -3983,7 +3959,8 @@ def testGuiDocEditor_Vim_VisualMode(qtbot, nwGUI, projPath, mockRnd):
 def testGuiDocEditor_Vim_NormalMode(qtbot, nwGUI, projPath, mockRnd):
     """Test vim NORMAL mode commands."""
     inputDelay = 2
-    buildTestProject(nwGUI, projPath)
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
     assert nwGUI.openDocument(C.hSceneDoc)
 
     docEditor = nwGUI.docEditor
@@ -4095,3 +4072,72 @@ def testGuiDocEditor_Vim_NormalMode(qtbot, nwGUI, projPath, mockRnd):
     qtbot.keyClick(docEditor, "G", delay=inputDelay)  # Bottom of buffer
     cursorPos = docEditor.textCursor().position()
     assert cursorPos == len(docEditor.getText())
+
+
+@pytest.mark.gui
+def testGuiDocEditor_BigDocLifecycle(qtbot, nwGUI, projPath, ipsumText, mockRnd):
+    """Test that loading, navigating, and refreshing a large document
+    queues cursor moves and keeps the editor read-only until settled.
+    """
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+    assert nwGUI.openDocument(C.hSceneDoc) is True
+    docEditor = nwGUI.docEditor
+
+    unit = "\n\n".join(ipsumText)
+    reps = nwConst.BIG_DOC_LIMIT // len(unit) + 2
+    text = "### Big Doc\n\n" + "\n\n".join([unit] * reps)
+
+    docEditor.replaceText(text)
+    nwGUI.saveDocument()
+    nwGUI.closeDocument()
+
+    cursPos = len(text) - 500
+    item = SHARED.project.tree[C.hSceneDoc]
+    assert item is not None
+    item.setCursorPos(cursPos)
+
+    # Loading queues the saved cursor position and stays read-only
+    assert docEditor.loadText(C.hSceneDoc) is True
+    assert docEditor._qDocument.isLayoutBusy() is True
+    assert docEditor.isReadOnly() is True
+    assert docEditor._queuePos == cursPos
+    assert docEditor.getCursorPosition() != cursPos
+
+    # A spell check pass is also skipped while busy
+    docEditor._checkPassNo = 99
+    docEditor.spellCheckDocument()
+    assert docEditor._checkPassNo == 99
+
+    with qtbot.waitSignal(docEditor._qDocument.layoutSettled, timeout=5000):
+        pass
+
+    assert docEditor._qDocument.isLayoutBusy() is False
+    assert docEditor.isReadOnly() is False
+    assert docEditor._queuePos is None
+    assert docEditor.getCursorPosition() == cursPos
+
+    # Moving to a line in the still-large, now settled document queues again
+    targetLine = docEditor._qDocument.blockCount()
+    assert targetLine > 1
+    docEditor.setCursorLine(targetLine)
+    assert docEditor._qDocument.isLayoutBusy() is True
+    assert docEditor._queuePos is not None
+
+    with qtbot.waitSignal(docEditor._qDocument.layoutSettled, timeout=5000):
+        pass
+
+    assert docEditor._queuePos is None
+    block = docEditor._qDocument.findBlockByNumber(targetLine - 1)
+    assert docEditor.getCursorPosition() == block.position()
+
+    # Refreshing the editor, e.g. on a settings change, re-marks it busy too
+    docEditor.initEditor()
+    assert docEditor._qDocument.isLayoutBusy() is True
+    assert docEditor.isReadOnly() is True
+
+    with qtbot.waitSignal(docEditor._qDocument.layoutSettled, timeout=5000):
+        pass
+
+    assert docEditor._qDocument.isLayoutBusy() is False
+    assert docEditor.isReadOnly() is False

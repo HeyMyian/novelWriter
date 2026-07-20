@@ -62,11 +62,19 @@ from PyQt6.QtGui import (
 from PyQt6.QtWidgets import QApplication, QFrame, QMenu, QTextEdit, QWidget
 
 from novelwriter import CONFIG, SHARED
-from novelwriter.common import decodeMimeHandles, fontMatcher, minmax, qtAddAction, qtAddMenu, qtLambda, transferCase
+from novelwriter.common import (
+    decodeMimeHandles,
+    fontMatcher,
+    minmax,
+    qtAddAction,
+    qtAddMenu,
+    qtLambda,
+    qtWeakLambda,
+    transferCase,
+)
 from novelwriter.constants import nwConst, nwKeyWords, nwShortcode, nwStyles, nwUnicode
 from novelwriter.core.document import ProjectDocument
 from novelwriter.dialogs.editlabel import GuiEditLabel
-from novelwriter.editor.autoreplace import TextAutoReplace
 from novelwriter.editor.completer import CommandCompleter
 from novelwriter.editor.editfooter import GuiDocEditFooter
 from novelwriter.editor.editheader import GuiDocEditHeader
@@ -75,7 +83,7 @@ from novelwriter.editor.editsearch import GuiDocEditSearch
 from novelwriter.editor.edittoolbar import GuiDocToolBar
 from novelwriter.editor.highlighter import BLOCK_META, BLOCK_TITLE
 from novelwriter.editor.hovercard import GuiDocHoverCard
-from novelwriter.editor.runnables import BackgroundTextCheck, BackgroundWordCounter, T_TextCheckPayload
+from novelwriter.editor.runnables import T_TextCheckPayload, TextCheckDispatcher, WordCounterDispatcher
 from novelwriter.editor.textblock import T_TextCheckList, TextBlockData
 from novelwriter.enum import (
     nwChange,
@@ -88,6 +96,7 @@ from novelwriter.enum import (
     nwVimMode,
 )
 from novelwriter.extensions.eventfilters import WheelEventFilter
+from novelwriter.text.autoreplace import TextAutoReplace
 from novelwriter.text.counting import standardCounter
 from novelwriter.text.formats import processHeading
 from novelwriter.tools.lipsum import GuiLipsum
@@ -139,6 +148,8 @@ logger = logging.getLogger(__name__)
 
 T_TextCheckBlock = tuple[QTextBlock, TextBlockData, int]
 T_TextCheckJob = tuple[int, list[T_TextCheckBlock]]
+T_Selections = list[QTextEdit.ExtraSelection]
+T_SelCache = dict[int, tuple[T_TextCheckList, T_Selections]]
 
 MOVE_KEYS = (QtKeyLeft, QtKeyRight, QtKeyUp, QtKeyDown, QtKeyPageUp, QtKeyPageDown)
 ENTER_KEYS = (QtKeyReturn, QtKeyEnter)
@@ -162,6 +173,7 @@ class GuiDocEditor(QTextEdit):
 
     __slots__ = (
         "_autoReplace",
+        "_checkDispatcher",
         "_checkJob",
         "_checkJobId",
         "_checkPassNo",
@@ -169,6 +181,7 @@ class GuiDocEditor(QTextEdit):
         "_dirtyBlocks",
         "_doReplace",
         "_docChanged",
+        "_docCounter",
         "_docHandle",
         "_followTagEdit",
         "_followTagView",
@@ -186,8 +199,12 @@ class GuiDocEditor(QTextEdit):
         "_nwItem",
         "_prevLine",
         "_qDocument",
+        "_queuePos",
         "_searchFormat",
         "_searchSelections",
+        "_selCacheFormat",
+        "_selCacheSpell",
+        "_selCounter",
         "_selection",
         "_spellErrFormat",
         "_spellPassNotify",
@@ -218,8 +235,6 @@ class GuiDocEditor(QTextEdit):
         "_trViewTag",
         "_vim",
         "_vpMargin",
-        "_wCounterDoc",
-        "_wCounterSel",
         "_zoomIn",
         "_zoomOut",
         "_zoomReset",
@@ -269,19 +284,22 @@ class GuiDocEditor(QTextEdit):
 
         # Search Variables
         self._searchFormat = QTextCharFormat()
-        self._searchSelections: list[QTextEdit.ExtraSelection] = []
+        self._searchSelections: T_Selections = []
 
         # Spell and Format Check Variables
         self._spellErrFormat = QTextCharFormat()
         self._formatErrFormat = QTextCharFormat()
-        self._spellSelections: list[QTextEdit.ExtraSelection] = []
-        self._formatSelections: list[QTextEdit.ExtraSelection] = []
+        self._spellSelections: T_Selections = []
+        self._formatSelections: T_Selections = []
+        self._selCacheSpell: T_SelCache = {}
+        self._selCacheFormat: T_SelCache = {}
         self._dirtyBlocks: dict[int, QTextBlock] = {}
         self._suppressed = False
         self._checkPassNo = -1
         self._spellPassNotify = False
         self._checkJob: T_TextCheckJob | None = None
         self._checkJobId = 0
+        self._checkDispatcher = TextCheckDispatcher(self, self._textCheckResults)
 
         # Context Menu Translation
         self._trSetName = self.tr("Set as Document Name")
@@ -315,7 +333,9 @@ class GuiDocEditor(QTextEdit):
         self.setDocument(self._qDocument)
 
         # Connect Editor and Document Signals
+        self._queuePos = None  # Queue cursor position for large documents
         self._qDocument.contentsChange.connect(self._docChange)
+        self._qDocument.layoutSettled.connect(self._onLayoutSettled)
         self.selectionChanged.connect(self._updateSelectedStatus)
         self.cursorPositionChanged.connect(self._cursorMoved)
 
@@ -350,42 +370,36 @@ class GuiDocEditor(QTextEdit):
         self._followTagView = QShortcut(self)
         self._followTagView.setKeys(["Ctrl+Return", "Ctrl+Enter"])
         self._followTagView.setContext(QtWidgetShortcut)
-        self._followTagView.activated.connect(qtLambda(self._processTag))
+        self._followTagView.activated.connect(qtWeakLambda(self._processTag))
 
         self._followTagEdit = QShortcut(self)
         self._followTagEdit.setKeys(["Ctrl+Shift+Return", "Ctrl+Shift+Enter"])
         self._followTagEdit.setContext(QtWidgetShortcut)
-        self._followTagEdit.activated.connect(qtLambda(self._processTag, edit=True))
+        self._followTagEdit.activated.connect(qtWeakLambda(self._processTag, edit=True))
 
         self._prevLine = QShortcut(self)
         self._prevLine.setKey("Ctrl+Up")
         self._prevLine.setContext(QtWidgetShortcut)
-        self._prevLine.activated.connect(qtLambda(self._skipToParagraph, -1))
+        self._prevLine.activated.connect(qtWeakLambda(self._skipToParagraph, -1))
 
         self._nextLine = QShortcut(self)
         self._nextLine.setKey("Ctrl+Down")
         self._nextLine.setContext(QtWidgetShortcut)
-        self._nextLine.activated.connect(qtLambda(self._skipToParagraph, 1))
+        self._nextLine.activated.connect(qtWeakLambda(self._skipToParagraph, 1))
 
         # Set Up Document Word Counter
         self._timerDoc = QTimer(self)
         self._timerDoc.timeout.connect(self._runDocumentTasks)
         self._timerDoc.setSingleShot(True)
         self._timerDoc.setInterval(5000)
-
-        self._wCounterDoc = BackgroundWordCounter(self)
-        self._wCounterDoc.setAutoDelete(False)
-        self._wCounterDoc.signals.countsReady.connect(self._updateDocCounts)
+        self._docCounter = WordCounterDispatcher(self, self._updateDocCounts)
 
         # Set Up Selection Word Counter
         self._timerSel = QTimer(self)
         self._timerSel.timeout.connect(self._runSelCounter)
         self._timerSel.setSingleShot(True)
         self._timerSel.setInterval(500)
-
-        self._wCounterSel = BackgroundWordCounter(self, forSelection=True)
-        self._wCounterSel.setAutoDelete(False)
-        self._wCounterSel.signals.countsReady.connect(self._updateSelCounts)
+        self._selCounter = WordCounterDispatcher(self, self._updateSelCounts)
 
         # Set Up Spell Underline Refresh
         self._timerCheck = QTimer(self)
@@ -394,7 +408,7 @@ class GuiDocEditor(QTextEdit):
         self._timerCheck.setInterval(0)
 
         if vBar := self.verticalScrollBar():  # pragma: no branch
-            vBar.valueChanged.connect(qtLambda(self._timerCheck.start))
+            vBar.valueChanged.connect(qtWeakLambda(self._restartCheckTimer))
 
         # Set Up Spell Check Debounce
         self._timerTextCheck = QTimer(self)
@@ -469,6 +483,7 @@ class GuiDocEditor(QTextEdit):
         self.clear()
         self._timerDoc.stop()
         self._timerSel.stop()
+        self._queuePos = None
 
         self._docHandle = None
         self._lastEdit = 0.0
@@ -492,6 +507,8 @@ class GuiDocEditor(QTextEdit):
         self._dirtyBlocks.clear()
         self._spellSelections.clear()
         self._formatSelections.clear()
+        self._selCacheSpell.clear()
+        self._selCacheFormat.clear()
         self._searchSelections.clear()
         self.setExtraSelections([])
 
@@ -546,8 +563,6 @@ class GuiDocEditor(QTextEdit):
         settings. This function is both called when the editor is
         created, and when the user changes the main editor preferences.
         """
-        # Auto-Replace
-        self._autoReplace.initSettings()
         self.docFooter.initSettings()
 
         # Reload spell check and dictionaries
@@ -564,12 +579,8 @@ class GuiDocEditor(QTextEdit):
         # Update highlighter settings
         self._qDocument.syntaxHighlighter.initHighlighter()
 
-        # Set default text margins
-        # Due to cursor visibility, a part of the margin must be
-        # allocated to the document itself. See issue #1112.
-        self._qDocument.setDocumentMargin(4)
-        self._vpMargin = max(CONFIG.textMargin - 4, 0)
-        self.setViewportMargins(self._vpMargin, self._vpMargin, self._vpMargin, self._vpMargin)
+        # Update the viewport
+        self.initViewport()
 
         # Also set the document text options for the document text flow
         options = QTextOption()
@@ -580,6 +591,45 @@ class GuiDocEditor(QTextEdit):
         if CONFIG.showLineEndings:
             options.setFlags(options.flags() | QTextOption.Flag.ShowLineAndParagraphSeparators)
         self._qDocument.setDefaultTextOption(options)
+
+        # Refresh sizes
+        self.setTabStopDistance(CONFIG.tabWidth)
+        self.setCursorWidth(CONFIG.cursorWidth)
+        self._spellSelections.clear()
+        self._formatSelections.clear()
+        self._selCacheSpell.clear()
+        self._selCacheFormat.clear()
+        self.setExtraSelections([])
+        self._cursorMoved()
+
+        # If we have a document open, we should refresh it in case the
+        # font changed, otherwise we just clear the editor entirely,
+        # which makes it read only.
+        if self._docHandle:
+            self._qDocument.markLayoutBusy()
+            self.setReadOnly(self._qDocument.isLayoutBusy())
+            self._qDocument.setLineHeight(CONFIG.lineHeight)
+            self._qDocument.syntaxHighlighter.rehighlight()
+            self._qDocument.markContentsDirty(0, self._qDocument.characterCount())
+            if not self._qDocument.isLayoutBusy():
+                self._beginCheckPass()
+            self.docHeader.setHandle(self._docHandle)
+            # Restart the settle countdown one last time
+            self._qDocument.markLayoutBusy()
+        else:
+            self.clearEditor()
+
+        # Refresh Vim Mode
+        self.setVimMode(nwVimMode.NORMAL)
+
+    def initViewport(self) -> None:
+        """Initialise the settings of the editor viewport."""
+        # Set default text margins
+        # Due to cursor visibility, a part of the margin must be
+        # allocated to the document itself. See issue #1112.
+        self._qDocument.setDocumentMargin(4)
+        self._vpMargin = max(CONFIG.textMargin - 4, 0)
+        self.setViewportMargins(self._vpMargin, self._vpMargin, self._vpMargin, self._vpMargin)
 
         # Scrolling
         if CONFIG.hideVScroll:
@@ -592,28 +642,15 @@ class GuiDocEditor(QTextEdit):
         else:
             self.setHorizontalScrollBarPolicy(QtScrollAsNeeded)
 
-        # Refresh sizes
-        self.setTabStopDistance(CONFIG.tabWidth)
-        self.setCursorWidth(CONFIG.cursorWidth)
-        self._spellSelections.clear()
-        self._formatSelections.clear()
-        self.setExtraSelections([])
-        self._cursorMoved()
+        self.updateDocMargins()
 
-        # If we have a document open, we should refresh it in case the
-        # font changed, otherwise we just clear the editor entirely,
-        # which makes it read only.
+    def initSettings(self, updateVimMode: bool = False) -> None:
+        """Initialise non-expensive settings."""
         if self._docHandle:
-            self._qDocument.setLineHeight(CONFIG.lineHeight)
-            self._qDocument.syntaxHighlighter.rehighlight()
-            self._qDocument.markContentsDirty(0, self._qDocument.characterCount())
-            self._beginCheckPass()
             self.docHeader.setHandle(self._docHandle)
-        else:
-            self.clearEditor()
-
-        # Refresh Vim Mode
-        self.setVimMode(nwVimMode.NORMAL)
+            self.docSearch.setAutoReplaceEnabled(CONFIG.doReplace)
+        if updateVimMode:
+            self.setVimMode(nwVimMode.NORMAL)
 
     def loadText(self, tHandle: str, tLine: int | None = None) -> bool:
         """Load text from a document into the editor. If we have an I/O
@@ -642,20 +679,25 @@ class GuiDocEditor(QTextEdit):
         self._allowAutoReplace(False)
         self._qDocument.setTextContent(text, tHandle)
         self._allowAutoReplace(True)
-        self._beginCheckPass()
+        if not self._qDocument.isLayoutBusy():
+            self._beginCheckPass()
         QApplication.processEvents()
 
         self._lastEdit = time()
         self._lastActive = time()
         self._runDocumentTasks()
 
-        self.setReadOnly(False)
         self.updateDocMargins()
 
         if isinstance(tLine, int):
             self.setCursorLine(tLine)
         else:
-            self.setCursorPosition(self._nwItem.cursorPos)
+            self.moveCursorAfterLoad(self._nwItem.cursorPos)
+
+        if self._queuePos is None:
+            # Covers tLine being 0 or an invalid line, which setCursorLine
+            # silently no-ops on, and would otherwise skip clearing read-only.
+            self.setReadOnly(False)
 
         self.docHeader.setHandle(tHandle)
         self.docFooter.setHandle(tHandle)
@@ -792,13 +834,7 @@ class GuiDocEditor(QTextEdit):
         lM = max(self._vpMargin, fH)
         self.setViewportMargins(tM, uM, tM, lM)
 
-        # Scroll Past End
-        if rootFrame := self._qDocument.rootFrame():  # pragma: no branch
-            frameFormat = rootFrame.frameFormat()
-            bottomMargin = max(wH - 2 * tB - uM - lM - sH, 0) if CONFIG.scrollPastEnd else 0
-            if frameFormat.bottomMargin() != bottomMargin:
-                frameFormat.setBottomMargin(bottomMargin)
-                rootFrame.setFrameFormat(frameFormat)
+        self._qDocument.setBottomMargin(max(wH - 2 * tB - uM - lM - sH, 0) if CONFIG.scrollPastEnd else 0)
 
     ##
     #  Getters
@@ -874,8 +910,20 @@ class GuiDocEditor(QTextEdit):
         if isinstance(line, int) and line != 0:
             line = self._qDocument.blockCount() + line if line < 0 else line - 1
             if (block := self._qDocument.findBlockByNumber(line)).isValid():
-                self.setCursorPosition(block.position())
+                self.moveCursorAfterLoad(block.position())
                 logger.debug("Cursor moved to line %d", line + 1)
+
+    def moveCursorAfterLoad(self, position: int) -> None:
+        """Move the cursor to a position, queuing the move until the
+        document layout is ready.
+        """
+        self._qDocument.markLayoutBusy()
+        if position > 0 and self._qDocument.isLayoutBusy():
+            self.setReadOnly(True)  # Just for safety
+            self._queuePos = position
+        else:
+            self.setReadOnly(False)
+            self.setCursorPosition(position)
 
     def setCursorSelection(self, start: int, length: int) -> None:
         """Make a text selection."""
@@ -920,7 +968,8 @@ class GuiDocEditor(QTextEdit):
         """
         logger.debug("Running spell checker")
         self._spellPassNotify = SHARED.project.data.spellCheck
-        self._beginCheckPass()
+        if not self._qDocument.isLayoutBusy():
+            self._beginCheckPass()
 
     ##
     #  General Class Methods
@@ -1447,8 +1496,7 @@ class GuiDocEditor(QTextEdit):
                 self._dirtyBlocks[block.blockNumber()] = block
                 block = block.next()
             self._timerTextCheck.start()
-
-        self._timerCheck.start()
+            self._timerCheck.start()
 
         if (block := self._qDocument.findBlock(pos)).isValid():
             text = block.text()
@@ -1477,8 +1525,25 @@ class GuiDocEditor(QTextEdit):
 
             if self._doReplace and added == 1:
                 cursor = self.textCursor()
-                if self._autoReplace.process(text, cursor):
+                if self._autoReplace(text, cursor):
                     self._qDocument.syntaxHighlighter.rehighlightBlock(cursor.block())
+
+    @pyqtSlot()
+    def _onLayoutSettled(self) -> None:
+        """Restore full interactivity once a busy-marked full-document
+        operation (see GuiTextDocument.markLayoutBusy) has settled, and
+        apply any cursor position that was queued while it was busy.
+        Read-only is unconditionally cleared here: every call site that
+        marks the document busy only does so while a document is open
+        and meant to end up editable.
+        """
+        if self._queuePos is not None:
+            position = self._queuePos
+            self._queuePos = None
+            self.setCursorPosition(position)
+        self.setReadOnly(False)
+        self.updateDocMargins()
+        self._beginCheckPass()
 
     @pyqtSlot()
     def _cursorMoved(self) -> None:
@@ -1514,16 +1579,26 @@ class GuiDocEditor(QTextEdit):
             self._hoverCard.scheduleHide()
 
     @pyqtSlot()
+    def _restartCheckTimer(self) -> None:
+        """Restart the debounced spell/format marker refresh timer."""
+        self._timerCheck.start()
+
+    @pyqtSlot()
     def _updateCheckSelections(self) -> None:
         """Rebuild the spell and format error markers for all visible
-        blocks. Both are cached per block, so a single pass over the
-        visible blocks is enough to build both sets of markers. A
-        trailing space under the caret is not flagged, since it is a
-        natural, transient state while the line is still being typed.
-        See issue discussion #1347.
+        blocks. The extra selections for a block are cached here, keyed
+        by its TextBlockData identity, and only rebuilt when that
+        block's own error list has changed, so an edit to one block
+        doesn't force every other visible block's markers to be
+        reconstructed. The cache is owned solely by this widget so its
+        lifetime is tied to plain Python reference counting rather than
+        Qt's block/document teardown order. A trailing space under the
+        cursor is not flagged, since it is a natural, transient state
+        while the line is still being typed. See issue discussion #1347.
         """
         checkSpell = SHARED.project.data.spellCheck
         checkFormat = CONFIG.showMultiSpaces
+
         spellSelections = []
         formatSelections = []
         suppressed = False
@@ -1533,38 +1608,63 @@ class GuiDocEditor(QTextEdit):
             block = self.cursorForPosition(viewport.rect().topLeft()).block()
             while block.isValid() and block.blockNumber() <= last:
                 if isinstance(data := block.userData(), TextBlockData):
+                    key = id(data)
                     position = block.position()
+
                     if checkSpell:
-                        for start, end, _ in data.spellErrors:
+                        cached = self._selCacheSpell.get(key)
+                        if cached is None or cached[0] != data.spellErrors:
+                            cached = (
+                                data.spellErrors,
+                                self._buildSelections(block, self._spellErrFormat, data.spellErrors),
+                            )
+                            self._selCacheSpell[key] = cached
+                        for (start, end, _), selection in zip(data.spellErrors, cached[1], strict=True):
                             if position + start < cPos <= position + end:
-                                # Don't underline the word under the caret
+                                # Don't underline the word under the cursor
                                 suppressed = True
                                 continue
-                            cursor = QTextCursor(self._qDocument)
-                            cursor.setPosition(position + start)
-                            cursor.setPosition(position + end, QtKeepAnchor)
-                            selection = QTextEdit.ExtraSelection()
-                            selection.format = self._spellErrFormat
-                            selection.cursor = cursor
                             spellSelections.append(selection)
+
                     if checkFormat:
-                        for start, end, kind in data.formatErrors:
+                        cached = self._selCacheFormat.get(key)
+                        if cached is None or cached[0] != data.formatErrors:
+                            cached = (
+                                data.formatErrors,
+                                self._buildSelections(block, self._formatErrFormat, data.formatErrors),
+                            )
+                            self._selCacheFormat[key] = cached
+                        for (start, end, kind), selection in zip(data.formatErrors, cached[1], strict=True):
                             if kind == "trail" and position + start < cPos <= position + end:
                                 # Not yet a real trailing space, still being typed
                                 suppressed = True
                                 continue
-                            cursor = QTextCursor(self._qDocument)
-                            cursor.setPosition(position + start)
-                            cursor.setPosition(position + end, QtKeepAnchor)
-                            selection = QTextEdit.ExtraSelection()
-                            selection.format = self._formatErrFormat
-                            selection.cursor = cursor
                             formatSelections.append(selection)
+
                 block = block.next()
+
         self._suppressed = suppressed
         self._spellSelections = spellSelections
         self._formatSelections = formatSelections
         self._applyExtraSelections()
+
+    def _buildSelections(self, block: QTextBlock, fmt: QTextCharFormat, errors: T_TextCheckList) -> T_Selections:
+        """Build a list of extra selections from a block's cached error
+        positions. The returned QTextCursor objects track the document
+        automatically, so they stay valid even as edits elsewhere shift
+        the block's absolute position.
+        """
+        position = block.position()
+        selections = []
+        for start, end, _ in errors:
+            cursor = QTextCursor(self._qDocument)
+            cursor.setPosition(position + start)
+            cursor.setPosition(position + end, QtKeepAnchor)
+            selection = QTextEdit.ExtraSelection()
+            selection.format = fmt
+            selection.cursor = cursor
+            selections.append(selection)
+        return selections
 
     @pyqtSlot()
     def _dispatchTextCheck(self) -> None:
@@ -1599,14 +1699,12 @@ class GuiDocEditor(QTextEdit):
         if job:
             self._checkJobId += 1
             self._checkJob = (self._checkJobId, job)
-            runnable = BackgroundTextCheck(
+            self._checkDispatcher.dispatch(
                 self._checkJobId,
                 payload,
                 checkSpell=SHARED.project.data.spellCheck,
                 checkFormat=CONFIG.showMultiSpaces,
             )
-            runnable.signals.resultsReady.connect(self._textCheckResults)
-            SHARED.runInThreadPool(runnable)
         elif self._spellPassNotify:
             self._spellPassNotify = False
             SHARED.newStatusMessage(self.tr("Spell check complete"))
@@ -1738,8 +1836,8 @@ class GuiDocEditor(QTextEdit):
         """Run timer document tasks."""
         if self._docHandle:
             logger.debug("Running document tasks")
-            if not self._wCounterDoc.isRunning():
-                SHARED.runInThreadPool(self._wCounterDoc)
+            if not self._docCounter.busy:
+                self._docCounter.count(self.getText())
 
             self.docHeader.setOutline({
                 block.blockNumber(): block.text() for block in self._qDocument.iterBlockByType(BLOCK_TITLE, maxCount=30)
@@ -1812,17 +1910,14 @@ class GuiDocEditor(QTextEdit):
     @pyqtSlot()
     def _runSelCounter(self) -> None:
         """Update the selection word count."""
-        if self._docHandle:
-            if self._wCounterSel.isRunning():
-                logger.debug("Selection word counter is busy")
-                return
-            SHARED.runInThreadPool(self._wCounterSel)
-        return
+        if self._docHandle and not self._selCounter.busy and (text := self.getSelectedText()):
+            self._selCounter.count(text)
 
     @pyqtSlot(int, int, int)
     def _updateSelCounts(self, cCount: int, wCount: int, pCount: int) -> None:
         """Update the counts on the counter's finished signal."""
         if self._docHandle and self._nwItem:
+            logger.debug("Updating selection count")
             self.docFooter.updateMainCount(cCount if CONFIG.useCharCount else wCount, True)
             self._timerSel.stop()
 
