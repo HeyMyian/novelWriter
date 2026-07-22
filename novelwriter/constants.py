@@ -1,5 +1,5 @@
 """
-novelWriter – Constants
+novelWriter - Constants
 =======================
 
 This file is a part of novelWriter
@@ -58,6 +58,7 @@ class nwConst:
 
     # Mime Types
     MIME_HANDLE = "text/vnd.novelwriter.handle"
+    MIME_MARKDOWN = "text/markdown"
 
     # Gui Settings
     STATUS_MSG_TIMEOUT = 15000  # milliseconds
@@ -70,7 +71,7 @@ class nwRegEx:
     """Common RegExes."""
 
     URL = r"\bhttps?://(?:www\.|(?!www))[\w/()@:%_\+-.~#!?&=]+\b"
-    WORDS = r"\b[^\s\-\+\/–—\[\]:]+\b"
+    WORDS = r"\b[^\s\-\+\/–—\[\]:]+\b"  # noqa: RUF001
     BREAK = r"(?i)(?<!\\)(\[br\]\n?)"
     FMT_IT = r"(?<![\w\\])(_)(?![\s_])(.+?)(?<![\s\\])(\1)(?!\w)"
     FMT_B1 = r"(?<![\w\\])(\*{1,2})(?![\s\*])(.+?)(?<![\s\\])(\1)(?!\w)"
@@ -147,7 +148,8 @@ class nwFiles:
     """novelWriter Files."""
 
     # Config Files
-    CONF_FILE = "novelwriter.conf"
+    CONF_FILE = "novelwriter.toml"
+    CONF_FILE_OLD = "novelwriter.conf"
     RECENT_FILE = "recentProjects.json"
     RECENT_PATH = "recentPaths.json"
 

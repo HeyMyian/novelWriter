@@ -1,5 +1,5 @@
 """
-novelWriter – GUI Theme and Icons Tests
+novelWriter - GUI Theme and Icons Tests
 =======================================
 
 This file is a part of novelWriter
@@ -38,7 +38,6 @@ from novelwriter.constants import nwLabels
 from novelwriter.enum import nwItemClass, nwItemLayout, nwItemType, nwTheme
 from novelwriter.gui.theme import (
     STYLES_BIG_TOOLBUTTON,
-    STYLES_FLAT_TABS,
     STYLES_MIN_TOOLBUTTON,
     GuiTheme,
     ThemeEntry,
@@ -92,6 +91,40 @@ def testGuiTheme_ParseColor():
     assert theme.parseColor("255, 0, 0, 255").getRgb() == (255, 0, 0, 255)
     assert theme.parseColor("255, 0, 0, 127").getRgb() == (255, 0, 0, 127)
     assert theme.parseColor("255, 0, 0, 127, 42").getRgb() == (255, 0, 0, 127)  # Truncated
+
+
+@pytest.mark.gui
+def testGuiTheme_GenerateColorRange():
+    """Test the colour range generator."""
+    theme = GuiTheme()
+
+    # Colours are passed in as strings, resolved via parseColor
+    start = "#000000ff"
+    end = "#64c832c8"
+    startRgb = (0, 0, 0, 255)
+    endRgb = (100, 200, 50, 200)
+
+    # Without a mid colour, the range must start and end exactly on the
+    # requested colours, not just approach them
+    result = theme.generateColorRange(start, end, steps=5)
+    assert len(result) == 5
+    assert result[0].getRgb() == startRgb
+    assert result[-1].getRgb() == endRgb
+
+    # With a mid colour, the range must also pass exactly through it at
+    # the midpoint, in addition to the start and end colours
+    mid = "#ffff00ff"
+    midRgb = (255, 255, 0, 255)
+    result = theme.generateColorRange(start, end, mid, steps=5)
+    assert len(result) == 5
+    assert result[0].getRgb() == startRgb
+    assert result[2].getRgb() == midRgb
+    assert result[-1].getRgb() == endRgb
+
+    # A single-colour range is just the start colour
+    result = theme.generateColorRange(start, end, steps=1)
+    assert len(result) == 1
+    assert result[0].getRgb() == startRgb
 
 
 @pytest.mark.gui
@@ -383,7 +416,6 @@ def testGuiTheme_Methods(monkeypatch):
         assert theme.isDesktopDarkMode() is True
 
     # Stylesheets
-    assert theme.getStyleSheet(STYLES_FLAT_TABS) != ""
     assert theme.getStyleSheet(STYLES_MIN_TOOLBUTTON) != ""
     assert theme.getStyleSheet(STYLES_BIG_TOOLBUTTON) != ""
     assert theme.getStyleSheet("stuff") == ""

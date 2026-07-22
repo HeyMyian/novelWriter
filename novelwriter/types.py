@@ -1,5 +1,5 @@
 """
-novelWriter – Types and Flags
+novelWriter - Types and Flags
 =============================
 
 This file is a part of novelWriter
@@ -35,6 +35,7 @@ T_MsgSeverity = Literal["info", "warning", "error"]
 
 QtAlignAbsolute = Qt.AlignmentFlag.AlignAbsolute
 QtAlignCenter = Qt.AlignmentFlag.AlignCenter
+QtAlignHCenter = Qt.AlignmentFlag.AlignHCenter
 QtAlignCenterTop = Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop
 QtAlignJustify = Qt.AlignmentFlag.AlignJustify
 QtAlignLeft = Qt.AlignmentFlag.AlignLeft
@@ -69,6 +70,7 @@ QtElideRight = Qt.TextElideMode.ElideRight
 
 QtTransparent = QColor(0, 0, 0, 0)
 QtBlack = QColor(0, 0, 0)
+QtWhite = QColor(255, 255, 255)
 QtNoBrush = Qt.BrushStyle.NoBrush
 QtNoPen = Qt.PenStyle.NoPen
 QtRoundCap = Qt.PenCapStyle.RoundCap

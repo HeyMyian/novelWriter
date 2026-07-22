@@ -1,5 +1,5 @@
 """
-novelWriter – Document Editor Tests
+novelWriter - Document Editor Tests
 ===================================
 
 This file is a part of novelWriter
@@ -2719,6 +2719,14 @@ def testGuiDocEditor_InternalSlotEdgeCases(qtbot, nwGUI, projPath, mockRnd):
     cursor = docEditor._autoSelect()
     assert cursor.selectedText() != ""
 
+    # Copying a selection must only put plain text on the clipboard,
+    # not also HTML, regardless of the widget's rich text rendering
+    docEditor.setPlainText("first\n\nsecond")
+    docEditor.docAction(nwDocAction.SEL_ALL)
+    mime = docEditor.createMimeDataFromSelection()
+    assert mime.hasHtml() is False
+    assert mime.text() == "first\n\nsecond"
+
 
 @pytest.mark.gui
 def testGuiDocEditor_UpdateDocMargins(qtbot, nwGUI, projPath, mockRnd):
@@ -2817,6 +2825,79 @@ def testGuiDocEditor_LineHeight(qtbot, nwGUI, projPath, mockRnd):
     CONFIG.lineHeight = 2.00
     docEditor.initEditor()
     assert allBlocksHaveLineHeight(200)
+
+
+@pytest.mark.gui
+def testGuiDocEditor_LineHeightPaste(qtbot, nwGUI, projPath, mockRnd):
+    """Test that pasting multi-line text keeps the configured line
+    height on every resulting block, including the ones created after
+    a line break in the pasted text (Issue #2874).
+    """
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+    docEditor = nwGUI.docEditor
+    document = docEditor.document()
+
+    def allBlocksHaveLineHeight(height: int) -> bool:
+        block = document.firstBlock()
+        while block.isValid():
+            if block.blockFormat().lineHeight() != height:
+                return False
+            block = block.next()
+        return True
+
+    CONFIG.lineHeight = 1.50
+    assert docEditor.loadText(C.hSceneDoc) is True
+    assert allBlocksHaveLineHeight(150)
+
+    docEditor.setCursorPosition(0)
+    mime = QMimeData()
+    mime.setText("Pasted first line.\nPasted second line.\nPasted third line.")
+    docEditor.insertFromMimeData(mime)
+
+    assert docEditor.getText().startswith("Pasted first line.\nPasted second line.\nPasted third line.")
+    assert allBlocksHaveLineHeight(150)
+
+
+@pytest.mark.gui
+def testGuiDocEditor_InsertFromMimeData_Markdown(qtbot, nwGUI, projPath, mockRnd):
+    """Test that pasting Markdown mime data is converted to
+    novelWriter's own text format before being inserted, and that a
+    Markdown paste that converts to an empty string is a no-op.
+    """
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+    docEditor = nwGUI.docEditor
+
+    assert docEditor.loadText(C.hSceneDoc) is True
+    docEditor.setCursorPosition(0)
+
+    mime = QMimeData()
+    mime.setData(nwConst.MIME_MARKDOWN, b"# Title\n\nSome **bold** text.\n")
+    docEditor.insertFromMimeData(mime)
+
+    assert docEditor.getText().startswith("# Title\n\nSome **bold** text.")
+
+    text = docEditor.getText()
+    emptyMd = QMimeData()
+    emptyMd.setData(nwConst.MIME_MARKDOWN, b"")
+    docEditor.insertFromMimeData(emptyMd)
+
+    assert docEditor.getText() == text
+
+    # A rich text (HTML) paste with a meaningful leading space (as a
+    # non-breaking space, which is how rich text sources encode a
+    # leading space that would otherwise collapse in HTML) must only
+    # have the blank line added by the HTML-to-text conversion
+    # stripped, not the leading space itself
+    docEditor.replaceText("A cat.")
+    docEditor.setCursorPosition(1)
+
+    htmlMime = QMimeData()
+    htmlMime.setHtml("<p>&nbsp;big</p>")
+    docEditor.insertFromMimeData(htmlMime)
+
+    assert docEditor.getText().startswith("A\u00a0big cat.")
 
 
 @pytest.mark.gui

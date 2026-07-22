@@ -1,5 +1,5 @@
 """
-novelWriter – GUI Document Editor
+novelWriter - GUI Document Editor
 =================================
 
 This file is a part of novelWriter
@@ -76,11 +76,11 @@ from novelwriter.constants import nwConst, nwKeyWords, nwShortcode, nwStyles, nw
 from novelwriter.core.document import ProjectDocument
 from novelwriter.dialogs.editlabel import GuiEditLabel
 from novelwriter.editor.completer import CommandCompleter
-from novelwriter.editor.editfooter import GuiDocEditFooter
-from novelwriter.editor.editheader import GuiDocEditHeader
 from novelwriter.editor.editordocument import GuiTextDocument
 from novelwriter.editor.editsearch import GuiDocEditSearch
 from novelwriter.editor.edittoolbar import GuiDocToolBar
+from novelwriter.editor.footer import GuiDocEditFooter
+from novelwriter.editor.header import GuiDocEditHeader
 from novelwriter.editor.highlighter import BLOCK_META, BLOCK_TITLE
 from novelwriter.editor.hovercard import GuiDocHoverCard
 from novelwriter.editor.runnables import T_TextCheckPayload, TextCheckDispatcher, WordCounterDispatcher
@@ -96,6 +96,7 @@ from novelwriter.enum import (
     nwVimMode,
 )
 from novelwriter.extensions.eventfilters import WheelEventFilter
+from novelwriter.formats.fromqdoc import FromQTextDocument
 from novelwriter.text.autoreplace import TextAutoReplace
 from novelwriter.text.counting import standardCounter
 from novelwriter.text.formats import processHeading
@@ -1111,7 +1112,7 @@ class GuiDocEditor(QTextEdit):
             SHARED.info(
                 [
                     self.tr("Document Details"),
-                    "–" * 40,
+                    "\u2013" * 40,
                     self.tr("Created: {0}").format(self._nwDocument.createdDate),
                     self.tr("Updated: {0}").format(self._nwDocument.updatedDate),
                 ],
@@ -1412,12 +1413,47 @@ class GuiDocEditor(QTextEdit):
             return variant
         return super().inputMethodQuery(query)
 
+    def createMimeDataFromSelection(self) -> QMimeData:
+        """Overload mime data creation for copy/cut so that only plain
+        text is put on the clipboard, and not also HTML.
+        """
+        data = QMimeData()
+        data.setText(self.getSelectedText())
+        return data
+
     def insertFromMimeData(self, source: QMimeData | None) -> None:
         """Overload mime data insertion in the document."""
-        if source and source.hasText():
-            # Block empty inserts (Issue #2598)
+        if not source:
+            # Blocks empty inserts, see #2598
+            return
+
+        document = None
+        if source.hasHtml():
+            logger.debug("Converting rich text paste")
+            document = QTextDocument()
+            document.setHtml(source.html())
+        elif source.hasFormat(nwConst.MIME_MARKDOWN):
+            logger.debug("Converting Markdown paste")
+            data = source.data(nwConst.MIME_MARKDOWN).data().decode("utf-8", errors="replace")
+            document = QTextDocument()
+            document.setMarkdown(data)
+
+        if document is not None:
+            text = FromQTextDocument(document).convertText().strip("\n")
+        elif source.hasText():
+            text = source.text()
+        else:
+            return
+
+        if text:
+            # Ensures line height is applied, see #2874
             logger.debug("Inserted text into document")
-            super().insertFromMimeData(source)
+            cursor = self.textCursor()
+            cursor.beginEditBlock()
+            cursor.insertText(text)
+            cursor.endEditBlock()
+            self.setTextCursor(cursor)
+            self.ensureCursorVisible(centre=False)
 
     ##
     #  Public Slots

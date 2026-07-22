@@ -1,5 +1,5 @@
 """
-novelWriter – GUI Main Window
+novelWriter - GUI Main Window
 =============================
 
 This file is a part of novelWriter
@@ -51,6 +51,8 @@ from novelwriter.dialogs.preferences import GuiNeedsUpdate, GuiPreferences
 from novelwriter.dialogs.projectsettings import GuiProjectSettings
 from novelwriter.dialogs.wordlist import GuiWordList
 from novelwriter.editor.editor import GuiDocEditor
+from novelwriter.editor.viewer import GuiDocViewer
+from novelwriter.editor.viewerpanel import GuiDocViewerPanel
 from novelwriter.enum import nwDocAction, nwDocInsert, nwDocMode, nwFocus, nwView
 from novelwriter.extensions.progressbars import NProgressSimple
 from novelwriter.gui.itemdetails import GuiItemDetails
@@ -66,8 +68,6 @@ from novelwriter.tools.dictionaries import GuiDictionaries
 from novelwriter.tools.noveldetails import GuiNovelDetails
 from novelwriter.tools.welcome import GuiWelcome
 from novelwriter.tools.writingstats import GuiWritingStats
-from novelwriter.viewer.viewer import GuiDocViewer
-from novelwriter.viewer.viewerpanel import GuiDocViewerPanel
 
 logger = logging.getLogger(__name__)
 
@@ -470,6 +470,7 @@ class GuiMain(QMainWindow):
         self._updateWindowTitle(SHARED.project.data.name)
         self.docEditor.toggleSpellCheck(SHARED.project.data.spellCheck)
         self.mainStatus.setRefTime(SHARED.project.projOpened)
+        self.mainStatus.initProjectSettings()
         self.projView.openProjectTasks()
         self.novelView.openProjectTasks()
         self.outlineView.openProjectTasks()
@@ -1105,6 +1106,7 @@ class GuiMain(QMainWindow):
         SHARED.updateSpellCheckLanguage()
         self.itemDetails.refreshDetails()
         self.mainMenu.setSelectedProjectSpellCheckLanguage()
+        self.mainStatus.initProjectSettings()
         self._updateWindowTitle(SHARED.project.data.name)
 
     @pyqtSlot()
@@ -1258,28 +1260,31 @@ class GuiMain(QMainWindow):
         """Update the word count on the status bar."""
         if not SHARED.hasProject:
             self.mainStatus.setProjectStats(0, 0)
+            self.mainStatus.updateGoals(0, 0)
 
         currentTotalCount = SHARED.project.currentTotalCount
         if self._lastTotalCount != currentTotalCount:
             self._lastTotalCount = currentTotalCount
 
+            data = SHARED.project.data
             SHARED.project.updateCounts()
             if CONFIG.incNotesWCount:
                 if CONFIG.useCharCount:
-                    iTotal = sum(SHARED.project.data.initCounts[2:])
-                    cTotal = sum(SHARED.project.data.currCounts[2:])
+                    iTotal = sum(data.initCounts[2:])
+                    cTotal = sum(data.currCounts[2:])
                 else:
-                    iTotal = sum(SHARED.project.data.initCounts[:2])
-                    cTotal = sum(SHARED.project.data.currCounts[:2])
+                    iTotal = sum(data.initCounts[:2])
+                    cTotal = sum(data.currCounts[:2])
             else:
                 if CONFIG.useCharCount:
-                    iTotal = SHARED.project.data.initCounts[2]
-                    cTotal = SHARED.project.data.currCounts[2]
+                    iTotal = data.initCounts[2]
+                    cTotal = data.currCounts[2]
                 else:
-                    iTotal = SHARED.project.data.initCounts[0]
-                    cTotal = SHARED.project.data.currCounts[0]
+                    iTotal = data.initCounts[0]
+                    cTotal = data.currCounts[0]
 
             self.mainStatus.setProjectStats(cTotal, cTotal - iTotal)
+            self.mainStatus.updateGoals(data.currCounts[0], data.dailyProgress)
 
     @pyqtSlot(int)
     def _mainStackChanged(self, index: int) -> None:
