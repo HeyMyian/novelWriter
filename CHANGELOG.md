@@ -1,5 +1,156 @@
 # novelWriter Changelog
 
+## Version 26.2 Beta 1 [2026-07-26]
+
+### Release Notes
+
+This is a beta release of the next release version, and is intended for testing purposes. Please be
+careful when using this version on live writing projects, and make sure you take frequent backups.
+
+### Detailed Changelog
+
+**Bugfixes**
+
+* Fixed an issue with kerning when printing the manuscript preview on Windows, and changed the
+  page break marker to a dashed line instead of a solid text block. Issue #2640. PR #2838.
+* Fixed tooltip and scrollbar colours not matching the selected theme, a compatibility issue with
+  newer versions of Qt; custom stylesheets have been replaced with other styling methods, and the
+  Fusion Qt style is now hard coded, to resolve this properly. Issue #2871. PRs #2877 and #2881.
+* Fixed a reentrancy issue when opening documents, and removed a stray call that could delay
+  cleanup of objects, improving overall application stability. PR #2840.
+* Fixed five memory leaks related to freeing Qt objects created from Python, and added regression
+  tests to catch similar issues in the future. PRs #2829 and #2830.
+
+**Features**
+
+* Added EPUB 3 as a new manuscript export format. Issue #2058. PR #2283.
+* Added dialogue statistics to manuscripts, showing the number of characters used in dialogue and
+  the ratio of dialogue to prose text. The statistics panel has been moved from below the
+  manuscript preview to a new tab in the panel on the left. Issue #2096. PR #2841.
+* Added a horizontal rule format for manuscript headings. Using four hyphens ("----") as a
+  heading inserts a line across the page in all output formats. Issue #2755. PRs #2771 and #2772.
+* Added a setting for the automatic backup interval, allowing backups to be limited to one per
+  session, day, week, or month by overwriting the previous backup file, using an unambiguous
+  ISO8601-based file name format. Issue #2754. PRs #2834 and #2835.
+* Added a line height setting for the editor and viewer, applied consistently including to pasted
+  text. Issues #654 and #2874. PRs #2817 and #2875.
+* Added a text zoom feature for the editor and viewer, using the standard Qt zoom shortcuts.
+  Issue #1280. PR #2822.
+* Added highlighting of all search result matches in the editor, in addition to the currently
+  selected one. Issues #2736 and #2798. PR #2820.
+* Added a new format checker that highlights trailing spaces at the end of lines, alongside the
+  existing check for multiple spaces between words. Issue #2800. PR #2821.
+* Added hover cards for tags in the editor and viewer, with buttons to quickly open the
+  referenced document for editing or viewing. Issue #2857. PR #2859.
+* Added filters for text content, document type, and root folder to the project search tool,
+  available in a new collapsible panel below the search box that updates automatically as root
+  folders change. Issues #1927 and #2256. PRs #2847 and #2848.
+* Added a collapsible panel widget, now used for the item details panel below the project tree
+  and novel view, which can be hidden, and for the new project search filters panel. PR #2843.
+* Added support for pasting rich text (HTML) into the editor, without stripping leading or
+  trailing whitespace. Issue #2601. PRs #2876 and #2878.
+* Added project writing goals with daily progress tracking, shown as progress bars with
+  sufficient colour contrast in all themes, and correctly reset when starting a new day. Also
+  added an option to exclude specific root folders from the count. Based on work contributed by
+  @BlayW. Issue #2223. PRs #2870, #2878, #2887, #2889, #2891 and #2892.
+* The symbol auto-replace feature can now also be used in the editor's search and replace boxes,
+  the project search box, and the header format field in Manuscript Build Settings, and can be
+  toggled on or off in each. Issue #2261. PRs #2866, #2867 and #2868.
+* It is now possible to recursively set the active or inactive state of all documents under a
+  folder in the project tree from the right-click menu. Issue #2188. PR #2784.
+* A checkbox now shows the active project's spell check language in the Tools menu, and the spell
+  checker is re-run automatically when the language is changed. Issue #2311. PR #2785.
+
+**Improvements**
+
+* Manuscript Build Settings now has an option to enable or disable justify-expansion of lines
+  with manual line breaks, extended to Open Document and Word Document formats. Issue #2764.
+  PRs #2769 and #2770.
+* The reference list panel now refreshes automatically when the references in a document change,
+  instead of requiring a manual refresh. Issue #2124. PR #2782.
+* Keypress handling in the editor's auto-complete menu has been improved: arrow keys navigate the
+  list, Left and Escape close it, and Tab, Enter, Return, and Right accept the highlighted entry
+  or close the menu if nothing is selected. Issue #2742. PR #2743.
+* The editor's auto-complete menu has been rewritten to use Qt's native completer widget instead
+  of a custom menu, improving its look and behaviour. PR #2856.
+* Performance of the spell checker has been substantially improved by caching computed highlights
+  and dictionary lookups, and syntax highlighting and spell checking are now skipped for
+  excessively long paragraphs (over 20 000 characters) to keep large documents responsive. A
+  related concurrency issue in the background word counter has also been fixed. PRs #2808, #2861,
+  #2862 and #2863.
+
+**User Interface**
+
+* Toggle buttons, such as those in the search tools, are now more visible when active, using a
+  new "toggle" theme colour. A new "searchMatch" theme colour is also used to highlight search
+  matches in the editor and project search results, and now refreshes immediately when switching
+  themes. Existing themes have been updated accordingly, including contributions by @HeyMyian.
+  Issues #2827, #2845 and #2886. PRs #2833, #2844, #2846, #2882 and #2887.
+* Restored the flat look of tabs in tab widgets, now implemented with a custom painter instead of
+  stylesheets for better compatibility with recent versions of Qt. PR #2890.
+* Fixed handling of long labels in switches, and in the quick link and header navigation
+  menus. PR #2850.
+
+**Other Changes**
+
+* The document editor's underlying text widget has been switched back to a full rich text editor
+  instead of a plain text editor, enabling several of the features in this release, such as line
+  height, zoom, and pasting rich text; copying text from the editor still produces plain text as
+  before. This also required narrowing down when the editor is re-initialised, which had caused
+  some Preferences settings to stop refreshing the GUI properly. Issue #2815. PRs #2816, #2860 and
+  #2878.
+* Spell checking has been moved out of the syntax highlighter and now runs as a chunked, timed
+  background process, using the same block-based caching approach as the new search highlighting.
+  PR #2812.
+* The application configuration file and all theme files have been converted from Linux-style
+  config formats to TOML. PRs #2883 and #2885.
+* The project search panel has been internally rewritten to use a model/view architecture, with
+  no intended functional change. PR #2842.
+* Internal handling of icons has been changed, with no expected functional impact. PR #2852.
+* The viewer code has been merged into the editor folder ahead of further refactoring work.
+  PR #2880.
+* Cleaned up how menu actions with additional data, such as icons and custom data, are created
+  internally. Issue #2828. PR #2832.
+
+**Code Maintenance**
+
+* Enabled branch coverage in the test suite, added tests for previously uncovered branches, and
+  fixed a few minor bugs found in the process. PR #2807.
+* Hardened flaky tests to reduce occasional segfaults during test runs. PR #2864.
+* Updated the default Python version used for testing and embedded in builds to 3.14. PR #2786.
+* Updated the Ubuntu versions targeted by packaging and CI. PR #2802.
+* Updated icon packages, test helper scripts, and documentation build tooling. PR #2853.
+* Added tests to the Debian package build process. PR #2896.
+* Various internal linting, naming, and code style improvements, including dropping the redundant
+  `NW` prefix from most class names. PRs #2779, #2826 and #2831.
+
+----
+
+## Version 26.1.2 [2026-07-25]
+
+### Release Notes
+
+This is a patch release that fixes a race condition when searching across multiple documents,
+restores the application's taskbar icon on Windows, and fixes a font setting that failed to load
+on older versions of Qt. Japanese and Russian translations have also been updated.
+
+### Detailed Changelog
+
+**Bugfixes**
+
+* Fixed a race condition when searching through multiple documents that could cause a crash if
+  the next match button was pressed too quickly. Issue #2809. PR #2811.
+* Fixed the application icon not showing on the Windows taskbar. Issue #2728. PR #2824.
+* Fixed loading of a font setting saved with Qt 6.11 when running on older versions of Qt.
+  PR #2849.
+
+**Internationalisation**
+
+* Japanese translation updated by @hebekeg. PR #2897.
+* Russian translation updated by Kuro Ryuu (kuroryuu) and Konstantin Tan (@k1kimosha). PR #2897.
+
+----
+
 ## Version 26.1.1 [2026-06-28]
 
 ### Release Notes

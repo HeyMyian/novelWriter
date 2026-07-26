@@ -1263,7 +1263,7 @@ class GuiMain(QMainWindow):
             self.mainStatus.updateGoals(0, 0)
 
         currentTotalCount = SHARED.project.currentTotalCount
-        if self._lastTotalCount != currentTotalCount:
+        if self._lastTotalCount != currentTotalCount or SHARED.project.countsDirty:
             self._lastTotalCount = currentTotalCount
 
             data = SHARED.project.data
@@ -1284,7 +1284,7 @@ class GuiMain(QMainWindow):
                     cTotal = data.currCounts[0]
 
             self.mainStatus.setProjectStats(cTotal, cTotal - iTotal)
-            self.mainStatus.updateGoals(data.currCounts[0], data.dailyProgress)
+            self.mainStatus.updateGoals(data.targetLastCount, data.dailyProgress)
 
     @pyqtSlot(int)
     def _mainStackChanged(self, index: int) -> None:

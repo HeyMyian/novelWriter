@@ -64,7 +64,19 @@ class SharedData(QObject):
     the main GUI, the current project, and the GUI theme.
     """
 
-    __slots__ = ("_gui", "_idleRefTime", "_idleTime", "_lastAlert", "_lockedBy", "_project", "_spelling", "_theme")
+    __slots__ = (
+        "_cachedErrors",
+        "_clock",
+        "_focusMode",
+        "_gui",
+        "_idleRefTime",
+        "_idleTime",
+        "_lastAlert",
+        "_lockedBy",
+        "_project",
+        "_spelling",
+        "_theme",
+    )
 
     focusModeChanged = pyqtSignal(bool)
     indexAvailable = pyqtSignal()

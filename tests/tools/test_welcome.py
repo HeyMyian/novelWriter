@@ -75,13 +75,13 @@ def testGuiWelcome_Main(qtbot, monkeypatch, nwGUI, fncPath):
 
     # Cancelling the browse dialog does nothing
     with monkeypatch.context() as mp:
-        mp.setattr(SHARED, "getProjectPath", lambda *a, **k: None)
+        mp.setattr(SHARED, "getProjectFolder", lambda *a, **k: None)
         with qtbot.assertNotEmitted(welcome.openProjectRequest, wait=100):
             welcome.btnBrowse.click()
 
     # Open a project
     with monkeypatch.context() as mp:
-        mp.setattr(SHARED, "getProjectPath", lambda *a, **k: fncPath)
+        mp.setattr(SHARED, "getProjectFolder", lambda *a, **k: fncPath)
         with qtbot.waitSignal(welcome.openProjectRequest) as signal:
             welcome.btnBrowse.click()
         assert signal.args

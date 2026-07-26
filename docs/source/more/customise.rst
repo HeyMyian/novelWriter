@@ -85,7 +85,7 @@ A colour theme ``.toml`` file consists of the following settings:
    accept    = "green"
    reject    = "red"
    action    = "blue"
-   altAction = "orange"
+   option    = "orange"
    apply     = "green"
    create    = "yellow"
    destroy   = "faded"
@@ -95,7 +95,7 @@ A colour theme ``.toml`` file consists of the following settings:
    remove    = "red"
    shortcode = "default"
    markdown  = "orange"
-   systemIO  = "yellow"
+   system    = "yellow"
    info      = "blue"
    warning   = "orange"
    error     = "red"
@@ -116,13 +116,14 @@ A colour theme ``.toml`` file consists of the following settings:
    link            = "blue"
    linkVisited     = "blue"
    accent          = "#3087c6"
-   toggle          = "blue:96"
-   searchMatch     = "orange:96"
 
    [GUI]
-   helpText  = "#5c5c5c"
-   fadedText = "#6c6c6c"
-   errorText = "red"
+   helpText    = "#5c5c5c"
+   fadedText   = "#6c6c6c"
+   errorText   = "red"
+   accentText  = "blue"
+   toggle      = "blue:96"
+   searchMatch = "orange:96"
 
    [Syntax]
    background     = "base"
@@ -204,12 +205,12 @@ There are several ways to enter colour values:
    if the theme is included in the app, but not for user themes.
 
 .. versionadded:: 26.2
-   The ``toggle`` and ``searchMatch`` settings were added to the ``[Palette]`` section. The file
-   format was also converted from conf to toml, and a number of the colour settings were renamed to
-   camelCase format. The following values were renamed:
+   The ``accentText``, ``toggle`` and ``searchMatch`` settings were added to the ``[GUI]`` section.
+   The file format was also converted from conf to toml, and a number of the colour settings were
+   renamed to camelCase format. The following values were renamed:
 
-   * ``altaction`` to ``altAction``
-   * ``systemio`` to ``systemIO``
+   * ``altaction`` to ``option``
+   * ``systemio`` to ``system``
    * ``windowtext`` to ``windowText``
    * ``alternatebase`` to ``alternateBase``
    * ``tooltipbase`` to ``tooltipBase``

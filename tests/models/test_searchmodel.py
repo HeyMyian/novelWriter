@@ -24,9 +24,10 @@ from __future__ import annotations
 import pytest
 
 from PyQt6.QtCore import QModelIndex
+from PyQt6.QtGui import QBrush
 from PyQt6.QtTest import QAbstractItemModelTester
-from PyQt6.QtWidgets import QApplication
 
+from novelwriter import SHARED
 from novelwriter.core.project import NWProject
 from novelwriter.models.searchmodel import SearchNode, SearchResultModel
 from novelwriter.types import QtDisplayRole, QtForegroundRole, QtUserRole
@@ -124,7 +125,7 @@ def testSearchModel_Interface(mockGUI, mockRnd, fncPath):
     assert model.data(model.index(0, 1, root), QtDisplayRole) == "(1)"
     assert model.data(sceneIdx, QtDisplayRole) == "New Scene"
     assert model.data(model.index(1, 1, root), QtDisplayRole) == "(2+)"
-    assert model.data(model.index(1, 1, root), QtForegroundRole) == QApplication.palette().highlight()
+    assert model.data(model.index(1, 1, root), QtForegroundRole) == QBrush(SHARED.theme.accentText)
     assert model.handle(titleIdx) == title.itemHandle
     assert model.handle(sceneIdx) == scene.itemHandle
     assert model.result(titleIdx) is None

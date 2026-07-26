@@ -77,7 +77,7 @@ STANDARD_BUTTONS = {
     nwStandardButton.OPEN: (QT_TRANSLATE_NOOP("Button", "Open"), "btn_open:action"),
     nwStandardButton.CLOSE: (QT_TRANSLATE_NOOP("Button", "Close"), "btn_close:destroy"),
     nwStandardButton.SAVE: (QT_TRANSLATE_NOOP("Button", "Save"), "btn_save:action"),
-    nwStandardButton.BROWSE: (QT_TRANSLATE_NOOP("Button", "Browse"), "btn_browse:systemio"),
+    nwStandardButton.BROWSE: (QT_TRANSLATE_NOOP("Button", "Browse"), "btn_browse:system"),
     nwStandardButton.LIST: (QT_TRANSLATE_NOOP("Button", "List"), "btn_list:action"),
     nwStandardButton.NEW: (QT_TRANSLATE_NOOP("Button", "New"), "btn_new:apply"),
     nwStandardButton.CREATE: (QT_TRANSLATE_NOOP("Button", "Create"), "btn_create:create"),
@@ -96,7 +96,7 @@ TOOL_BUTTONS = {
     nwToolButton.MOVE_DOWN: (QT_TRANSLATE_NOOP("Button", "Move Down"), "chevron_down:action"),
     nwToolButton.IMPORT: (QT_TRANSLATE_NOOP("Button", "Import"), "import:apply"),
     nwToolButton.EXPORT: (QT_TRANSLATE_NOOP("Button", "Export"), "export:action"),
-    nwToolButton.BROWSE: (QT_TRANSLATE_NOOP("Button", "Browse"), "browse:systemio"),
+    nwToolButton.BROWSE: (QT_TRANSLATE_NOOP("Button", "Browse"), "browse:system"),
     nwToolButton.EDIT: (QT_TRANSLATE_NOOP("Button", "Edit"), "edit:change"),
     nwToolButton.REVERT: (QT_TRANSLATE_NOOP("Button", "Revert"), "revert:reset"),
 }
@@ -174,6 +174,7 @@ class GuiTheme:
         "_svgColors",
         "_syntaxList",
         "accentCol",
+        "accentText",
         "baseButtonHeight",
         "baseIconHeight",
         "baseIconSize",
@@ -224,6 +225,7 @@ class GuiTheme:
         self.helpText = QColor(0, 0, 0)
         self.fadedText = QColor(0, 0, 0)
         self.errorText = QColor(255, 0, 0)
+        self.accentText = QColor(0, 0, 255)
         self.accentCol = QColor(255, 0, 255)  # Needed until we move to Qt 6.6
         self.toggleCol = QColor(0, 0, 255)
         self.searchCol = QColor(255, 196, 0, 96)
@@ -460,7 +462,7 @@ class GuiTheme:
             self._setBaseColor("accept", self._readColor(section, "accept"))
             self._setBaseColor("reject", self._readColor(section, "reject"))
             self._setBaseColor("action", self._readColor(section, "action"))
-            self._setBaseColor("altAction", self._readColor(section, "altAction"))
+            self._setBaseColor("option", self._readColor(section, "option"))
             self._setBaseColor("apply", self._readColor(section, "apply"))
             self._setBaseColor("create", self._readColor(section, "create"))
             self._setBaseColor("destroy", self._readColor(section, "destroy"))
@@ -470,7 +472,7 @@ class GuiTheme:
             self._setBaseColor("remove", self._readColor(section, "remove"))
             self._setBaseColor("shortcode", self._readColor(section, "shortcode"))
             self._setBaseColor("markdown", self._readColor(section, "markdown"))
-            self._setBaseColor("systemIO", self._readColor(section, "systemIO"))
+            self._setBaseColor("system", self._readColor(section, "system"))
             self._setBaseColor("info", self._readColor(section, "info"))
             self._setBaseColor("warning", self._readColor(section, "warning"))
             self._setBaseColor("error", self._readColor(section, "error"))
@@ -492,14 +494,15 @@ class GuiTheme:
             self._setPalette(section, "link", QPalette.ColorRole.Link)
             self._setPalette(section, "linkVisited", QPalette.ColorRole.LinkVisited)
             self.accentCol = self._readColor(section, "accent")  # Special handling 'til Qt 6.6
-            self.toggleCol = self._readColor(section, "toggle")
-            self.searchCol = self._readColor(section, "searchMatch")
 
         # GUI
         if section := data.get("GUI"):
             self.helpText = self._readColor(section, "helpText")
             self.fadedText = self._readColor(section, "fadedText")
             self.errorText = self._readColor(section, "errorText")
+            self.accentText = self._readColor(section, "accentText")
+            self.toggleCol = self._readColor(section, "toggle")
+            self.searchCol = self._readColor(section, "searchMatch")
 
         # Syntax
         self.syntaxTheme = SyntaxColors()
@@ -702,6 +705,7 @@ class GuiTheme:
         self.helpText = dimmed
         self.fadedText = faded
         self.errorText = red
+        self.accentText = blue
 
         # Accent Colours
         self.accentCol = purple
@@ -746,7 +750,7 @@ class GuiTheme:
         self._setBaseColor("accept", green)
         self._setBaseColor("reject", red)
         self._setBaseColor("action", blue)
-        self._setBaseColor("altAction", orange)
+        self._setBaseColor("option", orange)
         self._setBaseColor("apply", green)
         self._setBaseColor("create", yellow)
         self._setBaseColor("destroy", faded)
@@ -756,7 +760,7 @@ class GuiTheme:
         self._setBaseColor("remove", red)
         self._setBaseColor("shortcode", default)
         self._setBaseColor("markdown", orange)
-        self._setBaseColor("systemIO", yellow)
+        self._setBaseColor("system", yellow)
         self._setBaseColor("info", blue)
         self._setBaseColor("warning", orange)
         self._setBaseColor("error", red)

@@ -1,6 +1,14 @@
 name: Part-Assets
 
-on: workflow_call
+on:
+  workflow_call:
+    inputs:
+      icons-free:
+        required: true
+        type: boolean
+      icons-non-free:
+        required: true
+        type: boolean
 
 jobs:
   buildAssets:
@@ -14,8 +22,8 @@ jobs:
 
       - name: Install System Packages
         run: |
-          sudo apt update
-          sudo apt install qttools5-dev-tools latexmk texlive texlive-latex-extra
+          sudo apt-get update
+          sudo apt-get install -y qttools5-dev-tools latexmk texlive texlive-latex-extra
 
       - name: Install UV and Python
         uses: astral-sh/setup-uv@v8.2.0
@@ -30,7 +38,16 @@ jobs:
       - name: Build Assets
         run: |
           uv run --no-sync pkgutils.py build-assets
-          uv run --no-sync pkgutils.py icons optional
+
+      - name: Build Free Icons
+        if: ${{ inputs.icons-free }}
+        run: |
+          uv run --no-sync pkgutils.py icons free
+
+      - name: Build Non-Free Icons
+        if: ${{ inputs.icons-non-free }}
+        run: |
+          uv run --no-sync pkgutils.py icons non-free
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v7

@@ -829,6 +829,7 @@ def testCoreTools_ProjectBuilderSample(monkeypatch, mockGUI, fncPath, tstPaths):
 
     # Force the lookup path for assets to our temp folder
     srcSample = CONFIG._appRoot / "sample"
+    bldSample = CONFIG.assetPath("sample.zip")
     dstSample = tstPaths.tmpDir / "sample.zip"
     monkeypatch.setattr("novelwriter.config.Config.assetPath", lambda *a: tstPaths.tmpDir / "sample.zip")
 
@@ -842,11 +843,17 @@ def testCoreTools_ProjectBuilderSample(monkeypatch, mockGUI, fncPath, tstPaths):
     assert builder.buildProject(data) is False
     dstSample.unlink()
 
-    # Create a real zip file, and unpack it
-    with ZipFile(dstSample, "w") as zipObj:
-        zipObj.write(srcSample / "nwProject.nwx", "nwProject.nwx")
-        for docFile in (srcSample / "content").iterdir():
-            zipObj.write(docFile, f"content/{docFile.name}")
+    # Create a real zip file, and unpack it. The raw sample source isn't
+    # shipped in packaged builds, only the pre-built asset, so fall back
+    # to copying that instead.
+    if srcSample.is_dir():
+        with ZipFile(dstSample, "w") as zipObj:
+            zipObj.write(srcSample / "nwProject.nwx", "nwProject.nwx")
+            for docFile in (srcSample / "content").iterdir():
+                zipObj.write(docFile, f"content/{docFile.name}")
+    else:
+        assert bldSample.is_file()
+        copyfile(bldSample, dstSample)
 
     assert builder.buildProject(data) is True
 

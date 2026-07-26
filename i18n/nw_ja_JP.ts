@@ -3100,7 +3100,7 @@
     <message>
       <location filename="../novelwriter/dialogs/preferences.py" />
       <source>Ask before exiting novelWriter</source>
-      <translation>ノベルライターを終了する前に確認する</translation>
+      <translation>novelWriterを終了する前に確認する</translation>
     </message>
     <message>
       <location filename="../novelwriter/dialogs/preferences.py" />
@@ -3170,7 +3170,7 @@
     <message>
       <location filename="../novelwriter/dialogs/preferences.py" />
       <source>Also pauses when the application window does not have focus.</source>
-      <translation>また、アプリケーションウィンドウにフォーカスがない場合は一時停止します。</translation>
+      <translation>アプリケーションウィンドウにフォーカスがない場合にも一時停止します。</translation>
     </message>
     <message>
       <location filename="../novelwriter/dialogs/preferences.py" />
@@ -3200,7 +3200,7 @@
     <message>
       <location filename="../novelwriter/dialogs/preferences.py" />
       <source>Maximum text width in "Normal Mode"</source>
-      <translation>"ノーマルモード"でのテキストの最大幅</translation>
+      <translation>「ノーマルモード」でのテキストの最大幅</translation>
     </message>
     <message>
       <location filename="../novelwriter/dialogs/preferences.py" />
@@ -3215,7 +3215,7 @@
     <message>
       <location filename="../novelwriter/dialogs/preferences.py" />
       <source>Maximum text width in "Focus Mode"</source>
-      <translation>"フォーカスモード"でのテキストの最大幅</translation>
+      <translation>「フォーカスモード」でのテキストの最大幅</translation>
     </message>
     <message>
       <location filename="../novelwriter/dialogs/preferences.py" />
@@ -3225,7 +3225,7 @@
     <message>
       <location filename="../novelwriter/dialogs/preferences.py" />
       <source>Hide document footer in "Focus Mode"</source>
-      <translation>"フォーカスモード"でドキュメントのフッターを非表示</translation>
+      <translation>「フォーカスモード」でドキュメントのフッターを非表示</translation>
     </message>
     <message>
       <location filename="../novelwriter/dialogs/preferences.py" />

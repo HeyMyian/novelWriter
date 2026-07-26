@@ -5,6 +5,9 @@ on: workflow_dispatch
 jobs:
   buildAssets:
     uses: ./.github/workflows/part_assets.yml
+    with:
+      icons-free: true
+      icons-non-free: true
     permissions:
       contents: read
 

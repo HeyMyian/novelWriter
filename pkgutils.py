@@ -31,6 +31,7 @@ import utils.assets
 import utils.build_appimage
 import utils.build_binary
 import utils.build_debian
+import utils.build_flatpak
 import utils.build_windows
 import utils.docs
 import utils.icon_themes
@@ -54,12 +55,15 @@ def cleanBuildDirs(args: argparse.Namespace) -> None:
     print("")
 
     folders = [
+        ROOT_DIR / ".flatpak-builder",
         ROOT_DIR / "build_bin",
         ROOT_DIR / "build",
         ROOT_DIR / "dist_appimage",
         ROOT_DIR / "dist_bin",
         ROOT_DIR / "dist_deb",
         ROOT_DIR / "dist_doc",
+        ROOT_DIR / "dist_flathub",
+        ROOT_DIR / "dist_flatpak",
         ROOT_DIR / "dist",
         ROOT_DIR / "novelWriter.egg-info",
     ]
@@ -214,6 +218,17 @@ if __name__ == "__main__":
     cmdBuildAppImage.add_argument("arch", help="Architecture, e.g. x86_64")
     cmdBuildAppImage.add_argument("python", help="Python version, e.g. 3.13")
     cmdBuildAppImage.set_defaults(func=utils.build_appimage.appImage)
+
+    # Build Flatpak
+    cmdBuildFlatpak = parsers.add_parser("build-flatpak", help="Build a Flatpak image for direct download.")
+    cmdBuildFlatpak.set_defaults(func=utils.build_flatpak.flatpak)
+
+    # Build Flathub Submission Files
+    cmdBuildFlathub = parsers.add_parser(
+        "build-flathub", help="Generate the manifest and support files for a Flathub submission."
+    )
+    cmdBuildFlathub.add_argument("path", nargs="?", help="Path to copy the generated files into.")
+    cmdBuildFlathub.set_defaults(func=utils.build_flatpak.flathub)
 
     # Build Windows Inno Setup Installer
     cmdBuildSetupExe = parsers.add_parser(

@@ -466,7 +466,7 @@ def main(args: argparse.Namespace) -> None:
             },
         )
 
-    if style in ("all", "optional", "non_free", "remix"):
+    if style in ("all", "optional", "non-free", "remix"):
         processRemix(
             workDir,
             iconsDir,

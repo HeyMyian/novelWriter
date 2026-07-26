@@ -35,6 +35,7 @@ from utils.common import (
     checkAssetsExist,
     copyPackageFiles,
     copySourceCode,
+    copyTestCode,
     extractVersion,
     makeCheckSum,
     systemCall,
@@ -57,7 +58,8 @@ Build-Depends:
   python3-setuptools,
   python3-all,
   debhelper (>= 9),
-  %dependencies%
+  %dependencies%,
+  %test-dependencies%
 Standards-Version: 4.5.1
 Homepage: https://novelwriter.io
 X-Python3-Version: >= {MIN_PY_VERSION}
@@ -139,6 +141,7 @@ def makeDebianPackage(
     print("")
 
     copySourceCode(outDir)
+    copyTestCode(outDir)
 
     print("")
     print("Copying or generating additional files ...")
@@ -162,7 +165,15 @@ def makeDebianPackage(
     if debianVersion > 12:
         depend.append(f"qt6-svg-plugins (>= {MIN_QT_VERS})")
 
-    writeFile(debDir / "control", DEB_CONTROL.replace("%dependencies%", ",\n  ".join(depend)))
+    testDepend = [
+        "python3-pytest (>= 6.0)",
+        "python3-pytestqt",
+        "python3-pytest-timeout",
+    ]
+
+    control = DEB_CONTROL.replace("%dependencies%", ",\n  ".join(depend))
+    control = control.replace("%test-dependencies%", ",\n  ".join(testDepend))
+    writeFile(debDir / "control", control)
     print("Wrote:  debian/control")
 
     writeFile(

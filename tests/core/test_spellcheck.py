@@ -25,7 +25,6 @@ import sys
 
 from pathlib import Path
 
-import enchant
 import pytest
 
 from novelwriter.constants import nwFiles
@@ -176,20 +175,44 @@ def testSpellEnchant_Main(monkeypatch, mockGUI, fncPath):
 
     assert spChk.describeDict() == ("", "")
 
+    # Stand-in for a real enchant.Dict, so the rest of this test does not
+    # depend on a dictionary actually being installed on the system.
+    class MockDict:
+        tag = "en_US"
+
+        class provider:
+            name = "Mock Provider"
+
+        def check(self, word: str) -> bool:
+            return True
+
+        def suggest(self, word: str) -> list[str]:
+            return []
+
+        def add_to_session(self, word: str) -> None:
+            return
+
     # Load the proper enchant package (twice)
-    spChk = SpellEnchant(project)
-    spChk.setLanguage("en_US")
-    spChk.setLanguage("en_US")
-    assert isinstance(spChk._enchant, enchant.Dict)
-    assert spChk.spellLanguage == "en_US"
-    assert spChk.listDictionaries() != []
-    assert spChk.describeDict() != ("", "")
-
-    # Set to non-existent language
-    spChk.setLanguage("foo_bar")
-
-    # Block the broker from figuring out the language
     with monkeypatch.context() as mp:
+        mp.setattr("enchant.dict_exists", lambda *a: True)
+        mp.setattr("enchant.Broker.request_dict", lambda *a: MockDict())
+        mp.setattr("enchant.list_dicts", lambda *a: [("en_US", None)])
+
+        spChk = SpellEnchant(project)
+        spChk.setLanguage("en_US")
+        spChk.setLanguage("en_US")
+        assert isinstance(spChk._enchant, MockDict)
+        assert spChk.spellLanguage == "en_US"
+        assert spChk.listDictionaries() != []
+        assert spChk.describeDict() != ("", "")
+
+        # Set to non-existent language
+        mp.setattr("enchant.dict_exists", lambda *a: False)
+        spChk.setLanguage("foo_bar")
+        assert isinstance(spChk._enchant, FakeEnchant)
+
+        # Block the broker from figuring out the language
+        mp.setattr("enchant.dict_exists", lambda *a: True)
         mp.setattr("enchant.Broker.request_dict", lambda *a: None)
         spChk.setLanguage("en_US")
         assert isinstance(spChk._enchant, FakeEnchant)

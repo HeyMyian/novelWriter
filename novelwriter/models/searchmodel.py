@@ -28,8 +28,8 @@ from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QAbstractItemModel, QModelIndex, Qt
 from PyQt6.QtGui import QBrush, QIcon
-from PyQt6.QtWidgets import QApplication
 
+from novelwriter import SHARED
 from novelwriter.common import minmax
 from novelwriter.types import (
     QtAlignRight,
@@ -170,7 +170,7 @@ class SearchResultModel(QAbstractItemModel):
         super().__init__()
         self._rows: list[SearchNode] = []
         self._map: dict[str, tuple[int, float]] = {}
-        self._color = QApplication.palette().highlight()
+        self._color = QBrush(SHARED.theme.accentText)
         logger.debug("Ready: SearchResultModel")
 
     def __del__(self) -> None:  # pragma: no cover
@@ -286,7 +286,7 @@ class SearchResultModel(QAbstractItemModel):
 
     def updateTheme(self) -> None:
         """Update the highlight color and document icons."""
-        self._color = QApplication.palette().highlight()
+        self._color = QBrush(SHARED.theme.accentText)
         if self._rows:
             for node in self._rows:
                 node.refreshIcon()

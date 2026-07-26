@@ -217,7 +217,7 @@ class GuiWelcome(NDialog):
     @pyqtSlot()
     def _browseForProject(self) -> None:
         """Browse for a project to open."""
-        if path := SHARED.getProjectPath(self, path=CONFIG.homePath(), allowZip=False):
+        if path := SHARED.getProjectFolder(self, CONFIG.homePath()):
             self._openProjectPath(path)
 
     @pyqtSlot()
@@ -630,7 +630,7 @@ class _NewProjectForm(QWidget):
         self.projPath = QLineEdit(self)
         self.projPath.setReadOnly(True)
 
-        self.browsePath = NIconToolButton(self, iSz, "browse:systemio")
+        self.browsePath = NIconToolButton(self, iSz, "browse:system")
         self.browsePath.setToolTip(self.tr("Browse for new project path"))
         self.browsePath.clicked.connect(self._doBrowse)
 

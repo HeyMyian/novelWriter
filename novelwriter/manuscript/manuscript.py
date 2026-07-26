@@ -42,6 +42,7 @@ from PyQt6.QtPrintSupport import QPrinter, QPrintPreviewDialog
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QApplication,
+    QFrame,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -559,6 +560,7 @@ class _DetailsWidget(QWidget):
         self.listView.setHeaderLabels([self.tr("Setting"), self.tr("Value")])
         self.listView.setIndentation(SHARED.theme.baseIconHeight)
         self.listView.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.listView.setFrameStyle(QFrame.Shape.NoFrame)
 
         # Assemble
         self.outerBox = QVBoxLayout()
@@ -707,6 +709,7 @@ class _OutlineWidget(QWidget):
         self.listView = QTreeWidget(self)
         self.listView.setHeaderHidden(True)
         self.listView.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.listView.setFrameStyle(QFrame.Shape.NoFrame)
         self.listView.itemClicked.connect(self._onItemClick)
 
         # Assemble
@@ -722,7 +725,7 @@ class _OutlineWidget(QWidget):
 
             tFont = SHARED.theme.guiFontB
             hFont = SHARED.theme.guiFontBU
-            tBrush = self.palette().highlight()
+            tBrush = SHARED.theme.accentText
 
             indent = False
             if root := self.listView.invisibleRootItem():  # pragma: no branch
@@ -778,6 +781,7 @@ class _StatisticsWidget(QWidget):
         self.listView.setHeaderLabels([self.tr("Count"), self.tr("Value")])
         self.listView.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         self.listView.setIndentation(SHARED.theme.baseIconHeight)
+        self.listView.setFrameStyle(QFrame.Shape.NoFrame)
 
         # Entries
         self.cTitles = QTreeWidgetItem(self.listView, [trStats(nwLabels.STATS_NAME[nwStats.TITLES]), ""])

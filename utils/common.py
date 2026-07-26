@@ -140,6 +140,27 @@ def copySourceCode(dst: Path) -> None:
             print("Copied:", relSrc, flush=True)
 
 
+def copyTestCode(dst: Path) -> None:
+    """Copy the novelwriter test suite to path."""
+    src = ROOT_DIR / "tests"
+    skipDirs = {"__pycache__", ".pytest_cache", "_temp", "temp"}
+    for item in src.glob("**/*"):
+        relSrc = item.relative_to(ROOT_DIR)
+        if skipDirs & set(relSrc.parts):
+            continue
+        if item.suffix in (".pyc", ".pyo"):
+            print("Ignored:", relSrc, flush=True)
+            continue
+        if item.parent.is_dir() and item.parent.name not in skipDirs:
+            dstDir = dst / relSrc.parent
+            if not dstDir.exists():
+                dstDir.mkdir(parents=True)
+                print("Created:", dstDir.relative_to(ROOT_DIR), flush=True)
+        if item.is_file():
+            shutil.copyfile(item, dst / relSrc)
+            print("Copied:", relSrc, flush=True)
+
+
 def copyPackageFiles(dst: Path, oldLicense: bool = False) -> None:
     """Copy files needed for packaging."""
     copyFiles = [
@@ -324,3 +345,9 @@ def removeRedundantQt(qtBase: Path) -> None:
     deleteFolder(qt6Dir / "qml")
     deleteFolder(plugDir / "qmlls")
     deleteFolder(plugDir / "qmllint")
+
+
+def extractBuildInfo(tool: str) -> dict[str, str]:
+    """Extract the build information from pyproject.toml."""
+    data = tomllib.loads((ROOT_DIR / "pyproject.toml").read_text(encoding="utf-8"))
+    return data["tool"]["novelwriter"]["build"][tool]
