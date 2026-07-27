@@ -73,7 +73,7 @@ fadedText   = "faded"
 errorText   = "red"
 accentText  = "purple"
 toggle      = "#313244"
-searchMatch = "blue:80"
+searchMatch = "default:80"
 
 [Syntax]
 background     = "#1e1e2e"
