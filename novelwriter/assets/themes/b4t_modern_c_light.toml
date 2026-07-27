@@ -27,7 +27,7 @@ scene    = "#eb75a2"
 note     = "#18ae9a"
 active   = "default"
 inactive = "faded"
-disabled = "#BBBDC9"
+disabled = "#babdc9"
 
 [Icon]
 tool      = "default"
