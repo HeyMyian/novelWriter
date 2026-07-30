@@ -37,13 +37,12 @@ from novelwriter.config import DEF_GUI_DARK, DEF_GUI_LIGHT, DEF_ICONS
 from novelwriter.constants import nwLabels
 from novelwriter.enum import nwItemClass, nwItemLayout, nwItemType, nwTheme
 from novelwriter.gui.theme import (
-    STYLES_BIG_TOOLBUTTON,
-    STYLES_MIN_TOOLBUTTON,
     GuiTheme,
     ThemeEntry,
     ThemeMeta,
     _listContent,
 )
+from novelwriter.types import QtIconNormal, QtIconOff, QtIconOn
 
 from tests.mocked import causeOSError
 
@@ -449,11 +448,6 @@ def testGuiTheme_Methods(monkeypatch):
         mp.setattr(QPalette, "windowText", lambda *a: mockWhite)
         assert theme.isDesktopDarkMode() is True
 
-    # Stylesheets
-    assert theme.getStyleSheet(STYLES_MIN_TOOLBUTTON) != ""
-    assert theme.getStyleSheet(STYLES_BIG_TOOLBUTTON) != ""
-    assert theme.getStyleSheet("stuff") == ""
-
 
 @pytest.mark.gui
 def testGuiTheme_ScanIcons(monkeypatch, tstPaths):
@@ -584,11 +578,11 @@ def testGuiTheme_LoadIcons():
     assert qIcon != iconCache._noIcon
 
     # Toggle icon
-    qIcon = iconCache.getToggleIcon("bullet:tool", 24, 24)
+    qIcon = iconCache.getToggleIcon("toggle-bullet:tool", 24, 24)
     assert isinstance(qIcon, QIcon)
     assert qIcon != iconCache._noIcon
-    pOn = qIcon.pixmap(24, 24, QIcon.Mode.Normal, QIcon.State.On)
-    pOff = qIcon.pixmap(24, 24, QIcon.Mode.Normal, QIcon.State.Off)
+    pOn = qIcon.pixmap(24, 24, QtIconNormal, QtIconOn)
+    pOff = qIcon.pixmap(24, 24, QtIconNormal, QtIconOff)
     assert pOn != pOff
 
     # Unknown toggle icon
@@ -827,7 +821,8 @@ def testGuiTheme_CheckTheme(theme):
             "fadedText",
             "errorText",
             "accentText",
-            "toggle",
+            "activeButton",
+            "activeBase",
             "searchMatch",
         ],
         "Syntax": [

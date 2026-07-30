@@ -54,7 +54,7 @@ from novelwriter.constants import nwLabels, trConst
 from novelwriter.core.status import CUSTOM_COL, ItemStatus, StatusEntry
 from novelwriter.enum import nwItemClass, nwStandardButton, nwStatusShape, nwToolButton
 from novelwriter.extensions.configlayout import NColorLabel, NFixedPage, NScrollableForm
-from novelwriter.extensions.modified import NComboBox, NDialog, NIconToolButton, NSpinBox
+from novelwriter.extensions.modified import NComboBox, NDialog, NIconButton, NSpinBox
 from novelwriter.extensions.pagedsidebar import NPagedSideBar
 from novelwriter.extensions.switch import NSwitch
 from novelwriter.types import QtRoleAccept, QtRoleReject, QtSizeMinimum, QtSizeMinimumExpanding, QtUserRole
@@ -468,22 +468,22 @@ class _StatusPage(NFixedPage):
             self._addItem(key, StatusEntry.duplicate(entry))
 
         # List Controls
-        self.addButton = SHARED.theme.getToolButton(nwToolButton.ADD, self)
+        self.addButton = SHARED.theme.getFlatButton(nwToolButton.ADD, self)
         self.addButton.clicked.connect(self._onItemCreate)
 
-        self.delButton = SHARED.theme.getToolButton(nwToolButton.REMOVE, self)
+        self.delButton = SHARED.theme.getFlatButton(nwToolButton.REMOVE, self)
         self.delButton.clicked.connect(self._onItemDelete)
 
-        self.upButton = SHARED.theme.getToolButton(nwToolButton.MOVE_UP, self)
+        self.upButton = SHARED.theme.getFlatButton(nwToolButton.MOVE_UP, self)
         self.upButton.clicked.connect(qtLambda(self._moveItem, -1))
 
-        self.downButton = SHARED.theme.getToolButton(nwToolButton.MOVE_DOWN, self)
+        self.downButton = SHARED.theme.getFlatButton(nwToolButton.MOVE_DOWN, self)
         self.downButton.clicked.connect(qtLambda(self._moveItem, 1))
 
-        self.importButton = SHARED.theme.getToolButton(nwToolButton.IMPORT, self)
+        self.importButton = SHARED.theme.getFlatButton(nwToolButton.IMPORT, self)
         self.importButton.clicked.connect(self._importLabels)
 
-        self.exportButton = SHARED.theme.getToolButton(nwToolButton.EXPORT, self)
+        self.exportButton = SHARED.theme.getFlatButton(nwToolButton.EXPORT, self)
         self.exportButton.clicked.connect(self._exportLabels)
 
         # Edit Form
@@ -508,12 +508,9 @@ class _StatusPage(NFixedPage):
         self.labelColor = QLabel(self.tr("Colour"), self)
         self.labelColor.setBuddy(self.iconColor)
 
-        buttonStyle = "QToolButton {padding: 0 4px;} QToolButton::menu-indicator {image: none;}"
-
-        self.colorButton = NIconToolButton(self, iSz)
+        self.colorButton = NIconButton(self, iSz)
         self.colorButton.setToolTip(self.tr("Colour"))
         self.colorButton.setSizePolicy(QtSizeMinimum, QtSizeMinimumExpanding)
-        self.colorButton.setStyleSheet(buttonStyle)
         self.colorButton.setEnabled(False)
         self.colorButton.clicked.connect(self._onColorSelect)
 
@@ -531,11 +528,10 @@ class _StatusPage(NFixedPage):
         buildMenu(self.shapeMenu.addMenu(self.tr("Blocks ...")), nwLabels.SHAPES_BLOCKS)
         self.shapeMenu.triggered.connect(self._shapeSelected)
 
-        self.shapeButton = NIconToolButton(self, iSz)
+        self.shapeButton = NIconButton(self, iSz)
         self.shapeButton.setMenu(self.shapeMenu)
         self.shapeButton.setToolTip(self.tr("Shape"))
         self.shapeButton.setSizePolicy(QtSizeMinimum, QtSizeMinimumExpanding)
-        self.shapeButton.setStyleSheet(buttonStyle)
         self.shapeButton.setEnabled(False)
 
         self.labelShape = QLabel(self.tr("Shape"), self)
@@ -838,10 +834,10 @@ class _ReplacePage(NFixedPage):
         self.listBox.setSortingEnabled(True)
 
         # List Controls
-        self.addButton = SHARED.theme.getToolButton(nwToolButton.ADD, self)
+        self.addButton = SHARED.theme.getFlatButton(nwToolButton.ADD, self)
         self.addButton.clicked.connect(self._onEntryCreated)
 
-        self.delButton = SHARED.theme.getToolButton(nwToolButton.REMOVE, self)
+        self.delButton = SHARED.theme.getFlatButton(nwToolButton.REMOVE, self)
         self.delButton.clicked.connect(self._onEntryDeleted)
 
         # Edit Form

@@ -50,7 +50,7 @@ from novelwriter.constants import nwLabels, trConst
 from novelwriter.core.projectsearch import DocSearch
 from novelwriter.enum import nwChange, nwDocMode
 from novelwriter.extensions.expandpanel import NExpandablePanel, NExpandablePanelGroup
-from novelwriter.extensions.modified import NIconToolButton
+from novelwriter.extensions.modified import NFlatIconButton
 from novelwriter.extensions.switchbox import NSwitchBox
 from novelwriter.models.searchmodel import SearchNode, SearchResultModel
 from novelwriter.text.autoreplace import LineEditAutoReplace
@@ -115,28 +115,28 @@ class GuiProjectSearch(QWidget):
         self.searchOpt.setIconSize(iSz)
         self.searchOpt.setContentsMargins(0, 0, 0, 0)
 
-        self.tbAuto = NIconToolButton(self, iSz, "search_auto:tool")
+        self.tbAuto = NFlatIconButton(self, iSz, "search_auto:tool")
         self.tbAuto.setToolTip(self.tr("Auto-Replace Symbols"))
         self.tbAuto.setCheckable(True)
         self.tbAuto.setChecked(CONFIG.searchProjAuto)
         self.tbAuto.clicked.connect(self._toggleAuto)
         self.searchOpt.addWidget(self.tbAuto)
 
-        self.tbCase = NIconToolButton(self, iSz, "search_case:tool")
+        self.tbCase = NFlatIconButton(self, iSz, "search_case:tool")
         self.tbCase.setToolTip(self.tr("Case Sensitive"))
         self.tbCase.setCheckable(True)
         self.tbCase.setChecked(CONFIG.searchProjCase)
         self.tbCase.clicked.connect(self._toggleCase)
         self.searchOpt.addWidget(self.tbCase)
 
-        self.tbWord = NIconToolButton(self, iSz, "search_word:tool")
+        self.tbWord = NFlatIconButton(self, iSz, "search_word:tool")
         self.tbWord.setToolTip(self.tr("Whole Words Only"))
         self.tbWord.setCheckable(True)
         self.tbWord.setChecked(CONFIG.searchProjWord)
         self.tbWord.clicked.connect(self._toggleWord)
         self.searchOpt.addWidget(self.tbWord)
 
-        self.tbRegEx = NIconToolButton(self, iSz, "search_regex:tool")
+        self.tbRegEx = NFlatIconButton(self, iSz, "search_regex:tool")
         self.tbRegEx.setToolTip(self.tr("RegEx Mode"))
         self.tbRegEx.setCheckable(True)
         self.tbRegEx.setChecked(CONFIG.searchProjRegEx)

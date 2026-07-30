@@ -44,9 +44,9 @@ from novelwriter.common import compact, describeFont, processDialogSymbols, qtAd
 from novelwriter.config import DEF_GUI_DARK, DEF_GUI_LIGHT, DEF_ICONS, DEF_TREECOL
 from novelwriter.constants import nwLabels, nwQuotes, nwUnicode, trConst
 from novelwriter.dialogs.quotes import GuiQuoteSelect
-from novelwriter.enum import nwStandardButton
+from novelwriter.enum import nwStandardButton, nwToolButton
 from novelwriter.extensions.configlayout import NColorLabel, NScrollableForm
-from novelwriter.extensions.modified import NComboBox, NDialog, NDoubleSpinBox, NIconToolButton, NSpinBox
+from novelwriter.extensions.modified import NComboBox, NDialog, NDoubleSpinBox, NIconButton, NSpinBox
 from novelwriter.extensions.pagedsidebar import NPagedSideBar
 from novelwriter.extensions.switch import NSwitch
 from novelwriter.types import QtAlignCenter, QtRoleAccept, QtRoleReject
@@ -241,8 +241,7 @@ class GuiPreferences(NDialog):
         self.guiFont.setMinimumWidth(162)
         self.guiFont.setText(describeFont(self._guiFont))
         self.guiFont.setCursorPosition(0)
-        self.guiFontButton = NIconToolButton(self, iSz, "font:tool")
-        self.guiFontButton.setToolTip(self.tr("Select Font"))
+        self.guiFontButton = SHARED.theme.getIconButton(nwToolButton.FONT, self)
         self.guiFontButton.clicked.connect(self._selectGuiFont)
         self.mainForm.addRow(
             self.tr("Application font"),
@@ -302,8 +301,7 @@ class GuiPreferences(NDialog):
         self.textFont.setMinimumWidth(162)
         self.textFont.setText(describeFont(CONFIG.textFont))
         self.textFont.setCursorPosition(0)
-        self.textFontButton = NIconToolButton(self, iSz, "font:tool")
-        self.textFontButton.setToolTip(self.tr("Select Font"))
+        self.textFontButton = SHARED.theme.getIconButton(nwToolButton.FONT, self)
         self.textFontButton.clicked.connect(self._selectTextFont)
         self.mainForm.addRow(
             self.tr("Document font"),
@@ -773,7 +771,7 @@ class GuiPreferences(NDialog):
         self.dialogLine.setAlignment(QtAlignCenter)
         self.dialogLine.setText(" ".join(CONFIG.dialogLine))
 
-        self.dialogLineButton = NIconToolButton(self, iSz, "add:add")
+        self.dialogLineButton = NIconButton(self, iSz, "add:add")
         self.dialogLineButton.setToolTip(self.tr("Select Symbol"))
         self.dialogLineButton.setMenu(self.mnLineSymbols)
 
@@ -940,7 +938,7 @@ class GuiPreferences(NDialog):
         self.fmtSQuoteOpen.setFixedWidth(boxFixed)
         self.fmtSQuoteOpen.setAlignment(QtAlignCenter)
         self.fmtSQuoteOpen.setText(CONFIG.fmtSQuoteOpen)
-        self.btnSQuoteOpen = NIconToolButton(self, iSz, "quote:tool")
+        self.btnSQuoteOpen = NIconButton(self, iSz, "quote:tool")
         self.btnSQuoteOpen.setToolTip(self.tr("Select Symbol"))
         self.btnSQuoteOpen.clicked.connect(self._changeSingleQuoteOpen)
         self.mainForm.addRow(
@@ -956,7 +954,7 @@ class GuiPreferences(NDialog):
         self.fmtSQuoteClose.setFixedWidth(boxFixed)
         self.fmtSQuoteClose.setAlignment(QtAlignCenter)
         self.fmtSQuoteClose.setText(CONFIG.fmtSQuoteClose)
-        self.btnSQuoteClose = NIconToolButton(self, iSz, "quote:tool")
+        self.btnSQuoteClose = NIconButton(self, iSz, "quote:tool")
         self.btnSQuoteClose.setToolTip(self.tr("Select Symbol"))
         self.btnSQuoteClose.clicked.connect(self._changeSingleQuoteClose)
         self.mainForm.addRow(
@@ -973,7 +971,7 @@ class GuiPreferences(NDialog):
         self.fmtDQuoteOpen.setFixedWidth(boxFixed)
         self.fmtDQuoteOpen.setAlignment(QtAlignCenter)
         self.fmtDQuoteOpen.setText(CONFIG.fmtDQuoteOpen)
-        self.btnDQuoteOpen = NIconToolButton(self, iSz, "quote:tool")
+        self.btnDQuoteOpen = NIconButton(self, iSz, "quote:tool")
         self.btnDQuoteOpen.setToolTip(self.tr("Select Symbol"))
         self.btnDQuoteOpen.clicked.connect(self._changeDoubleQuoteOpen)
         self.mainForm.addRow(
@@ -989,7 +987,7 @@ class GuiPreferences(NDialog):
         self.fmtDQuoteClose.setFixedWidth(boxFixed)
         self.fmtDQuoteClose.setAlignment(QtAlignCenter)
         self.fmtDQuoteClose.setText(CONFIG.fmtDQuoteClose)
-        self.btnDQuoteClose = NIconToolButton(self, iSz, "quote:tool")
+        self.btnDQuoteClose = NIconButton(self, iSz, "quote:tool")
         self.btnDQuoteClose.setToolTip(self.tr("Select Symbol"))
         self.btnDQuoteClose.clicked.connect(self._changeDoubleQuoteClose)
         self.mainForm.addRow(

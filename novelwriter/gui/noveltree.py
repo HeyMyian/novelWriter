@@ -44,9 +44,8 @@ from novelwriter import CONFIG, SHARED
 from novelwriter.common import minmax, qtAddAction, qtAddMenu, qtWeakLambda
 from novelwriter.constants import nwKeyWords, nwLabels, trConst
 from novelwriter.enum import nwChange, nwDocMode, nwNovelExtra, nwOutline
-from novelwriter.extensions.modified import NIconToolButton, NTreeView
+from novelwriter.extensions.modified import NFlatIconButton, NTreeView
 from novelwriter.extensions.novelselector import NovelSelector
-from novelwriter.gui.theme import STYLES_MIN_TOOLBUTTON
 from novelwriter.models.novelmodel import NovelModel
 from novelwriter.types import (
     QtHeaderStretch,
@@ -199,12 +198,12 @@ class GuiNovelToolBar(QWidget):
         self.novelValue.setSizePolicy(QtSizeExpanding, QtSizeExpanding)
         self.novelValue.novelSelectionChanged.connect(self.setCurrentRoot)
 
-        self.tbNovel = NIconToolButton(self, iSz, "cls_novel:root")
+        self.tbNovel = NFlatIconButton(self, iSz, "cls_novel:root")
         self.tbNovel.setToolTip(self.tr("Novel Root"))
         self.tbNovel.clicked.connect(self.novelValue.showPopup)
 
         # Refresh Button
-        self.tbRefresh = NIconToolButton(self, iSz, "refresh:change")
+        self.tbRefresh = NFlatIconButton(self, iSz, "refresh:change")
         self.tbRefresh.setToolTip(self.tr("Refresh"))
         self.tbRefresh.clicked.connect(self.forceRefreshNovelTree)
 
@@ -223,7 +222,7 @@ class GuiNovelToolBar(QWidget):
         self.aLastColSize = qtAddAction(self.mLastCol, self.tr("Column Size"))
         self.aLastColSize.triggered.connect(self._selectLastColumnSize)
 
-        self.tbMore = NIconToolButton(self, iSz, "more_vertical:default")
+        self.tbMore = NFlatIconButton(self, iSz, "more_vertical:default")
         self.tbMore.setToolTip(self.tr("More Options"))
         self.tbMore.setMenu(self.mMore)
 
@@ -257,11 +256,6 @@ class GuiNovelToolBar(QWidget):
             self.tbNovel.refreshTheme()
             self.tbRefresh.refreshTheme()
             self.tbMore.refreshTheme()
-
-        buttonStyle = SHARED.theme.getStyleSheet(STYLES_MIN_TOOLBUTTON)
-        self.tbNovel.setStyleSheet(buttonStyle)
-        self.tbRefresh.setStyleSheet(buttonStyle)
-        self.tbMore.setStyleSheet(buttonStyle)
 
         self.novelValue.setStyleSheet(
             "QComboBox {border-style: none; padding-left: 0;} QComboBox::drop-down {border-style: none}"

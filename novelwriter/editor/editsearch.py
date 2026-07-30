@@ -25,15 +25,15 @@ import logging
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QEvent, QObject, QRegularExpression, Qt, pyqtSlot
+from PyQt6.QtCore import QEvent, QObject, QRegularExpression, pyqtSlot
 from PyQt6.QtGui import QKeyEvent, QPalette
-from PyQt6.QtWidgets import QApplication, QFrame, QGridLayout, QLabel, QLineEdit, QToolBar
+from PyQt6.QtWidgets import QApplication, QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwConst
-from novelwriter.extensions.modified import NIconToggleButton, NIconToolButton
+from novelwriter.extensions.modified import NFlatIconButton
 from novelwriter.text.autoreplace import LineEditAutoReplace
-from novelwriter.types import QtAlignLeft, QtAlignRight, QtKeyEscape, QtModShift
+from novelwriter.types import QtKeyEscape, QtModShift
 
 if TYPE_CHECKING:
     from novelwriter.editor.editor import GuiDocEditor
@@ -81,103 +81,95 @@ class GuiDocEditSearch(QFrame):
         self.replaceBox.textEdited.connect(self._editReplaceText)
         self.replaceBox.installEventFilter(self)
 
-        self.searchOpt = QToolBar(self)
-        self.searchOpt.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
-        self.searchOpt.setIconSize(iSz)
-        self.searchOpt.setContentsMargins(0, 0, 0, 0)
-
-        self.searchLabel = QLabel(self.tr("Search"), self)
-        self.searchLabel.setIndent(6)
-
         self.resultLabel = QLabel("?/?", self)
 
-        self.tbAuto = NIconToolButton(self, iSz, "search_auto:tool")
+        self.tbAuto = NFlatIconButton(self, iSz, "search_auto:tool")
         self.tbAuto.setToolTip(self.tr("Auto-Replace Symbols"))
         self.tbAuto.setCheckable(True)
         self.tbAuto.clicked.connect(self._doToggleAuto)
-        self.searchOpt.addWidget(self.tbAuto)
         self.setAutoReplaceEnabled(CONFIG.doReplace)
 
-        self.tbCase = NIconToolButton(self, iSz, "search_case:tool")
+        self.tbCase = NFlatIconButton(self, iSz, "search_case:tool")
         self.tbCase.setToolTip(self.tr("Case Sensitive"))
         self.tbCase.setCheckable(True)
         self.tbCase.setChecked(CONFIG.searchCase)
         self.tbCase.clicked.connect(self._doToggleCase)
-        self.searchOpt.addWidget(self.tbCase)
 
-        self.tbWord = NIconToolButton(self, iSz, "search_word:tool")
+        self.tbWord = NFlatIconButton(self, iSz, "search_word:tool")
         self.tbWord.setToolTip(self.tr("Whole Words Only"))
         self.tbWord.setCheckable(True)
         self.tbWord.setChecked(CONFIG.searchWord)
         self.tbWord.clicked.connect(self._doToggleWord)
-        self.searchOpt.addWidget(self.tbWord)
 
-        self.tbRegEx = NIconToolButton(self, iSz, "search_regex:tool")
+        self.tbRegEx = NFlatIconButton(self, iSz, "search_regex:tool")
         self.tbRegEx.setToolTip(self.tr("RegEx Mode"))
         self.tbRegEx.setCheckable(True)
         self.tbRegEx.setChecked(CONFIG.searchRegEx)
         self.tbRegEx.clicked.connect(self._doToggleRegEx)
-        self.searchOpt.addWidget(self.tbRegEx)
 
-        self.tbLoop = NIconToolButton(self, iSz, "search_loop:tool")
+        self.tbLoop = NFlatIconButton(self, iSz, "search_loop:tool")
         self.tbLoop.setToolTip(self.tr("Loop Search"))
         self.tbLoop.setCheckable(True)
         self.tbLoop.setChecked(CONFIG.searchLoop)
         self.tbLoop.clicked.connect(self._doToggleLoop)
-        self.searchOpt.addWidget(self.tbLoop)
 
-        self.tbProject = NIconToolButton(self, iSz, "search_project:tool")
+        self.tbProject = NFlatIconButton(self, iSz, "search_project:tool")
         self.tbProject.setToolTip(self.tr("Search Next File"))
         self.tbProject.setCheckable(True)
         self.tbProject.setChecked(CONFIG.searchNextFile)
         self.tbProject.clicked.connect(self._doToggleProject)
-        self.searchOpt.addWidget(self.tbProject)
 
-        self.searchOpt.addSeparator()
-
-        self.tbMatchCap = NIconToolButton(self, iSz, "search_preserve:tool")
+        self.tbMatchCap = NFlatIconButton(self, iSz, "search_preserve:tool")
         self.tbMatchCap.setToolTip(self.tr("Preserve Case"))
         self.tbMatchCap.setCheckable(True)
         self.tbMatchCap.setChecked(CONFIG.searchMatchCap)
         self.tbMatchCap.clicked.connect(self._doToggleMatchCap)
-        self.searchOpt.addWidget(self.tbMatchCap)
 
-        self.searchOpt.addSeparator()
-
-        self.tbCancel = NIconToolButton(self, iSz, "search_cancel:tool")
+        self.tbCancel = NFlatIconButton(self, iSz, "search_cancel:tool")
         self.tbCancel.setToolTip(self.tr("Close Search"))
         self.tbCancel.clicked.connect(self.closeSearch)
-        self.searchOpt.addWidget(self.tbCancel)
 
         # Buttons
         # =======
 
-        self.showReplace = NIconToggleButton(self, iSz, "unfold:default")
+        self.showReplace = NFlatIconButton(self, iSz, "toggle-unfold:default")
         self.showReplace.toggled.connect(self._doToggleReplace)
 
-        self.searchButton = NIconToolButton(self, iSz, "search:action")
+        self.searchButton = NFlatIconButton(self, iSz, "search:action")
         self.searchButton.setToolTip(self.tr("Find in current document"))
         self.searchButton.clicked.connect(self._doSearch)
 
-        self.replaceButton = NIconToolButton(self, iSz, "search_replace:apply")
+        self.replaceButton = NFlatIconButton(self, iSz, "search_replace:apply")
         self.replaceButton.setToolTip(self.tr("Find and replace in current document"))
         self.replaceButton.clicked.connect(self._doReplace)
 
-        self.mainBox.addWidget(self.searchLabel, 0, 0, 1, 2, QtAlignLeft)
-        self.mainBox.addWidget(self.searchOpt, 0, 2, 1, 3, QtAlignRight)
+        # Assemble
+        # ========
+
+        self.searchOpt = QHBoxLayout()
+        self.searchOpt.addWidget(self.tbAuto)
+        self.searchOpt.addWidget(self.tbCase)
+        self.searchOpt.addWidget(self.tbWord)
+        self.searchOpt.addWidget(self.tbRegEx)
+        self.searchOpt.addWidget(self.tbLoop)
+        self.searchOpt.addWidget(self.tbProject)
+        self.searchOpt.addWidget(self.tbMatchCap)
+        self.searchOpt.addStretch(1)
+        self.searchOpt.addWidget(self.tbCancel)
+        self.searchOpt.setContentsMargins(0, 0, 0, 0)
+
+        self.mainBox.addLayout(self.searchOpt, 0, 1, 1, 3)
         self.mainBox.addWidget(self.showReplace, 1, 0, 1, 1)
-        self.mainBox.addWidget(self.searchBox, 1, 1, 1, 2)
-        self.mainBox.addWidget(self.searchButton, 1, 3, 1, 1)
-        self.mainBox.addWidget(self.resultLabel, 1, 4, 1, 1)
-        self.mainBox.addWidget(self.replaceBox, 2, 1, 1, 2)
-        self.mainBox.addWidget(self.replaceButton, 2, 3, 1, 1)
+        self.mainBox.addWidget(self.searchBox, 1, 1, 1, 1)
+        self.mainBox.addWidget(self.searchButton, 1, 2, 1, 1)
+        self.mainBox.addWidget(self.resultLabel, 1, 3, 1, 1)
+        self.mainBox.addWidget(self.replaceBox, 2, 1, 1, 1)
+        self.mainBox.addWidget(self.replaceButton, 2, 2, 1, 1)
 
         self.mainBox.setColumnStretch(0, 0)
         self.mainBox.setColumnStretch(1, 0)
         self.mainBox.setColumnStretch(2, 1)
         self.mainBox.setColumnStretch(3, 0)
-        self.mainBox.setColumnStretch(4, 0)
-        self.mainBox.setColumnStretch(5, 0)
         self.mainBox.setSpacing(2)
         self.mainBox.setContentsMargins(6, 6, 6, 6)
 
@@ -274,7 +266,6 @@ class GuiDocEditSearch(QFrame):
         self.setFont(SHARED.theme.guiFont)
         self.searchBox.setFont(SHARED.theme.guiFontSmall)
         self.replaceBox.setFont(SHARED.theme.guiFontSmall)
-        self.searchLabel.setFont(SHARED.theme.guiFontSmall)
         self.resultLabel.setFont(SHARED.theme.guiFontSmall)
         self.resultLabel.setMinimumWidth(SHARED.theme.getTextWidth("?/?", SHARED.theme.guiFontSmall))
 
@@ -300,10 +291,6 @@ class GuiDocEditSearch(QFrame):
             self.searchButton.refreshTheme()
             self.replaceButton.refreshTheme()
             self.showReplace.refreshTheme()
-
-        # Set stylesheets
-        self.searchOpt.setStyleSheet("QToolBar {padding: 0;}")
-        self.showReplace.setStyleSheet("QToolButton {border: none; background: transparent;}")
 
     def cycleFocus(self) -> bool:
         """Cycle focus on tab key press. This just alternates focus

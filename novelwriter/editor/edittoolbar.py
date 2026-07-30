@@ -32,7 +32,7 @@ from PyQt6.QtWidgets import QVBoxLayout, QWidget
 from novelwriter import SHARED
 from novelwriter.common import qtWeakLambda
 from novelwriter.enum import nwDocAction
-from novelwriter.extensions.modified import NIconToolButton
+from novelwriter.extensions.modified import NFlatIconButton
 
 if TYPE_CHECKING:
     from novelwriter.editor.editor import GuiDocEditor
@@ -60,47 +60,47 @@ class GuiDocToolBar(QWidget):
         # General Buttons
         # ===============
 
-        self.tbBoldMD = NIconToolButton(self, iSz, "fmt_bold:markdown")
+        self.tbBoldMD = NFlatIconButton(self, iSz, "fmt_bold:markdown")
         self.tbBoldMD.setToolTip(self.tr("Markdown Bold"))
         self.tbBoldMD.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.MD_BOLD))
 
-        self.tbItalicMD = NIconToolButton(self, iSz, "fmt_italic:markdown")
+        self.tbItalicMD = NFlatIconButton(self, iSz, "fmt_italic:markdown")
         self.tbItalicMD.setToolTip(self.tr("Markdown Italic"))
         self.tbItalicMD.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.MD_ITALIC))
 
-        self.tbStrikeMD = NIconToolButton(self, iSz, "fmt_strike:markdown")
+        self.tbStrikeMD = NFlatIconButton(self, iSz, "fmt_strike:markdown")
         self.tbStrikeMD.setToolTip(self.tr("Markdown Strikethrough"))
         self.tbStrikeMD.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.MD_STRIKE))
 
-        self.tbMarkMD = NIconToolButton(self, iSz, "fmt_mark:markdown")
+        self.tbMarkMD = NFlatIconButton(self, iSz, "fmt_mark:markdown")
         self.tbMarkMD.setToolTip(self.tr("Markdown Highlight"))
         self.tbMarkMD.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.MD_MARK))
 
-        self.tbBold = NIconToolButton(self, iSz, "fmt_bold:shortcode")
+        self.tbBold = NFlatIconButton(self, iSz, "fmt_bold:shortcode")
         self.tbBold.setToolTip(self.tr("Shortcode Bold"))
         self.tbBold.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.SC_BOLD))
 
-        self.tbItalic = NIconToolButton(self, iSz, "fmt_italic:shortcode")
+        self.tbItalic = NFlatIconButton(self, iSz, "fmt_italic:shortcode")
         self.tbItalic.setToolTip(self.tr("Shortcode Italic"))
         self.tbItalic.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.SC_ITALIC))
 
-        self.tbStrike = NIconToolButton(self, iSz, "fmt_strike:shortcode")
+        self.tbStrike = NFlatIconButton(self, iSz, "fmt_strike:shortcode")
         self.tbStrike.setToolTip(self.tr("Shortcode Strikethrough"))
         self.tbStrike.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.SC_STRIKE))
 
-        self.tbUnderline = NIconToolButton(self, iSz, "fmt_underline:shortcode")
+        self.tbUnderline = NFlatIconButton(self, iSz, "fmt_underline:shortcode")
         self.tbUnderline.setToolTip(self.tr("Shortcode Underline"))
         self.tbUnderline.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.SC_ULINE))
 
-        self.tbMark = NIconToolButton(self, iSz, "fmt_mark:shortcode")
+        self.tbMark = NFlatIconButton(self, iSz, "fmt_mark:shortcode")
         self.tbMark.setToolTip(self.tr("Shortcode Highlight"))
         self.tbMark.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.SC_MARK))
 
-        self.tbSuperscript = NIconToolButton(self, iSz, "fmt_superscript:shortcode")
+        self.tbSuperscript = NFlatIconButton(self, iSz, "fmt_superscript:shortcode")
         self.tbSuperscript.setToolTip(self.tr("Shortcode Superscript"))
         self.tbSuperscript.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.SC_SUP))
 
-        self.tbSubscript = NIconToolButton(self, iSz, "fmt_subscript:shortcode")
+        self.tbSubscript = NFlatIconButton(self, iSz, "fmt_subscript:shortcode")
         self.tbSubscript.setToolTip(self.tr("Shortcode Subscript"))
         self.tbSubscript.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.SC_SUB))
 

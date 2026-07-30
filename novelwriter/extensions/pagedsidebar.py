@@ -33,6 +33,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from novelwriter import SHARED
 from novelwriter.types import (
     QtAlignLeft,
     QtMouseOver,
@@ -151,7 +152,7 @@ class _PagedToolButton(QToolButton):
         palette = self.palette()
 
         if opt.state & QtMouseOver == QtMouseOver:  # pragma: no cover
-            painter.setBrush(palette.light())
+            painter.setBrush(SHARED.theme.activeBase)
             painter.drawRoundedRect(0, 0, width, height, 4, 4)
 
         if self.isChecked():

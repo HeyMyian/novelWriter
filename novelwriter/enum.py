@@ -294,6 +294,7 @@ class nwToolButton(Enum):
     BROWSE = 6
     EDIT = 7
     REVERT = 8
+    FONT = 9
 
 
 class nwState(Enum):

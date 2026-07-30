@@ -25,16 +25,15 @@ import logging
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import Qt, pyqtSlot
+from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtGui import QPalette, QPixmap, QTextCursor
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QToolButton, QWidget
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import qtWeakLambda
 from novelwriter.constants import nwLabels, nwStats, trStats
 from novelwriter.enum import nwVimMode
-from novelwriter.extensions.modified import NIconToolButton
-from novelwriter.gui.theme import STYLES_MIN_TOOLBUTTON
+from novelwriter.extensions.modified import NFlatIconButton, NFlatIconTextButton
 from novelwriter.types import QtAlignLeftTop, QtBlack
 
 if TYPE_CHECKING:
@@ -282,37 +281,31 @@ class GuiDocViewFooter(QWidget):
         self.setAutoFillBackground(True)
 
         # Show/Hide Details
-        self.showHide = NIconToolButton(self, iSz, "panel:default")
+        self.showHide = NFlatIconButton(self, iSz, "panel:default")
         self.showHide.setToolTip(self.tr("Show/Hide Viewer Panel"))
         self.showHide.clicked.connect(qtWeakLambda(self._emitTogglePanelVisibility))
 
         # Show Comments
-        self.showComments = QToolButton(self)
-        self.showComments.setText(self.tr("Comments"))
+        self.showComments = NFlatIconTextButton(self, iSz, "toggle-bullet:action", self.tr("Comments"))
         self.showComments.setToolTip(self.tr("Show Comments"))
         self.showComments.setCheckable(True)
         self.showComments.setChecked(CONFIG.viewComments)
-        self.showComments.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.showComments.setIconSize(iSz)
         self.showComments.toggled.connect(self._doToggleComments)
 
         # Show Synopsis
-        self.showSynopsis = QToolButton(self)
-        self.showSynopsis.setText(self.tr("Synopsis"))
+        self.showSynopsis = NFlatIconTextButton(self, iSz, "toggle-bullet:action", self.tr("Synopsis"))
         self.showSynopsis.setToolTip(self.tr("Show Synopsis Comments"))
         self.showSynopsis.setCheckable(True)
         self.showSynopsis.setChecked(CONFIG.viewSynopsis)
-        self.showSynopsis.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.showSynopsis.setIconSize(iSz)
         self.showSynopsis.toggled.connect(self._doToggleSynopsis)
 
         # Show Notes
-        self.showNotes = QToolButton(self)
-        self.showNotes.setText(self.tr("Notes"))
+        self.showNotes = NFlatIconTextButton(self, iSz, "toggle-bullet:action", self.tr("Notes"))
         self.showNotes.setToolTip(self.tr("Show Notes"))
         self.showNotes.setCheckable(True)
         self.showNotes.setChecked(CONFIG.viewNotes)
-        self.showNotes.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.showNotes.setIconSize(iSz)
         self.showNotes.toggled.connect(self._doToggleNotes)
 
@@ -352,21 +345,11 @@ class GuiDocViewFooter(QWidget):
         """Update theme elements."""
         logger.debug("Theme Update: GuiDocViewFooter")
 
-        fPx = int(0.9 * SHARED.theme.fontPixelSize)
-        bulletIcon = SHARED.theme.getToggleIcon("bullet:action", fPx, fPx)
-
         if not init:
             self.showHide.refreshTheme()
-
-        self.showComments.setIcon(bulletIcon)
-        self.showSynopsis.setIcon(bulletIcon)
-        self.showNotes.setIcon(bulletIcon)
-
-        buttonStyle = SHARED.theme.getStyleSheet(STYLES_MIN_TOOLBUTTON)
-        self.showHide.setStyleSheet(buttonStyle)
-        self.showComments.setStyleSheet(buttonStyle)
-        self.showSynopsis.setStyleSheet(buttonStyle)
-        self.showNotes.setStyleSheet(buttonStyle)
+            self.showComments.refreshTheme()
+            self.showSynopsis.refreshTheme()
+            self.showNotes.refreshTheme()
 
         self.matchColors()
 

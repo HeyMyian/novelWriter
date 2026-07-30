@@ -28,12 +28,12 @@ from enum import Enum
 
 from PyQt6.QtCore import QEvent, QPoint, QRectF, Qt, QTimer, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QColor, QEnterEvent, QPainter, QPainterPath, QPaintEvent, QPen, QRegion
-from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QToolButton, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from novelwriter import SHARED
 from novelwriter.core.indexdata import TT_NONE
 from novelwriter.enum import nwDocMode
-from novelwriter.gui.theme import STYLES_MIN_TOOLBUTTON
+from novelwriter.extensions.modified import NFlatIconTextButton
 from novelwriter.types import QtPaintAntiAlias
 
 logger = logging.getLogger(__name__)
@@ -74,6 +74,8 @@ class GuiDocHoverCard(QFrame):
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.setFrameStyle(QFrame.Shape.NoFrame)
 
+        iSz = SHARED.theme.baseIconSize
+
         self._tag = ""
         self._cache: dict[str, str] = {}
         self._backColor = QColor()
@@ -92,16 +94,10 @@ class GuiDocHoverCard(QFrame):
         self._separator = QWidget(self)
         self._separator.setFixedHeight(1)
 
-        self._viewBtn = QToolButton(self)
-        self._viewBtn.setText(self.tr("View"))
-        self._viewBtn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self._viewBtn.setAutoRaise(True)
+        self._viewBtn = NFlatIconTextButton(self, iSz, "view:action", self.tr("View"))
         self._viewBtn.clicked.connect(self._onViewClicked)
 
-        self._editBtn = QToolButton(self)
-        self._editBtn.setText(self.tr("Edit"))
-        self._editBtn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self._editBtn.setAutoRaise(True)
+        self._editBtn = NFlatIconTextButton(self, iSz, "edit:change", self.tr("Edit"))
         self._editBtn.clicked.connect(self._onEditClicked)
 
         self._buttonBox = QHBoxLayout()
@@ -127,19 +123,14 @@ class GuiDocHoverCard(QFrame):
     def updateTheme(self) -> None:
         """Update the widget's colours to match the editor's theme."""
         syntax = SHARED.theme.syntaxTheme
-        iSz = SHARED.theme.baseIconSize
 
         self._backColor = syntax.back
         self._borderColor = syntax.hidden
         self._label.setStyleSheet(f"color: {syntax.text.name()};")
         self._separator.setStyleSheet(f"background-color: {syntax.hidden.name()};")
 
-        buttonStyle = SHARED.theme.getStyleSheet(STYLES_MIN_TOOLBUTTON)
-        for button, icon in ((self._viewBtn, "view:action"), (self._editBtn, "edit:change")):
-            button.setIcon(SHARED.theme.getIcon(icon))
-            button.setIconSize(iSz)
-            button.setFont(SHARED.theme.guiFontSmall)
-            button.setStyleSheet(buttonStyle)
+        self._viewBtn.setFont(SHARED.theme.guiFontSmall)
+        self._editBtn.setFont(SHARED.theme.guiFontSmall)
 
         self.clearCache()  # The HTML has hardcoded colours
         self.update()

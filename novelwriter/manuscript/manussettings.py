@@ -52,7 +52,7 @@ from novelwriter.common import describeFont, fontMatcher, languageName, processL
 from novelwriter.constants import nwHeadFmt, nwKeyWords, nwLabels, nwStyles, nwUnicode, trConst
 from novelwriter.enum import nwStandardButton, nwToolButton
 from novelwriter.extensions.configlayout import NColorLabel, NFixedPage, NScrollableForm, NScrollablePage
-from novelwriter.extensions.modified import NComboBox, NDoubleSpinBox, NIconToolButton, NSpinBox, NToolDialog
+from novelwriter.extensions.modified import NComboBox, NDoubleSpinBox, NIconButton, NSpinBox, NToolDialog
 from novelwriter.extensions.pagedsidebar import NPagedSideBar
 from novelwriter.extensions.switch import NSwitch
 from novelwriter.extensions.switchbox import NSwitchBox
@@ -377,15 +377,15 @@ class _FilterTab(NFixedPage):
         # Filters
         # =======
 
-        self.includedButton = NIconToolButton(self, iSz)
+        self.includedButton = NIconButton(self, iSz)
         self.includedButton.setToolTip(self.tr("Always included"))
         self.includedButton.clicked.connect(qtLambda(self._setSelectedMode, self.F_INCLUDED))
 
-        self.excludedButton = NIconToolButton(self, iSz)
+        self.excludedButton = NIconButton(self, iSz)
         self.excludedButton.setToolTip(self.tr("Always excluded"))
         self.excludedButton.clicked.connect(qtLambda(self._setSelectedMode, self.F_EXCLUDED))
 
-        self.resetButton = NIconToolButton(self, iSz)
+        self.resetButton = NIconButton(self, iSz)
         self.resetButton.setToolTip(self.tr("Reset to default"))
         self.resetButton.clicked.connect(qtLambda(self._setSelectedMode, self.F_FILTERED))
 
@@ -625,7 +625,7 @@ class _HeadingsTab(NScrollablePage):
         self.lblPart = QLabel(self._build.getLabel("headings.fmtPart"), self)
         self.fmtPart = QLineEdit("", self)
         self.fmtPart.setReadOnly(True)
-        self.btnPart = SHARED.theme.getToolButton(nwToolButton.EDIT, self)
+        self.btnPart = SHARED.theme.getIconButton(nwToolButton.EDIT, self)
         self.btnPart.clicked.connect(qtLambda(self._editHeading, self.EDIT_TITLE))
         self.swtPart = NSwitch(self, height=iPx)
         self.hdePart = QLabel(trHide, self)
@@ -642,7 +642,7 @@ class _HeadingsTab(NScrollablePage):
         self.lblChapter = QLabel(self._build.getLabel("headings.fmtChapter"), self)
         self.fmtChapter = QLineEdit("", self)
         self.fmtChapter.setReadOnly(True)
-        self.btnChapter = SHARED.theme.getToolButton(nwToolButton.EDIT, self)
+        self.btnChapter = SHARED.theme.getIconButton(nwToolButton.EDIT, self)
         self.btnChapter.clicked.connect(qtLambda(self._editHeading, self.EDIT_CHAPTER))
         self.swtChapter = NSwitch(self, height=iPx)
         self.hdeChapter = QLabel(trHide, self)
@@ -659,7 +659,7 @@ class _HeadingsTab(NScrollablePage):
         self.lblUnnumbered = QLabel(self._build.getLabel("headings.fmtUnnumbered"), self)
         self.fmtUnnumbered = QLineEdit("", self)
         self.fmtUnnumbered.setReadOnly(True)
-        self.btnUnnumbered = SHARED.theme.getToolButton(nwToolButton.EDIT, self)
+        self.btnUnnumbered = SHARED.theme.getIconButton(nwToolButton.EDIT, self)
         self.btnUnnumbered.clicked.connect(qtLambda(self._editHeading, self.EDIT_UNNUM))
         self.swtUnnumbered = NSwitch(self, height=iPx)
         self.hdeUnnumbered = QLabel(trHide, self)
@@ -676,7 +676,7 @@ class _HeadingsTab(NScrollablePage):
         self.lblScene = QLabel(self._build.getLabel("headings.fmtScene"), self)
         self.fmtScene = QLineEdit("", self)
         self.fmtScene.setReadOnly(True)
-        self.btnScene = SHARED.theme.getToolButton(nwToolButton.EDIT, self)
+        self.btnScene = SHARED.theme.getIconButton(nwToolButton.EDIT, self)
         self.btnScene.clicked.connect(qtLambda(self._editHeading, self.EDIT_SCENE))
         self.swtScene = NSwitch(self, height=iPx)
         self.hdeScene = QLabel(trHide, self)
@@ -693,7 +693,7 @@ class _HeadingsTab(NScrollablePage):
         self.lblAScene = QLabel(self._build.getLabel("headings.fmtAltScene"), self)
         self.fmtAScene = QLineEdit("", self)
         self.fmtAScene.setReadOnly(True)
-        self.btnAScene = SHARED.theme.getToolButton(nwToolButton.EDIT, self)
+        self.btnAScene = SHARED.theme.getIconButton(nwToolButton.EDIT, self)
         self.btnAScene.clicked.connect(qtLambda(self._editHeading, self.EDIT_HSCENE))
         self.swtAScene = NSwitch(self, height=iPx)
         self.hdeAScene = QLabel(trHide, self)
@@ -710,7 +710,7 @@ class _HeadingsTab(NScrollablePage):
         self.lblSection = QLabel(self._build.getLabel("headings.fmtSection"), self)
         self.fmtSection = QLineEdit("", self)
         self.fmtSection.setReadOnly(True)
-        self.btnSection = SHARED.theme.getToolButton(nwToolButton.EDIT, self)
+        self.btnSection = SHARED.theme.getIconButton(nwToolButton.EDIT, self)
         self.btnSection.clicked.connect(qtLambda(self._editHeading, self.EDIT_SECTION))
         self.swtSection = NSwitch(self, height=iPx)
         self.hdeSection = QLabel(trHide, self)
@@ -1086,7 +1086,7 @@ class _FormattingTab(NScrollableForm):
         for keyword in nwKeyWords.VALID_KEYS:
             qtAddAction(self.mnKeywords, trConst(nwLabels.KEY_NAME[keyword]), data=keyword)
 
-        self.ignoredKeywordsButton = NIconToolButton(self, iSz, "add:add")
+        self.ignoredKeywordsButton = NIconButton(self, iSz, "add:add")
         self.ignoredKeywordsButton.setToolTip(self.tr("Select Keyword"))
         self.ignoredKeywordsButton.setMenu(self.mnKeywords)
         self.addRow(
@@ -1111,8 +1111,7 @@ class _FormattingTab(NScrollableForm):
         # Text Font
         self.textFont = QLineEdit(self)
         self.textFont.setReadOnly(True)
-        self.btnTextFont = NIconToolButton(self, iSz, "font:tool")
-        self.btnTextFont.setToolTip(self.tr("Select Font"))
+        self.btnTextFont = SHARED.theme.getIconButton(nwToolButton.FONT, self)
         self.btnTextFont.clicked.connect(self._selectFont)
         self.addRow(
             self._build.getLabel("format.textFont"),
@@ -1190,7 +1189,7 @@ class _FormattingTab(NScrollableForm):
         self.titleMarginT.setFixedNumbersWidth(4)
         self.titleMarginB = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
         self.titleMarginB.setFixedNumbersWidth(4)
-        self.btnTitleProps = SHARED.theme.getToolButton(nwToolButton.REVERT, self)
+        self.btnTitleProps = SHARED.theme.getIconButton(nwToolButton.REVERT, self)
         self.btnTitleProps.clicked.connect(self._resetTitleProps)
 
         self.pixH0S = QLabel(self)
@@ -1219,7 +1218,7 @@ class _FormattingTab(NScrollableForm):
         self.h1MarginT.setFixedNumbersWidth(4)
         self.h1MarginB = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
         self.h1MarginB.setFixedNumbersWidth(4)
-        self.btnH1Props = SHARED.theme.getToolButton(nwToolButton.REVERT, self)
+        self.btnH1Props = SHARED.theme.getIconButton(nwToolButton.REVERT, self)
         self.btnH1Props.clicked.connect(self._resetH1Props)
 
         self.pixH1S = QLabel(self)
@@ -1248,7 +1247,7 @@ class _FormattingTab(NScrollableForm):
         self.h2MarginT.setFixedNumbersWidth(4)
         self.h2MarginB = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
         self.h2MarginB.setFixedNumbersWidth(4)
-        self.btnH2Props = SHARED.theme.getToolButton(nwToolButton.REVERT, self)
+        self.btnH2Props = SHARED.theme.getIconButton(nwToolButton.REVERT, self)
         self.btnH2Props.clicked.connect(self._resetH2Props)
 
         self.pixH2S = QLabel(self)
@@ -1277,7 +1276,7 @@ class _FormattingTab(NScrollableForm):
         self.h3MarginT.setFixedNumbersWidth(4)
         self.h3MarginB = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
         self.h3MarginB.setFixedNumbersWidth(4)
-        self.btnH3Props = SHARED.theme.getToolButton(nwToolButton.REVERT, self)
+        self.btnH3Props = SHARED.theme.getIconButton(nwToolButton.REVERT, self)
         self.btnH3Props.clicked.connect(self._resetH3Props)
 
         self.pixH3S = QLabel(self)
@@ -1306,7 +1305,7 @@ class _FormattingTab(NScrollableForm):
         self.h4MarginT.setFixedNumbersWidth(4)
         self.h4MarginB = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
         self.h4MarginB.setFixedNumbersWidth(4)
-        self.btnH4Props = SHARED.theme.getToolButton(nwToolButton.REVERT, self)
+        self.btnH4Props = SHARED.theme.getIconButton(nwToolButton.REVERT, self)
         self.btnH4Props.clicked.connect(self._resetH4Props)
 
         self.pixH4S = QLabel(self)
@@ -1333,7 +1332,7 @@ class _FormattingTab(NScrollableForm):
         self.textMarginT.setFixedNumbersWidth(4)
         self.textMarginB = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
         self.textMarginB.setFixedNumbersWidth(4)
-        self.btnTextProps = SHARED.theme.getToolButton(nwToolButton.REVERT, self)
+        self.btnTextProps = SHARED.theme.getIconButton(nwToolButton.REVERT, self)
         self.btnTextProps.clicked.connect(self._resetTextProps)
 
         self.pixTTT = QLabel(self)
@@ -1350,7 +1349,7 @@ class _FormattingTab(NScrollableForm):
         self.sepMarginT.setFixedNumbersWidth(4)
         self.sepMarginB = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
         self.sepMarginB.setFixedNumbersWidth(4)
-        self.btnSepProps = SHARED.theme.getToolButton(nwToolButton.REVERT, self)
+        self.btnSepProps = SHARED.theme.getIconButton(nwToolButton.REVERT, self)
         self.btnSepProps.clicked.connect(self._resetSepProps)
 
         self.pixSPT = QLabel(self)
@@ -1442,7 +1441,7 @@ class _FormattingTab(NScrollableForm):
         # Header
         self.pageHeader = QLineEdit(self)
         self.pageHeader.setMinimumWidth(200)
-        self.btnPageHeader = SHARED.theme.getToolButton(nwToolButton.REVERT, self)
+        self.btnPageHeader = SHARED.theme.getIconButton(nwToolButton.REVERT, self)
         self.btnPageHeader.clicked.connect(self._resetPageHeader)
         self.addRow(
             self._build.getLabel("doc.pageHeader"),

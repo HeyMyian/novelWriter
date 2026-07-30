@@ -34,8 +34,7 @@ from novelwriter import CONFIG, SHARED
 from novelwriter.common import elide, qtAddAction, qtWeakLambda
 from novelwriter.enum import nwDocMode, nwState
 from novelwriter.extensions.configlayout import NPathColorLabel
-from novelwriter.extensions.modified import NIconToolButton
-from novelwriter.gui.theme import STYLES_MIN_TOOLBUTTON
+from novelwriter.extensions.modified import NFlatIconButton
 from novelwriter.types import QtAlignCenterTop, QtAlignMiddle
 
 if TYPE_CHECKING:
@@ -88,27 +87,27 @@ class GuiDocEditHeader(QWidget):
         self.outlineMenu.triggered.connect(self._gotoBlock)
 
         # Buttons
-        self.tbButton = NIconToolButton(self, iSz, "fmt_toolbar:action")
+        self.tbButton = NFlatIconButton(self, iSz, "fmt_toolbar:action")
         self.tbButton.setVisible(False)
         self.tbButton.setToolTip(self.tr("Toggle Tool Bar"))
         self.tbButton.clicked.connect(qtWeakLambda(self._emitToggleToolBar))
 
-        self.outlineButton = NIconToolButton(self, iSz, "list:action")
+        self.outlineButton = NFlatIconButton(self, iSz, "list:action")
         self.outlineButton.setVisible(False)
         self.outlineButton.setToolTip(self.tr("Outline"))
         self.outlineButton.setMenu(self.outlineMenu)
 
-        self.searchButton = NIconToolButton(self, iSz, "search:action")
+        self.searchButton = NFlatIconButton(self, iSz, "search:action")
         self.searchButton.setVisible(False)
         self.searchButton.setToolTip(self.tr("Search"))
         self.searchButton.clicked.connect(self.docEditor.toggleSearch)
 
-        self.minmaxButton = NIconToolButton(self, iSz, "maximise:action")
+        self.minmaxButton = NFlatIconButton(self, iSz, "maximise:action")
         self.minmaxButton.setVisible(False)
         self.minmaxButton.setToolTip(self.tr("Toggle Focus Mode"))
         self.minmaxButton.clicked.connect(qtWeakLambda(self._emitToggleFocusMode))
 
-        self.closeButton = NIconToolButton(self, iSz, "close:reject")
+        self.closeButton = NFlatIconButton(self, iSz, "close:reject")
         self.closeButton.setVisible(False)
         self.closeButton.setToolTip(self.tr("Close"))
         self.closeButton.clicked.connect(self._closeDocument)
@@ -184,13 +183,6 @@ class GuiDocEditHeader(QWidget):
             self.searchButton.refreshTheme()
             self.minmaxButton.refreshTheme()
             self.closeButton.refreshTheme()
-
-        buttonStyle = SHARED.theme.getStyleSheet(STYLES_MIN_TOOLBUTTON)
-        self.tbButton.setStyleSheet(buttonStyle)
-        self.outlineButton.setStyleSheet(buttonStyle)
-        self.searchButton.setStyleSheet(buttonStyle)
-        self.minmaxButton.setStyleSheet(buttonStyle)
-        self.closeButton.setStyleSheet(buttonStyle)
 
         self.matchColors()
 
@@ -317,32 +309,32 @@ class GuiDocViewHeader(QWidget):
         self.outlineMenu.triggered.connect(self._gotoHeader)
 
         # Buttons
-        self.outlineButton = NIconToolButton(self, iSz, "list:action")
+        self.outlineButton = NFlatIconButton(self, iSz, "list:action")
         self.outlineButton.setVisible(False)
         self.outlineButton.setToolTip(self.tr("Outline"))
         self.outlineButton.setMenu(self.outlineMenu)
 
-        self.backButton = NIconToolButton(self, iSz, "chevron_left:action")
+        self.backButton = NFlatIconButton(self, iSz, "chevron_left:action")
         self.backButton.setVisible(False)
         self.backButton.setToolTip(self.tr("Go Backward"))
         self.backButton.clicked.connect(self.docViewer.navBackward)
 
-        self.forwardButton = NIconToolButton(self, iSz, "chevron_right:action")
+        self.forwardButton = NFlatIconButton(self, iSz, "chevron_right:action")
         self.forwardButton.setVisible(False)
         self.forwardButton.setToolTip(self.tr("Go Forward"))
         self.forwardButton.clicked.connect(self.docViewer.navForward)
 
-        self.editButton = NIconToolButton(self, iSz, "edit:change")
+        self.editButton = NFlatIconButton(self, iSz, "edit:change")
         self.editButton.setVisible(False)
         self.editButton.setToolTip(self.tr("Open in Editor"))
         self.editButton.clicked.connect(self._editDocument)
 
-        self.refreshButton = NIconToolButton(self, iSz, "refresh:change")
+        self.refreshButton = NFlatIconButton(self, iSz, "refresh:change")
         self.refreshButton.setVisible(False)
         self.refreshButton.setToolTip(self.tr("Reload"))
         self.refreshButton.clicked.connect(self._refreshDocument)
 
-        self.closeButton = NIconToolButton(self, iSz, "close:reject")
+        self.closeButton = NFlatIconButton(self, iSz, "close:reject")
         self.closeButton.setVisible(False)
         self.closeButton.setToolTip(self.tr("Close"))
         self.closeButton.clicked.connect(self._closeDocument)
@@ -423,14 +415,6 @@ class GuiDocViewHeader(QWidget):
             self.editButton.refreshTheme()
             self.refreshButton.refreshTheme()
             self.closeButton.refreshTheme()
-
-        buttonStyle = SHARED.theme.getStyleSheet(STYLES_MIN_TOOLBUTTON)
-        self.outlineButton.setStyleSheet(buttonStyle)
-        self.backButton.setStyleSheet(buttonStyle)
-        self.forwardButton.setStyleSheet(buttonStyle)
-        self.editButton.setStyleSheet(buttonStyle)
-        self.refreshButton.setStyleSheet(buttonStyle)
-        self.closeButton.setStyleSheet(buttonStyle)
 
         self.matchColors()
 

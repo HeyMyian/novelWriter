@@ -51,7 +51,7 @@ from novelwriter.constants import nwLabels
 from novelwriter.core.item import ProjectItem
 from novelwriter.enum import nwBuildFmt, nwStandardButton, nwToolButton
 from novelwriter.extensions.configlayout import NColorLabel
-from novelwriter.extensions.modified import NDialog, NIconToolButton, NPushButton
+from novelwriter.extensions.modified import NDialog, NPushButton
 from novelwriter.extensions.progressbars import NProgressSimple
 from novelwriter.manuscript.docbuild import DocumentBuilder
 from novelwriter.types import QtAlignCenter, QtRoleAction, QtRoleDestruct, QtUserRole
@@ -152,7 +152,7 @@ class GuiManuscriptBuild(NDialog):
         # Build Path
         self.lblPath = QLabel(self.tr("Path"), self)
         self.buildPath = QLineEdit(self)
-        self.btnBrowse = SHARED.theme.getToolButton(nwToolButton.BROWSE, self)
+        self.btnBrowse = SHARED.theme.getIconButton(nwToolButton.BROWSE, self)
 
         self.pathBox = QHBoxLayout()
         self.pathBox.addWidget(self.buildPath)
@@ -162,7 +162,7 @@ class GuiManuscriptBuild(NDialog):
         # Build Name
         self.lblName = QLabel(self.tr("File Name"), self)
         self.buildName = QLineEdit(self)
-        self.btnReset = NIconToolButton(self, iSz, "revert:reset")
+        self.btnReset = SHARED.theme.getIconButton(nwToolButton.REVERT, self)
         self.btnReset.setToolTip(self.tr("Reset file name to default"))
 
         self.nameBox = QHBoxLayout()

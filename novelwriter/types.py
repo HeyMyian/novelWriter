@@ -24,7 +24,17 @@ from __future__ import annotations
 from typing import Literal
 
 from PyQt6.QtCore import QAbstractAnimation, Qt
-from PyQt6.QtGui import QColor, QFont, QKeySequence, QPainter, QPalette, QTextCharFormat, QTextCursor, QTextFormat
+from PyQt6.QtGui import (
+    QColor,
+    QFont,
+    QIcon,
+    QKeySequence,
+    QPainter,
+    QPalette,
+    QTextCharFormat,
+    QTextCursor,
+    QTextFormat,
+)
 from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QHeaderView, QSizePolicy, QStyle
 
 # Custom Types
@@ -89,6 +99,11 @@ QtHexArgb = QColor.NameFormat.HexArgb
 QtColActive = QPalette.ColorGroup.Active
 QtColInactive = QPalette.ColorGroup.Inactive
 QtColDisabled = QPalette.ColorGroup.Disabled
+
+# Styles
+
+QtToolButtonTextIcon = Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+QtToolButtonIconOnly = Qt.ToolButtonStyle.ToolButtonIconOnly
 
 # Model Item Data
 
@@ -185,6 +200,13 @@ QtHeaderFixed = QHeaderView.ResizeMode.Fixed
 QtScrollAlwaysOn = Qt.ScrollBarPolicy.ScrollBarAlwaysOn
 QtScrollAlwaysOff = Qt.ScrollBarPolicy.ScrollBarAlwaysOff
 QtScrollAsNeeded = Qt.ScrollBarPolicy.ScrollBarAsNeeded
+
+# Icon Modes
+
+QtIconNormal = QIcon.Mode.Normal
+QtIconDisabled = QIcon.Mode.Disabled
+QtIconOn = QIcon.State.On
+QtIconOff = QIcon.State.Off
 
 # Font Weight
 

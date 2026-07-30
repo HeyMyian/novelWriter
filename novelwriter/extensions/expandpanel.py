@@ -26,7 +26,7 @@ from PyQt6.QtGui import QPalette
 from PyQt6.QtWidgets import QWIDGETSIZE_MAX, QHBoxLayout, QLayout, QSplitter, QSplitterHandle, QVBoxLayout, QWidget
 
 from novelwriter import SHARED
-from novelwriter.extensions.modified import NClickableLabel, NIconToggleButton, NSplitterHandle
+from novelwriter.extensions.modified import NClickableLabel, NFlatIconButton, NSplitterHandle
 
 
 class NExpandablePanel(QWidget):
@@ -44,7 +44,7 @@ class NExpandablePanel(QWidget):
         self._ep_expanded = True
         self._ep_widget = QWidget(self)
 
-        self._ep_toggle = NIconToggleButton(self, SHARED.theme.baseIconSize, "unfold:default")
+        self._ep_toggle = NFlatIconButton(self, SHARED.theme.baseIconSize, "toggle-unfold:default", padding=0)
         self._ep_toggle.setChecked(self._ep_expanded)
         self._ep_toggle.toggled.connect(self._toggleExpanded)
 

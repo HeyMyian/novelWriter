@@ -52,7 +52,7 @@ from novelwriter.constants import nwFiles
 from novelwriter.core.coretools import ProjectBuilder
 from novelwriter.enum import nwItemClass, nwStandardButton
 from novelwriter.extensions.configlayout import NColorLabel, NWrappedWidgetBox
-from novelwriter.extensions.modified import NDialog, NIconToolButton, NSpinBox
+from novelwriter.extensions.modified import NDialog, NIconButton, NSpinBox
 from novelwriter.extensions.switch import NSwitch
 from novelwriter.extensions.versioninfo import VersionInfoWidget
 from novelwriter.types import (
@@ -630,7 +630,7 @@ class _NewProjectForm(QWidget):
         self.projPath = QLineEdit(self)
         self.projPath.setReadOnly(True)
 
-        self.browsePath = NIconToolButton(self, iSz, "browse:system")
+        self.browsePath = NIconButton(self, iSz, "browse:system")
         self.browsePath.setToolTip(self.tr("Browse for new project path"))
         self.browsePath.clicked.connect(self._doBrowse)
 
@@ -645,7 +645,7 @@ class _NewProjectForm(QWidget):
         self.projFill = QLineEdit(self)
         self.projFill.setReadOnly(True)
 
-        self.browseFill = NIconToolButton(self, iSz, "document_add:add")
+        self.browseFill = NIconButton(self, iSz, "document_add:add")
         self.browseFill.setToolTip(self.tr("Fill new project"))
 
         self.fillMenu = QMenu(self.browseFill)

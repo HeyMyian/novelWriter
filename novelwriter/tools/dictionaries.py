@@ -93,7 +93,7 @@ class GuiDictionaries(NNonBlockingDialog):
         self.huInfo.setOpenExternalLinks(True)
         self.huInfo.setWordWrap(True)
         self.huInput = QLineEdit(self)
-        self.huBrowse = SHARED.theme.getToolButton(nwToolButton.BROWSE, self)
+        self.huBrowse = SHARED.theme.getIconButton(nwToolButton.BROWSE, self)
         self.huBrowse.clicked.connect(self._doBrowseHunspell)
         self.huImport = QPushButton(self.tr("Add Dictionary"), self)
         self.huImport.setIcon(SHARED.theme.getIcon("add:add"))
@@ -111,7 +111,7 @@ class GuiDictionaries(NNonBlockingDialog):
         self.inInfo = QLabel(self.tr("Dictionary install location"), self)
         self.inPath = QLineEdit(self)
         self.inPath.setReadOnly(True)
-        self.inBrowse = SHARED.theme.getToolButton(nwToolButton.BROWSE, self)
+        self.inBrowse = SHARED.theme.getIconButton(nwToolButton.BROWSE, self)
         self.inBrowse.clicked.connect(self._doOpenInstallLocation)
 
         self.inBox = QHBoxLayout()

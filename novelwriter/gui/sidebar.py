@@ -33,8 +33,7 @@ from novelwriter.common import qtWeakLambda
 from novelwriter.constants import nwLabels, trConst
 from novelwriter.enum import nwTheme, nwView
 from novelwriter.extensions.eventfilters import StatusTipFilter
-from novelwriter.extensions.modified import NIconToolButton
-from novelwriter.gui.theme import STYLES_BIG_TOOLBUTTON
+from novelwriter.extensions.modified import NFlatIconButton
 
 if TYPE_CHECKING:
     from novelwriter.guimain import GuiMain
@@ -60,40 +59,40 @@ class GuiSideBar(QWidget):
         self.installEventFilter(StatusTipFilter(self.mainGui))
 
         # Buttons
-        self.tbProject = NIconToolButton(self, iSz, "sb_project:sidebar")
+        self.tbProject = NFlatIconButton(self, iSz, "sb_project:sidebar", 0.25)
         self.tbProject.setToolTip("{0} [Ctrl+T]".format(self.tr("Project Tree View")))
         self.tbProject.clicked.connect(qtWeakLambda(self._emitViewChange, nwView.PROJECT))
 
-        self.tbNovel = NIconToolButton(self, iSz, "sb_novel:sidebar")
+        self.tbNovel = NFlatIconButton(self, iSz, "sb_novel:sidebar", 0.25)
         self.tbNovel.setToolTip("{0} [Ctrl+T]".format(self.tr("Novel Tree View")))
         self.tbNovel.clicked.connect(qtWeakLambda(self._emitViewChange, nwView.NOVEL))
 
-        self.tbSearch = NIconToolButton(self, iSz, "sb_search:sidebar")
+        self.tbSearch = NFlatIconButton(self, iSz, "sb_search:sidebar", 0.25)
         self.tbSearch.setToolTip("{0} [Ctrl+Shift+F]".format(self.tr("Project Search")))
         self.tbSearch.clicked.connect(qtWeakLambda(self._emitViewChange, nwView.SEARCH))
 
-        self.tbOutline = NIconToolButton(self, iSz, "sb_outline:sidebar")
+        self.tbOutline = NFlatIconButton(self, iSz, "sb_outline:sidebar", 0.25)
         self.tbOutline.setToolTip("{0} [Ctrl+Shift+T]".format(self.tr("Novel Outline View")))
         self.tbOutline.clicked.connect(qtWeakLambda(self._emitViewChange, nwView.OUTLINE))
 
-        self.tbTheme = NIconToolButton(self, iSz)
+        self.tbTheme = NFlatIconButton(self, iSz, "", 0.25)
         self.tbTheme.setToolTip(self.tr("Switch Colour Theme"))
         self.tbTheme.clicked.connect(self._cycleColorTheme)
 
-        self.tbDetails = NIconToolButton(self, iSz, "sb_details:sidebar")
+        self.tbDetails = NFlatIconButton(self, iSz, "sb_details:sidebar", 0.25)
         self.tbDetails.setToolTip("{0} [Shift+F6]".format(self.tr("Novel Details")))
         self.tbDetails.clicked.connect(self.mainGui.showNovelDetailsDialog)
 
-        self.tbStats = NIconToolButton(self, iSz, "sb_stats:sidebar")
+        self.tbStats = NFlatIconButton(self, iSz, "sb_stats:sidebar", 0.25)
         self.tbStats.setToolTip("{0} [F6]".format(self.tr("Writing Statistics")))
         self.tbStats.clicked.connect(self.mainGui.showWritingStatsDialog)
 
-        self.tbBuild = NIconToolButton(self, iSz, "sb_build:sidebar")
+        self.tbBuild = NFlatIconButton(self, iSz, "sb_build:sidebar", 0.25)
         self.tbBuild.setToolTip("{0} [F5]".format(self.tr("Manuscript Build")))
         self.tbBuild.clicked.connect(self.mainGui.showBuildManuscriptDialog)
 
         # Settings Menu
-        self.tbSettings = NIconToolButton(self, iSz, "settings:sidebar")
+        self.tbSettings = NFlatIconButton(self, iSz, "settings:sidebar", 0.25)
         self.tbSettings.setToolTip(self.tr("Settings"))
 
         self.mSettings = _PopRightMenu(self.tbSettings)
@@ -127,17 +126,6 @@ class GuiSideBar(QWidget):
     def updateTheme(self, *, init: bool = False) -> None:
         """Initialise GUI elements that depend on specific settings."""
         logger.debug("Theme Update: GuiSideBar")
-
-        buttonStyle = SHARED.theme.getStyleSheet(STYLES_BIG_TOOLBUTTON)
-        self.tbProject.setStyleSheet(buttonStyle)
-        self.tbNovel.setStyleSheet(buttonStyle)
-        self.tbSearch.setStyleSheet(buttonStyle)
-        self.tbOutline.setStyleSheet(buttonStyle)
-        self.tbBuild.setStyleSheet(buttonStyle)
-        self.tbDetails.setStyleSheet(buttonStyle)
-        self.tbStats.setStyleSheet(buttonStyle)
-        self.tbTheme.setStyleSheet(buttonStyle)
-        self.tbSettings.setStyleSheet(buttonStyle)
 
         if not init:
             self.tbProject.refreshTheme()

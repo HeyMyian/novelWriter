@@ -49,14 +49,16 @@ from novelwriter.config import DEF_GUI_DARK, DEF_GUI_LIGHT, DEF_ICONS, DEF_TREEC
 from novelwriter.constants import nwLabels
 from novelwriter.enum import nwItemClass, nwItemLayout, nwItemType, nwStandardButton, nwTheme, nwToolButton
 from novelwriter.error import logException
-from novelwriter.extensions.modified import NIconToolButton, NPushButton
+from novelwriter.extensions.modified import NFlatIconButton, NIconButton, NPushButton
 from novelwriter.types import (
     QtBlack,
     QtColActive,
     QtColDisabled,
     QtColInactive,
     QtFontSemiBold,
-    QtHexArgb,
+    QtIconNormal,
+    QtIconOff,
+    QtIconOn,
     QtPaintAntiAlias,
     QtTransparent,
 )
@@ -65,9 +67,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 logger = logging.getLogger(__name__)
-
-STYLES_MIN_TOOLBUTTON = "minimalToolButton"
-STYLES_BIG_TOOLBUTTON = "bigToolButton"
 
 STANDARD_BUTTONS = {
     nwStandardButton.OK: (QT_TRANSLATE_NOOP("Button", "OK"), "btn_ok:action"),
@@ -99,6 +98,7 @@ TOOL_BUTTONS = {
     nwToolButton.BROWSE: (QT_TRANSLATE_NOOP("Button", "Browse"), "browse:system"),
     nwToolButton.EDIT: (QT_TRANSLATE_NOOP("Button", "Edit"), "edit:change"),
     nwToolButton.REVERT: (QT_TRANSLATE_NOOP("Button", "Revert"), "revert:reset"),
+    nwToolButton.FONT: (QT_TRANSLATE_NOOP("Button", "Select Font"), "font:tool"),
 }
 
 
@@ -170,11 +170,12 @@ class GuiTheme:
         "_lightThemes",
         "_meta",
         "_qColors",
-        "_styleSheets",
         "_svgColors",
         "_syntaxList",
         "accentCol",
         "accentText",
+        "activeBase",
+        "activeButton",
         "baseButtonHeight",
         "baseIconHeight",
         "baseIconSize",
@@ -184,15 +185,16 @@ class GuiTheme:
         "fontPixelSizeLarge",
         "fontPointSize",
         "getDecoration",
+        "getFlatButton",
         "getHeaderDecoration",
         "getHeaderDecorationNarrow",
         "getIcon",
+        "getIconButton",
         "getItemIcon",
         "getItemIconStyle",
         "getPixmap",
         "getStandardButton",
         "getToggleIcon",
-        "getToolButton",
         "guiFont",
         "guiFontB",
         "guiFontBU",
@@ -210,7 +212,6 @@ class GuiTheme:
         "syntaxTheme",
         "textNHeight",
         "textNWidth",
-        "toggleCol",
         "toolButtonIconSize",
     )
 
@@ -227,7 +228,8 @@ class GuiTheme:
         self.errorText = QColor(255, 0, 0)
         self.accentText = QColor(0, 0, 255)
         self.accentCol = QColor(255, 0, 255)  # Needed until we move to Qt 6.6
-        self.toggleCol = QColor(0, 0, 255)
+        self.activeButton = QColor(0, 0, 255)
+        self.activeBase = QColor(225, 225, 225)
         self.searchCol = QColor(255, 196, 0, 96)
 
         # Theme Data
@@ -235,7 +237,6 @@ class GuiTheme:
         self._currentTheme = ""
         self._guiPalette = QPalette()
         self._allThemes: dict[str, ThemeEntry] = {}
-        self._styleSheets: dict[str, str] = {}
         self._svgColors: dict[str, bytes] = {}
         self._qColors: dict[str, QColor] = {}
 
@@ -245,7 +246,8 @@ class GuiTheme:
         self.getItemIcon = self.iconCache.getItemIcon
         self.getToggleIcon = self.iconCache.getToggleIcon
         self.getDecoration = self.iconCache.getDecoration
-        self.getToolButton = self.iconCache.getToolButton
+        self.getIconButton = self.iconCache.getIconButton
+        self.getFlatButton = self.iconCache.getFlatButton
         self.getItemIconStyle = self.iconCache.getItemIconStyle
         self.getStandardButton = self.iconCache.getStandardButton
         self.getHeaderDecoration = self.iconCache.getHeaderDecoration
@@ -501,7 +503,8 @@ class GuiTheme:
             self.fadedText = self._readColor(section, "fadedText")
             self.errorText = self._readColor(section, "errorText")
             self.accentText = self._readColor(section, "accentText")
-            self.toggleCol = self._readColor(section, "toggle")
+            self.activeButton = self._readColor(section, "activeButton")
+            self.activeBase = self._readColor(section, "activeBase")
             self.searchCol = self._readColor(section, "searchMatch")
 
         # Syntax
@@ -601,13 +604,8 @@ class GuiTheme:
         # Finalise
         QApplication.setPalette(self._guiPalette)
         QToolTip.setPalette(self._guiPalette)  # Fixes an issue with desktop overrides on Linux, see #2871
-        self._buildStyleSheets(self._guiPalette)
 
         return True
-
-    def getStyleSheet(self, name: str) -> str:
-        """Load a standard style sheet."""
-        return self._styleSheets.get(name, "")
 
     def parseColor(self, value: str, default: QColor = QtBlack) -> QColor:
         """Parse a string as a colour value."""
@@ -690,6 +688,7 @@ class GuiTheme:
 
         # Reset GUI Palette
         base = palette.color(QPalette.ColorRole.Base)
+        altBase = palette.color(QPalette.ColorRole.AlternateBase)
         default = palette.color(QPalette.ColorRole.Text)
         faded = QColor(128, 128, 128)
         dimmed = QColor(130, 130, 130) if isDark else QColor(190, 190, 190)
@@ -709,7 +708,8 @@ class GuiTheme:
 
         # Accent Colours
         self.accentCol = purple
-        self.toggleCol = blue
+        self.activeButton = blue
+        self.activeBase = altBase
         self.searchCol = QColor(orange)
         self.searchCol.setAlpha(96)
 
@@ -773,28 +773,6 @@ class GuiTheme:
         """Set a palette colour value from a config string."""
         self._guiPalette.setBrush(value, self._readColor(section, name))
 
-    def _buildStyleSheets(self, palette: QPalette) -> None:
-        """Build default style sheets."""
-        self._styleSheets = {}
-
-        text = palette.text().color()
-        text.setAlpha(48)
-        tCol = text.name(QtHexArgb)
-
-        # Minimal Tool Button
-        self._styleSheets[STYLES_MIN_TOOLBUTTON] = (
-            "QToolButton {padding: 2px; margin: 0; border: none; background: transparent;} "
-            f"QToolButton:hover {{border: none; background: {tCol};}} "
-            "QToolButton::menu-indicator {image: none;} "
-        )
-
-        # Big Tool Button
-        self._styleSheets[STYLES_BIG_TOOLBUTTON] = (
-            "QToolButton {padding: 6px; margin: 0; border: none; background: transparent;} "
-            f"QToolButton:hover {{border: none; background: {tCol};}} "
-            "QToolButton::menu-indicator {image: none;} "
-        )
-
     def _scanThemes(self, files: list[Path]) -> None:
         """Scan the GUI themes folder and list all themes."""
         data: dict[str, tuple[str, str, bool, Path]] = {}
@@ -843,8 +821,8 @@ class GuiIcons:
     )
 
     TOGGLE_ICON_KEYS: Final[dict[str, tuple[str, str]]] = {
-        "bullet": ("bullet-on", "bullet-off"),
-        "unfold": ("unfold-show", "unfold-hide"),
+        "toggle-bullet": ("bullet-on", "bullet-off"),
+        "toggle-unfold": ("unfold-show", "unfold-hide"),
     }
     IMAGE_MAP: Final[dict[str, tuple[str, str]]] = {
         "welcome": ("welcome.webp", "welcome.webp"),
@@ -966,8 +944,8 @@ class GuiIcons:
             pix0 = self.getPixmap(f"{self.TOGGLE_ICON_KEYS[key][0]}:{color}", width, height)
             pix1 = self.getPixmap(f"{self.TOGGLE_ICON_KEYS[key][1]}:{color}", width, height)
             icon = QIcon()
-            icon.addPixmap(pix0, QIcon.Mode.Normal, QIcon.State.On)
-            icon.addPixmap(pix1, QIcon.Mode.Normal, QIcon.State.Off)
+            icon.addPixmap(pix0, QtIconNormal, QtIconOn)
+            icon.addPixmap(pix1, QtIconNormal, QtIconOff)
             return icon
         return self._noIcon
 
@@ -1013,7 +991,7 @@ class GuiIcons:
         """Return an icon from the icon buffer as a QPixmap. If it
         doesn't exist, return an empty QPixmap.
         """
-        return self.getIcon(name, width, height).pixmap(width, height, QIcon.Mode.Normal)
+        return self.getIcon(name, width, height).pixmap(width, height, QtIconNormal)
 
     def getStandardButton(self, button: nwStandardButton, parent: QWidget) -> NPushButton:
         """Return a standard button with icon and text."""
@@ -1025,10 +1003,17 @@ class GuiIcons:
             icon,
         )
 
-    def getToolButton(self, button: nwToolButton, parent: QWidget) -> NIconToolButton:
+    def getIconButton(self, button: nwToolButton, parent: QWidget) -> NIconButton:
         """Return a tool button with icon."""
         toolTip, icon = TOOL_BUTTONS.get(button, ("", ""))
-        toolButton = NIconToolButton(parent, self._theme.baseIconSize, icon)
+        toolButton = NIconButton(parent, self._theme.baseIconSize, icon)
+        toolButton.setToolTip(QCoreApplication.translate("Button", toolTip))
+        return toolButton
+
+    def getFlatButton(self, button: nwToolButton, parent: QWidget) -> NFlatIconButton:
+        """Return a tool button with icon."""
+        toolTip, icon = TOOL_BUTTONS.get(button, ("", ""))
+        toolButton = NFlatIconButton(parent, self._theme.baseIconSize, icon)
         toolButton.setToolTip(QCoreApplication.translate("Button", toolTip))
         return toolButton
 

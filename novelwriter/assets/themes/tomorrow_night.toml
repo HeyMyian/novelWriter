@@ -93,6 +93,10 @@ fadedText    = "#949494"
 errorText    = "red"
 accentText   = "blue"
 activeButton = "#2c98f766"
+<<<<<<< HEAD
+=======
+activeBase   = "#373b41"
+>>>>>>> c31f3defaa965e7a723ba2e5af791e7de1dc7d0a
 searchMatch  = "orange:128"
 
 [Syntax]
