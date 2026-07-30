@@ -66,12 +66,12 @@ linkVisited     = "blue"
 accent          = "#a85c8b"
 
 [GUI]
-helpText    = "faded"
-fadedText   = "faded"
-errorText   = "red"
-accentText  = "#f587cb"
-toggle      = "#8b55d67f"
-searchMatch = "purple:96"
+helpText     = "faded"
+fadedText    = "faded"
+errorText    = "red"
+accentText   = "#f587cb"
+activeButton  = "#8b55d67f"
+searchMatch  = "purple:96"
 
 [Syntax]
 background     = "base"

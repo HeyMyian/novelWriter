@@ -34,7 +34,7 @@ url    = "https://github.com/liviuschera/noctis"
 # FUNCTION           : #0095a8 -> Base.cyan
 # SUPPORT            : #00bdd6 -> Syntax.replacetag
 # MISC               : #0094f0 -> Base.blue
-# INVALID            : #ff530f -> GUI.errortext
+# INVALID            : #ff530f -> GUI.errorText 
 ##
 
 [Base]
@@ -100,12 +100,12 @@ linkVisited     = "blue"
 accent          = "#00b368"
 
 [GUI]
-helpText    = "#fa8900"
-fadedText   = "faded"
-errorText   = "#ff530f"
-accentText  = "cyan"
-toggle      = "#00b36867"
-searchMatch = "orange:64"
+helpText     = "#fa8900"
+fadedText    = "faded"
+errorText    = "#ff530f"
+accentText   = "cyan"
+activeButton  = "#00b36867"
+searchMatch  = "orange:64"
 
 [Syntax]
 background     = "base"

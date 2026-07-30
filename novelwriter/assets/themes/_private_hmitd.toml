@@ -66,9 +66,9 @@ linkvisited     = "blue"
 accent          = "yellow"
 
 [GUI]
-helptext  = "#8297ad"
-fadedtext = "faded"
-errortext = "red"
+helpText   = "#8297ad"
+fadedText  = "faded"
+errorText  = "red"
 
 [Syntax]
 background     = "#101829"
