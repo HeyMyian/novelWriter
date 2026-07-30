@@ -129,7 +129,7 @@ def testGuiStatusBar_Main(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
 
     # Goal Progress Bars
     SHARED.project.data.setDailyTarget(500, False)
-    SHARED.project.data.setProjectTarget(2000, None)
+    SHARED.project.data.setProjectTarget(2000, None, False)
     status.updateGoals(100, 50)
     assert status.dayProg.isVisible() is True
     assert status.dayProg.maximum() == 500

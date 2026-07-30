@@ -683,6 +683,13 @@ def testProjectTree_OtherMethods(qtbot, monkeypatch, mockGUI, fncPath, mockRnd):
     assert tree.sumCounts() == (9, 0, 40, 0, 9, 9)
     assert tree.model.root.count == 9
 
+    # In character count mode, the session and target counts switch from
+    # word counts to character counts, while the novel/notes totals,
+    # which are always reported as both, are unaffected
+    project.data.setProjectTarget(0, None, True)
+    assert tree.sumCounts() == (9, 0, 40, 0, 40, 40)
+    project.data.setProjectTarget(0, None, False)
+
     # Items with no layout (e.g. folders created directly) are not counted
     noLayoutHandle = tree.create("No Layout", C.hNovelRoot, nwItemType.FILE)
     assert noLayoutHandle is not None

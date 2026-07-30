@@ -29,7 +29,6 @@ from typing import TYPE_CHECKING
 from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import (
     QAbstractItemView,
-    QApplication,
     QDialogButtonBox,
     QFileDialog,
     QHBoxLayout,
@@ -182,7 +181,6 @@ class GuiWordList(NDialog):
             userDict.add(word)
         userDict.save()
         self.newWordListReady.emit()
-        QApplication.processEvents()
         self.close()
 
     @pyqtSlot()

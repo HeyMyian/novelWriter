@@ -102,6 +102,7 @@ class GuiManuscript(NToolDialog):
 
         self._builds = BuildCollection(SHARED.project)
         self._buildMap: dict[str, QListWidgetItem] = {}
+        self._generatingPreview = False
 
         self.setWindowTitle(self.tr("Manuscript Build"))
         self.setMinimumWidth(600)
@@ -381,39 +382,46 @@ class GuiManuscript(NToolDialog):
         """Run the document builder on the current build settings for
         the preview widget.
         """
-        if not (build := self._getSelectedBuild()):
+        # Re-entrancy guard
+        if self._generatingPreview or not (build := self._getSelectedBuild()):
             return
 
-        start = time()
-        showNewPage = self.swtNewPage.isChecked()
+        self._generatingPreview = True
+        self.btnPreview.setEnabled(False)
+        try:
+            start = time()
+            showNewPage = self.swtNewPage.isChecked()
 
-        # Make sure editor content is saved before we start
-        SHARED.saveEditor()
+            # Make sure editor content is saved before we start
+            SHARED.saveEditor()
 
-        docBuild = DocumentBuilder(SHARED.project, build)
-        docBuild.queueAll()
+            docBuild = DocumentBuilder(SHARED.project, build)
+            docBuild.queueAll()
 
-        self.docPreview.beginNewBuild(len(docBuild))
-        for step, _ in docBuild.iterBuildPreview(showNewPage):
-            self.docPreview.buildStep(step + 1)
-            QApplication.processEvents()
+            self.docPreview.beginNewBuild(len(docBuild))
+            for step, _ in docBuild.iterBuildPreview(showNewPage):
+                self.docPreview.buildStep(step + 1)
+                QApplication.processEvents()
 
-        buildObj = docBuild.lastBuild
-        assert isinstance(buildObj, ToQTextDocument)
+            buildObj = docBuild.lastBuild
+            assert isinstance(buildObj, ToQTextDocument)
 
-        font = QFont()
-        font.fromString(build.getStr("format.textFont"))
-        withDialog = build.getBool("format.showDialogue")
+            font = QFont()
+            font.fromString(build.getStr("format.textFont"))
+            withDialog = build.getBool("format.showDialogue")
 
-        self.docPreview.setTextFont(font)
-        self.docPreview.setContent(buildObj.document)
-        self.docPreview.setBuildName(build.name)
+            self.docPreview.setTextFont(font)
+            self.docPreview.setContent(buildObj.document)
+            self.docPreview.setBuildName(build.name)
 
-        self.buildOutline.updateOutline(buildObj.textOutline)
-        self.buildStats.updateStats(buildObj.textStats, withDialog)
-        self._updateCountsLabel(buildObj.textStats, withDialog)
+            self.buildOutline.updateOutline(buildObj.textOutline)
+            self.buildStats.updateStats(buildObj.textStats, withDialog)
+            self._updateCountsLabel(buildObj.textStats, withDialog)
 
-        logger.debug("Build completed in %.3f ms", 1000 * (time() - start))
+            logger.debug("Build completed in %.3f ms", 1000 * (time() - start))
+        finally:
+            self.btnPreview.setEnabled(True)
+            self._generatingPreview = False
 
         return
 
@@ -998,7 +1006,6 @@ class _PreviewWidget(QTextBrowser):
 
         self.buildProgress.setCentreText(self.tr("Done"))
         QApplication.restoreOverrideCursor()
-        QApplication.processEvents()
         QTimer.singleShot(300, self._postUpdate)
 
     def updateTheme(self) -> None:

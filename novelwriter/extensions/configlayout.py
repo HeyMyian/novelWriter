@@ -91,7 +91,8 @@ class NScrollableForm(QScrollArea):
         self._indent = 12
 
         self._sections: dict[int, QLabel] = {}
-        self._editable: dict[str, NColorLabel] = {}
+        self._editableHelp: dict[str, NColorLabel] = {}
+        self._editableUnit: dict[str, QLabel] = {}
         self._index: dict[str, QWidget] = {}
 
         self._layout = QVBoxLayout()
@@ -126,8 +127,13 @@ class NScrollableForm(QScrollArea):
 
     def setHelpText(self, key: str, text: str) -> None:
         """Set the text for the help label."""
-        if qHelp := self._editable.get(key):
+        if qHelp := self._editableHelp.get(key):
             qHelp.setText(text)
+
+    def setUnitText(self, key: str, text: str) -> None:
+        """Set the text for the unit label."""
+        if qUnit := self._editableUnit.get(key):
+            qUnit.setText(text)
 
     def setRowIndent(self, indent: int) -> None:
         """Set the indentation of each row."""
@@ -212,7 +218,7 @@ class NScrollableForm(QScrollArea):
             labelBox.setSpacing(0)
             row.addLayout(labelBox, stretch[0])
             if editable:
-                self._editable[editable] = qHelp
+                self._editableHelp[editable] = qHelp
         else:
             row.addWidget(qLabel, stretch[0])
 
@@ -224,6 +230,8 @@ class NScrollableForm(QScrollArea):
             box.addWidget(qWidget, 1)
             box.addWidget(qUnit, 0)
             row.addLayout(box, stretch[1])
+            if editable:
+                self._editableUnit[editable] = qUnit
         elif isinstance(button, QAbstractButton):
             box = QHBoxLayout()
             box.addWidget(qWidget, 1)

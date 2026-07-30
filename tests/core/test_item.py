@@ -198,6 +198,40 @@ def testProjectItem_Setters(mockGUI, mockRnd, fncPath):
 
 
 @pytest.mark.core
+def testProjectItem_DailyProgress(mockGUI, mockRnd, fncPath):
+    """Test the dailyProgress getter. It must report word or character
+    based counts depending on the project's target count mode, and
+    report zero for items not eligible for the project goal.
+    """
+    project = NWProject()
+    buildTestProject(project, fncPath)
+    item = ProjectItem(project, "0000000000000")
+    item._dailyTarget = True
+    item._root = C.hNovelRoot
+    item.setWordCount(120)
+    item.setCharCount(600)
+    item._wordInit = 100
+    item._charInit = 500
+
+    # In word count mode, the total and session change are word based
+    project.data.setProjectTarget(0, None, False)
+    assert item.dailyProgress() == (120, 20)
+
+    # In character count mode, the same item reports character counts
+    project.data.setProjectTarget(0, None, True)
+    assert item.dailyProgress() == (600, 100)
+
+    # Items not eligible for the daily target report zero regardless of mode
+    item._dailyTarget = False
+    assert item.dailyProgress() == (0, 0)
+    item._dailyTarget = True
+
+    # Items in a skipped root also report zero
+    project.data.setTargetSkipRoots([C.hNovelRoot])
+    assert item.dailyProgress() == (0, 0)
+
+
+@pytest.mark.core
 def testProjectItem_Methods(mockGUI, mockRnd, fncPath):
     """Test the simple methods of the ProjectItem class."""
     project = NWProject()

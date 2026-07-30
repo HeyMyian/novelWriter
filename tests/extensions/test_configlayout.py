@@ -50,7 +50,7 @@ def testNScrollableForm_Main(qtbot, mockGUI):
     # Add a row with a plain widget, and one with a list containing
     # a widget, a spacing int, and an item that is neither (ignored)
     widgetA = QLabel("A", form)
-    form.addRow("Row A", widgetA, helpText="Help A", editable="rowA")
+    form.addRow("Row A", widgetA, helpText="Help A", unit="Stuff", editable="rowA")
     assert "Row A" in form.labels
 
     widgetB = QLabel("B", form)
@@ -61,7 +61,9 @@ def testNScrollableForm_Main(qtbot, mockGUI):
 
     # Set help text for a known and an unknown key
     form.setHelpText("rowA", "Updated Help")
+    form.setUnitText("rowA", "Things")
     form.setHelpText("unknownKey", "Ignored")
+    form.setUnitText("unknownKey", "Ignored")
 
     # Scroll to a known and an unknown section identifier
     form.scrollToSection(1)

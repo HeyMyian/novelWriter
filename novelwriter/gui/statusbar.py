@@ -240,7 +240,7 @@ class GuiMainStatus(QStatusBar):
             self.dayReset.setVisible(False)
             self.dayProg.setVisible(False)
 
-        if (projTarget := data.targetWordCount) > 0:
+        if (projTarget := data.targetCount) > 0:
             self.projProg.setVisible(True)
             self.projProg.setMaximum(projTarget)
             self.projProg.setValue(min(pProg, projTarget))

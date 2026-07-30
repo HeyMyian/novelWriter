@@ -73,7 +73,7 @@ fadedText    = "faded"
 errorText    = "red"
 accentText   = "purple"
 activeButton = "orange:96"
-activeBase   = "base:L300"
+activeBase   = "faded:D135"
 searchMatch  = "red:96"
 
 [Syntax]

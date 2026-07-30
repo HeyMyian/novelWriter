@@ -488,11 +488,9 @@ class GuiMain(QMainWindow):
                     break
 
         if lastEdited is not None:
-            QApplication.processEvents()
             self.openDocument(lastEdited, doScroll=True)
 
         if lastViewed := SHARED.project.data.getLastHandle("viewer"):
-            QApplication.processEvents()
             self.viewDocument(lastViewed)
 
         # Check if we need to rebuild the index
@@ -502,7 +500,6 @@ class GuiMain(QMainWindow):
             self.rebuildIndex()
 
         # Make sure the changed status is set to false on things opened
-        QApplication.processEvents()
         self.docEditor.setDocumentChanged(False)
         SHARED.project.setProjectChanged(False)
         SHARED.reportSpellCheckStatus()

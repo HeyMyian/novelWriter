@@ -692,7 +692,6 @@ class GuiDocEditor(QTextEdit):
         self._allowAutoReplace(True)
         if not self._qDocument.isLayoutBusy():
             self._beginCheckPass()
-        QApplication.processEvents()
 
         self._lastEdit = time()
         self._lastActive = time()
@@ -719,7 +718,6 @@ class GuiDocEditor(QTextEdit):
             self.setPlainText("")
             self.setCursorPosition(0)
 
-        QApplication.processEvents()
         self.setDocumentChanged(False)
         self._qDocument.clearUndoRedoStacks()
         self.docToolBar.setVisible(CONFIG.showEditToolBar)
@@ -804,7 +802,6 @@ class GuiDocEditor(QTextEdit):
                 vBar.setValue(vBar.value() + cT - 1)
             elif cB > vH:
                 vBar.setValue(vBar.value() + (cB - vH) + 1)
-            QApplication.processEvents()
 
     def updateDocMargins(self) -> None:
         """Automatically adjust the margins so the text is centred if
@@ -1463,7 +1460,8 @@ class GuiDocEditor(QTextEdit):
             cursor.insertText(text)
             cursor.endEditBlock()
             self.setTextCursor(cursor)
-            self.ensureCursorVisible(centre=False)
+            # Deferred to avoid re-entrancy, see #2917
+            QTimer.singleShot(0, lambda: self.ensureCursorVisible(centre=False))
 
     ##
     #  Public Slots
@@ -1899,7 +1897,6 @@ class GuiDocEditor(QTextEdit):
         if not cursor.hasSelection():
             cursor.movePosition(QtMoveEnd, QtKeepAnchor)
             self.setTextCursor(cursor)
-            QApplication.processEvents()
 
         if (
             cursor.hasSelection()
@@ -2046,7 +2043,6 @@ class GuiDocEditor(QTextEdit):
         """Open the adjacent document and select its edge-most match."""
         if self._docHandle:
             self.requestNextDocument.emit(self._docHandle, CONFIG.searchLoop, goBack)
-            QApplication.processEvents()
             self.beginSearch()
             prevFocus.setFocus()
 

@@ -8,7 +8,7 @@
     <doBackup>yes</doBackup>
     <language>en_GB</language>
     <spellChecking auto="yes">en_GB</spellChecking>
-    <projectTarget date="None" last="0">0</projectTarget>
+    <projectTarget date="None" last="0" mode="words">0</projectTarget>
     <dailyTarget auto="no" last="0" date="2021-08-30">0</dailyTarget>
     <targetSkipRoots />
     <lastHandle>

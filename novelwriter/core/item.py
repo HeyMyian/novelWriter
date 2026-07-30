@@ -452,8 +452,12 @@ class ProjectItem:
         """Return the total word count and session change for items
         included in the project goal.
         """
-        if self._dailyTarget and self._root not in self._project.data.targetSkipRoots:
-            return self._wordCount, self._wordCount - self._wordInit
+        data = self._project.data
+        if self._dailyTarget and self._root not in data.targetSkipRoots:
+            if data.targetCountChars:
+                return self._charCount, self._charCount - self._charInit
+            else:
+                return self._wordCount, self._wordCount - self._wordInit
         return 0, 0
 
     ##

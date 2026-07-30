@@ -274,7 +274,7 @@ class ProjectXMLReader:
                 data.setSpellLang(xItem.text)
                 data.setSpellCheck(xItem.attrib.get("auto"))
             elif xItem.tag == "projectTarget":
-                data.setProjectTarget(xItem.text, xItem.attrib.get("date"))
+                data.setProjectTarget(xItem.text, xItem.attrib.get("date"), xItem.attrib.get("mode") == "characters")
             elif xItem.tag == "dailyTarget":
                 data.setDailyTarget(xItem.text, xItem.attrib.get("auto"))
                 data.setInitDailyTarget(xItem.attrib.get("last"), xItem.attrib.get("date"))
@@ -520,6 +520,7 @@ class ProjectXMLWriter:
         targetAttr = {
             "date": data.targetDeadline.isoformat() if isinstance(data.targetDeadline, datetime.date) else "None",
             "last": str(data.targetLastCount),
+            "mode": "characters" if data.targetCountChars else "words",
         }
         dailyAttr = {
             "auto": yesNo(data.dailyGoalAuto),
@@ -531,7 +532,7 @@ class ProjectXMLWriter:
         self._packSingleValue(xSettings, "doBackup", yesNo(data.doBackup))
         self._packSingleValue(xSettings, "language", data.language)
         self._packSingleValue(xSettings, "spellChecking", data.spellLang, attrib={"auto": yesNo(data.spellCheck)})
-        self._packSingleValue(xSettings, "projectTarget", str(data.targetWordCount), attrib=targetAttr)
+        self._packSingleValue(xSettings, "projectTarget", str(data.targetCount), attrib=targetAttr)
         self._packSingleValue(xSettings, "dailyTarget", str(data.dailyGoal), attrib=dailyAttr)
         self._packListValues(xSettings, "targetSkipRoots", data.targetSkipRoots)
         self._packDictKeyValue(xSettings, "lastHandle", data.lastHandle)
