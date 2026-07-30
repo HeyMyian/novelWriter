@@ -97,7 +97,7 @@ helpText     = "blue"
 fadedText    = "faded"
 errorText    = "yellow"
 accentText   = "blue"
-activeButton  = "blue:96"
+activeButton = "blue:96"
 searchMatch  = "yellow:96"
 
 [Syntax]

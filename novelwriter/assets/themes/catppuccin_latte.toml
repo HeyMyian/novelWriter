@@ -72,7 +72,7 @@ helpText     = "#7c7f93"
 fadedText    = "faded"
 errorText    = "red"
 accentText   = "purple"
-activeButton  = "#ccd0da"
+activeButton = "#ccd0da"
 searchMatch  = "default:80"
 
 [Syntax]

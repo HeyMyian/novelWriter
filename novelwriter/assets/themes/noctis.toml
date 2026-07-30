@@ -104,7 +104,7 @@ helpText     = "#e4b781"
 fadedText    = "faded"
 errorText    = "#e3541c"
 accentText   = "cyan"
-activeButton  = "#49e9a657"
+activeButton = "#49e9a657"
 searchMatch  = "orange:96"
 
 [Syntax]
