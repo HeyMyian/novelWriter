@@ -41,17 +41,19 @@ if TYPE_CHECKING:
 # Package Meta
 # ============
 
-__package__ = "novelwriter"
-__copyright__ = "Copyright 2018-2026 Veronica Berglyd Olsen"
-__license__ = "GPLv3"
-__author__ = "Veronica Berglyd Olsen"
+# fmt: off
+__package__    = "novelwriter"
+__copyright__  = "Copyright 2018-2026 Veronica Berglyd Olsen"
+__license__    = "GPLv3"
+__author__     = "Veronica Berglyd Olsen"
 __maintainer__ = "Veronica Berglyd Olsen"
-__email__ = "code@vkbo.net"
-__version__ = "26.2b1"
+__email__      = "code@vkbo.net"
+__version__    = "26.2b1"
 __hexversion__ = "0x260200b1"
-__date__ = "2026-07-26"
-__status__ = "Stable"
-__domain__ = "novelwriter.io"
+__date__       = "2026-07-26"
+__status__     = "Stable"
+__domain__     = "novelwriter.io"
+# fmt: on
 
 logger = logging.getLogger(__name__)
 
