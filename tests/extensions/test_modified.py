@@ -26,7 +26,7 @@ from unittest.mock import Mock
 import pytest
 
 from PyQt6.QtCore import QEvent, QPoint, QPointF, QSize, Qt
-from PyQt6.QtGui import QFont, QKeyEvent, QMouseEvent, QStandardItem, QStandardItemModel, QWheelEvent
+from PyQt6.QtGui import QFont, QKeyEvent, QMouseEvent, QPixmap, QStandardItem, QStandardItemModel, QWheelEvent
 from PyQt6.QtWidgets import QFontDialog, QSplitter, QWidget
 
 from novelwriter.extensions.modified import (
@@ -40,6 +40,7 @@ from novelwriter.extensions.modified import (
     NNonBlockingDialog,
     NSpinBox,
     NSplitterHandle,
+    NTabWidget,
     NToolDialog,
     NTreeView,
 )
@@ -354,3 +355,27 @@ def testNSplitterHandle_Main(qtbot):
     hHandle.setResizable(False)
     hHandle.setResizable(True)
     assert hHandle.cursor().shape() == Qt.CursorShape.SplitHCursor
+
+
+@pytest.mark.gui
+def testNTabWidget_Main(qtbot, nwGUI):
+    """Test the NTabWidget and NTabBar paint logic."""
+    tabs = NTabWidget(None)  # type: ignore
+    qtbot.addWidget(tabs)
+    for i in range(6):
+        tabs.addTab(QWidget(), f"Tab Number {i} With a Long Label")
+
+    bar = tabs.tabBar()
+    assert bar is not None
+
+    # A normal paint, with every tab fitting inside the bar, must not fail
+    bar.resize(1200, 30)
+    bar.render(QPixmap(1200, 30))
+
+    # Shrinking the bar below the combined tab width leaves later tabs
+    # positioned outside the paintable area, which must be skipped rather
+    # than painted, and must still not fail
+    bar.resize(60, 30)
+    bar.render(QPixmap(60, 30))
+
+    tabs.refreshTheme()

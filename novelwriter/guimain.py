@@ -893,6 +893,10 @@ class GuiMain(QMainWindow):
             self.docEditor.initEditor()
             self.docViewer.initViewer()
 
+            # This also forces the icon to update if there was already a message on the status bar (#2886)
+            meta = SHARED.theme.themeInfo
+            self.mainStatus.setStatusMessage(self.tr('Loaded theme "{0}" by {1}').format(meta.name, meta.author))
+
     def refreshThemeColors(self, syntax: bool = False, force: bool = False) -> None:
         """Refresh the GUI theme."""
         SHARED.theme.loadTheme(force=force)

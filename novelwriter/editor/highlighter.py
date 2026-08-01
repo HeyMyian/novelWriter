@@ -274,12 +274,12 @@ class GuiDocHighlighter(QSyntaxHighlighter):
         content type.
         """
         if document := self.document():  # pragma: no branch
-            nBlocks = document.blockCount()
             tStart = time()
-            for i in range(nBlocks):
-                block = document.findBlockByNumber(i)
+            block = document.begin()
+            while block.isValid():
                 if block.userState() & cType > 0:
                     self.rehighlightBlock(block)
+                block = block.next()
             logger.debug("Document highlighted in %.3f ms", (1000 * (time() - tStart)))
 
     ##

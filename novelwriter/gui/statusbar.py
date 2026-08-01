@@ -268,7 +268,6 @@ class GuiMainStatus(QStatusBar):
     def setStatusMessage(self, message: str, severity: T_MsgSeverity = "info") -> None:
         """Set the status bar message to display."""
         self.messageBox.setMessage(message, severity, nwConst.STATUS_MSG_TIMEOUT)
-        QApplication.processEvents()
 
     @pyqtSlot(str, str)
     def setLanguage(self, language: str, provider: str) -> None:

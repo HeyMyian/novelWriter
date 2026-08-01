@@ -322,6 +322,11 @@ class GuiTheme:
         """Return a dictionary of all themes."""
         return self._allThemes
 
+    @property
+    def themeInfo(self) -> ThemeMeta:
+        """Return the metadata for the current theme."""
+        return self._meta
+
     ##
     #  Getters
     ##
