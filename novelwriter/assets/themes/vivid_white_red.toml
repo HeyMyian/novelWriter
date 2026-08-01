@@ -61,19 +61,19 @@ tooltipText     = "default"
 button          = "base"
 buttonText      = "default"
 brightText      = "base"
-highlight       = "red:128"
+highlight       = "#ff8393"
 highlightedText = "default"
 link            = "red"
 linkVisited     = "red"
-accent          = "red"
+accent          = "#ff8393"
 
 [GUI]
 helpText     = "default:L250"
 fadedText    = "faded"
 errorText    = "red"
-accentText   = "default"
+accentText   = "#cf122b"
 activeButton = "red:96"
-activeBase   = "#d8dce0"
+activeBase   = "#f3f3f8"
 searchMatch  = "green:72"
 
 [Syntax]
