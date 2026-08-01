@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import gc
 import logging
 import sys
 
@@ -317,10 +318,16 @@ class GuiMain(QMainWindow):
         self.asDocTimer = QTimer(self)
         self.asDocTimer.timeout.connect(self._autoSaveDocument)
 
+        # Set Up Garbage Collector Timer
+        self.gcTimer = QTimer(self)
+        self.gcTimer.setInterval(5000)
+        self.gcTimer.timeout.connect(self._runGarbageCollect)
+
         # Initialise Main GUI
         self.initMain()
         self.asProjTimer.start()
         self.asDocTimer.start()
+        self.gcTimer.start()
         self.mainStatus.clearStatus()
 
         logger.debug("Ready: GUI")
@@ -1255,6 +1262,13 @@ class GuiMain(QMainWindow):
         if SHARED.hasProject and self.docEditor.docChanged:
             logger.debug("Auto-saving document")
             self.saveDocument()
+
+    @pyqtSlot()
+    def _runGarbageCollect(self) -> None:
+        """Run the cyclic garbage collector on the main thread, since
+        automatic collection is disabled at startup. See #2927.
+        """
+        gc.collect()
 
     @pyqtSlot()
     def _updateStatusWordCount(self) -> None:

@@ -320,6 +320,7 @@ class GuiMainStatus(QStatusBar):
         full memory usage, set environment variable PYTHONTRACEMALLOC=1
         before starting novelWriter.
         """
+        import gc
         import tracemalloc
 
         count = len(QApplication.allWidgets())
@@ -332,12 +333,17 @@ class GuiMainStatus(QStatusBar):
             self._debugInfo = True
 
         current, peak = tracemalloc.get_traced_memory()
+        young, old0, old1 = gc.get_count()
         stamp = datetime.now().strftime("%H:%M:%S")
         message = (
             f"Widgets: {count} \u2013 "
             f"{self._traceMallocRef} Memory: {current / 1024:,.2f} kiB \u2013 "
-            f"Peak: {peak / 1024:,.2f} kiB"
+            f"Peak: {peak / 1024:,.2f} kiB \u2013 "
+            f"GC: {young}/{old0}/{old1}"
         )
+        if garbage := len(gc.garbage):
+            # Objects the collector could not free, should normally stay at 0
+            message += f" \u2013 Uncollectable: {garbage}"
         self.showMessage(f"Debug [{stamp}] {message}", 6000)
         logger.debug("[MEMINFO] %s", message)
 
