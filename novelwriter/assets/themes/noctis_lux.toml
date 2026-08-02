@@ -13,12 +13,12 @@ url    = "https://github.com/liviuschera/noctis"
 # sideBar.background         : #f9f1e1   -> Palette.window
 # editor.background          : #fef8ec   -> Base.base
 # editor.foreground          : #005661   -> Base.default
-# editor.selectionBackground : #ade2eb77 -> Syntax.line, Syntax.texthighlight
+# editor.selectionBackground : #ade2eb77 -> Syntax.line, Syntax.textHighlight
 # textLink.foreground        : #00c6e0   -> Palette.link, Syntax.link
 # input.background           : #fef8ec   -> Palette.button
-# input.foreground           : #6a7a7c   -> Palette.buttontext
-# notifications.foreground   : #005661   -> Palette.tooltiptext
-# notifications.background   : #f2edde   -> Palette.tooltipbase
+# input.foreground           : #6a7a7c   -> Palette.buttonText
+# notifications.foreground   : #005661   -> Palette.tooltipText
+# notifications.background   : #f2edde   -> Palette.tooltipBase
 ##
 # tokenColors
 # COMMENT            : #8ca6a6 -> Base.faded
@@ -28,11 +28,11 @@ url    = "https://github.com/liviuschera/noctis"
 # ANNOTATION         : #b3694d -> Syntax.note, Syntax.emphasis
 # CONSTANT           : #a88c00 -> Base.yellow
 # TAG                : #e64100 -> Base.orange
-# STRING             : #00b368 -> Syntax.headertext, Palette.accent
+# STRING             : #00b368 -> Syntax.headerText, Palette.accent
 # STRINGINTERPOLATED : #009456 -> Base.green
 # NUMBER             : #5842ff -> Base.purple
 # FUNCTION           : #0095a8 -> Base.cyan
-# SUPPORT            : #00bdd6 -> Syntax.replacetag
+# SUPPORT            : #00bdd6 -> Syntax.replaceTag
 # MISC               : #0094f0 -> Base.blue
 # INVALID            : #ff530f -> GUI.errorText 
 ##
