@@ -24,13 +24,10 @@ from __future__ import annotations
 import json
 import logging
 import sys
-import tomllib
 
-from configparser import ConfigParser
-from enum import Enum
 from pathlib import Path
 from time import time
-from typing import TYPE_CHECKING, Final, TypeVar
+from typing import TYPE_CHECKING, Final
 
 from PyQt6.QtCore import (
     PYQT_VERSION,
@@ -50,11 +47,9 @@ from PyQt6.QtGui import QFont, QFontDatabase, QFontMetrics
 from PyQt6.QtWidgets import QApplication
 
 from novelwriter.common import (
-    checkBool,
-    checkFloat,
     checkInt,
     checkPath,
-    checkString,
+    compact,
     describeFont,
     fontMatcher,
     formatTimeStamp,
@@ -64,15 +59,19 @@ from novelwriter.common import (
     safeExists,
     safeIsDir,
     simplified,
+    uniqueCompact,
 )
 from novelwriter.constants import nwFiles, nwQuotes, nwUnicode, trStats
 from novelwriter.enum import nwTheme
 from novelwriter.error import formatException, logException
+from novelwriter.formats.configparser import NConfigParser
+from novelwriter.formats.tomlparser import NTomlParser
 
 if TYPE_CHECKING:
     from datetime import datetime
 
     from novelwriter.core.projectdata import ProjectData
+    from novelwriter.formats.tomlparser import T_TomlConfig
     from novelwriter.splash import NSplashScreen
 
 logger = logging.getLogger(__name__)
@@ -81,10 +80,6 @@ DEF_GUI_DARK = "default_dark"
 DEF_GUI_LIGHT = "default_light"
 DEF_ICONS = "material_rounded_normal"
 DEF_TREECOL = "theme"
-
-T_ConfValue = str | int | float | bool | Path | list[str] | list[int] | Enum | QFont
-T_ConfEntry = dict[str, T_ConfValue]
-T_ConfData = dict[str, T_ConfEntry]
 
 
 class Config:
@@ -459,6 +454,7 @@ class Config:
 
     @property
     def hasError(self) -> bool:
+        """Return True if the config class encountered an error."""
         return self._hasError
 
     @property
@@ -468,20 +464,23 @@ class Config:
 
     @property
     def nwLangPath(self) -> Path:
+        """Return the path to the novelWriter language files."""
         return self._nwLangPath
 
     @property
     def locale(self) -> QLocale:
+        """Return the current GUI locale."""
         return self._dLocale
 
     @property
     def recentProjects(self) -> RecentProjects:
+        """Return the recent projects list."""
         return self._recentProjects
 
     @property
     def lastAuthor(self) -> str:
         """Return the last author name used."""
-        return simplified(self._lastAuthor)
+        return self._lastAuthor
 
     ##
     #  Getters
@@ -832,7 +831,7 @@ class Config:
         self.backupInterval = parser.getStr(sec, "backupInterval", self.backupInterval)
         self.askBeforeBackup = parser.getBool(sec, "askBeforeBackup", self.askBeforeBackup)
         self.askBeforeExit = parser.getBool(sec, "askBeforeExit", self.askBeforeExit)
-        self._lastAuthor = parser.getStr(sec, "lastAuthor", self._lastAuthor)
+        self._lastAuthor = simplified(parser.getStr(sec, "lastAuthor", self._lastAuthor))
 
         # Editor
         sec = "Editor"
@@ -855,12 +854,12 @@ class Config:
         self.autoScroll = parser.getBool(sec, "autoScroll", self.autoScroll)
         self.autoScrollPos = parser.getInt(sec, "autoScrollPos", self.autoScrollPos)
         self.scrollPastEnd = parser.getBool(sec, "scrollPastEnd", self.scrollPastEnd)
-        self.fmtSQuoteOpen = parser.getStr(sec, "fmtSQuoteOpen", self.fmtSQuoteOpen)
-        self.fmtSQuoteClose = parser.getStr(sec, "fmtSQuoteClose", self.fmtSQuoteClose)
-        self.fmtDQuoteOpen = parser.getStr(sec, "fmtDQuoteOpen", self.fmtDQuoteOpen)
-        self.fmtDQuoteClose = parser.getStr(sec, "fmtDQuoteClose", self.fmtDQuoteClose)
-        self.fmtPadBefore = parser.getStr(sec, "fmtPadBefore", self.fmtPadBefore)
-        self.fmtPadAfter = parser.getStr(sec, "fmtPadAfter", self.fmtPadAfter)
+        self.fmtSQuoteOpen = compact(parser.getStr(sec, "fmtSQuoteOpen", self.fmtSQuoteOpen))
+        self.fmtSQuoteClose = compact(parser.getStr(sec, "fmtSQuoteClose", self.fmtSQuoteClose))
+        self.fmtDQuoteOpen = compact(parser.getStr(sec, "fmtDQuoteOpen", self.fmtDQuoteOpen))
+        self.fmtDQuoteClose = compact(parser.getStr(sec, "fmtDQuoteClose", self.fmtDQuoteClose))
+        self.fmtPadBefore = uniqueCompact(parser.getStr(sec, "fmtPadBefore", self.fmtPadBefore))
+        self.fmtPadAfter = uniqueCompact(parser.getStr(sec, "fmtPadAfter", self.fmtPadAfter))
         self.fmtPadThin = parser.getBool(sec, "fmtPadThin", self.fmtPadThin)
         self.spellLanguage = parser.getStr(sec, "spellCheck", self.spellLanguage)
         self.showTabsNSpaces = parser.getBool(sec, "showTabsNSpaces", self.showTabsNSpaces)
@@ -875,8 +874,8 @@ class Config:
         dialogLine = parser.getStr(sec, "dialogLine", self.dialogLine)
         narratorBreak = parser.getStr(sec, "narratorBreak", self.narratorBreak)
         narratorDialog = parser.getStr(sec, "narratorDialog", self.narratorDialog)
-        self.altDialogOpen = parser.getStr(sec, "altDialogOpen", self.altDialogOpen)
-        self.altDialogClose = parser.getStr(sec, "altDialogClose", self.altDialogClose)
+        self.altDialogOpen = compact(parser.getStr(sec, "altDialogOpen", self.altDialogOpen))
+        self.altDialogClose = compact(parser.getStr(sec, "altDialogClose", self.altDialogClose))
         self.highlightEmph = parser.getBool(sec, "highlightEmph", self.highlightEmph)
         self.dottedModCodes = parser.getBool(sec, "dottedModCodes", self.dottedModCodes)
         self.stopWhenIdle = parser.getBool(sec, "stopWhenIdle", self.stopWhenIdle)
@@ -932,7 +931,7 @@ class Config:
         """Save the current preferences to file."""
         logger.debug("Saving config file")
 
-        config: T_ConfData = {}
+        config: T_TomlConfig = {}
 
         config["Meta"] = {
             "timeStamp": formatTimeStamp(time()),
@@ -1236,199 +1235,3 @@ class RecentPaths:
             logException()
             return False
         return True
-
-
-_T_Enum = TypeVar("_T_Enum", bound=Enum)
-
-
-class NTomlParser:
-    """Core: Toml Config Parser.
-
-    This is a wrapper around the standard tomllib module, and assumes a
-    two level section and key/value structure. It has type safe getters
-    for all the supported types.
-    """
-
-    def __init__(self) -> None:
-        self._data: T_ConfData = {}
-
-    def read(self, path: Path) -> None:
-        """Read and parse TOML data from a file."""
-        with open(path, mode="r", encoding="utf-8") as fileObj:
-            data = tomllib.loads(fileObj.read())
-
-        self._data = {}
-        for section, values in data.items():
-            if not isinstance(values, dict):
-                logger.error("Invalid config section '%s', expected key/value pairs", section)
-                continue
-            self._data[section] = values
-
-    def write(self, path: Path, data: T_ConfData) -> None:
-        """Write a dict of sections to a file in TOML format."""
-        with open(path, mode="w", encoding="utf-8") as fileObj:
-            for section, values in data.items():
-                if not isinstance(values, dict):
-                    logger.error("Invalid config section '%s', expected key/value pairs", section)
-                    continue
-                fileObj.write(f"[{section}]\n")
-                for key, value in values.items():
-                    fileObj.write(f"{key} = {self._dump(value)}\n")
-                fileObj.write("\n")
-
-    def getStr(self, section: str, option: str, default: str) -> str:
-        """Read string value."""
-        return checkString(self._value(section, option), default)
-
-    def getInt(self, section: str, option: str, default: int) -> int:
-        """Read integer value."""
-        return checkInt(self._value(section, option), default)
-
-    def getFloat(self, section: str, option: str, default: float) -> float:
-        """Read float value."""
-        return checkFloat(self._value(section, option), default)
-
-    def getBool(self, section: str, option: str, default: bool) -> bool:
-        """Read boolean value."""
-        return checkBool(self._value(section, option), default)
-
-    def getPath(self, section: str, option: str, default: Path) -> Path:
-        """Read a Path value."""
-        return checkPath(self._value(section, option), default)
-
-    def getStrList(self, section: str, option: str, default: list[str]) -> list[str]:
-        """Read string list, keeping the length of the default."""
-        result = default.copy() if isinstance(default, list) else []
-        data = self._value(section, option)
-        if isinstance(data, list):
-            for i in range(min(len(data), len(result))):
-                result[i] = str(data[i])
-        return result
-
-    def getIntList(self, section: str, option: str, default: list[int]) -> list[int]:
-        """Read integer list, keeping the length of the default."""
-        result = default.copy() if isinstance(default, list) else []
-        data = self._value(section, option)
-        if isinstance(data, list):
-            for i in range(min(len(data), len(result))):
-                result[i] = checkInt(data[i], result[i])
-        return result
-
-    def getEnum(self, section: str, option: str, default: _T_Enum) -> _T_Enum:
-        """Read enum value."""
-        data = self._value(section, option)
-        if isinstance(data, str):
-            return type(default).__members__.get(data.upper(), default)
-        return default
-
-    ##
-    # Internal Functions
-    ##
-
-    def _value(self, section: str, option: str) -> T_ConfValue | None:
-        """Look up a raw value, or None if the section or option is unset."""
-        return self._data.get(section, {}).get(option)
-
-    @staticmethod
-    def _dump(value: T_ConfValue) -> str:
-        """Format a value as a TOML literal."""
-        if isinstance(value, bool):
-            return "true" if value else "false"
-        elif isinstance(value, (int, float)):
-            return str(value)
-        elif isinstance(value, (list, tuple)):
-            return "[" + ", ".join(NTomlParser._dump(v) for v in value) + "]"
-        elif isinstance(value, Enum):
-            return f'"{value.name}"'
-        elif isinstance(value, QFont):
-            return f'"{value.toString()}"'
-        return NTomlParser._dumpStr(str(value))
-
-    @staticmethod
-    def _dumpStr(value: str) -> str:
-        """Format a string as a quoted TOML basic string."""
-        escaped = (
-            value
-            .replace("\\", "\\\\")
-            .replace('"', '\\"')
-            .replace("\t", "\\t")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-        )
-        return f'"{escaped}"'
-
-
-class NConfigParser(ConfigParser):
-    """Core: Adapted Config Parser.
-
-    This is a subclass of the standard config parser that adds type safe
-    helper functions, and support for lists. It also turns off
-    interpolation, which would require % symbols to be escaped (#2455).
-
-    It is kept for backwards compatibility with old config files.
-    """
-
-    def __init__(self) -> None:
-        super().__init__(interpolation=None)
-
-    def read(self, path: Path) -> None:
-        """Read and parse config data from a file, mirroring write()."""
-        with open(path, mode="r", encoding="utf-8") as fileObj:
-            self.read_string(fileObj.read())
-
-    def getStr(self, section: str, option: str, default: str) -> str:
-        """Read string value."""
-        return self.get(section, option, fallback=default)
-
-    def getInt(self, section: str, option: str, default: int) -> int:
-        """Read integer value."""
-        try:
-            return self.getint(section, option, fallback=default)
-        except ValueError:
-            logger.error("Could not read '%s':'%s' from config", section, option)
-        return default
-
-    def getFloat(self, section: str, option: str, default: float) -> float:
-        """Read float value."""
-        try:
-            return self.getfloat(section, option, fallback=default)
-        except ValueError:
-            logger.error("Could not read '%s':'%s' from config", section, option)
-        return default
-
-    def getBool(self, section: str, option: str, default: bool) -> bool:
-        """Read boolean value."""
-        try:
-            return self.getboolean(section, option, fallback=default)
-        except ValueError:
-            logger.error("Could not read '%s':'%s' from config", section, option)
-        return default
-
-    def getPath(self, section: str, option: str, default: Path) -> Path:
-        """Read a Path value."""
-        return checkPath(self.get(section, option, fallback=default), default)
-
-    def getStrList(self, section: str, option: str, default: list[str]) -> list[str]:
-        """Read string list."""
-        result = default.copy() if isinstance(default, list) else []
-        if self.has_option(section, option):
-            data = self.get(section, option, fallback="").split(",")
-            for i in range(min(len(data), len(result))):
-                result[i] = data[i].strip()
-        return result
-
-    def getIntList(self, section: str, option: str, default: list[int]) -> list[int]:
-        """Read integer list."""
-        result = default.copy() if isinstance(default, list) else []
-        if self.has_option(section, option):
-            data = self.get(section, option, fallback="").split(",")
-            for i in range(min(len(data), len(result))):
-                result[i] = checkInt(data[i].strip(), result[i])
-        return result
-
-    def getEnum(self, section: str, option: str, default: _T_Enum) -> _T_Enum:
-        """Read enum value."""
-        if self.has_option(section, option):
-            data = self.get(section, option, fallback="")
-            return type(default).__members__.get(data.upper(), default)
-        return default

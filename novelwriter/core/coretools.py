@@ -116,7 +116,7 @@ class DocMerger:
 
             status = outDoc.writeDocument("\n\n".join(self._text) + "\n\n")
             if not status:
-                self._error = outDoc.getError()
+                self._error = outDoc.error
 
             self._project.index.reIndexHandle(self._target.itemHandle)
             self._target.notifyToRefresh()
@@ -223,7 +223,7 @@ class DocSplitter:
                     outDoc = self._project.storage.getDocument(dHandle)
                     status = outDoc.writeDocument("\n".join(docText))
                     if not status:
-                        self._error = outDoc.getError()
+                        self._error = outDoc.error
 
                     self._project.index.reIndexHandle(dHandle)
                     nwItem.notifyToRefresh()
@@ -454,12 +454,12 @@ class ProjectBuilder:
             if is_zipfile(source):
                 with ZipFile(source) as zipObj:
                     for member in zipObj.namelist():
-                        if member == nwFiles.PROJ_FILE or (member.startswith("content") and member.endswith(".nwd")):
+                        if member == nwFiles.PROJ_FILE or (member.startswith("content") and member.endswith(".md")):
                             zipObj.extract(member, dstPath)
             else:
                 shutil.copy2(srcPath / nwFiles.PROJ_FILE, dstPath)
                 for item in srcCont.iterdir():
-                    if item.is_file() and item.suffix == ".nwd" and isHandle(item.stem):
+                    if item.is_file() and item.suffix == ".md" and isHandle(item.stem):
                         shutil.copy2(item, dstCont)
         except Exception as exc:
             SHARED.error(self.tr("Could not copy project files."), exc=exc)

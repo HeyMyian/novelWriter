@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import re
 
+from pathlib import Path
 from time import time
 from unittest.mock import MagicMock
 
@@ -79,7 +80,7 @@ from novelwriter.types import (
     QtSelectWord,
 )
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, buildTestProject, writeFile
 from tests.mocked import causeOSError
 
 KEY_DELAY = 1
@@ -307,7 +308,7 @@ def testGuiDocEditor_SaveTextEdgeCases(qtbot, monkeypatch, nwGUI, projPath, ipsu
 
     # A hash mismatch that the user confirms overwriting for, and which
     # then succeeds, is treated as a successful save
-    nwDocument._lastHash = "0" * 40
+    writeFile(Path(nwDocument.fileLocation), "Changed outside of novelWriter")
     docEditor.setDocumentChanged(True)
     assert docEditor.saveText() is True
     assert docEditor.docChanged is False

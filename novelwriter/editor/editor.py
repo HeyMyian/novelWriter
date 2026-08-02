@@ -98,7 +98,6 @@ from novelwriter.enum import (
 from novelwriter.extensions.eventfilters import WheelEventFilter
 from novelwriter.formats.fromqdoc import FromQTextDocument
 from novelwriter.text.autoreplace import TextAutoReplace
-from novelwriter.text.counting import standardCounter
 from novelwriter.text.formats import processHeading
 from novelwriter.tools.lipsum import GuiLipsum
 from novelwriter.types import (
@@ -249,6 +248,11 @@ class GuiDocEditor(QTextEdit):
         "searchVisible",
         "wheelEventFilter",
     )
+
+    SEP_TABLE = str.maketrans({
+        nwUnicode.U_LSEP: "\n",  # Line Separator
+        nwUnicode.U_PSEP: "\n",  # Paragraph Separator
+    })
 
     closeEditorRequest = pyqtSignal()
     docTextChanged = pyqtSignal(str, float)
@@ -760,9 +764,6 @@ class GuiDocEditor(QTextEdit):
             return False
 
         text = self.getText()
-        cC, wC, pC = standardCounter(text)
-        self._updateDocCounts(cC, wC, pC)
-
         if not self._nwDocument.writeDocument(text):
             saveOk = False
             if self._nwDocument.hashError and SHARED.question(
@@ -774,7 +775,7 @@ class GuiDocEditor(QTextEdit):
                 saveOk = self._nwDocument.writeDocument(text, forceWrite=True)
 
             if not saveOk:
-                SHARED.error(self.tr("Could not save document."), info=self._nwDocument.getError())
+                SHARED.error(self.tr("Could not save document."), info=self._nwDocument.error)
                 return False
 
         self.setDocumentChanged(False)
@@ -859,16 +860,12 @@ class GuiDocEditor(QTextEdit):
 
         See: https://doc.qt.io/qt-6/qtextdocument.html#toPlainText
         """
-        text = self._qDocument.toRawText()
-        text = text.replace(nwUnicode.U_LSEP, "\n")  # Line separators
-        return text.replace(nwUnicode.U_PSEP, "\n")  # Paragraph separators
+        return self._qDocument.toRawText().translate(self.SEP_TABLE)
 
     def getSelectedText(self) -> str:
         """Get currently selected text."""
         if (cursor := self.textCursor()).hasSelection():
-            text = cursor.selectedText()
-            text = text.replace(nwUnicode.U_LSEP, "\n")  # Line separators
-            return text.replace(nwUnicode.U_PSEP, "\n")  # Paragraph separators
+            return cursor.selectedText().translate(self.SEP_TABLE)
         return ""
 
     def getCursorPosition(self) -> int:

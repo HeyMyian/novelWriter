@@ -30,7 +30,16 @@ from time import time
 from typing import TYPE_CHECKING
 
 from novelwriter import SHARED, __hexversion__
-from novelwriter.common import formatTimeStamp, isHandle, isItemClass, isTitleTag, jsonCombine, jsonEncode, safeExists
+from novelwriter.common import (
+    checkInt,
+    formatTimeStamp,
+    isHandle,
+    isItemClass,
+    isTitleTag,
+    jsonCombine,
+    jsonEncode,
+    safeExists,
+)
 from novelwriter.constants import nwFiles, nwKeyWords, nwStyles
 from novelwriter.core.indexdata import NOTE_TYPES, TT_NONE, IndexHeading, IndexNode, T_NoteTypes
 from novelwriter.enum import nwComment, nwItemClass, nwItemLayout, nwItemType, nwNovelExtra
@@ -73,15 +82,17 @@ class Index:
     lookups from the tags and back to items where they are defined.
 
     The index data is cached in a JSON file between writing sessions in
-    order to save startup time. The cached index is validated on input,
-    and a broken flag set if it is not valid. If it is invalid, the
-    loaded data is cleared and it is up to the calling code to initiate
-    a rebuild of the index data.
+    order to save startup time. The cache is only written on a full save,
+    not on autosave, so its revision number is compared against the one
+    recorded in the project file to determine whether it is up to date.
+    A mismatch, either because the cache is invalid/missing or because
+    it is older than the project file's revision, means the calling code
+    must initiate a rebuild of the index data.
     """
 
     __slots__ = (
-        "_indexBroken",
         "_indexChange",
+        "_indexRevision",
         "_indexUpgrade",
         "_itemIndex",
         "_novelExtra",
@@ -98,15 +109,15 @@ class Index:
         # Storage and State
         self._tagsIndex = TagsIndex()
         self._itemIndex = ItemIndex(project, self._tagsIndex)
-        self._indexBroken = False
         self._indexUpgrade = False
 
         # Models
         self._novelModels: dict[str, NovelModel] = {}
         self._novelExtra = nwNovelExtra.HIDDEN
 
-        # TimeStamps
+        # Track Changes
         self._indexChange = 0.0
+        self._indexRevision = 0
         self._rootChange = {}
 
     def __repr__(self) -> str:
@@ -118,12 +129,19 @@ class Index:
     ##
 
     @property
-    def indexBroken(self) -> bool:
-        return self._indexBroken
+    def indexRebuild(self) -> bool:
+        """Return True if the index needs to be rebuilt."""
+        return self._indexRevision != self._project.data.indexRevision
 
     @property
     def indexUpgrade(self) -> bool:
+        """Return True if the index was loaded from an older version."""
         return self._indexUpgrade
+
+    @property
+    def indexRevision(self) -> int:
+        """Return the current index revision number."""
+        return self._indexRevision
 
     ##
     #  Getters
@@ -152,6 +170,7 @@ class Index:
         self._tagsIndex.clear()
         self._itemIndex.clear()
         self._indexChange = 0.0
+        self._indexRevision += 1  # We must not reset the revision number
         self._rootChange = {}
         SHARED.emitIndexCleared(self._project)
 
@@ -164,7 +183,6 @@ class Index:
                 text = self._project.storage.getDocumentText(nwItem.itemHandle)
                 self.scanText(nwItem.itemHandle, text, blockSignal=True)
             SHARED.incMainProgress()
-        self._indexBroken = False
         SHARED.emitIndexAvailable(self._project)
         for tHandle in self._novelModels:
             self.refreshNovelModel(tHandle)
@@ -243,7 +261,6 @@ class Index:
             return False
 
         tStart = time()
-        self._indexBroken = False
         if safeExists(indexFile):
             logger.debug("Loading index file")
             try:
@@ -252,7 +269,6 @@ class Index:
             except Exception:
                 logger.error("Failed to load index file")
                 logException()
-                self._indexBroken = True
                 return False
 
             try:
@@ -263,8 +279,9 @@ class Index:
             except Exception:
                 logger.error("The index content is invalid")
                 logException()
-                self._indexBroken = True
                 return False
+
+            self._indexRevision = checkInt(meta.get("revision"), 0)
 
         logger.debug("Checking index")
 
@@ -293,7 +310,11 @@ class Index:
         start = time()
 
         try:
-            meta = {"version": __hexversion__, "timestamp": formatTimeStamp(start)}
+            meta = {
+                "version": __hexversion__,
+                "timestamp": formatTimeStamp(start),
+                "revision": self._indexRevision,
+            }
             with open(indexFile, mode="w+", encoding="utf-8") as outFile:
                 outFile.write(
                     jsonCombine({
@@ -363,6 +384,7 @@ class Index:
         # Update timestamps for index changes
         nowTime = time()
         self._indexChange = nowTime
+        self._indexRevision += 1
         self._rootChange[tItem.itemRoot] = nowTime
         if not blockSignal:
             if changedRefs := sorted(oldRefs | self._itemRefHandles(tHandle)):

@@ -231,7 +231,7 @@ def testGuiOutline_Content(qtbot, monkeypatch, nwGUI, prjLipsum, fncPath, tstPat
     for dTitle, hLevel in docList:
         aHandle = SHARED.project.newFile(dTitle, newHandle)
         hHash = "#" * hLevel
-        writeFile(prjLipsum / "content" / f"{aHandle}.nwd", f"{hHash} {dTitle}\n\n")
+        writeFile(prjLipsum / "content" / f"{aHandle}.md", f"{hHash} {dTitle}\n\n")
 
     nwGUI.rebuildIndex()
 

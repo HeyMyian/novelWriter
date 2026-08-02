@@ -501,7 +501,7 @@ class GuiMain(QMainWindow):
             self.viewDocument(lastViewed)
 
         # Check if we need to rebuild the index
-        if SHARED.project.index.indexBroken:
+        if SHARED.project.index.indexRebuild:
             if not SHARED.project.index.indexUpgrade:
                 SHARED.warn(self.tr("The project index is broken. Rebuilding index."))
             self.rebuildIndex()
@@ -667,7 +667,7 @@ class GuiMain(QMainWindow):
             return False
 
         lastPath = CONFIG.lastPath("import")
-        ffilter = formatFileFilter(["*.txt", "*.md", "*.nwd", "*"])
+        ffilter = formatFileFilter(["*.txt", "*.md", "*"])
         loadFile, _ = QFileDialog.getOpenFileName(self, self.tr("Import File"), str(lastPath), filter=ffilter)
         if not loadFile:
             return False

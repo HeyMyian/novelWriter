@@ -1,5 +1,64 @@
 # novelWriter Changelog
 
+## Version 26.2 Beta 2 [2026-08-02]
+
+### Release Notes
+
+This is a beta release of the next release version, and is intended for testing purposes. Please be
+careful when using this version on live writing projects, and make sure you take frequent backups.
+
+### Detailed Changelog
+
+**Bugfixes**
+
+* Fixed an issue where the wrong theme colours were used for the active and inactive icons in the
+  project tree context menu. Issue #2941. PR #2946.
+* Removed the placeholder text in the Manuscript Tool preview since it used the wrong text colour
+  on dark themes and anyway is never visible for more than a few milliseconds. Issue #2942.
+  PR #2946.
+* Fixed a bug from the beta 1 release where selecting a piece of text and moving it would cause a
+  crash. Issue #2917. PR #2918.
+* Fixed a re-entrancy bug in the project search tool. Issue #2924. PR #2937.
+* Fixed a re-entrancy bug candidate in the status bar message display logic. Issue #2925. PR #2938.
+* Fixed a potential segfault candidate, and an incorrect thread pool runnable in the version
+  check widget. Issue #2926. PR #2938.
+* Fixed a bug in the loop that collects navigation headers in the editor, which was ignoring the
+  max count. Issue #2930. PR #2939.
+
+**Improvements**
+
+* Added more granular theme variables to improve contrast for GUI components. Issue #2910.
+  PRs #2911, #2915
+* Updated themes with new colours and other improvements. By @vkbo and @HeyMyian. Issue #2910.
+  PRs #2911, #2912, #2916 and #2943.
+* Added five new themes, by @HeyMyian. PR #2943.
+* Added a character count toggle for project writing goals. Issue #2913. PR #2919.
+* Removed all usages of the Qt find block methods inside loops in the editor. These are binary
+  searches, not lookups, so the cost is higher than I expected. Issue #2930. PR #2939.
+* The word counter ran twice on every document search. First once in the editor, then in the
+  indexer. The run in the editor was removed. Issue #2928. PR #2944.
+
+**Other Changes**
+
+* The way the check against overwriting documents that have been changed on disk is performed has
+  been improved so that it doesn't always have to read the existing document before writing.
+  Issue #2929. PR #2945.
+* Project documents are now saved as a text document with the `.md` extension and a standard TOML
+  header instead of the old custom format and extension. Issue #1964. PR #2945.
+* Pinned the Python garbage collector to the main gui thread to prevent it from accidentally
+  triggering in the Qt thread pool. Issue #2927. PR #2940.
+* The index cache and project-local gui state JSON files are no longer written on every autosave.
+  Instead they are only written on manual saves or project close. The index cache is verified
+  against a revision number on open to catch any stale caches. This was also a potential problem
+  before, so this change is a general improvement. A stale cache is rebuilt on project open.
+  Issue #2931. PR #2944.
+
+**Installation**
+
+* Added flatpak for Linux installation. Based on work by @Ryex. Issue #1651. PRs #2906 and #2908.
+
+----
+
 ## Version 26.2 Beta 1 [2026-07-26]
 
 ### Release Notes
@@ -16,7 +75,7 @@ careful when using this version on live writing projects, and make sure you take
 * Fixed tooltip and scrollbar colours not matching the selected theme, a compatibility issue with
   newer versions of Qt; custom stylesheets have been replaced with other styling methods, and the
   Fusion Qt style is now hard coded, to resolve this properly. Issue #2871. PRs #2877 and #2881.
-* Fixed a reentrancy issue when opening documents, and removed a stray call that could delay
+* Fixed a re-entrancy issue when opening documents, and removed a stray call that could delay
   cleanup of objects, improving overall application stability. PR #2840.
 * Fixed five memory leaks related to freeing Qt objects created from Python, and added regression
   tests to catch similar issues in the future. PRs #2829 and #2830.

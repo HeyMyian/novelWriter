@@ -136,6 +136,32 @@ def testProjectXMLReader_ReadCurrent(monkeypatch, mockGUI, tstPaths, fncPath):
     assert xmlReader.read(data, content) is True
     assert xmlReader.state == XMLReadState.WAS_LEGACY
 
+    # A file version below current, but saved by a build at or after
+    # the last breaking change, still counts as legacy
+    writeFile(
+        xmlFile,
+        (
+            "<novelWriterXML fileVersion='1.4' hexVersion='0x260200f0'>"
+            "  <project>"
+            "    <stuff></stuff>"
+            "  </project>"
+            "  <settings>"
+            "    <stuff></stuff>"
+            "  </settings>"
+            "  <content>"
+            "    <item>"
+            "      <stuff></stuff>"
+            "    </item>"
+            "    <stuff></stuff>"
+            "  </content>"
+            "  <stuff></stuff>"
+            "</novelWriterXML>"
+        ),
+    )
+    assert xmlReader.read(data, content) is True
+    assert xmlReader.state == XMLReadState.WAS_LEGACY
+    assert xmlReader.hexVersion == 0x260200F0
+
     # Reset data objects
     data = ProjectData(MockProject())  # type: ignore
     content = []

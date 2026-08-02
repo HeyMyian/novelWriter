@@ -913,8 +913,6 @@ class _PreviewWidget(QTextBrowser):
         if document := self.document():  # pragma: no branch
             document.setDocumentMargin(CONFIG.textMargin)
 
-        self.setPlaceholderText(self.tr('Press the "Preview" button to generate ...'))
-
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
 
         # Signals
