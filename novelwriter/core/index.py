@@ -512,14 +512,16 @@ class Index:
         if (item := self._project.tree[tHandle]) and item.isRootType() and item.isNovelLike():
             model = NovelModel()
             model.setExtraColumn(self._novelExtra)
-            self._appendSubTreeToModel(tHandle, model, notify=False)
+            self._appendSubTreeToModel(tHandle, model)
             self._novelModels[tHandle] = model
 
-    def _appendSubTreeToModel(self, tHandle: str, model: NovelModel, notify: bool = False) -> None:
-        """Append all active novel documents to a novel model."""
+    def _appendSubTreeToModel(self, tHandle: str, model: NovelModel) -> None:
+        """Append all active novel documents to a novel model.
+        Begin/end reset model must be handled by the caller.
+        """
         for handle in self._project.tree.subTree(tHandle):
             if (node := self._itemIndex[handle]) and node.item.isDocumentLayout() and node.item.isActive:
-                model.append(node, notify=notify)
+                model.append(node)
 
     def _itemRefHandles(self, tHandle: str) -> set[str]:
         """Get the handles referenced by an indexed item."""

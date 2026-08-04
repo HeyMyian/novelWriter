@@ -422,6 +422,7 @@ class ProjectBuilder:
         project.newRoot(nwItemClass.ARCHIVE)
         _ = project.tree.trash  # Triggers the creation of Trash
 
+        project.index.rebuild()
         project.saveProject()
         project.closeProject()
 
