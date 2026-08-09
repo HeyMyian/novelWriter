@@ -24,15 +24,25 @@ from __future__ import annotations
 from time import time
 from typing import TYPE_CHECKING, Any
 
-from PyQt6.QtCore import QModelIndex, QRect, QSize, Qt
+from PyQt6.QtCore import QModelIndex, QRect, QSize, Qt, pyqtSlot
 from PyQt6.QtGui import QFontMetrics, QPainter, QPalette
-from PyQt6.QtWidgets import QAbstractItemView, QApplication, QFrame, QStyledItemDelegate, QStyleOptionViewItem, QWidget
+from PyQt6.QtWidgets import (
+    QAbstractItemView,
+    QApplication,
+    QFrame,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import checkInt
 from novelwriter.constants import nwUnicode
+from novelwriter.extensions.configlayout import NScrollableForm
 from novelwriter.extensions.expandpanel import NExpandablePanel
 from novelwriter.extensions.modified import NTreeView
+from novelwriter.extensions.switch import NSwitch
 from novelwriter.models.outlinemodel import OutlineModel
 from novelwriter.types import (
     QtAlignLeftMiddle,
@@ -65,9 +75,37 @@ class GuiStoryOutlineControls(NExpandablePanel):
         self._contentWidget: GuiStoryOutline | None = None
         self.setTitle(self.tr("Story Outline"))
 
+        # Settings Form
+        self.settingsForm = NScrollableForm(self)
+        self.settingsForm.setHelpTextStyle(SHARED.theme.helpText)
+
+        # Expand Chapters
+        self.expandChapters = NSwitch(self)
+        self.expandChapters.toggled.connect(self._expandChaptersToggled)
+        self.settingsForm.addRow(self.tr("Expand chapters"), self.expandChapters)
+
+        # Assemble
+        self.settingsForm.finalise()
+
+        self.outerBox = QVBoxLayout()
+        self.outerBox.addWidget(self.settingsForm)
+        self.outerBox.setContentsMargins(0, 0, 0, 0)
+
+        self.setContentLayout(self.outerBox)
+
     def setContentWidget(self, widget: GuiStoryOutline) -> None:
         """Set the content widget for the outline controls."""
         self._contentWidget = widget
+
+    ##
+    #  Private Slots
+    ##
+
+    @pyqtSlot(bool)
+    def _expandChaptersToggled(self, state: bool) -> None:
+        """Update the outline expansion when the toggle changes."""
+        if self._contentWidget is not None:
+            self._contentWidget.setExpandChapters(state)
 
 
 class GuiStoryOutline(NTreeView):
@@ -93,6 +131,7 @@ class GuiStoryOutline(NTreeView):
         self._built = False
         self._lastHandle: str | None = None
         self._lastBuild = 0.0
+        self._expandChapters = False
 
         self.setModel(self._model)
         self.setItemDelegate(self._delegate)
@@ -158,6 +197,14 @@ class GuiStoryOutline(NTreeView):
             self._built = True
             self._lastHandle = rootHandle
             self._lastBuild = time()
+            self._applyExpansion()
+
+    def setExpandChapters(self, state: bool) -> None:
+        """Set whether chapter nodes are expanded by default, and apply
+        the new state to the current outline.
+        """
+        self._expandChapters = state
+        self._applyExpansion()
 
     def clear(self) -> None:
         """Clear the outline."""
@@ -165,6 +212,16 @@ class GuiStoryOutline(NTreeView):
         self._built = False
         self._lastHandle = None
         self._lastBuild = 0.0
+
+    def _applyExpansion(self) -> None:
+        """Expand or collapse all chapter nodes to match the current
+        expand-chapters state. A model rebuild resets everything to
+        collapsed, so this must be reapplied after each build.
+        """
+        if self._expandChapters:
+            self.expandAll()
+        else:
+            self.collapseAll()
 
     def restoreColumnWidths(self, widths: list[Any]) -> None:
         """Apply saved column widths to the header. Malformed values are
