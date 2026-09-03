@@ -3,7 +3,7 @@ name   = "(draft) Zenburn"
 mode   = "dark"
 author = "Myian"
 credit = "Jani Nurminen"
-url    = "."
+url    = "https://github.com/jnurmine/zenburn"
 
 [Base]
 base    = "#333333"
