@@ -1,0 +1,111 @@
+[Main]
+name   = "(draft) Zenburn"
+mode   = "dark"
+author = "Myian"
+credit = "Jani Nurminen"
+url    = "."
+
+[Base]
+base    = "#333333"
+default = "#dcdccc"
+faded   = "#8f8f8f"
+red     = "#cc9393"
+orange  = "#dfaf8f"
+yellow  = "#f0dfaf"
+green   = "#7f9f7f"
+cyan    = "#80d4aa"
+blue    = "#8cd0d3"
+purple  = "#c0bed1"
+
+[Project]
+root     = "default"
+folder   = "faded"
+file     = "default"
+title    = "red"
+chapter  = "orange"
+scene    = "yellow"
+note     = "green"
+active   = "default"
+inactive = "red"
+disabled = "faded"
+
+[Icon]
+tool      = "default"
+sidebar   = "default"
+accept    = "#9ece9e"
+reject    = "red"
+action    = "default"
+option    = "orange"
+apply     = "#9ece9e"
+create    = "yellow"
+destroy   = "faded"
+reset     = "#9ece9e"
+add       = "#9ece9e"
+change    = "#9ece9e"
+remove    = "red"
+shortcode = "blue"
+markdown  = "default"
+system    = "yellow"
+info      = "default"
+warning   = "orange"
+error     = "red"
+
+[Palette]
+window          = "base"
+windowText      = "#cfbfaf"
+base            = "base"
+alternateBase   = "#4e4e4e"
+text            = "#cfbfaf"
+tooltipBase     = "#f0efd0"
+tooltipText     = "#3f3f3f"
+button          = "base"
+buttonText      = "#cfbfaf"
+brightText      = "base"
+highlight       = "#8383839c"
+highlightedText = "#ffffe0"
+link            = "red"
+linkVisited     = "red"
+accent          = "green"
+
+#686868
+
+[GUI]
+helpText     = "green"
+fadedText    = "faded"
+errorText    = "#e37170"
+accentText   = "#f0efd0"
+activeButton = "#5f5f5f"
+activeBase   = "#4e4e4e"
+searchMatch  = "#385f38"
+
+[Syntax]
+background     = "#3f3f3f"
+text           = "default"
+line           = "base"
+link           = "#dca3a3"
+headerText     = "#f0efd0"
+headerTag      = "faded"
+emphasis       = "orange"
+whitespace     = "orange:64"
+dialog         = "red"
+altDialog      = "red"
+note           = "green"
+hidden         = "green"
+shortcode      = "blue"
+keyword        = "#ffcfaf"
+tag            = "#9ece9e"
+value          = "#dfcfaf"
+optional       = "#cbecd0"
+spellCheckLine = "#e37170"
+errorLine      = "cyan"
+replaceTag     = "blue"
+modifier       = "#ffd7a7"
+textHighlight  = "green:96"
+
+#efef8f
+#c3bf9f
+#709080
+#c0bed1
+#bca3a3
+#dca3a3
+#9ece9e
