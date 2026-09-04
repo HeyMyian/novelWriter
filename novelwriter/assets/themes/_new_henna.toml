@@ -1,7 +1,9 @@
 [Main]
-name   = "(draft) Warm"
+name   = "(new) Henna"
 mode   = "dark"
 author = "Myian"
+credit = "Sami Singh"
+url    = "https://github.com/httpsterio/vscode-henna"
 
 [Base]
 base    = "#191a1f"
@@ -84,7 +86,7 @@ headerTag      = "red"
 emphasis       = "yellow"
 whitespace     = "blue:64"
 dialog         = "blue"
-altDialog      = "red"
+altDialog      = "purple"
 note           = "red"
 hidden         = "faded"
 shortcode      = "purple"

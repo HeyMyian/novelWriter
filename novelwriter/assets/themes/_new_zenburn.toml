@@ -1,5 +1,5 @@
 [Main]
-name   = "(draft) Zenburn"
+name   = "(new) Zenburn"
 mode   = "dark"
 author = "Myian"
 credit = "Jani Nurminen"
@@ -67,8 +67,6 @@ link            = "red"
 linkVisited     = "red"
 accent          = "green"
 
-#686868
-
 [GUI]
 helpText     = "green"
 fadedText    = "faded"
@@ -83,29 +81,21 @@ background     = "#3f3f3f"
 text           = "default"
 line           = "base"
 link           = "#dca3a3"
-headerText     = "#f0efd0"
+headerText     = "#efdcbc"
 headerTag      = "faded"
-emphasis       = "orange"
+emphasis       = "purple"
 whitespace     = "yellow:96"
 dialog         = "red"
-altDialog      = "red"
-note           = "green"
+altDialog      = "#efefaf"
+note           = "#9ece9e"
 hidden         = "green"
 shortcode      = "blue"
-keyword        = "#ffcfaf"
-tag            = "#9ece9e"
+keyword        = "orange"
+tag            = "#ffd7a7"
 value          = "#dfcfaf"
 optional       = "#cbecd0"
 spellCheckLine = "#e37170"
 errorLine      = "cyan"
 replaceTag     = "blue"
-modifier       = "#ffd7a7"
+modifier       = "green"
 textHighlight  = "green:96"
-
-#efef8f
-#c3bf9f
-#709080
-#c0bed1
-#bca3a3
-#dca3a3
-#9ece9e
