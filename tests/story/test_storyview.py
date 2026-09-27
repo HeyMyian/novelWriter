@@ -27,6 +27,7 @@ import pytest
 
 from PyQt6.QtWidgets import QFileDialog
 
+from novelwriter import SHARED
 from novelwriter.enum import nwView
 
 from tests.helpers import cmpFiles
@@ -58,3 +59,25 @@ def testStoryView_ExportData(monkeypatch, nwGUI, prjLipsum, fncPath, tstPaths):
     compFile = tstPaths.refDir / "guiStoryView_export.csv"
     copyfile(csvFile, testFile)
     assert cmpFiles(testFile, compFile)
+
+
+@pytest.mark.gui
+def testStoryView_LastHandle(nwGUI, prjLipsum):
+    """Test that the selected novel folder is restored on reopen."""
+    assert nwGUI.openProject(prjLipsum)
+    storyView = nwGUI.storyView
+    novelValue = storyView.novelValue
+    rootHandle = novelValue.firstHandle
+    assert rootHandle is not None
+
+    # Select the root folder, then the "All Novel Folders" entry
+    novelValue.setCurrentIndex(novelValue.findData(rootHandle))
+    assert SHARED.project.data.getLastHandle("story") == rootHandle
+    novelValue.setCurrentIndex(novelValue.count() - 1)
+    assert SHARED.project.data.getLastHandle("story") is None
+
+    # Select the root folder, and reopen the project
+    novelValue.setCurrentIndex(novelValue.findData(rootHandle))
+    assert nwGUI.closeProject(isYes=True)
+    assert nwGUI.openProject(prjLipsum)
+    assert storyView.novelValue.handle == rootHandle

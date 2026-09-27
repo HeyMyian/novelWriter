@@ -130,7 +130,6 @@ class GuiStoryView(QWidget):
         options = SHARED.project.options
         outline = self.outlineView.outlineContent
         options.setValue("GuiStoryOutline", "colWidths", outline.saveColumnWidths())
-        SHARED.project.data.setLastHandle(self.novelValue.handle, "story")
         outline.clear()
 
     def viewStory(self) -> None:
@@ -153,6 +152,7 @@ class GuiStoryView(QWidget):
     @pyqtSlot(str)
     def _novelValueChanged(self, tHandle: str) -> None:
         """Rebuild the outline for the newly selected novel folder."""
+        SHARED.project.data.setLastHandle(tHandle or None, "story")
         self.outlineView.outlineContent.refresh(tHandle or None)
 
     @pyqtSlot()
