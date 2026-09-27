@@ -30,6 +30,8 @@ from PyQt6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QFrame,
+    QHBoxLayout,
+    QLabel,
     QStyledItemDelegate,
     QStyleOptionViewItem,
     QVBoxLayout,
@@ -39,8 +41,6 @@ from PyQt6.QtWidgets import (
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import checkInt
 from novelwriter.constants import nwUnicode
-from novelwriter.extensions.configlayout import NScrollableForm
-from novelwriter.extensions.expandpanel import NExpandablePanel
 from novelwriter.extensions.modified import NTreeView
 from novelwriter.extensions.switch import NSwitch
 from novelwriter.models.outlinemodel import OutlineModel
@@ -52,7 +52,6 @@ from novelwriter.types import (
     QtHeaderStretch,
     QtScrollAlwaysOff,
     QtScrollAsNeeded,
-    QtSelected,
     QtTransparent,
 )
 
@@ -67,35 +66,32 @@ ROW_PAD = 3
 ROW_RADIUS = 6
 
 
-class GuiStoryOutlineControls(NExpandablePanel):
-    """GUI: Project Story Outline Controls."""
+class GuiStoryOutlineView(QWidget):
+    """GUI: Project Story Outline View."""
 
     def __init__(self, parent: GuiStoryView) -> None:
         super().__init__(parent)
-        self._contentWidget: GuiStoryOutline | None = None
-        self.setTitle(self.tr("Story Outline"))
 
-        # Settings Form
-        self.settingsForm = NScrollableForm(self)
-        self.settingsForm.setHelpTextStyle(SHARED.theme.helpText)
+        self.outlineControls = GuiStoryOutlineControls(parent)
+        self.outlineContent = GuiStoryOutlineTree(parent)
 
-        # Expand Chapters
-        self.expandChapters = NSwitch(self)
-        self.expandChapters.toggled.connect(self._expandChaptersToggled)
-        self.settingsForm.addRow(self.tr("Expand chapters"), self.expandChapters)
-
-        # Assemble
-        self.settingsForm.finalise()
+        self.outlineControls.swtExpandChapters.toggled.connect(self._expandChaptersToggled)
 
         self.outerBox = QVBoxLayout()
-        self.outerBox.addWidget(self.settingsForm)
+        self.outerBox.addWidget(self.outlineControls, 0)
+        self.outerBox.addWidget(self.outlineContent, 1)
         self.outerBox.setContentsMargins(0, 0, 0, 0)
+        self.outerBox.setSpacing(0)
 
-        self.setContentLayout(self.outerBox)
+        self.setLayout(self.outerBox)
 
-    def setContentWidget(self, widget: GuiStoryOutline) -> None:
-        """Set the content widget for the outline controls."""
-        self._contentWidget = widget
+    ##
+    #  Methods
+    ##
+
+    def updateTheme(self) -> None:
+        """Update theme elements."""
+        self.outlineContent.updateTheme()
 
     ##
     #  Private Slots
@@ -104,11 +100,29 @@ class GuiStoryOutlineControls(NExpandablePanel):
     @pyqtSlot(bool)
     def _expandChaptersToggled(self, state: bool) -> None:
         """Update the outline expansion when the toggle changes."""
-        if self._contentWidget is not None:
-            self._contentWidget.setExpandChapters(state)
+        self.outlineContent.setExpandChapters(state)
 
 
-class GuiStoryOutline(NTreeView):
+class GuiStoryOutlineControls(QWidget):
+    """GUI: Project Story Outline Controls."""
+
+    def __init__(self, parent: GuiStoryView) -> None:
+        super().__init__(parent)
+
+        # Expand Chapters
+        self.lblExpandChapters = QLabel(self.tr("Expand chapters"), self)
+        self.swtExpandChapters = NSwitch(self)
+
+        self.outerBox = QHBoxLayout()
+        self.outerBox.addWidget(self.lblExpandChapters)
+        self.outerBox.addWidget(self.swtExpandChapters)
+        self.outerBox.addStretch(1)
+        self.outerBox.setContentsMargins(0, 0, 0, 0)
+
+        self.setLayout(self.outerBox)
+
+
+class GuiStoryOutlineTree(NTreeView):
     """GUI: Project Story Outline.
 
     An item view of the chapters and scenes of a novel, with sections
@@ -312,15 +326,10 @@ class _OutlineDelegate(QStyledItemDelegate):
             return
 
         rect = option.rect
-        selected = bool(option.state & QtSelected)
-        palette = QApplication.palette()
 
         painter.save()
         painter.setClipRect(rect)
-        if selected:
-            painter.setPen(palette.highlightedText().color())
-        else:
-            painter.setPen(self._textCol)
+        painter.setPen(self._textCol)
 
         pad = ROW_PAD + self._margin
         x = rect.x() + pad
@@ -329,7 +338,7 @@ class _OutlineDelegate(QStyledItemDelegate):
         h = max(0, rect.height() - 2 * pad)
 
         if node.level == 1:
-            if index.column() == GuiStoryOutline.C_TITLE:
+            if index.column() == GuiStoryOutlineTree.C_TITLE:
                 painter.setFont(SHARED.theme.guiFontB)
                 title = self._fmB.elidedText(node.title, QtElideRight, w)
                 painter.drawText(QRect(x, y, w, h), LINE_FLAGS, title)
@@ -337,7 +346,7 @@ class _OutlineDelegate(QStyledItemDelegate):
             return
 
         match index.column():
-            case GuiStoryOutline.C_TITLE:
+            case GuiStoryOutlineTree.C_TITLE:
                 hTitle = self._fmB.height()
                 hLine = self._fm.height()
 
@@ -352,7 +361,7 @@ class _OutlineDelegate(QStyledItemDelegate):
                 counts = self._fm.elidedText(node.counts, QtElideRight, w)
                 painter.drawText(QRect(x, y + hTitle + hLine, w, hLine), LINE_FLAGS, counts)
 
-            case GuiStoryOutline.C_CHARS:
+            case GuiStoryOutlineTree.C_CHARS:
                 hLine = self._fm.height()
                 maxX = x + w
 
@@ -379,7 +388,7 @@ class _OutlineDelegate(QStyledItemDelegate):
                     painter.setFont(SHARED.theme.guiFont)
                     painter.drawText(QRect(x + labelW, yChar, w - labelW, h - hLine), WRAP_FLAGS, value)
 
-            case GuiStoryOutline.C_SYNOPSIS:
+            case GuiStoryOutlineTree.C_SYNOPSIS:
                 painter.setFont(SHARED.theme.guiFont)
                 painter.drawText(QRect(x, y, w, h), WRAP_FLAGS, node.synopsis)
 

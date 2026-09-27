@@ -27,16 +27,16 @@ import logging
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import Qt, pyqtSlot
-from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QSplitter, QStackedWidget, QVBoxLayout, QWidget
+from PyQt6.QtCore import pyqtSlot
+from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QVBoxLayout, QWidget
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import formatFileFilter
 from novelwriter.constants import nwKeyWords, nwLabels, nwStats, trConst, trStats
 from novelwriter.extensions.configlayout import NColorLabel
-from novelwriter.extensions.modified import NIconButton
+from novelwriter.extensions.modified import NIconButton, NTabWidget
 from novelwriter.extensions.novelselector import NovelSelector
-from novelwriter.story.storypanel import GuiStoryPanel
+from novelwriter.story.outline import GuiStoryOutlineView
 
 if TYPE_CHECKING:
     from novelwriter.enum import nwChange
@@ -50,8 +50,7 @@ class GuiStoryView(QWidget):
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
 
-        self.storyPanel = GuiStoryPanel(self)
-        self.contentStack = QStackedWidget(self)
+        self.outlineView = GuiStoryOutlineView(self)
 
         btnSize = 1.4 * SHARED.theme.baseIconSize
 
@@ -77,19 +76,9 @@ class GuiStoryView(QWidget):
         self.exportData.setToolTip(self.tr("Export the story view data"))
         self.exportData.clicked.connect(self._exportData)
 
-        # Main Splitter
-        self.splitMain = QSplitter(Qt.Orientation.Horizontal)
-        self.splitMain.setContentsMargins(0, 0, 0, 0)
-        self.splitMain.addWidget(self.storyPanel)
-        self.splitMain.addWidget(self.contentStack)
-        self.splitMain.setOpaqueResize(False)
-        self.splitMain.setHandleWidth(4)
-        self.splitMain.setSizes([max(s, 100) for s in CONFIG.storyPanePos])
-        self.splitMain.setCollapsible(0, False)
-        self.splitMain.setCollapsible(1, False)
-        self.splitMain.setStretchFactor(0, 0)
-        self.splitMain.setStretchFactor(1, 1)
-        self.splitMain.splitterMoved.connect(self._saveSplitterSizes)
+        # Tabs
+        self.tabMain = NTabWidget(self)
+        self.tabMain.addTab(self.outlineView, self.tr("Outline"))
 
         # Assemble
         self.topBox = QHBoxLayout()
@@ -105,13 +94,11 @@ class GuiStoryView(QWidget):
 
         self.outerBox = QVBoxLayout()
         self.outerBox.addLayout(self.topBox)
-        self.outerBox.addWidget(self.splitMain)
+        self.outerBox.addWidget(self.tabMain)
         self.outerBox.setContentsMargins(0, 0, 0, 0)
         self.outerBox.setSpacing(8)
 
         self.setLayout(self.outerBox)
-
-        self.showContent(self.storyPanel.outlineContent)
 
     ##
     #  Methods
@@ -119,7 +106,12 @@ class GuiStoryView(QWidget):
 
     def updateTheme(self) -> None:
         """Update theme elements."""
-        self.storyPanel.updateTheme()
+        self.titleLabel.setTextColors(color=SHARED.theme.helpText)
+        self.novelValue.updateTheme()
+        self.refreshView.refreshTheme()
+        self.exportData.refreshTheme()
+        self.tabMain.refreshTheme()
+        self.outlineView.updateTheme()
 
     def openProjectTasks(self) -> None:
         """Run open project tasks.
@@ -128,7 +120,7 @@ class GuiStoryView(QWidget):
         first time the user switches to the story view, see viewStory.
         """
         options = SHARED.project.options
-        outline = self.storyPanel.outlineContent
+        outline = self.outlineView.outlineContent
         outline.restoreColumnWidths(options.getList("GuiStoryOutline", "colWidths", []))
         self.novelValue.refreshNovelList()
         self.novelValue.setHandle(SHARED.project.data.getLastHandle("story"))
@@ -136,24 +128,14 @@ class GuiStoryView(QWidget):
     def closeProjectTasks(self) -> None:
         """Run closing project tasks."""
         options = SHARED.project.options
-        outline = self.storyPanel.outlineContent
+        outline = self.outlineView.outlineContent
         options.setValue("GuiStoryOutline", "colWidths", outline.saveColumnWidths())
         SHARED.project.data.setLastHandle(self.novelValue.handle, "story")
         outline.clear()
 
     def viewStory(self) -> None:
         """Build or refresh the outline when the story view is shown."""
-        self.storyPanel.outlineContent.refresh(self.novelValue.handle)
-
-    def showContent(self, widget: QWidget) -> None:
-        """Add a widget to the content stack, if needed, and show it.
-
-        This is the switchboard a foldable panel's "generate" action
-        will call to lazily add and activate its content widget.
-        """
-        if self.contentStack.indexOf(widget) == -1:
-            self.contentStack.addWidget(widget)
-        self.contentStack.setCurrentWidget(widget)
+        self.outlineView.outlineContent.refresh(self.novelValue.handle)
 
     ##
     #  Public Slots
@@ -168,20 +150,15 @@ class GuiStoryView(QWidget):
     #  Private Slots
     ##
 
-    @pyqtSlot(int, int)
-    def _saveSplitterSizes(self, pos: int, index: int) -> None:
-        """Save the splitter sizes when moved by the user."""
-        CONFIG.storyPanePos = self.splitMain.sizes()
-
     @pyqtSlot(str)
     def _novelValueChanged(self, tHandle: str) -> None:
         """Rebuild the outline for the newly selected novel folder."""
-        self.storyPanel.outlineContent.refresh(tHandle or None)
+        self.outlineView.outlineContent.refresh(tHandle or None)
 
     @pyqtSlot()
     def _refreshRequested(self) -> None:
         """Force a rebuild of the outline for the selected novel folder."""
-        self.storyPanel.outlineContent.refresh(self.novelValue.handle, force=True)
+        self.outlineView.outlineContent.refresh(self.novelValue.handle, force=True)
 
     @pyqtSlot()
     def _exportData(self) -> None:
