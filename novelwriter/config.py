@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import logging
 import sys
+import tomllib
 
 from pathlib import Path
 from time import time
@@ -127,6 +128,9 @@ class Config:
         "autoSelect",
         "backupInterval",
         "backupOnClose",
+        "buildFormat",
+        "buildTime",
+        "buildType",
         "countUnit",
         "cursorWidth",
         "darkTheme",
@@ -162,6 +166,7 @@ class Config:
         "iconColTree",
         "iconTheme",
         "incNotesWCount",
+        "installSource",
         "isDebug",
         "kernelVer",
         "lastNotes",
@@ -334,7 +339,7 @@ class Config:
         self.textWidth = 700  # Editor text width
         self.textMargin = 40  # Editor/viewer text margin
         self.tabWidth = 40  # Editor tabulator width
-        self.lineHeight = 1.0  # Editor line height
+        self.lineHeight = 1.15  # Editor line height
         self.cursorWidth = 1  # Editor cursor width
         self.lineHighlight = False  # Highlight current line in editor
 
@@ -445,6 +450,13 @@ class Config:
         self.isDebug = False  # True if running in debug mode
         self.memInfo = False  # True if displaying mem info in status bar
 
+        # Build Meta
+        self.buildTime = ""
+        self.buildType = ""
+        self.buildFormat = ""
+        self.installSource = ""
+        self._parseBuildMeta()
+
         # Packages
         self.hasEnchant = False  # The pyenchant package
 
@@ -554,10 +566,10 @@ class Config:
             self.guiFont = fontMatcher(font)
         else:
             font = QFont()
-            if self.osWindows and "Arial" in QFontDatabase.families():
-                # On Windows we default to Arial if possible
-                font.setFamily("Arial")
-                font.setPointSize(10)
+            if self.osWindows and "Segoe UI" in QFontDatabase.families():
+                # On Windows we default to Segoe UI if possible
+                font.setFamily("Segoe UI")
+                font.setPointSize(9)
             else:
                 font = QFontDatabase.systemFont(QFontDatabase.SystemFont.GeneralFont)
             self.guiFont = fontMatcher(font)
@@ -579,9 +591,9 @@ class Config:
             self.textFont = fontMatcher(font)
         else:
             fontFam = QFontDatabase.families()
-            if self.osWindows and "Arial" in fontFam:
+            if self.osWindows and "Segoe UI" in fontFam:
                 font = QFont()
-                font.setFamily("Arial")
+                font.setFamily("Segoe UI")
                 font.setPointSize(12)
             elif self.osDarwin and "Helvetica" in fontFam:
                 font = QFont()
@@ -1069,6 +1081,18 @@ class Config:
     ##
     #  Internal Functions
     ##
+
+    def _parseBuildMeta(self) -> None:
+        """Parse the build meta file and set the build information."""
+        try:
+            with open(self.assetPath("meta.toml"), mode="rb") as fileObj:
+                data = tomllib.load(fileObj).get("Build", {})
+                self.buildTime = str(data.get("timestamp", ""))
+                self.buildType = str(data.get("type", ""))
+                self.buildFormat = str(data.get("format", ""))
+                self.installSource = str(data.get("install_source", ""))
+        except Exception:
+            logException()
 
     def _packList(self, data: list) -> str:
         """Pack a list of items into a comma-separated string for saving

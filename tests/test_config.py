@@ -93,6 +93,55 @@ def testConfig_Constructor(monkeypatch):
 
 
 @pytest.mark.base
+def testConfig_BuildMeta(monkeypatch, caplog, tstPaths):
+    """Test parsing of the build meta.toml file, both as the checked-in
+    placeholder and as stamped by the build scripts for a release.
+    """
+    metaFile = tstPaths.tmpDir / "meta.toml"
+    monkeypatch.setattr("novelwriter.config.Config.assetPath", lambda *a: metaFile)
+
+    # Placeholder, as checked into the repo
+    writeFile(
+        metaFile, ('[Build]\ntimestamp = ""\ntype = "testing"\nformat = "source"\ninstall_source = "repository"\n')
+    )
+    conf = Config()
+    assert conf.buildTime == ""
+    assert conf.buildType == "testing"
+    assert conf.buildFormat == "source"
+    assert conf.installSource == "repository"
+
+    # Stamped by the build scripts ahead of packaging
+    writeFile(
+        metaFile,
+        (
+            "[Build]\n"
+            'timestamp = "2026-09-26T19:33:58+02:00"\n'
+            'type = "stable"\n'
+            'format = "debian"\n'
+            'install_source = "cloudsmith"\n'
+        ),
+    )
+    conf._parseBuildMeta()
+    assert conf.buildTime == "2026-09-26T19:33:58+02:00"
+    assert conf.buildType == "stable"
+    assert conf.buildFormat == "debian"
+    assert conf.installSource == "cloudsmith"
+
+    # An error while reading the file must be caught and logged, and
+    # must leave the previously parsed values untouched
+    with monkeypatch.context() as mp:
+        mp.setattr("builtins.open", causeOSError)
+        caplog.clear()
+        conf._parseBuildMeta()
+        assert "OSError" in caplog.text
+
+    assert conf.buildTime == "2026-09-26T19:33:58+02:00"
+    assert conf.buildType == "stable"
+    assert conf.buildFormat == "debian"
+    assert conf.installSource == "cloudsmith"
+
+
+@pytest.mark.base
 def testConfig_InitLoadSave(monkeypatch, fncPath, tstPaths):
     """Test config initialisation."""
     conf = Config()
@@ -281,12 +330,12 @@ def testConfig_Fonts(monkeypatch, fncPath):
 
     with monkeypatch.context() as mp:
         mp.setattr(conf, "osWindows", True)
-        mp.setattr(QFontDatabase, "families", lambda *a: ["Arial"])
+        mp.setattr(QFontDatabase, "families", lambda *a: ["Segoe UI"])
         conf.setGuiFont(None)
-        assert conf.guiFont.family() == "Arial"
+        assert conf.guiFont.family() == "Segoe UI"
 
         conf.setTextFont(None)
-        assert conf.textFont.family() == "Arial"
+        assert conf.textFont.family() == "Segoe UI"
 
     with monkeypatch.context() as mp:
         mp.setattr(conf, "osDarwin", True)
