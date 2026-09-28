@@ -91,7 +91,6 @@ class Index:
     """
 
     __slots__ = (
-        "_indexChange",
         "_indexRevision",
         "_indexUpgrade",
         "_itemIndex",
@@ -115,7 +114,6 @@ class Index:
         self._novelExtra = nwNovelExtra.HIDDEN
 
         # Track Changes
-        self._indexChange = 0.0
         self._indexRevision = 0
 
     def __repr__(self) -> str:
@@ -164,10 +162,9 @@ class Index:
     ##
 
     def clear(self) -> None:
-        """Clear the index dictionaries and time stamps."""
+        """Clear the index dictionaries."""
         self._tagsIndex.clear()
         self._itemIndex.clear()
-        self._indexChange = 0.0
         self._indexRevision += 1  # We must not reset the revision number
         SHARED.emitIndexCleared(self._project)
 
@@ -192,6 +189,7 @@ class Index:
         for tTag in delTags:
             del self._tagsIndex[tTag]
         del self._itemIndex[tHandle]
+        self._indexRevision += 1
         SHARED.emitIndexChangedTags(self._project, [], delTags)
 
     def reIndexHandle(self, tHandle: str | None) -> None:
@@ -211,10 +209,6 @@ class Index:
                 self.deleteHandle(tHandle)
             else:
                 self._tagsIndex.updateClass(tHandle, item.itemClass.name)
-
-    def indexChangedSince(self, checkTime: int | float) -> bool:
-        """Check if the index has changed since a given time."""
-        return self._indexChange > float(checkTime)
 
     def refreshNovelModel(self, tHandle: str | None) -> None:
         """Refresh a novel model."""
@@ -280,7 +274,6 @@ class Index:
                 logger.warning("Item '%s' is not in the index", fHandle)
                 self.reIndexHandle(fHandle)
 
-        self._indexChange = time()
         SHARED.emitIndexAvailable(self._project)
 
         logger.debug("Index loaded in %.3f ms", (time() - tStart) * 1000)
@@ -370,9 +363,6 @@ class Index:
         if tItem.itemClass == nwItemClass.NOVEL and not blockSignal and not self.updateNovelModelData(tItem):
             self.refreshNovelModel(tItem.itemRoot)
 
-        # Update timestamps for index changes
-        nowTime = time()
-        self._indexChange = nowTime
         self._indexRevision += 1
         if not blockSignal:
             if changedRefs := sorted(oldRefs | self._itemRefHandles(tHandle)):
@@ -1007,12 +997,6 @@ class ItemIndex:
         if tHandle in self._items:
             return self._items[tHandle].allTags()
         return []
-
-    def iterItemHeaders(self, tHandle: str) -> Iterable[tuple[str, IndexHeading]]:
-        """Iterate over all item headers of an item."""
-        if tHandle in self._items:
-            yield from self._items[tHandle].items()
-        return
 
     def iterAllHeaders(self) -> Iterable[tuple[str, str, IndexHeading]]:
         """Iterate through all items and headings in the index."""

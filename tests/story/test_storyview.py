@@ -170,6 +170,11 @@ def testStoryView_LastHandle(nwGUI, prjLipsum):
     rootHandle = novelValue.firstHandle
     assert rootHandle is not None
 
+    # An invalid list format is rejected
+    listFormat = novelValue._listFormat
+    novelValue.setListFormat("No placeholder here")
+    assert novelValue._listFormat == listFormat
+
     # Select the root folder, then the "All Novel Folders" entry
     novelValue.setCurrentIndex(novelValue.findData(rootHandle))
     assert SHARED.project.data.getLastHandle("story") == rootHandle

@@ -137,9 +137,11 @@ def testIndex_LoadSave(qtbot, monkeypatch, prjLipsum, nwGUI, tstPaths):
     # Delete a handle
     assert index._tagsIndex["Bod"] is not None
     assert index._itemIndex[bHandle] is not None
+    revision = index.indexRevision
     index.deleteHandle(bHandle)
     assert index._tagsIndex["Bod"] is None
     assert index._itemIndex[bHandle] is None
+    assert index.indexRevision == revision + 1
 
     # Clear the index
     index.clear()
@@ -289,7 +291,7 @@ def testIndex_CheckThese(nwGUI, fncPath, mockRnd):
     assert isinstance(cItem, ProjectItem)
     assert isinstance(wItem, ProjectItem)
 
-    assert index.indexChangedSince(0) is False
+    revision = index.indexRevision
 
     assert index.scanText(cHandle, ("# Jane Smith\n@tag: Jane\n@tag:\n@:\n"))
     assert index.scanText(wHandle, ("# Earth\n@tag: Earth\n"))
@@ -309,7 +311,7 @@ def testIndex_CheckThese(nwGUI, fncPath, mockRnd):
 
     assert index.getItemHeading(nHandle, "T0001").title == "Hello World!"  # type: ignore
 
-    assert index.indexChangedSince(0) is True
+    assert index.indexRevision == revision + 3
 
     assert cItem.mainHeading == "H1"
     assert nItem.mainHeading == "H1"
@@ -1243,11 +1245,11 @@ def testItemIndex_Main(nwGUI, fncPath, mockRnd):
     assert cHandle in itemIndex
     assert itemIndex[cHandle].item == project.tree[cHandle]  # type: ignore
     assert itemIndex.allItemTags(cHandle) == []
-    assert list(itemIndex.iterItemHeaders(cHandle))[0][0] == "T0000"
+    assert list(itemIndex[cHandle].items())[0][0] == "T0000"  # type: ignore
 
     # Add a heading to the item, which should replace the T000000 heading
     assert itemIndex.addItemHeading(cHandle, 1, "H2", "Chapter One") == "T0001"
-    assert list(itemIndex.iterItemHeaders(cHandle))[0][0] == "T0001"
+    assert list(itemIndex[cHandle].items())[0][0] == "T0001"  # type: ignore
 
     # Add a heading to an invalid item
     assert itemIndex.addItemHeading(C.hInvalid, 1, "H1", "Stuff") == "T0000"

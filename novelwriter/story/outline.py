@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import logging
 
-from time import time
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QModelIndex, QRect, QSize, Qt
@@ -111,7 +110,7 @@ class GuiStoryOutlineTree(NTreeView):
         # Build State
         self._built = False
         self._lastHandle: str | None = None
-        self._lastBuild = 0.0
+        self._lastRevision = -1
 
         self.setModel(self._model)
         self.setItemDelegate(self._delegate)
@@ -172,19 +171,19 @@ class GuiStoryOutlineTree(NTreeView):
         is a genuine change since the last build, or if forced.
         """
         index = SHARED.project.index
-        if force or not self._built or rootHandle != self._lastHandle or index.indexChangedSince(self._lastBuild):
+        if force or not self._built or rootHandle != self._lastHandle or index.indexRevision != self._lastRevision:
             logger.info("Building story view '%s'", self._settings.name)
             self._model.buildOutline(index, rootHandle)
             self._built = True
             self._lastHandle = rootHandle
-            self._lastBuild = time()
+            self._lastRevision = index.indexRevision
 
     def clear(self) -> None:
         """Clear the outline."""
         self._model.clear()
         self._built = False
         self._lastHandle = None
-        self._lastBuild = 0.0
+        self._lastRevision = -1
 
     ##
     #  Overrides
