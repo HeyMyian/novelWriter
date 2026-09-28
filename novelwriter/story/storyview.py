@@ -38,6 +38,7 @@ from novelwriter.extensions.modified import NIconButton, NPushButton
 from novelwriter.extensions.novelselector import NovelSelector
 from novelwriter.extensions.tabwidget import NTabWidget
 from novelwriter.story.outline import GuiStoryOutlineView
+from novelwriter.story.storyviewbase import GuiStoryViewBase
 from novelwriter.story.storyviewsettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
 
 if TYPE_CHECKING:
@@ -214,7 +215,7 @@ class GuiStoryView(QWidget):
     @pyqtSlot()
     def _copyCurrentView(self) -> None:
         """Duplicate the current view."""
-        if isinstance(current := self.tabMain.currentWidget(), GuiStoryOutlineView):
+        if isinstance(current := self.tabMain.currentWidget(), GuiStoryViewBase):
             self._addView(StoryViewSettings.duplicate(current.settings))
 
     @pyqtSlot()
@@ -222,7 +223,7 @@ class GuiStoryView(QWidget):
         """Delete the current view."""
         if (
             self._views is not None
-            and isinstance(current := self.tabMain.currentWidget(), GuiStoryOutlineView)
+            and isinstance(current := self.tabMain.currentWidget(), GuiStoryViewBase)
             and SHARED.question(self.tr("Delete view '{0}'?").format(current.settings.name))
         ):
             self._views.removeStoryView(current.settings.viewID)
@@ -276,15 +277,19 @@ class GuiStoryView(QWidget):
             self.tabMain.removeTab(index)
             widget.setParent(None)
 
-    def _iterViews(self) -> Iterable[GuiStoryOutlineView]:
+    def _iterViews(self) -> Iterable[GuiStoryViewBase]:
         """Iterate over the view widgets in tab order."""
         for i in range(self.tabMain.count()):
-            if isinstance(view := self.tabMain.widget(i), GuiStoryOutlineView):  # pragma: no branch
+            if isinstance(view := self.tabMain.widget(i), GuiStoryViewBase):  # pragma: no branch
                 yield view
 
     def _refreshCurrentView(self, force: bool = False) -> None:
-        """Refresh the current view, if the views are loaded."""
-        if self._views is not None and isinstance(current := self.tabMain.currentWidget(), GuiStoryOutlineView):
+        """Refresh the current view, if loaded and visible."""
+        if (
+            self._views is not None
+            and self.isVisible()
+            and isinstance(current := self.tabMain.currentWidget(), GuiStoryViewBase)
+        ):
             current.refresh(self.novelValue.handle, force=force)
 
     def _dumpNovelData(self, rootHandle: str | None) -> list[list[str | int]]:

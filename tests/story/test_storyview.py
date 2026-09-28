@@ -33,7 +33,8 @@ from novelwriter.constants import nwFiles
 from novelwriter.enum import nwChange, nwView
 from novelwriter.shared import _GuiAlert
 from novelwriter.story.outline import GuiStoryOutlineView
-from novelwriter.story.storyviewsettings import StoryViewCollection, StoryViewSettings
+from novelwriter.story.storyviewbase import GuiStoryViewBase
+from novelwriter.story.storyviewsettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
 
 from tests.helpers import cmpFiles
 
@@ -180,3 +181,58 @@ def testStoryView_LastHandle(nwGUI, prjLipsum):
     assert nwGUI.closeProject(isYes=True)
     assert nwGUI.openProject(prjLipsum)
     assert storyView.novelValue.handle == rootHandle
+
+
+@pytest.mark.gui
+def testStoryView_LazyLoad(nwGUI, prjLipsum):
+    """Test that views are only built when shown."""
+    assert nwGUI.openProject(prjLipsum)
+    storyView = nwGUI.storyView
+    tabMain = storyView.tabMain
+    novelValue = storyView.novelValue
+    rootHandle = novelValue.firstHandle
+    assert rootHandle is not None
+
+    def built():
+        return [tabMain.widget(i).outlineContent._built for i in range(tabMain.count())]  # type: ignore
+
+    # Create two extra views, and reopen with the first view active
+    nwGUI._changeView(nwView.STORY)
+    storyView.addView.click()
+    storyView.addView.click()
+    tabMain.setCurrentIndex(0)
+    assert nwGUI.closeProject(isYes=True)
+    assert nwGUI.openProject(prjLipsum)
+    assert tabMain.count() == 0
+
+    # Only the active view is built when the story view is first shown
+    nwGUI._changeView(nwView.STORY)
+    assert built() == [True, False, False]
+
+    # Other views are built when switched to
+    tabMain.setCurrentIndex(2)
+    assert built() == [True, False, True]
+
+    # Changing the novel while hidden does not rebuild the view
+    current = tabMain.currentWidget().outlineContent  # type: ignore
+    nwGUI._changeView(nwView.PROJECT)
+    novelValue.setCurrentIndex(novelValue.findData(rootHandle))
+    assert current._lastHandle is None
+
+    # It is rebuilt when the story view is shown again
+    nwGUI._changeView(nwView.STORY)
+    assert current._lastHandle == rootHandle
+
+
+@pytest.mark.gui
+def testStoryView_BaseClass(qtbot, nwGUI):
+    """Test the story view base class."""
+    settings = OutlineViewSettings()
+    view = GuiStoryViewBase(nwGUI, settings)
+    qtbot.addWidget(view)
+    assert view.settings is settings
+
+    # Theme update does nothing by default, and refresh must be implemented
+    view.updateTheme()
+    with pytest.raises(NotImplementedError):
+        view.refresh(None)

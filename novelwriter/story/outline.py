@@ -21,6 +21,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import logging
+
 from time import time
 from typing import TYPE_CHECKING
 
@@ -32,7 +34,6 @@ from PyQt6.QtWidgets import (
     QFrame,
     QStyledItemDelegate,
     QStyleOptionViewItem,
-    QVBoxLayout,
     QWidget,
 )
 
@@ -40,6 +41,7 @@ from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwUnicode
 from novelwriter.extensions.modified import NTreeView
 from novelwriter.models.outlinemodel import OutlineModel
+from novelwriter.story.storyviewbase import GuiStoryViewBase
 from novelwriter.types import (
     QtAlignLeftMiddle,
     QtAlignLeftTop,
@@ -54,6 +56,8 @@ from novelwriter.types import (
 if TYPE_CHECKING:
     from novelwriter.story.storyviewsettings import OutlineViewSettings
 
+logger = logging.getLogger(__name__)
+
 LINE_FLAGS = int(Qt.TextFlag.TextSingleLine) | int(QtAlignLeftMiddle)
 TOP_FLAGS = int(Qt.TextFlag.TextSingleLine) | int(QtAlignLeftTop)
 WRAP_FLAGS = int(Qt.TextFlag.TextWordWrap) | int(QtAlignLeftTop)
@@ -62,31 +66,14 @@ ROW_PAD = 3
 ROW_RADIUS = 6
 
 
-class GuiStoryOutlineView(QWidget):
+class GuiStoryOutlineView(GuiStoryViewBase):
     """GUI: Project Story Outline View."""
 
     def __init__(self, parent: QWidget, settings: OutlineViewSettings) -> None:
-        super().__init__(parent)
-
-        self._settings = settings
+        super().__init__(parent, settings)
 
         self.outlineContent = GuiStoryOutlineTree(self)
-
-        self.outerBox = QVBoxLayout()
         self.outerBox.addWidget(self.outlineContent, 1)
-        self.outerBox.setContentsMargins(0, 0, 0, 0)
-        self.outerBox.setSpacing(0)
-
-        self.setLayout(self.outerBox)
-
-    ##
-    #  Properties
-    ##
-
-    @property
-    def settings(self) -> OutlineViewSettings:
-        """Return the view settings object."""
-        return self._settings
 
     ##
     #  Methods
@@ -98,6 +85,7 @@ class GuiStoryOutlineView(QWidget):
 
     def refresh(self, rootHandle: str | None, force: bool = False) -> None:
         """Refresh the outline content."""
+        logger.info("Building story view '%s'", self._settings.name)
         self.outlineContent.refresh(rootHandle, force=force)
 
 
