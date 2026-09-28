@@ -22,16 +22,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 from time import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QModelIndex, QRect, QSize, Qt, pyqtSlot
+from PyQt6.QtCore import QModelIndex, QRect, QSize, Qt
 from PyQt6.QtGui import QFontMetrics, QPainter, QPalette
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QApplication,
     QFrame,
-    QHBoxLayout,
-    QLabel,
     QStyledItemDelegate,
     QStyleOptionViewItem,
     QVBoxLayout,
@@ -39,10 +37,8 @@ from PyQt6.QtWidgets import (
 )
 
 from novelwriter import CONFIG, SHARED
-from novelwriter.common import checkInt
 from novelwriter.constants import nwUnicode
 from novelwriter.extensions.modified import NTreeView
-from novelwriter.extensions.switch import NSwitch
 from novelwriter.models.outlinemodel import OutlineModel
 from novelwriter.types import (
     QtAlignLeftMiddle,
@@ -56,7 +52,7 @@ from novelwriter.types import (
 )
 
 if TYPE_CHECKING:
-    from novelwriter.story.storyview import GuiStoryView
+    from novelwriter.story.storyviewsettings import OutlineViewSettings
 
 LINE_FLAGS = int(Qt.TextFlag.TextSingleLine) | int(QtAlignLeftMiddle)
 TOP_FLAGS = int(Qt.TextFlag.TextSingleLine) | int(QtAlignLeftTop)
@@ -69,21 +65,28 @@ ROW_RADIUS = 6
 class GuiStoryOutlineView(QWidget):
     """GUI: Project Story Outline View."""
 
-    def __init__(self, parent: GuiStoryView) -> None:
+    def __init__(self, parent: QWidget, settings: OutlineViewSettings) -> None:
         super().__init__(parent)
 
-        self.outlineControls = GuiStoryOutlineControls(parent)
-        self.outlineContent = GuiStoryOutlineTree(parent)
+        self._settings = settings
 
-        self.outlineControls.swtExpandChapters.toggled.connect(self._expandChaptersToggled)
+        self.outlineContent = GuiStoryOutlineTree(self)
 
         self.outerBox = QVBoxLayout()
-        self.outerBox.addWidget(self.outlineControls, 0)
         self.outerBox.addWidget(self.outlineContent, 1)
         self.outerBox.setContentsMargins(0, 0, 0, 0)
         self.outerBox.setSpacing(0)
 
         self.setLayout(self.outerBox)
+
+    ##
+    #  Properties
+    ##
+
+    @property
+    def settings(self) -> OutlineViewSettings:
+        """Return the view settings object."""
+        return self._settings
 
     ##
     #  Methods
@@ -93,33 +96,9 @@ class GuiStoryOutlineView(QWidget):
         """Update theme elements."""
         self.outlineContent.updateTheme()
 
-    ##
-    #  Private Slots
-    ##
-
-    @pyqtSlot(bool)
-    def _expandChaptersToggled(self, state: bool) -> None:
-        """Update the outline expansion when the toggle changes."""
-        self.outlineContent.setExpandChapters(state)
-
-
-class GuiStoryOutlineControls(QWidget):
-    """GUI: Project Story Outline Controls."""
-
-    def __init__(self, parent: GuiStoryView) -> None:
-        super().__init__(parent)
-
-        # Expand Chapters
-        self.lblExpandChapters = QLabel(self.tr("Expand chapters"), self)
-        self.swtExpandChapters = NSwitch(self)
-
-        self.outerBox = QHBoxLayout()
-        self.outerBox.addWidget(self.lblExpandChapters)
-        self.outerBox.addWidget(self.swtExpandChapters)
-        self.outerBox.addStretch(1)
-        self.outerBox.setContentsMargins(0, 0, 0, 0)
-
-        self.setLayout(self.outerBox)
+    def refresh(self, rootHandle: str | None, force: bool = False) -> None:
+        """Refresh the outline content."""
+        self.outlineContent.refresh(rootHandle, force=force)
 
 
 class GuiStoryOutlineTree(NTreeView):
@@ -135,7 +114,7 @@ class GuiStoryOutlineTree(NTreeView):
     C_CHARS = 1
     C_SYNOPSIS = 2
 
-    def __init__(self, parent: GuiStoryView) -> None:
+    def __init__(self, parent: QWidget) -> None:
         super().__init__(parent=parent)
 
         self._model = OutlineModel()
@@ -145,7 +124,6 @@ class GuiStoryOutlineTree(NTreeView):
         self._built = False
         self._lastHandle: str | None = None
         self._lastBuild = 0.0
-        self._expandChapters = False
 
         self.setModel(self._model)
         self.setItemDelegate(self._delegate)
@@ -211,14 +189,6 @@ class GuiStoryOutlineTree(NTreeView):
             self._built = True
             self._lastHandle = rootHandle
             self._lastBuild = time()
-            self._applyExpansion()
-
-    def setExpandChapters(self, state: bool) -> None:
-        """Set whether chapter nodes are expanded by default, and apply
-        the new state to the current outline.
-        """
-        self._expandChapters = state
-        self._applyExpansion()
 
     def clear(self) -> None:
         """Clear the outline."""
@@ -226,29 +196,6 @@ class GuiStoryOutlineTree(NTreeView):
         self._built = False
         self._lastHandle = None
         self._lastBuild = 0.0
-
-    def _applyExpansion(self) -> None:
-        """Expand or collapse all chapter nodes to match the current
-        expand-chapters state. A model rebuild resets everything to
-        collapsed, so this must be reapplied after each build.
-        """
-        if self._expandChapters:
-            self.expandAll()
-        else:
-            self.collapseAll()
-
-    def restoreColumnWidths(self, widths: list[Any]) -> None:
-        """Apply saved column widths to the header. Malformed values are
-        silently ignored so the stored format can safely change.
-        """
-        for column, width in enumerate(widths):
-            if (width := checkInt(width, 0)) > 0:
-                self.setColumnWidth(column, width)
-
-    def saveColumnWidths(self) -> list[int]:
-        """Return the current column widths as a list."""
-        columns = range(self._model.columnCount(QModelIndex()))
-        return [self.columnWidth(c) for c in columns]
 
     ##
     #  Overrides

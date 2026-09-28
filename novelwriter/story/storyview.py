@@ -37,8 +37,11 @@ from novelwriter.extensions.configlayout import NColorLabel
 from novelwriter.extensions.modified import NIconButton, NPushButton, NTabWidget
 from novelwriter.extensions.novelselector import NovelSelector
 from novelwriter.story.outline import GuiStoryOutlineView
+from novelwriter.story.storyviewsettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from novelwriter.enum import nwChange
 
 logger = logging.getLogger(__name__)
@@ -50,7 +53,7 @@ class GuiStoryView(QWidget):
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
 
-        self.outlineView = GuiStoryOutlineView(self)
+        self._views: StoryViewCollection | None = None
 
         icnSize = SHARED.theme.baseIconSize
         btnSize = 1.4 * icnSize
@@ -84,16 +87,20 @@ class GuiStoryView(QWidget):
 
         # Tabs
         self.tabMain = NTabWidget(self)
-        self.tabMain.addTab(self.outlineView, self.tr("Outline"))
+        self.tabMain.setMovable(True)
+        self.tabMain.currentChanged.connect(self._currentViewChanged)
 
         self.addView = NIconButton(self, btnSize, "add:add")
         self.addView.setToolTip(self.tr("Add a new view"))
+        self.addView.clicked.connect(self._addNewView)
 
         self.delView = NIconButton(self, btnSize, "remove:remove")
         self.delView.setToolTip(self.tr("Delete current view"))
+        self.delView.clicked.connect(self._deleteCurrentView)
 
         self.copyView = NIconButton(self, btnSize, "copy:action")
         self.copyView.setToolTip(self.tr("Duplicate current view"))
+        self.copyView.clicked.connect(self._copyCurrentView)
 
         self.editView = NIconButton(self, btnSize, "edit:change")
         self.editView.setToolTip(self.tr("Edit current view"))
@@ -141,30 +148,31 @@ class GuiStoryView(QWidget):
         self.refreshView.refreshTheme()
         self.exportData.refreshTheme()
         self.tabMain.refreshTheme()
-        self.outlineView.updateTheme()
+        for view in self._iterViews():
+            view.updateTheme()
 
     def openProjectTasks(self) -> None:
         """Run open project tasks.
 
-        The outline itself is not built here. It is built lazily the
-        first time the user switches to the story view, see viewStory.
+        The views are not loaded here, but lazily the first time the
+        user switches to the story view, see viewStory.
         """
-        options = SHARED.project.options
-        outline = self.outlineView.outlineContent
-        outline.restoreColumnWidths(options.getList("GuiStoryOutline", "colWidths", []))
         self.novelValue.refreshNovelList()
         self.novelValue.setHandle(SHARED.project.data.getLastHandle("story"))
 
     def closeProjectTasks(self) -> None:
         """Run closing project tasks."""
-        options = SHARED.project.options
-        outline = self.outlineView.outlineContent
-        options.setValue("GuiStoryOutline", "colWidths", outline.saveColumnWidths())
-        outline.clear()
+        if self._views is not None:
+            self._views.setStoryViewsOrder([v.settings.viewID for v in self._iterViews()])
+        self._views = None
+        while self.tabMain.count() > 0:
+            self._removeTab(0)
 
     def viewStory(self) -> None:
-        """Build or refresh the outline when the story view is shown."""
-        self.outlineView.outlineContent.refresh(self.novelValue.handle)
+        """Load the views if needed, and refresh the current view."""
+        if self._views is None:
+            self._loadViews()
+        self._refreshCurrentView()
 
     ##
     #  Public Slots
@@ -181,14 +189,43 @@ class GuiStoryView(QWidget):
 
     @pyqtSlot(str)
     def _novelValueChanged(self, tHandle: str) -> None:
-        """Rebuild the outline for the newly selected novel folder."""
+        """Rebuild the current view for the newly selected novel folder."""
         SHARED.project.data.setLastHandle(tHandle or None, "story")
-        self.outlineView.outlineContent.refresh(tHandle or None)
+        self._refreshCurrentView()
 
     @pyqtSlot()
     def _refreshRequested(self) -> None:
-        """Force a rebuild of the outline for the selected novel folder."""
-        self.outlineView.outlineContent.refresh(self.novelValue.handle, force=True)
+        """Force a rebuild of the current view."""
+        self._refreshCurrentView(force=True)
+
+    @pyqtSlot(int)
+    def _currentViewChanged(self, index: int) -> None:
+        """Refresh the view that was switched to."""
+        self._refreshCurrentView()
+
+    @pyqtSlot()
+    def _addNewView(self) -> None:
+        """Add a new outline view."""
+        view = OutlineViewSettings()
+        view.setName(self.tr("Outline"))
+        self._addView(view)
+
+    @pyqtSlot()
+    def _copyCurrentView(self) -> None:
+        """Duplicate the current view."""
+        if isinstance(current := self.tabMain.currentWidget(), GuiStoryOutlineView):
+            self._addView(StoryViewSettings.duplicate(current.settings))
+
+    @pyqtSlot()
+    def _deleteCurrentView(self) -> None:
+        """Delete the current view."""
+        if (
+            self._views is not None
+            and isinstance(current := self.tabMain.currentWidget(), GuiStoryOutlineView)
+            and SHARED.question(self.tr("Delete view '{0}'?").format(current.settings.name))
+        ):
+            self._views.removeStoryView(current.settings.viewID)
+            self._removeTab(self.tabMain.currentIndex())
 
     @pyqtSlot()
     def _exportData(self) -> None:
@@ -206,6 +243,48 @@ class GuiStoryView(QWidget):
     ##
     #  Internal Functions
     ##
+
+    def _loadViews(self) -> None:
+        """Load the views collection and populate the tabs."""
+        views = StoryViewCollection(SHARED.project)
+        if len(views) == 0:
+            view = OutlineViewSettings()
+            view.setName(self.tr("Outline"))
+            views.setStoryView(view)
+        self._views = views
+        for view in views.storyViews():
+            self._addTab(view)
+
+    def _addView(self, view: StoryViewSettings) -> None:
+        """Add a new view to the collection, and switch to it."""
+        if self._views is not None:
+            view.setOrder(max((v.order for v in self._views.storyViews()), default=-1) + 1)
+            self._views.setStoryView(view)
+            if (index := self._addTab(view)) >= 0:  # pragma: no branch
+                self.tabMain.setCurrentIndex(index)
+
+    def _addTab(self, view: StoryViewSettings) -> int:
+        """Add a tab for a view, and return its index."""
+        if isinstance(view, OutlineViewSettings):
+            return self.tabMain.addTab(GuiStoryOutlineView(self, view), view.name)
+        return -1
+
+    def _removeTab(self, index: int) -> None:
+        """Remove a tab and release its widget."""
+        if widget := self.tabMain.widget(index):  # pragma: no branch
+            self.tabMain.removeTab(index)
+            widget.setParent(None)
+
+    def _iterViews(self) -> Iterable[GuiStoryOutlineView]:
+        """Iterate over the view widgets in tab order."""
+        for i in range(self.tabMain.count()):
+            if isinstance(view := self.tabMain.widget(i), GuiStoryOutlineView):  # pragma: no branch
+                yield view
+
+    def _refreshCurrentView(self, force: bool = False) -> None:
+        """Refresh the current view, if the views are loaded."""
+        if self._views is not None and isinstance(current := self.tabMain.currentWidget(), GuiStoryOutlineView):
+            current.refresh(self.novelValue.handle, force=force)
 
     def _dumpNovelData(self, rootHandle: str | None) -> list[list[str | int]]:
         """Dump all novel data into a table."""
