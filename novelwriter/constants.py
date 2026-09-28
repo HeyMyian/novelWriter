@@ -161,10 +161,11 @@ class nwFiles:
 
     # Project Meta Files
     BUILDS_FILE = "builds.json"
+    DICT_FILE = "userdict.json"
     INDEX_FILE = "index.json"
     OPTS_FILE = "options.json"
-    DICT_FILE = "userdict.json"
     SESS_FILE = "sessions.jsonl"
+    VIEWS_FILE = "views.json"
 
 
 class nwKeyWords:

@@ -220,11 +220,25 @@ class FilterMode(Enum):
 
 
 class BuildSettings:
-    """Core: Build Settings Class.
+    """Manuscript: Build Settings Class.
 
     This class manages the build settings for a Manuscript build job.
     The settings can be packed/unpacked to/from a dictionary for JSON.
     """
+
+    __slots__ = (
+        "_build",
+        "_changed",
+        "_excluded",
+        "_format",
+        "_included",
+        "_name",
+        "_order",
+        "_path",
+        "_settings",
+        "_skipRoot",
+        "_uuid",
+    )
 
     def __init__(self) -> None:
         self._name = ""
@@ -521,7 +535,7 @@ class BuildSettings:
 
 
 class BuildCollection:
-    """Core: Build Collection Class.
+    """Manuscript: Build Collection Class.
 
     This object holds all the build setting objects defined by the given
     project. The build settings are saved as a single JSON file in the

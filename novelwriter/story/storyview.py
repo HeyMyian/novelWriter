@@ -34,7 +34,7 @@ from novelwriter import CONFIG, SHARED
 from novelwriter.common import formatFileFilter
 from novelwriter.constants import nwKeyWords, nwLabels, nwStats, trConst, trStats
 from novelwriter.extensions.configlayout import NColorLabel
-from novelwriter.extensions.modified import NIconButton, NTabWidget
+from novelwriter.extensions.modified import NIconButton, NPushButton, NTabWidget
 from novelwriter.extensions.novelselector import NovelSelector
 from novelwriter.story.outline import GuiStoryOutlineView
 
@@ -52,9 +52,10 @@ class GuiStoryView(QWidget):
 
         self.outlineView = GuiStoryOutlineView(self)
 
-        btnSize = 1.4 * SHARED.theme.baseIconSize
+        icnSize = SHARED.theme.baseIconSize
+        btnSize = 1.4 * icnSize
 
-        # Top Bar
+        # Story View
         self.titleLabel = NColorLabel(
             self.tr("Story View"),
             self,
@@ -68,17 +69,38 @@ class GuiStoryView(QWidget):
         self.novelValue.setMinimumWidth(200)
         self.novelValue.novelSelectionChanged.connect(self._novelValueChanged)
 
-        self.refreshView = NIconButton(self, btnSize, "refresh:change")
-        self.refreshView.setToolTip(self.tr("Refresh the story view"))
-        self.refreshView.clicked.connect(self._refreshRequested)
-
         self.exportData = NIconButton(self, btnSize, "export:action")
         self.exportData.setToolTip(self.tr("Export the story view data"))
         self.exportData.clicked.connect(self._exportData)
 
+        # Mange Views
+        self.manageLabel = NColorLabel(
+            self.tr("Manage Views"),
+            self,
+            color=SHARED.theme.helpText,
+            scale=NColorLabel.NORMAL_SCALE,
+            bold=True,
+        )
+
         # Tabs
         self.tabMain = NTabWidget(self)
         self.tabMain.addTab(self.outlineView, self.tr("Outline"))
+
+        self.addView = NIconButton(self, btnSize, "add:add")
+        self.addView.setToolTip(self.tr("Add a new view"))
+
+        self.delView = NIconButton(self, btnSize, "remove:remove")
+        self.delView.setToolTip(self.tr("Delete current view"))
+
+        self.copyView = NIconButton(self, btnSize, "copy:action")
+        self.copyView.setToolTip(self.tr("Duplicate current view"))
+
+        self.editView = NIconButton(self, btnSize, "edit:change")
+        self.editView.setToolTip(self.tr("Edit current view"))
+
+        self.refreshView = NPushButton(self, self.tr("Refresh"), icnSize, "refresh:change")
+        self.refreshView.setToolTip(self.tr("Refresh curent view"))
+        self.refreshView.clicked.connect(self._refreshRequested)
 
         # Assemble
         self.topBox = QHBoxLayout()
@@ -86,8 +108,16 @@ class GuiStoryView(QWidget):
         self.topBox.addSpacing(8)
         self.topBox.addWidget(self.novelValue)
         self.topBox.addSpacing(8)
-        self.topBox.addWidget(self.refreshView)
         self.topBox.addWidget(self.exportData)
+        self.topBox.addSpacing(32)
+        self.topBox.addWidget(self.manageLabel)
+        self.topBox.addSpacing(8)
+        self.topBox.addWidget(self.addView)
+        self.topBox.addWidget(self.delView)
+        self.topBox.addWidget(self.copyView)
+        self.topBox.addWidget(self.editView)
+        self.topBox.addSpacing(8)
+        self.topBox.addWidget(self.refreshView)
         self.topBox.addStretch(1)
         self.topBox.setContentsMargins(4, 4, 0, 0)
         self.topBox.setSpacing(4)
