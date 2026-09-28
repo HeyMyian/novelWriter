@@ -623,17 +623,17 @@ class BuildCollection:
         buildsFile = self._project.storage.getMetaFile(nwFiles.BUILDS_FILE)
         if not isinstance(buildsFile, Path):
             return False
+        if not safeExists(buildsFile):
+            return True
 
-        data = {}
-        if safeExists(buildsFile):
-            logger.debug("Loading builds file")
-            try:
-                with open(buildsFile, mode="r", encoding="utf-8") as inFile:
-                    data = json.load(inFile)
-            except Exception:
-                logger.error("Failed to load builds file")
-                logException()
-                return False
+        logger.debug("Loading builds file")
+        try:
+            with open(buildsFile, mode="r", encoding="utf-8") as inFile:
+                data = json.load(inFile)
+        except Exception:
+            logger.error("Failed to load builds file")
+            logException()
+            return False
 
         if not isinstance(data, dict):
             logger.error("Builds file is not a JSON object")
