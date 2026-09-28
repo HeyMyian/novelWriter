@@ -40,8 +40,6 @@ from PyQt6.QtWidgets import (
     QSplitter,
     QSplitterHandle,
     QStyleOptionToolButton,
-    QTabBar,
-    QTabWidget,
     QToolButton,
     QTreeView,
     QWidget,
@@ -482,67 +480,6 @@ class NFlatIconTextButton(QToolButton):
             textRect = rect.adjusted(x + size.width() + margin, 0, -margin, 0)
             painter.setPen(opt.palette.color(QPalette.ColorRole.ButtonText))
             painter.drawText(textRect, QtAlignLeftMiddle, text)
-
-
-class NTabWidget(QTabWidget):
-    """Custom: Modified QTabWidget.
-
-    A tab widget that highlights the currently selected tab's label
-    using the app theme.
-    """
-
-    def __init__(self, parent: QWidget) -> None:
-        super().__init__(parent=parent)
-        self.setTabBar(NTabBar(self))
-        self.setDocumentMode(True)
-
-    def refreshTheme(self) -> None:
-        """Refresh the tab colours for theme updates."""
-        if tabBar := self.tabBar():  # pragma: no branch
-            tabBar.update()
-
-
-class NTabBar(QTabBar):
-    """Custom: Modified QTabBar.
-
-    A tab bar that highlights the currently selected tab's label
-    using the app theme.
-    """
-
-    def __init__(self, parent: QWidget) -> None:
-        super().__init__(parent=parent)
-        self.setDrawBase(False)
-
-    def tabSizeHint(self, index: int) -> QSize:
-        """Reduce the tab height by shrinking the margin above and below the text."""
-        size = super().tabSizeHint(index)
-        return QSize(size.width(), size.height() - 4)
-
-    def paintEvent(self, event: QPaintEvent | None) -> None:
-        """Highlight the currently selected tab with the theme highlight colour."""
-        painter = QPainter(self)
-        palette = self.palette()
-        selected = self.currentIndex()
-
-        for i in range(self.count()):
-            if not self.isTabVisible(i):
-                continue
-
-            rect = self.tabRect(i)
-            rR = rect.right()
-            rL = rect.left()
-            rT = rect.top()
-            if rR < 0 or rL > self.width():
-                continue
-
-            if i == selected:
-                painter.fillRect(rect, SHARED.theme.activeBase)
-                painter.setPen(SHARED.theme.accentText)
-                painter.drawLine(rL, rT, rR, rT)
-            else:
-                painter.setPen(palette.text().color())
-
-            painter.drawText(rect, QtAlignCenter, self.tabText(i))
 
 
 class NClickableLabel(QLabel):

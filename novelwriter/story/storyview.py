@@ -34,8 +34,9 @@ from novelwriter import CONFIG, SHARED
 from novelwriter.common import formatFileFilter
 from novelwriter.constants import nwKeyWords, nwLabels, nwStats, trConst, trStats
 from novelwriter.extensions.configlayout import NColorLabel
-from novelwriter.extensions.modified import NIconButton, NPushButton, NTabWidget
+from novelwriter.extensions.modified import NIconButton, NPushButton
 from novelwriter.extensions.novelselector import NovelSelector
+from novelwriter.extensions.tabwidget import NTabWidget
 from novelwriter.story.outline import GuiStoryOutlineView
 from novelwriter.story.storyviewsettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
 
