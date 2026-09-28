@@ -54,7 +54,7 @@ from novelwriter.types import (
 )
 
 if TYPE_CHECKING:
-    from novelwriter.story.storyviewsettings import OutlineViewSettings
+    from novelwriter.story.storysettings import OutlineViewSettings
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class GuiStoryOutlineView(GuiStoryViewBase):
     def __init__(self, parent: QWidget, settings: OutlineViewSettings) -> None:
         super().__init__(parent, settings)
 
-        self.outlineContent = GuiStoryOutlineTree(self)
+        self.outlineContent = GuiStoryOutlineTree(self, settings)
         self.outerBox.addWidget(self.outlineContent, 1)
 
     ##
@@ -85,7 +85,6 @@ class GuiStoryOutlineView(GuiStoryViewBase):
 
     def refresh(self, rootHandle: str | None, force: bool = False) -> None:
         """Refresh the outline content."""
-        logger.info("Building story view '%s'", self._settings.name)
         self.outlineContent.refresh(rootHandle, force=force)
 
 
@@ -102,9 +101,10 @@ class GuiStoryOutlineTree(NTreeView):
     C_CHARS = 1
     C_SYNOPSIS = 2
 
-    def __init__(self, parent: QWidget) -> None:
+    def __init__(self, parent: QWidget, settings: OutlineViewSettings) -> None:
         super().__init__(parent=parent)
 
+        self._settings = settings
         self._model = OutlineModel()
         self._delegate = _OutlineDelegate(self)
 
@@ -173,6 +173,7 @@ class GuiStoryOutlineTree(NTreeView):
         """
         index = SHARED.project.index
         if force or not self._built or rootHandle != self._lastHandle or index.indexChangedSince(self._lastBuild):
+            logger.info("Building story view '%s'", self._settings.name)
             self._model.buildOutline(index, rootHandle)
             self._built = True
             self._lastHandle = rootHandle

@@ -33,8 +33,8 @@ from novelwriter.constants import nwFiles
 from novelwriter.enum import nwChange, nwView
 from novelwriter.shared import _GuiAlert
 from novelwriter.story.outline import GuiStoryOutlineView
+from novelwriter.story.storysettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
 from novelwriter.story.storyviewbase import GuiStoryViewBase
-from novelwriter.story.storyviewsettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
 
 from tests.helpers import cmpFiles
 

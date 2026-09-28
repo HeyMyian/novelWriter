@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING
 from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
 if TYPE_CHECKING:
-    from novelwriter.story.storyviewsettings import StoryViewSettings
+    from novelwriter.story.storysettings import StoryViewSettings
 
 
 class GuiStoryViewBase(QWidget):

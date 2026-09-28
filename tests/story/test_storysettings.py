@@ -30,7 +30,7 @@ import pytest
 
 from novelwriter.constants import nwFiles
 from novelwriter.core.project import NWProject
-from novelwriter.story.storyviewsettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
+from novelwriter.story.storysettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
 
 from tests.helpers import buildTestProject
 from tests.mocked import causeOSError

@@ -38,8 +38,8 @@ from novelwriter.extensions.modified import NIconButton, NPushButton
 from novelwriter.extensions.novelselector import NovelSelector
 from novelwriter.extensions.tabwidget import NTabWidget
 from novelwriter.story.outline import GuiStoryOutlineView
+from novelwriter.story.storysettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
 from novelwriter.story.storyviewbase import GuiStoryViewBase
-from novelwriter.story.storyviewsettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -254,8 +254,12 @@ class GuiStoryView(QWidget):
             view.setName(self.tr("Outline"))
             views.setStoryView(view)
         self._views = views
+
+        # The current view is refreshed by the caller, not on tab change
+        self.tabMain.blockSignals(True)
         for view in views.storyViews():
             self._addTab(view)
+        self.tabMain.blockSignals(False)
 
     def _addView(self, view: StoryViewSettings) -> None:
         """Add a new view to the collection, and switch to it."""
