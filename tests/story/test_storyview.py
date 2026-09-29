@@ -426,4 +426,5 @@ def testStoryView_BaseClass(qtbot, nwGUI):
     # The default implementations do nothing
     view.updateTheme()
     view.refresh(None)
+    view.saveViewState()
     assert view.settingsDialog() is None

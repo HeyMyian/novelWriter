@@ -180,6 +180,8 @@ class GuiStoryView(QWidget):
     def closeProjectTasks(self) -> None:
         """Run closing project tasks."""
         if self._views is not None:
+            for widget in self._iterViews():
+                widget.saveViewState()
             current = self.tabMain.currentWidget()
             lastView = current.settings.viewID if isinstance(current, GuiStoryViewBase) else ""
             self._views.setStoryViewsState(lastView, [v.settings.viewID for v in self._iterViews()])
@@ -282,10 +284,8 @@ class GuiStoryView(QWidget):
     def _applyViewSettings(self, settings: StoryViewSettings) -> None:
         """Save new settings from a settings dialog."""
         if self._views is not None and (view := self._views.getStoryView(settings.viewID)):
-            order = view.order  # The order belongs to the tabs, not the dialog
             rebuild = settings.changed
-            view.unpack(settings.pack())
-            view.setOrder(order)
+            view.updateSettings(settings)
             self._views.setStoryView(view)
             for widget in self._iterViews():
                 if widget.settings is view:

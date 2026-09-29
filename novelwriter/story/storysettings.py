@@ -26,7 +26,7 @@ import logging
 import uuid
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING, Any, Self
 
 from PyQt6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
@@ -89,18 +89,20 @@ class StoryViewSettings:
     dictionary for JSON.
     """
 
-    __slots__ = ("_changed", "_name", "_order", "_prefix", "_settings", "_uuid")
+    __slots__ = ("_changed", "_name", "_order", "_prefix", "_settings", "_state", "_stateChanged", "_uuid")
 
     KIND = "none"
 
     def __init__(self) -> None:
         self._prefix = f"{self.KIND}."
         self._changed = False
+        self._stateChanged = False
 
         self._name = self.defaultName
         self._uuid = str(uuid.uuid4())
         self._order = 0
         self._settings = {k: v[1] for k, v in SETTINGS_TEMPLATE.items() if k.startswith(self._prefix)}
+        self._state: dict[str, Any] = {}
 
     @classmethod
     def fromDict(cls, data: dict) -> StoryViewSettings | None:
@@ -142,6 +144,11 @@ class StoryViewSettings:
         """The changed status of the story view."""
         return self._changed
 
+    @property
+    def stateChanged(self) -> bool:
+        """The changed status of the story view state."""
+        return self._stateChanged
+
     ##
     #  Setters
     ##
@@ -163,6 +170,12 @@ class StoryViewSettings:
         if isinstance(value, int):
             self._order = value
 
+    def setState(self, key: str, value: Any) -> None:
+        """Set a JSON compatible view state value, validated by the view."""
+        if value != self._state.get(key):
+            self._state[key] = value
+            self._stateChanged = True
+
     def setValue(self, key: str, value: T_ViewValue) -> None:
         """Set a specific value for a story view setting."""
         if (d := SETTINGS_TEMPLATE.get(key)) and len(d) == 2 and isinstance(value, d[0]):
@@ -177,6 +190,10 @@ class StoryViewSettings:
     def getLabel(key: str) -> str:
         """Extract the GUI label for a specific setting."""
         return QCoreApplication.translate("StoryViews", SETTINGS_LABELS.get(key, "ERROR"))
+
+    def getState(self, key: str) -> Any:
+        """Return a view state value, or None if not set."""
+        return self._state.get(key)
 
     def getStr(self, key: str) -> str:
         """Type safe value access for strings."""
@@ -205,6 +222,12 @@ class StoryViewSettings:
     def resetChangedState(self) -> None:
         """Reset the changed status of the settings object."""
         self._changed = False
+        self._stateChanged = False
+
+    def updateSettings(self, source: StoryViewSettings) -> None:
+        """Update the name and settings values from another object."""
+        self._name = source.name
+        self._settings = source._settings.copy()
 
     def copy(self) -> Self:
         """Return an identical copy of the settings."""
@@ -221,11 +244,13 @@ class StoryViewSettings:
             "uuid": self._uuid,
             "order": self._order,
             "settings": self._settings.copy(),
+            "state": self._state.copy(),
         }
 
     def unpack(self, data: dict) -> None:
         """Unpack a dictionary and populate the class."""
         settings = data.get("settings", {})
+        state = data.get("state", {})
 
         self.setName(data.get("name", ""))
         self.setViewID(data.get("uuid", ""))
@@ -237,7 +262,9 @@ class StoryViewSettings:
                 if isinstance(key, str) and key.startswith(self._prefix) and isinstance(value, T_ViewValue):
                     self.setValue(key, value)
 
+        self._state = state.copy() if isinstance(state, dict) else {}
         self._changed = False
+        self._stateChanged = False
 
     @classmethod
     def duplicate(cls, source: StoryViewSettings) -> StoryViewSettings:
@@ -304,9 +331,10 @@ class StoryViewCollection:
 
     def setStoryViewsState(self, lastView: str, order: list[str]) -> None:
         """Set the last active view ID and the order of the story views
-        from a list of view IDs, and save if either changed.
+        from a list of view IDs, and save if either or any view state
+        changed.
         """
-        changed = lastView != self._lastView
+        changed = lastView != self._lastView or any(v.stateChanged for v in self._views.values())
         self._lastView = lastView
         for i, key in enumerate(order):
             if (view := self._views.get(key)) and view.order != i:
@@ -314,6 +342,8 @@ class StoryViewCollection:
                 changed = True
         if changed:
             self._saveCollection()
+            for view in self._views.values():
+                view.resetChangedState()
 
     ##
     #  Methods

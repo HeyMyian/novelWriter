@@ -91,6 +91,7 @@ def testStoryViewSettings_ClassAttributes():
     assert data["name"] == "Test View"
     assert data["uuid"] == VIEW_ID
     assert data["order"] == 3
+    assert data["state"] == {}
 
     # Create from dict using the correct class
     another = StoryViewSettings.fromDict(data)
@@ -124,6 +125,19 @@ def testStoryViewSettings_ClassAttributes():
     assert copy.order == view.order
     assert copy.pack()["settings"] == view.pack()["settings"]
     assert copy.changed is False
+
+    # Update copies the name and settings, but not ID, order and state
+    view.setState("columns", {"title": 100})
+    source = OutlineViewSettings()
+    source.setName("Source")
+    source.setValue("outline.showSections", False)
+    source.setState("columns", {"title": 200})
+    view.updateSettings(source)
+    assert view.name == "Source"
+    assert view.viewID == VIEW_ID
+    assert view.order == 3
+    assert view.getBool("outline.showSections") is False
+    assert view.getState("columns") == {"title": 100}
 
 
 @pytest.mark.core
@@ -201,6 +215,37 @@ def testStoryViewSettings_Values():
 
 
 @pytest.mark.core
+def testStoryViewSettings_State():
+    """Test StoryViewSettings get/set of state values."""
+    view = OutlineViewSettings()
+    assert view.getState("columns") is None
+    assert view.stateChanged is False
+
+    # Setting state flags a state change, but not a settings change
+    view.setState("columns", {"title": 200})
+    assert view.getState("columns") == {"title": 200}
+    assert view.stateChanged is True
+    assert view.changed is False
+
+    view.resetChangedState()
+    assert view.stateChanged is False
+
+    # Setting the same value does not flag a change
+    view.setState("columns", {"title": 200})
+    assert view.stateChanged is False
+
+    # State is packed and unpacked
+    another = OutlineViewSettings()
+    another.unpack(view.pack())
+    assert another.getState("columns") == {"title": 200}
+    assert another.stateChanged is False
+
+    # Invalid state is replaced by an empty state
+    another.unpack({"state": ["not", "a", "dict"]})
+    assert another.getState("columns") is None
+
+
+@pytest.mark.core
 def testStoryViewSettings_Collection(monkeypatch, mockGUI, fncPath: Path, mockRnd):
     """Test the collections class for story views."""
     project = NWProject()
@@ -246,6 +291,13 @@ def testStoryViewSettings_Collection(monkeypatch, mockGUI, fncPath: Path, mockRn
     with monkeypatch.context() as mp:
         mp.setattr(views, "_saveCollection", lambda: pytest.fail("Unexpected save"))
         views.setStoryViewsState(viewIDTwo, [viewIDTwo, viewIDOne])
+
+    # A changed view state is saved, and the flag reset
+    viewOne.setState("columns", {"title": 200})
+    views.setStoryViewsState(viewIDTwo, [viewIDTwo, viewIDOne])
+    assert viewOne.stateChanged is False
+    data = json.loads(viewsFile.read_text(encoding="utf-8"))
+    assert data["novelWriter.storyViews"][viewIDOne]["state"] == {"columns": {"title": 200}}
 
     # Check the file content
     data = json.loads(viewsFile.read_text(encoding="utf-8"))

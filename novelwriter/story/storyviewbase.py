@@ -80,6 +80,9 @@ class GuiStoryViewBase(QWidget):
     def refresh(self, rootHandle: str | None, force: bool = False) -> None:
         """Refresh the view content."""
 
+    def saveViewState(self) -> None:
+        """Save the view state to the settings object."""
+
     def settingsDialog(self) -> type[GuiStorySettingsBase] | None:
         """Return the settings dialog class of the view, if any."""
         return None

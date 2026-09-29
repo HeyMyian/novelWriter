@@ -29,6 +29,8 @@ from PyQt6.QtWidgets import QStyleOptionViewItem
 
 from novelwriter import CONFIG
 from novelwriter.constants import nwKeyWords
+from novelwriter.enum import nwView
+from novelwriter.models.outlinemodel import OutlineModel
 from novelwriter.story.outline import GuiStoryOutlineView
 from novelwriter.story.storysettings import OutlineViewSettings
 from novelwriter.types import QtScrollAlwaysOff, QtScrollAsNeeded
@@ -100,6 +102,82 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
     tree.clear()
     view.refresh(None)
     assert model.rowCount(root) == 3
+
+
+@pytest.mark.gui
+def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
+    """Test saving and loading the column order and widths."""
+    assert nwGUI.openProject(prjLipsum)
+    nwGUI._changeView(nwView.STORY)
+    storyView = nwGUI.storyView
+    storyView.addView.click()
+
+    view = storyView.tabMain.currentWidget()
+    assert isinstance(view, GuiStoryOutlineView)
+    tree = view.outlineContent
+    header = tree.header()
+    assert header is not None
+
+    # Move and resize columns, and hide one
+    header.moveSection(header.visualIndex(OutlineModel.C_SYNOPSIS), 1)
+    header.resizeSection(OutlineModel.C_TITLE, 300)
+    header.resizeSection(OutlineModel.C_PLOT, 200)
+    header.resizeSection(OutlineModel.C_WORLD, 120)
+    tree.setColumnHidden(OutlineModel.C_WORLD, True)
+
+    # The state is saved when the project is closed
+    assert nwGUI.closeProject(isYes=True)
+    assert nwGUI.openProject(prjLipsum)
+    nwGUI._changeView(nwView.STORY)
+
+    view = storyView.tabMain.currentWidget()
+    assert isinstance(view, GuiStoryOutlineView)
+    tree = view.outlineContent
+    header = tree.header()
+    assert header is not None
+    assert view.settings.getState("columns") == {
+        "title": 300,
+        "synopsis": header.sectionSize(OutlineModel.C_SYNOPSIS),
+        "characters": 160,
+        "plot": 200,
+        "world": 160,
+        "custom": 160,
+        "mentions": 160,
+    }
+    assert [header.logicalIndex(i) for i in range(7)] == [
+        OutlineModel.C_TITLE,
+        OutlineModel.C_SYNOPSIS,
+        OutlineModel.C_CHARS,
+        OutlineModel.C_PLOT,
+        OutlineModel.C_WORLD,
+        OutlineModel.C_CUSTOM,
+        OutlineModel.C_MENTION,
+    ]
+    assert header.sectionSize(OutlineModel.C_TITLE) == 300
+    assert header.sectionSize(OutlineModel.C_PLOT) == 200
+
+    # Title stays first, unknown keys and invalid widths are skipped, and
+    # missing columns are kept after the known ones
+    settings = OutlineViewSettings()
+    settings.setState("columns", {"plot": "wide", "unknown": 100, "title": 30, "mentions": 90})
+    tree = GuiStoryOutlineView(nwGUI, settings).outlineContent
+    header = tree.header()
+    assert header is not None
+    assert [header.logicalIndex(i) for i in range(3)] == [
+        OutlineModel.C_TITLE,
+        OutlineModel.C_PLOT,
+        OutlineModel.C_MENTION,
+    ]
+    assert header.sectionSize(OutlineModel.C_TITLE) == 260
+    assert header.sectionSize(OutlineModel.C_PLOT) == 160
+    assert header.sectionSize(OutlineModel.C_MENTION) == 90
+
+    # A hidden column without a previous width gets the default width
+    settings = OutlineViewSettings()
+    tree = GuiStoryOutlineView(nwGUI, settings).outlineContent
+    tree.setColumnHidden(OutlineModel.C_CUSTOM, True)
+    tree.saveColumnState()
+    assert settings.getState("columns")["custom"] == 160
 
 
 @pytest.mark.gui

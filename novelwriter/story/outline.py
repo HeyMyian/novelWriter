@@ -66,6 +66,17 @@ WRAP_FLAGS = int(Qt.TextFlag.TextWordWrap) | int(QtAlignLeftTop)
 ROW_PAD = 3
 ROW_RADIUS = 6
 
+# Persistent column keys, independent of the column index
+COLUMN_KEYS = {
+    OutlineModel.C_TITLE: "title",
+    OutlineModel.C_CHARS: "characters",
+    OutlineModel.C_PLOT: "plot",
+    OutlineModel.C_WORLD: "world",
+    OutlineModel.C_CUSTOM: "custom",
+    OutlineModel.C_MENTION: "mentions",
+    OutlineModel.C_SYNOPSIS: "synopsis",
+}
+
 
 class GuiStoryOutlineView(GuiStoryViewBase):
     """GUI: Project Story Outline View."""
@@ -87,6 +98,10 @@ class GuiStoryOutlineView(GuiStoryViewBase):
     def refresh(self, rootHandle: str | None, force: bool = False) -> None:
         """Refresh the outline content."""
         self.outlineContent.refresh(rootHandle, force=force)
+
+    def saveViewState(self) -> None:
+        """Save the view state to the settings object."""
+        self.outlineContent.saveColumnState()
 
     def settingsDialog(self) -> type[GuiStorySettingsBase]:
         """Return the settings dialog class of the view."""
@@ -230,6 +245,8 @@ class GuiStoryOutlineTree(NTreeView):
             header.setSectionResizeMode(OutlineModel.C_SYNOPSIS, QtHeaderStretch)
             header.resizeSection(OutlineModel.C_TITLE, 260)
 
+        self._loadColumnState()
+
     ##
     #  Methods
     ##
@@ -297,6 +314,24 @@ class GuiStoryOutlineTree(NTreeView):
             self._lastHandle = rootHandle
             self._lastRevision = index.indexRevision
 
+    def saveColumnState(self) -> None:
+        """Save the column order and widths to the settings object. Hidden
+        columns keep their last known width.
+        """
+        if header := self.header():  # pragma: no branch
+            previous = self._settings.getState("columns")
+            previous = previous if isinstance(previous, dict) else {}
+            state = {}
+            for visual in range(header.count()):
+                column = header.logicalIndex(visual)
+                key = COLUMN_KEYS[column]
+                if self.isColumnHidden(column):
+                    width = previous.get(key, header.defaultSectionSize())
+                else:
+                    width = header.sectionSize(column)
+                state[key] = width
+            self._settings.setState("columns", state)
+
     def clear(self) -> None:
         """Clear the outline."""
         self._model.clear()
@@ -328,6 +363,24 @@ class GuiStoryOutlineTree(NTreeView):
             painter.restore()
 
         super().drawRow(painter, option, index)
+
+    def _loadColumnState(self) -> None:
+        """Load the column order and widths from the settings object. The
+        title column is always first, and unknown columns are skipped.
+        """
+        state = self._settings.getState("columns")
+        if isinstance(state, dict) and (header := self.header()):
+            columns = {v: k for k, v in COLUMN_KEYS.items()}
+            visual = 1
+            for key, width in state.items():
+                if (column := columns.get(key)) is None:
+                    logger.warning("Unknown outline column '%s'", key)
+                    continue
+                if isinstance(width, int) and width >= header.minimumSectionSize():
+                    header.resizeSection(column, width)
+                if column != OutlineModel.C_TITLE:
+                    header.moveSection(header.visualIndex(column), visual)
+                    visual += 1
 
     def _isRowSelected(self, index: QModelIndex) -> bool:
         """Return whether the given row index is selected."""
