@@ -100,6 +100,7 @@ def testNToolDialog_Main(qtbot, nwGUI):
     dialog.activateDialog()
     qtbot.keyClick(dialog, Qt.Key.Key_A)
     assert dialog.isVisible()
+    dialog.close()
 
     # Escape closes the dialog via a closeEvent override
     closed = False

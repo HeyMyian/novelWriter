@@ -138,6 +138,13 @@ def testStoryViewSettings_Values():
         "outline.showParts": True,
         "outline.showScenes": True,
         "outline.showSections": False,
+        "outline.showCharacters": True,
+        "outline.showPlot": True,
+        "outline.showWorld": True,
+        "outline.showObject": False,
+        "outline.showEntity": False,
+        "outline.showCustom": False,
+        "outline.showMentions": False,
     }
 
     # Invalid setting
@@ -183,6 +190,13 @@ def testStoryViewSettings_Values():
         "outline.showParts": True,
         "outline.showScenes": True,
         "outline.showSections": False,
+        "outline.showCharacters": True,
+        "outline.showPlot": True,
+        "outline.showWorld": True,
+        "outline.showObject": False,
+        "outline.showEntity": False,
+        "outline.showCustom": False,
+        "outline.showMentions": False,
     }
 
 

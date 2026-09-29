@@ -45,9 +45,6 @@ NODE_FLAGS = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
 class _TrCache(NamedTuple):
     sWords: str
     sChars: str
-    kPov: str
-    kFocus: str
-    kChars: str
 
 
 class NodeStyle(NamedTuple):
@@ -72,17 +69,14 @@ class OutlineNode:
     """
 
     __slots__ = (
-        "_characters",
         "_counts",
         "_document",
-        "_focus",
         "_handle",
         "_heading",
-        "_highlight",
         "_item",
         "_key",
         "_level",
-        "_pov",
+        "_refs",
         "_style",
         "_title",
         "_tr",
@@ -108,9 +102,7 @@ class OutlineNode:
         self._title = ""
         self._document = ""
         self._counts = ""
-        self._pov = ""
-        self._focus = ""
-        self._characters = ""
+        self._refs: dict[str, str] = {}
         self._style = style
 
         self.refresh()
@@ -150,21 +142,6 @@ class OutlineNode:
         return self._counts
 
     @property
-    def pov(self) -> tuple[str, str]:
-        """The point of view references of the heading."""
-        return self._tr.kPov, self._pov
-
-    @property
-    def focus(self) -> tuple[str, str]:
-        """The focus references of the heading."""
-        return self._tr.kFocus, self._focus
-
-    @property
-    def characters(self) -> tuple[str, str]:
-        """The character references of the heading."""
-        return self._tr.kChars, self._characters
-
-    @property
     def synopsis(self) -> str:
         """The synopsis of the heading."""
         if hItem := self._heading:
@@ -175,6 +152,14 @@ class OutlineNode:
     def style(self) -> NodeStyle:
         """The style for the heading's structural level."""
         return self._style
+
+    ##
+    #  Data Access
+    ##
+
+    def refs(self, keyword: str) -> str:
+        """Return the references of the heading for a keyword."""
+        return self._refs.get(keyword, "")
 
     ##
     #  Data Maintenance
@@ -188,10 +173,7 @@ class OutlineNode:
             self._title = h.title
             self._counts = f"{h.wordCount:n} {tr.sWords}  {nwUnicode.U_BULL}  {h.charCount:n} {tr.sChars}"
 
-            refs = h.getReferences()
-            self._pov = ", ".join(refs[nwKeyWords.POV_KEY])
-            self._focus = ", ".join(refs[nwKeyWords.FOCUS_KEY])
-            self._characters = ", ".join(refs[nwKeyWords.CHAR_KEY])
+            self._refs = {k: ", ".join(v) for k, v in h.getReferences().items() if v}
 
         if i := self._item:
             self._document = i.itemName
@@ -207,15 +189,28 @@ class OutlineModel(QAbstractTableModel):
 
     __slots__ = ("_headers", "_labels", "_nodes", "_styles")
 
+    C_TITLE = 0
+    C_CHARS = 1
+    C_PLOT = 2
+    C_WORLD = 3
+    C_CUSTOM = 4
+    C_MENTION = 5
+    C_SYNOPSIS = 6
+
     def __init__(self) -> None:
         super().__init__()
-        self._headers = [self.tr("Story"), self.tr("Characters"), self.tr("Synopsis")]
+        self._headers = [
+            self.tr("Story"),
+            trConst(nwLabels.KEY_NAME[nwKeyWords.CHAR_KEY]),
+            trConst(nwLabels.KEY_NAME[nwKeyWords.PLOT_KEY]),
+            self.tr("World"),
+            trConst(nwLabels.KEY_NAME[nwKeyWords.CUSTOM_KEY]),
+            trConst(nwLabels.KEY_NAME[nwKeyWords.MENTION_KEY]),
+            self.tr("Synopsis"),
+        ]
         self._labels = _TrCache(
             sWords=trStats(nwLabels.STATS_NAME[nwStats.WORDS]),
             sChars=trStats(nwLabels.STATS_NAME[nwStats.CHARS]),
-            kPov=trConst(nwLabels.KEY_NAME[nwKeyWords.POV_KEY]),
-            kFocus=trConst(nwLabels.KEY_NAME[nwKeyWords.FOCUS_KEY]),
-            kChars=trConst(nwLabels.KEY_NAME[nwKeyWords.CHAR_KEY]),
         )
 
         # Colours
@@ -247,7 +242,7 @@ class OutlineModel(QAbstractTableModel):
 
     def columnCount(self, parent: QModelIndex) -> int:
         """Return the number of columns."""
-        return 0 if parent.isValid() else 3
+        return 0 if parent.isValid() else len(self._headers)
 
     def data(self, index: QModelIndex, role: Qt.ItemDataRole) -> None:
         """Return display data for a node."""
@@ -283,13 +278,15 @@ class OutlineModel(QAbstractTableModel):
         self._nodes = []
         self.endResetModel()
 
-    def buildOutline(self, index: Index, rootHandle: str | None) -> None:
-        """Rebuild the outline from the project index."""
+    def buildOutline(self, index: Index, rootHandle: str | None, levels: set[int]) -> None:
+        """Rebuild the outline from the project index, including only
+        headings of the given levels.
+        """
         self.beginResetModel()
         nodes: list[OutlineNode] = []
         for tHandle, sTitle, hItem in index.iterNovelStructure(rHandle=rootHandle):
             level = nwStyles.H_LEVEL.get(hItem.level, 0)
-            if level < 1:
+            if level not in levels:
                 continue
             if (nwItem := SHARED.project.tree[tHandle]) is None:
                 continue

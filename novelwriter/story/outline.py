@@ -25,8 +25,8 @@ import logging
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QModelIndex, QRect, QSize, Qt
-from PyQt6.QtGui import QFontMetrics, QPainter, QPalette
+from PyQt6.QtCore import QModelIndex, QPointF, QRect, QSize, Qt
+from PyQt6.QtGui import QFontMetrics, QPainter, QPalette, QTextCharFormat, QTextLayout, QTextOption
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -37,7 +37,7 @@ from PyQt6.QtWidgets import (
 )
 
 from novelwriter import CONFIG, SHARED
-from novelwriter.constants import nwUnicode
+from novelwriter.constants import nwKeyWords, nwLabels, nwUnicode, trConst
 from novelwriter.extensions.modified import NTreeView
 from novelwriter.extensions.switch import NSwitch
 from novelwriter.models.outlinemodel import OutlineModel
@@ -55,12 +55,12 @@ from novelwriter.types import (
 
 if TYPE_CHECKING:
     from novelwriter.guimain import GuiMain
+    from novelwriter.models.outlinemodel import OutlineNode
     from novelwriter.story.storysettings import OutlineViewSettings
 
 logger = logging.getLogger(__name__)
 
 LINE_FLAGS = int(Qt.TextFlag.TextSingleLine) | int(QtAlignLeftMiddle)
-TOP_FLAGS = int(Qt.TextFlag.TextSingleLine) | int(QtAlignLeftTop)
 WRAP_FLAGS = int(Qt.TextFlag.TextWordWrap) | int(QtAlignLeftTop)
 
 ROW_PAD = 3
@@ -123,6 +123,30 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.form.addRow(settings.getLabel("outline.showScenes"), self.showScenes)
         self.form.addRow(settings.getLabel("outline.showSections"), self.showSections)
 
+        # References
+        # ==========
+
+        title = settings.getLabel("outline.grpClass")
+        section += 1
+        self.sidebar.addButton(title, section)
+        self.form.addGroupLabel(title, section)
+
+        self.showCharacters = NSwitch(self, height=iPx)
+        self.showPlot = NSwitch(self, height=iPx)
+        self.showWorld = NSwitch(self, height=iPx)
+        self.showObject = NSwitch(self, height=iPx)
+        self.showEntity = NSwitch(self, height=iPx)
+        self.showCustom = NSwitch(self, height=iPx)
+        self.showMentions = NSwitch(self, height=iPx)
+
+        self.form.addRow(settings.getLabel("outline.showCharacters"), self.showCharacters)
+        self.form.addRow(settings.getLabel("outline.showPlot"), self.showPlot)
+        self.form.addRow(settings.getLabel("outline.showWorld"), self.showWorld)
+        self.form.addRow(settings.getLabel("outline.showObject"), self.showObject)
+        self.form.addRow(settings.getLabel("outline.showEntity"), self.showEntity)
+        self.form.addRow(settings.getLabel("outline.showCustom"), self.showCustom)
+        self.form.addRow(settings.getLabel("outline.showMentions"), self.showMentions)
+
         # Finalise
         self.form.finalise()
 
@@ -135,6 +159,15 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.showScenes.setChecked(settings.getBool("outline.showScenes"))
         self.showSections.setChecked(settings.getBool("outline.showSections"))
 
+        # References
+        self.showCharacters.setChecked(settings.getBool("outline.showCharacters"))
+        self.showPlot.setChecked(settings.getBool("outline.showPlot"))
+        self.showWorld.setChecked(settings.getBool("outline.showWorld"))
+        self.showObject.setChecked(settings.getBool("outline.showObject"))
+        self.showEntity.setChecked(settings.getBool("outline.showEntity"))
+        self.showCustom.setChecked(settings.getBool("outline.showCustom"))
+        self.showMentions.setChecked(settings.getBool("outline.showMentions"))
+
     def saveSettings(self) -> None:
         """Save the settings."""
         settings = self._settings
@@ -144,19 +177,23 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         settings.setValue("outline.showScenes", self.showScenes.isChecked())
         settings.setValue("outline.showSections", self.showSections.isChecked())
 
+        # References
+        settings.setValue("outline.showCharacters", self.showCharacters.isChecked())
+        settings.setValue("outline.showPlot", self.showPlot.isChecked())
+        settings.setValue("outline.showWorld", self.showWorld.isChecked())
+        settings.setValue("outline.showObject", self.showObject.isChecked())
+        settings.setValue("outline.showEntity", self.showEntity.isChecked())
+        settings.setValue("outline.showCustom", self.showCustom.isChecked())
+        settings.setValue("outline.showMentions", self.showMentions.isChecked())
+
 
 class GuiStoryOutlineTree(NTreeView):
     """GUI: Project Story Outline.
 
     A flat list of the partitions, chapters, scenes and sections of a
-    novel, in story order. Each row is rendered as three lines of text
-    by the outline delegate: the heading title, the document it belongs
-    to, and its word and character count.
+    novel, in story order, with a column for each type of reference
+    enabled in the settings.
     """
-
-    C_TITLE = 0
-    C_CHARS = 1
-    C_SYNOPSIS = 2
 
     def __init__(self, parent: QWidget, settings: OutlineViewSettings) -> None:
         super().__init__(parent=parent)
@@ -188,11 +225,10 @@ class GuiStoryOutlineTree(NTreeView):
         if header := self.header():  # pragma: no branch
             header.setStretchLastSection(False)
             header.setMinimumSectionSize(60)
-            header.setSectionResizeMode(self.C_TITLE, QtHeaderInteractive)
-            header.setSectionResizeMode(self.C_CHARS, QtHeaderInteractive)
-            header.setSectionResizeMode(self.C_SYNOPSIS, QtHeaderStretch)
-            header.resizeSection(self.C_TITLE, 260)
-            header.resizeSection(self.C_CHARS, 160)
+            header.setDefaultSectionSize(160)
+            header.setSectionResizeMode(QtHeaderInteractive)
+            header.setSectionResizeMode(OutlineModel.C_SYNOPSIS, QtHeaderStretch)
+            header.resizeSection(OutlineModel.C_TITLE, 260)
 
     ##
     #  Methods
@@ -233,7 +269,30 @@ class GuiStoryOutlineTree(NTreeView):
         index = SHARED.project.index
         if force or not self._built or rootHandle != self._lastHandle or index.indexRevision != self._lastRevision:
             logger.info("Building story view '%s'", self._settings.name)
-            self._model.buildOutline(index, rootHandle)
+            settings = self._settings
+            levels = {2}
+            if settings.getBool("outline.showParts"):
+                levels.add(1)
+            if settings.getBool("outline.showScenes"):
+                levels.add(3)
+            if settings.getBool("outline.showSections"):
+                levels.add(4)
+            self._model.buildOutline(index, rootHandle, levels)
+
+            worldKeys = []
+            if settings.getBool("outline.showWorld"):
+                worldKeys.append(nwKeyWords.WORLD_KEY)
+            if settings.getBool("outline.showObject"):
+                worldKeys.append(nwKeyWords.OBJECT_KEY)
+            if settings.getBool("outline.showEntity"):
+                worldKeys.append(nwKeyWords.ENTITY_KEY)
+            self._delegate.setWorldKeys(worldKeys)
+
+            self.setColumnHidden(OutlineModel.C_CHARS, not settings.getBool("outline.showCharacters"))
+            self.setColumnHidden(OutlineModel.C_PLOT, not settings.getBool("outline.showPlot"))
+            self.setColumnHidden(OutlineModel.C_WORLD, not worldKeys)
+            self.setColumnHidden(OutlineModel.C_CUSTOM, not settings.getBool("outline.showCustom"))
+            self.setColumnHidden(OutlineModel.C_MENTION, not settings.getBool("outline.showMentions"))
             self._built = True
             self._lastHandle = rootHandle
             self._lastRevision = index.indexRevision
@@ -255,8 +314,8 @@ class GuiStoryOutlineTree(NTreeView):
         transparent (see _disableNativeHighlight), so the selection is
         shown by the box instead.
         """
-        if node := self._model.node(index):
-            first = index.sibling(index.row(), self.C_TITLE)
+        if node := self._model.node(index):  # pragma: no branch
+            first = index.sibling(index.row(), OutlineModel.C_TITLE)
             selected = self._isRowSelected(first)
             block = option.rect.adjusted(0, ROW_PAD, -ROW_PAD, -ROW_PAD)
             block.setLeft(self.visualRect(first).left())
@@ -278,22 +337,49 @@ class GuiStoryOutlineTree(NTreeView):
 class _OutlineDelegate(QStyledItemDelegate):
     """GUI: Story Outline Row Delegate.
 
-    Paints each row over three lines of height. The title column shows
-    the heading title, the document and line number, and the word and
-    character count. The characters column shows the point of view and
-    focus on one line, and the associated characters wrapped below. The
-    synopsis column shows the synopsis stretched over the remaining
-    width. Content taller than the row is clipped.
+    Paints each row over three lines of height.
     """
 
-    __slots__ = ("_fm", "_fmB", "_lineHeight", "_margin", "_rowHeight", "_textCol")
+    __slots__ = (
+        "_boldFormat",
+        "_fm",
+        "_fmB",
+        "_keyLabels",
+        "_lineHeight",
+        "_margin",
+        "_rowHeight",
+        "_textCol",
+        "_worldKeys",
+        "_wrapOption",
+    )
 
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent=parent)
         self._margin = 8
         self._rowHeight = 0
         self._lineHeight = 0
+        self._worldKeys: list[str] = []
+        self._boldFormat = QTextCharFormat()
+        self._wrapOption = QTextOption()
+        self._wrapOption.setWrapMode(QTextOption.WrapMode.WordWrap)
+        self._keyLabels = {
+            k: trConst(nwLabels.KEY_NAME[k])
+            for k in (
+                nwKeyWords.POV_KEY,
+                nwKeyWords.FOCUS_KEY,
+                nwKeyWords.CHAR_KEY,
+                nwKeyWords.PLOT_KEY,
+                nwKeyWords.TIME_KEY,
+                nwKeyWords.WORLD_KEY,
+                nwKeyWords.OBJECT_KEY,
+                nwKeyWords.ENTITY_KEY,
+            )
+        }
         self.updateTheme()
+
+    def setWorldKeys(self, keys: list[str]) -> None:
+        """Set the keywords to show in the world column, in order."""
+        self._worldKeys = keys
 
     def updateTheme(self) -> None:
         """Refresh the cached theme fonts and colours."""
@@ -302,6 +388,7 @@ class _OutlineDelegate(QStyledItemDelegate):
         self._lineHeight = self._fmB.height() + 2 * self._margin + 2 * ROW_PAD
         self._rowHeight = self._lineHeight + 2 * self._fm.height()
         self._textCol = QApplication.palette().text().color()
+        self._boldFormat.setFont(SHARED.theme.guiFontB)
 
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
         """Return the row height: one line for partitions, three lines for
@@ -332,7 +419,7 @@ class _OutlineDelegate(QStyledItemDelegate):
         h = max(0, rect.height() - 2 * pad)
 
         if node.level == 1:
-            if index.column() == GuiStoryOutlineTree.C_TITLE:
+            if index.column() == OutlineModel.C_TITLE:
                 painter.setFont(SHARED.theme.guiFontB)
                 title = self._fmB.elidedText(node.title, QtElideRight, w)
                 painter.drawText(QRect(x, y, w, h), LINE_FLAGS, title)
@@ -340,7 +427,7 @@ class _OutlineDelegate(QStyledItemDelegate):
             return
 
         match index.column():
-            case GuiStoryOutlineTree.C_TITLE:
+            case OutlineModel.C_TITLE:
                 hTitle = self._fmB.height()
                 hLine = self._fm.height()
 
@@ -355,36 +442,53 @@ class _OutlineDelegate(QStyledItemDelegate):
                 counts = self._fm.elidedText(node.counts, QtElideRight, w)
                 painter.drawText(QRect(x, y + hTitle + hLine, w, hLine), LINE_FLAGS, counts)
 
-            case GuiStoryOutlineTree.C_CHARS:
+            case OutlineModel.C_CHARS:
                 hLine = self._fm.height()
                 maxX = x + w
 
                 # Line 1: Point of View and Focus
                 xPos = x
-                for label, value in (node.pov, node.focus):
-                    if not value:
+                for key in (nwKeyWords.POV_KEY, nwKeyWords.FOCUS_KEY):
+                    if not (value := node.refs(key)):
                         continue
                     if xPos > x:
                         painter.setFont(SHARED.theme.guiFont)
                         sep = f"  {nwUnicode.U_BULL}  "
                         painter.drawText(QRect(xPos, y, maxX - xPos, hLine), LINE_FLAGS, sep)
                         xPos += self._fm.horizontalAdvance(sep)
-                    xPos = self._paintLabelled(painter, xPos, y, maxX, hLine, label, value)
+                    xPos = self._paintLabelled(painter, xPos, y, maxX, hLine, self._keyLabels[key], value)
 
                 # Line 2: Characters
-                label, value = node.characters
-                if value:
-                    yChar = y + hLine
-                    text = f"{label}: "
-                    painter.setFont(SHARED.theme.guiFontB)
-                    painter.drawText(QRect(x, yChar, w, hLine), TOP_FLAGS, text)
-                    labelW = self._fmB.horizontalAdvance(text)
-                    painter.setFont(SHARED.theme.guiFont)
-                    painter.drawText(QRect(x + labelW, yChar, w - labelW, h - hLine), WRAP_FLAGS, value)
+                self._paintWrapped(painter, x, y + hLine, w, h - hLine, node, nwKeyWords.CHAR_KEY)
 
-            case GuiStoryOutlineTree.C_SYNOPSIS:
+            case OutlineModel.C_PLOT:
+                hLine = self._fm.height()
+
+                # Line 1: Plot
+                if value := node.refs(nwKeyWords.PLOT_KEY):
+                    label = self._keyLabels[nwKeyWords.PLOT_KEY]
+                    self._paintLabelled(painter, x, y, x + w, hLine, label, value)
+
+                # Line 2: Timeline
+                self._paintWrapped(painter, x, y + hLine, w, h - hLine, node, nwKeyWords.TIME_KEY)
+
+            case OutlineModel.C_SYNOPSIS:
                 painter.setFont(SHARED.theme.guiFont)
                 painter.drawText(QRect(x, y, w, h), WRAP_FLAGS, node.synopsis)
+
+            case OutlineModel.C_WORLD:
+                hLine = self._fm.height()
+                for i, key in enumerate(self._worldKeys):
+                    if value := node.refs(key):
+                        self._paintLabelled(painter, x, y + i * hLine, x + w, hLine, self._keyLabels[key], value)
+
+            case OutlineModel.C_CUSTOM:
+                painter.setFont(SHARED.theme.guiFont)
+                painter.drawText(QRect(x, y, w, h), WRAP_FLAGS, node.refs(nwKeyWords.CUSTOM_KEY))
+
+            case OutlineModel.C_MENTION:  # pragma: no branch
+                painter.setFont(SHARED.theme.guiFont)
+                painter.drawText(QRect(x, y, w, h), WRAP_FLAGS, node.refs(nwKeyWords.MENTION_KEY))
 
         painter.restore()
 
@@ -401,3 +505,26 @@ class _OutlineDelegate(QStyledItemDelegate):
         value = self._fm.elidedText(value, QtElideRight, maxX - x)
         painter.drawText(QRect(x, y, maxX - x, h), LINE_FLAGS, value)
         return x + self._fm.horizontalAdvance(value)
+
+    def _paintWrapped(self, painter: QPainter, x: int, y: int, w: int, h: int, node: OutlineNode, key: str) -> None:
+        """Paint a bold label followed by a regular value wrapped over
+        the full width, if the node has references for the key.
+        """
+        if value := node.refs(key):
+            label = f"{self._keyLabels[key]}:"
+            bold = QTextLayout.FormatRange()
+            bold.start = 0
+            bold.length = len(label)
+            bold.format = self._boldFormat
+
+            layout = QTextLayout(f"{label} {value}", SHARED.theme.guiFont)
+            layout.setFormats([bold])
+            layout.setTextOption(self._wrapOption)
+            layout.beginLayout()
+            yPos = 0.0
+            while yPos < h and (line := layout.createLine()).isValid():
+                line.setLineWidth(w)
+                line.setPosition(QPointF(0.0, yPos))
+                yPos += line.height()
+            layout.endLayout()
+            layout.draw(painter, QPointF(x, y))
