@@ -267,8 +267,31 @@ def testStoryView_SettingsDialog(monkeypatch, nwGUI, prjLipsum):
     answer = True
 
     # Settings for unknown views are ignored
-    storyView._viewSettingsChanged("unknown", True)
+    storyView._applyViewSettings(OutlineViewSettings())
     assert rebuilt == 1
+
+    # Saving keeps the order, as it belongs to the tabs
+    settings = tabMain.currentWidget().settings  # type: ignore
+    dialog = openDialog()
+    settings.setOrder(5)
+    dialog.btnSave.click()
+    assert settings.order == 5
+
+    # Views without a settings dialog cannot be edited
+    index = tabMain.addTab(GuiStoryViewBase(storyView, OutlineViewSettings()), "Base")
+    tabMain.setCurrentIndex(index)
+    storyView.editView.click()
+    assert list(storyView._iterSettingsDialogs()) == []
+
+    # Only the tab of the changed view is renamed
+    renamed = settings.copy()
+    renamed.setName("Renamed")
+    storyView._applyViewSettings(renamed)
+    assert tabMain.tabText(0) == "Renamed"
+    assert tabMain.tabText(index) == "Base"
+    renamed.setName("Outline")
+    storyView._applyViewSettings(renamed)
+    storyView._removeTab(index)
 
     # A view that is hidden when its settings change is rebuilt when shown
     dialog = openDialog()
@@ -293,16 +316,17 @@ def testStoryView_SettingsDialog(monkeypatch, nwGUI, prjLipsum):
     assert list(storyView._iterSettingsDialogs()) == [other]
     assert savedValues() == [("Outline", False)]
 
-    # Closing the project closes the dialog, and saves the changes
+    # Closing the project closes the dialog, and saves the changes without a rebuild
     assert openDialog() is other
     other.showScenes.setChecked(True)
+    count = rebuilt
     assert nwGUI.closeProject(isYes=True)
     assert asked == 2
+    assert rebuilt == count
     assert SHARED.findTopLevelWidget(GuiOutlineViewSettings) is None
 
     # Settings changes are ignored with no project open
-    count = rebuilt
-    storyView._viewSettingsChanged("unknown", True)
+    storyView._applyViewSettings(OutlineViewSettings())
     assert rebuilt == count
 
     assert nwGUI.openProject(prjLipsum)
@@ -394,4 +418,4 @@ def testStoryView_BaseClass(qtbot, nwGUI):
     # The default implementations do nothing
     view.updateTheme()
     view.refresh(None)
-    view.openSettings()
+    assert view.settingsDialog() is None

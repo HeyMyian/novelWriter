@@ -48,6 +48,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+VIEW_CLASSES: dict[type[StoryViewSettings], type[GuiStoryViewBase]] = {
+    OutlineViewSettings: GuiStoryOutlineView,
+}
+
 
 class GuiStoryView(QWidget):
     """GUI: Project Story View."""
@@ -175,13 +179,15 @@ class GuiStoryView(QWidget):
 
     def closeProjectTasks(self) -> None:
         """Run closing project tasks."""
-        self._closeSettingsDialogs()
         if self._views is not None:
             self._views.setStoryViewsOrder([v.settings.viewID for v in self._iterViews()])
-        self._views = None
-        self._stale.clear()
         while self.tabMain.count() > 0:
             self._removeTab(0)
+
+        # Tabs are removed first so that saving from a dialog rebuilds nothing
+        self._closeSettingsDialogs()
+        self._views = None
+        self._stale.clear()
 
         # Clearing must not emit a change, as it would reset the last handle
         self.novelValue.blockSignals(True)
@@ -255,22 +261,36 @@ class GuiStoryView(QWidget):
 
     @pyqtSlot()
     def _editCurrentView(self) -> None:
-        """Open the settings dialog for the current view."""
-        if isinstance(current := self.tabMain.currentWidget(), GuiStoryViewBase):
-            current.openSettings()
+        """Open the settings dialog for the current view, or activate it
+        if it is already open.
+        """
+        if isinstance(current := self.tabMain.currentWidget(), GuiStoryViewBase) and (
+            dialogClass := current.settingsDialog()
+        ):
+            viewID = current.settings.viewID
+            for dialog in self._iterSettingsDialogs():
+                if dialog.viewID == viewID:
+                    dialog.activateDialog()
+                    return
+            dialog = dialogClass(SHARED.mainGui, current.settings)
+            dialog.newSettingsReady.connect(self._applyViewSettings)
+            dialog.activateDialog()
 
-    @pyqtSlot(str, bool)
-    def _viewSettingsChanged(self, viewID: str, rebuild: bool) -> None:
-        """Save the changed view settings, and rebuild the view if needed."""
-        if self._views is not None:
-            for view in self._iterViews():
-                if view.settings.viewID == viewID:
-                    self._views.setStoryView(view.settings)
-                    self.tabMain.setTabText(self.tabMain.indexOf(view), view.settings.name)
-                    if rebuild:
-                        self._stale.add(viewID)
-                        self._refreshCurrentView()
-                    break
+    @pyqtSlot(StoryViewSettings)
+    def _applyViewSettings(self, settings: StoryViewSettings) -> None:
+        """Save new settings from a settings dialog."""
+        if self._views is not None and (view := self._views.getStoryView(settings.viewID)):
+            order = view.order  # The order belongs to the tabs, not the dialog
+            rebuild = settings.changed
+            view.unpack(settings.pack())
+            view.setOrder(order)
+            self._views.setStoryView(view)
+            for widget in self._iterViews():
+                if widget.settings is view:
+                    self.tabMain.setTabText(self.tabMain.indexOf(widget), view.name)
+            if rebuild:
+                self._stale.add(view.viewID)
+                self._refreshCurrentView()
 
     @pyqtSlot()
     def _exportData(self) -> None:
@@ -312,10 +332,8 @@ class GuiStoryView(QWidget):
 
     def _addTab(self, view: StoryViewSettings) -> int:
         """Add a tab for a view, and return its index."""
-        if isinstance(view, OutlineViewSettings):
-            widget = GuiStoryOutlineView(self, view)
-            widget.settingsChanged.connect(self._viewSettingsChanged)
-            return self.tabMain.addTab(widget, view.name)
+        if viewClass := VIEW_CLASSES.get(type(view)):
+            return self.tabMain.addTab(viewClass(self, view), view.name)
         return -1
 
     def _removeTab(self, index: int) -> None:

@@ -50,8 +50,6 @@ class GuiStoryViewBase(QWidget):
     their content to the outer layout and implement refresh.
     """
 
-    settingsChanged = pyqtSignal(str, bool)
-
     def __init__(self, parent: QWidget, settings: StoryViewSettings) -> None:
         super().__init__(parent)
 
@@ -82,35 +80,9 @@ class GuiStoryViewBase(QWidget):
     def refresh(self, rootHandle: str | None, force: bool = False) -> None:
         """Refresh the view content."""
 
-    def openSettings(self) -> None:
-        """Open the settings dialog."""
-
-    ##
-    #  Private Slots
-    ##
-
-    @pyqtSlot(StoryViewSettings)
-    def _applyNewSettings(self, settings: StoryViewSettings) -> None:
-        """Apply new settings from the settings dialog."""
-        rebuild = settings.changed
-        self._settings.unpack(settings.pack())
-        self.settingsChanged.emit(self._settings.viewID, rebuild)
-
-    ##
-    #  Internal Functions
-    ##
-
-    def _openSettingsDialog(self, dialogClass: type[GuiStorySettingsBase]) -> None:
-        """Open a settings dialog, or activate it if already open."""
-        viewID = self._settings.viewID
-        for obj in SHARED.mainGui.children():
-            if isinstance(obj, GuiStorySettingsBase) and obj.viewID == viewID:
-                obj.activateDialog()
-                return
-
-        dialog = dialogClass(SHARED.mainGui, self._settings)
-        dialog.newSettingsReady.connect(self._applyNewSettings)
-        dialog.activateDialog()
+    def settingsDialog(self) -> type[GuiStorySettingsBase] | None:
+        """Return the settings dialog class of the view, if any."""
+        return None
 
 
 class GuiStorySettingsBase(NToolDialog):

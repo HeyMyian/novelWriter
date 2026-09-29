@@ -88,9 +88,9 @@ class GuiStoryOutlineView(GuiStoryViewBase):
         """Refresh the outline content."""
         self.outlineContent.refresh(rootHandle, force=force)
 
-    def openSettings(self) -> None:
-        """Open the settings dialog."""
-        self._openSettingsDialog(GuiOutlineViewSettings)
+    def settingsDialog(self) -> type[GuiStorySettingsBase]:
+        """Return the settings dialog class of the view."""
+        return GuiOutlineViewSettings
 
 
 class GuiOutlineViewSettings(GuiStorySettingsBase):
