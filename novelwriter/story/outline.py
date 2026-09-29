@@ -316,7 +316,8 @@ class GuiStoryOutlineTree(NTreeView):
 
     def saveColumnState(self) -> None:
         """Save the column order and widths to the settings object. Hidden
-        columns keep their last known width.
+        columns keep their last known width, and stretched columns have no
+        width as it depends on the window size.
         """
         if header := self.header():  # pragma: no branch
             previous = self._settings.getState("columns")
@@ -325,7 +326,9 @@ class GuiStoryOutlineTree(NTreeView):
             for visual in range(header.count()):
                 column = header.logicalIndex(visual)
                 key = COLUMN_KEYS[column]
-                if self.isColumnHidden(column):
+                if header.sectionResizeMode(column) == QtHeaderStretch:
+                    width = 0
+                elif self.isColumnHidden(column):
                     width = previous.get(key, header.defaultSectionSize())
                 else:
                     width = header.sectionSize(column)

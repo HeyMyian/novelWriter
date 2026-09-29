@@ -137,7 +137,7 @@ def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
     assert header is not None
     assert view.settings.getState("columns") == {
         "title": 300,
-        "synopsis": header.sectionSize(OutlineModel.C_SYNOPSIS),
+        "synopsis": 0,
         "characters": 160,
         "plot": 200,
         "world": 160,
