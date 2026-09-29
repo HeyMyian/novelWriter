@@ -221,6 +221,7 @@ class GuiMain(QMainWindow):
 
         SHARED.focusModeChanged.connect(self._focusModeChanged)
         SHARED.indexAvailable.connect(self.docViewerPanel.indexHasAppeared)
+        SHARED.indexAvailable.connect(self.storyView.indexHasAppeared)
         SHARED.indexChangedRefs.connect(self.docViewerPanel.updateChangedRefs)
         SHARED.indexChangedTags.connect(self.docEditor.updateChangedTags)
         SHARED.indexChangedTags.connect(self.docViewer.updateChangedTags)

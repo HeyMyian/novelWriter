@@ -70,9 +70,19 @@ def testStoryView_ExportData(monkeypatch, nwGUI, prjLipsum, fncPath, tstPaths):
 @pytest.mark.gui
 def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
     """Test adding, copying, moving and deleting story views."""
-    assert nwGUI.openProject(prjLipsum)
     storyView = nwGUI.storyView
     tabMain = storyView.tabMain
+
+    # No views are loaded or added without a project
+    nwGUI._changeView(nwView.STORY)
+    storyView.addView.click()
+    assert storyView._views is None
+    assert tabMain.count() == 0
+    assert storyView.addView.isEnabled() is False
+    assert storyView.novelValue.isEnabled() is False
+
+    assert nwGUI.openProject(prjLipsum)
+    assert storyView.addView.isEnabled() is True
     viewsFile = SHARED.project.storage.getMetaFile(nwFiles.VIEWS_FILE)
     assert isinstance(viewsFile, Path)
     viewsFile.unlink(missing_ok=True)
@@ -140,6 +150,9 @@ def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
     viewIDs = [tabMain.widget(i).settings.viewID for i in range(tabMain.count())]  # type: ignore
     assert nwGUI.closeProject(isYes=True)
     assert tabMain.count() == 0
+    assert storyView.novelValue.count() == 0
+    assert storyView.novelValue.isEnabled() is False
+    assert storyView.addView.isEnabled() is False
     assert nwGUI.openProject(prjLipsum)
     nwGUI._changeView(nwView.STORY)
     assert [tabMain.widget(i).settings.viewID for i in range(tabMain.count())] == viewIDs  # type: ignore
@@ -362,6 +375,12 @@ def testStoryView_LazyLoad(nwGUI, prjLipsum):
     # It is rebuilt when the story view is shown again
     nwGUI._changeView(nwView.STORY)
     assert current._lastHandle == rootHandle
+
+    # Rebuilding the index while visible rebuilds the current view
+    revision = current._lastRevision
+    nwGUI.rebuildIndex()
+    assert current._lastRevision == SHARED.project.index.indexRevision
+    assert current._lastRevision > revision
 
 
 @pytest.mark.gui

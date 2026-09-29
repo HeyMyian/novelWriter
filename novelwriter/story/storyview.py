@@ -140,6 +140,7 @@ class GuiStoryView(QWidget):
         self.outerBox.setSpacing(8)
 
         self.setLayout(self.outerBox)
+        self._setProjectControls(False)
 
     ##
     #  Methods
@@ -170,6 +171,7 @@ class GuiStoryView(QWidget):
         """
         self.novelValue.refreshNovelList()
         self.novelValue.setHandle(SHARED.project.data.getLastHandle("story"))
+        self._setProjectControls(True)
 
     def closeProjectTasks(self) -> None:
         """Run closing project tasks."""
@@ -181,15 +183,26 @@ class GuiStoryView(QWidget):
         while self.tabMain.count() > 0:
             self._removeTab(0)
 
+        # Clearing must not emit a change, as it would reset the last handle
+        self.novelValue.blockSignals(True)
+        self.novelValue.clear()
+        self.novelValue.blockSignals(False)
+        self._setProjectControls(False)
+
     def viewStory(self) -> None:
         """Load the views if needed, and refresh the current view."""
-        if self._views is None:
+        if self._views is None and SHARED.hasProject:
             self._loadViews()
         self._refreshCurrentView()
 
     ##
     #  Public Slots
     ##
+
+    @pyqtSlot()
+    def indexHasAppeared(self) -> None:
+        """Refresh the current view when the index is loaded or rebuilt."""
+        self._refreshCurrentView()
 
     @pyqtSlot(str, Enum)
     def updateRootItem(self, tHandle: str, change: nwChange) -> None:
@@ -310,6 +323,17 @@ class GuiStoryView(QWidget):
         if widget := self.tabMain.widget(index):  # pragma: no branch
             self.tabMain.removeTab(index)
             widget.setParent(None)
+
+    def _setProjectControls(self, enabled: bool) -> None:
+        """Enable or disable the controls that need an open project."""
+        self.exportData.setEnabled(enabled)
+        self.addView.setEnabled(enabled)
+        self.delView.setEnabled(enabled)
+        self.copyView.setEnabled(enabled)
+        self.editView.setEnabled(enabled)
+        self.refreshView.setEnabled(enabled)
+        if not enabled:
+            self.novelValue.setEnabled(False)
 
     def _closeSettingsDialogs(self, viewID: str | None = None) -> None:
         """Close all open view settings dialogs, or discard the one for
