@@ -29,6 +29,7 @@ from PyQt6.QtCore import QEvent, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QAbstractButton, QDialogButtonBox, QHBoxLayout, QLabel, QLineEdit, QVBoxLayout, QWidget
 
 from novelwriter import SHARED
+from novelwriter.common import simplified
 from novelwriter.enum import nwStandardButton
 from novelwriter.extensions.configlayout import NColorLabel, NScrollableForm
 from novelwriter.extensions.modified import NToolDialog
@@ -49,7 +50,7 @@ class GuiStoryViewBase(QWidget):
     their content to the outer layout and implement refresh.
     """
 
-    settingsChanged = pyqtSignal(str)
+    settingsChanged = pyqtSignal(str, bool)
 
     def __init__(self, parent: QWidget, settings: StoryViewSettings) -> None:
         super().__init__(parent)
@@ -77,7 +78,6 @@ class GuiStoryViewBase(QWidget):
 
     def updateTheme(self) -> None:
         """Update theme elements."""
-        return
 
     def refresh(self, rootHandle: str | None, force: bool = False) -> None:
         """Refresh the view content."""
@@ -92,8 +92,9 @@ class GuiStoryViewBase(QWidget):
     @pyqtSlot(StoryViewSettings)
     def _applyNewSettings(self, settings: StoryViewSettings) -> None:
         """Apply new settings from the settings dialog."""
+        rebuild = settings.changed
         self._settings.unpack(settings.pack())
-        self.settingsChanged.emit(self._settings.viewID)
+        self.settingsChanged.emit(self._settings.viewID, rebuild)
 
     ##
     #  Internal Functions
@@ -123,7 +124,9 @@ class GuiStorySettingsBase(NToolDialog):
         logger.debug("Create: GuiStorySettings")
         self.setObjectName("GuiStorySettings")
 
-        self._settings = settings.__class__.fromDict(settings.pack())
+        self._settings = settings.copy()
+        self._savedName = settings.name
+        self._discard = False
 
         options = SHARED.project.options
         self.setMinimumSize(600, 400)
@@ -144,14 +147,15 @@ class GuiStorySettingsBase(NToolDialog):
         # Settings Name
         self.nameLabel = QLabel(self.tr("Name"), self)
         self.viewName = QLineEdit(self)
+        self.viewName.setText(self._settings.name)
 
         # SideBar
         self.sidebar = NPagedSideBar(self)
         self.sidebar.setLabelColor(SHARED.theme.helpText)
-        self.sidebar.setAccessibleName(self.titleLabel.text())
 
         # Settings Form
         self.form = NScrollableForm(self)
+        self.sidebar.buttonClicked.connect(self.form.scrollToSection)
 
         # Buttons
         self.btnSave = SHARED.theme.getStandardButton(nwStandardButton.SAVE, self)
@@ -202,6 +206,11 @@ class GuiStorySettingsBase(NToolDialog):
         self.titleLabel.setTextColors(color=SHARED.theme.helpText)
         self.sidebar.setLabelColor(SHARED.theme.helpText)
 
+    def discardAndClose(self) -> None:
+        """Close the dialog without saving or asking to save changes."""
+        self._discard = True
+        self.close()
+
     ##
     #  Properties
     ##
@@ -219,6 +228,7 @@ class GuiStorySettingsBase(NToolDialog):
         """Set the dialog title."""
         self.setWindowTitle(title)
         self.titleLabel.setText(title)
+        self.sidebar.setAccessibleName(title)
 
     ##
     #  Overload
@@ -242,9 +252,10 @@ class GuiStorySettingsBase(NToolDialog):
         settings.
         """
         logger.debug("Closing: GuiStorySettings")
-        self.saveSettings()
-        self._askToSaveBuild()
-        self._saveSettings()
+        if not self._discard:
+            self._applyChanges()
+            self._askToSave()
+        self._saveWindowState()
         event.accept()
         self.softDelete()
 
@@ -256,11 +267,10 @@ class GuiStorySettingsBase(NToolDialog):
     def _dialogButtonClicked(self, button: QAbstractButton) -> None:
         """Handle button clicks from the dialog button box."""
         if button == self.btnSave:
-            self.saveSettings()
-            self._emitBuildData()
+            self._applyChanges()
+            self._emitSettings()
             self.close()
         elif button == self.btnClose:
-            self._settings.resetChangedState()
             self.close()
         else:  # pragma: no cover
             pass
@@ -269,24 +279,33 @@ class GuiStorySettingsBase(NToolDialog):
     #  Internal Functions
     ##
 
-    def _askToSaveBuild(self) -> None:
+    def _askToSave(self) -> None:
         """Check if there are unsaved changes, and if there are, ask
         whether the user wants to save them.
         """
         if self._settings.changed:
             if SHARED.question(self.tr("Do you want to save your changes to '{0}'?").format(self._settings.name)):
-                self._emitBuildData()
+                self._emitSettings()
             self._settings.resetChangedState()
+        elif self._settings.name != self._savedName:
+            # A rename does not need a rebuild, so save it without asking
+            self._emitSettings()
 
-    def _saveSettings(self) -> None:
-        """Save the various user settings."""
+    def _saveWindowState(self) -> None:
+        """Save the dialog window size."""
         logger.debug("Saving State: GuiStorySettings")
         options = SHARED.project.options
         options.setValue("GuiStorySettings", "winWidth", self.width())
         options.setValue("GuiStorySettings", "winHeight", self.height())
         options.saveSettings()
 
-    def _emitBuildData(self) -> None:
-        """Assemble the settings data and emit the signal."""
+    def _applyChanges(self) -> None:
+        """Apply the name and the form values to the settings."""
+        self._settings.setName(simplified(self.viewName.text()) or self._settings.defaultName)
+        self.saveSettings()
+
+    def _emitSettings(self) -> None:
+        """Emit the settings and reset the changed state."""
+        self._savedName = self._settings.name
         self.newSettingsReady.emit(self._settings)
         self._settings.resetChangedState()

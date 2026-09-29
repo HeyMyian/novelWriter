@@ -101,6 +101,12 @@ def testStoryViewSettings_ClassAttributes():
     assert StoryViewSettings.fromDict({**data, "kind": "unknown"}) is None
     assert StoryViewSettings.fromDict({"name": "No Kind"}) is None
 
+    # Copy keeps the class and all values
+    copied = another.copy()
+    assert isinstance(copied, OutlineViewSettings)
+    assert copied is not another
+    assert copied.pack() == data
+
     # Malformed data falls back to defaults
     malformed = OutlineViewSettings()
     malformed.unpack({"order": "3", "settings": ["not", "a", "dict"]})
@@ -129,6 +135,7 @@ def testStoryViewSettings_Values():
     # Only the settings for the view's own kind are present
     assert StoryViewSettings().pack()["settings"] == {}
     assert view.pack()["settings"] == {
+        "outline.showParts": True,
         "outline.showScenes": True,
         "outline.showSections": False,
     }
@@ -173,6 +180,7 @@ def testStoryViewSettings_Values():
     skipped = OutlineViewSettings()
     skipped.unpack({"settings": {123: "value", "other.key": True, boolSetting: object()}})
     assert skipped.pack()["settings"] == {
+        "outline.showParts": True,
         "outline.showScenes": True,
         "outline.showSections": False,
     }

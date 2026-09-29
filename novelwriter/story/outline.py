@@ -37,7 +37,6 @@ from PyQt6.QtWidgets import (
 )
 
 from novelwriter import CONFIG, SHARED
-from novelwriter.common import simplified
 from novelwriter.constants import nwUnicode
 from novelwriter.extensions.modified import NTreeView
 from novelwriter.extensions.switch import NSwitch
@@ -131,8 +130,6 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         """Populate the settings."""
         settings = self._settings
 
-        self.viewName.setText(settings.name)
-
         # Documents
         self.showParts.setChecked(settings.getBool("outline.showParts"))
         self.showScenes.setChecked(settings.getBool("outline.showScenes"))
@@ -141,8 +138,6 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
     def saveSettings(self) -> None:
         """Save the settings."""
         settings = self._settings
-
-        settings.setName(simplified(self.viewName.text()))
 
         # Documents
         settings.setValue("outline.showParts", self.showParts.isChecked())

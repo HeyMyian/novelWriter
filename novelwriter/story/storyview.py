@@ -39,7 +39,7 @@ from novelwriter.extensions.novelselector import NovelSelector
 from novelwriter.extensions.tabwidget import NTabWidget
 from novelwriter.story.outline import GuiStoryOutlineView
 from novelwriter.story.storysettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
-from novelwriter.story.storyviewbase import GuiStoryViewBase
+from novelwriter.story.storyviewbase import GuiStorySettingsBase, GuiStoryViewBase
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -56,6 +56,7 @@ class GuiStoryView(QWidget):
         super().__init__(parent)
 
         self._views: StoryViewCollection | None = None
+        self._stale: set[str] = set()
 
         icnSize = SHARED.theme.baseIconSize
         btnSize = 1.4 * icnSize
@@ -147,12 +148,19 @@ class GuiStoryView(QWidget):
     def updateTheme(self) -> None:
         """Update theme elements."""
         self.titleLabel.setTextColors(color=SHARED.theme.helpText)
+        self.manageLabel.setTextColors(color=SHARED.theme.helpText)
         self.novelValue.updateTheme()
         self.refreshView.refreshTheme()
         self.exportData.refreshTheme()
+        self.addView.refreshTheme()
+        self.delView.refreshTheme()
+        self.copyView.refreshTheme()
+        self.editView.refreshTheme()
         self.tabMain.refreshTheme()
         for view in self._iterViews():
             view.updateTheme()
+        for dialog in self._iterSettingsDialogs():
+            dialog.updateTheme()
 
     def openProjectTasks(self) -> None:
         """Run open project tasks.
@@ -165,9 +173,11 @@ class GuiStoryView(QWidget):
 
     def closeProjectTasks(self) -> None:
         """Run closing project tasks."""
+        self._closeSettingsDialogs()
         if self._views is not None:
             self._views.setStoryViewsOrder([v.settings.viewID for v in self._iterViews()])
         self._views = None
+        self._stale.clear()
         while self.tabMain.count() > 0:
             self._removeTab(0)
 
@@ -209,9 +219,7 @@ class GuiStoryView(QWidget):
     @pyqtSlot()
     def _addNewView(self) -> None:
         """Add a new outline view."""
-        view = OutlineViewSettings()
-        view.setName(self.tr("Outline"))
-        self._addView(view)
+        self._addView(OutlineViewSettings())
 
     @pyqtSlot()
     def _copyCurrentView(self) -> None:
@@ -227,7 +235,9 @@ class GuiStoryView(QWidget):
             and isinstance(current := self.tabMain.currentWidget(), GuiStoryViewBase)
             and SHARED.question(self.tr("Delete view '{0}'?").format(current.settings.name))
         ):
+            self._closeSettingsDialogs(current.settings.viewID)
             self._views.removeStoryView(current.settings.viewID)
+            self._stale.discard(current.settings.viewID)
             self._removeTab(self.tabMain.currentIndex())
 
     @pyqtSlot()
@@ -236,15 +246,17 @@ class GuiStoryView(QWidget):
         if isinstance(current := self.tabMain.currentWidget(), GuiStoryViewBase):
             current.openSettings()
 
-    @pyqtSlot(str)
-    def _viewSettingsChanged(self, viewID: str) -> None:
-        """Save the changed view settings, and rebuild the view."""
+    @pyqtSlot(str, bool)
+    def _viewSettingsChanged(self, viewID: str, rebuild: bool) -> None:
+        """Save the changed view settings, and rebuild the view if needed."""
         if self._views is not None:
             for view in self._iterViews():
                 if view.settings.viewID == viewID:
                     self._views.setStoryView(view.settings)
                     self.tabMain.setTabText(self.tabMain.indexOf(view), view.settings.name)
-                    view.refresh(self.novelValue.handle, force=True)
+                    if rebuild:
+                        self._stale.add(viewID)
+                        self._refreshCurrentView()
                     break
 
     @pyqtSlot()
@@ -268,9 +280,7 @@ class GuiStoryView(QWidget):
         """Load the views collection and populate the tabs."""
         views = StoryViewCollection(SHARED.project)
         if len(views) == 0:
-            view = OutlineViewSettings()
-            view.setName(self.tr("Outline"))
-            views.setStoryView(view)
+            views.setStoryView(OutlineViewSettings())
         self._views = views
 
         # The current view is refreshed by the caller, not on tab change
@@ -301,6 +311,22 @@ class GuiStoryView(QWidget):
             self.tabMain.removeTab(index)
             widget.setParent(None)
 
+    def _closeSettingsDialogs(self, viewID: str | None = None) -> None:
+        """Close all open view settings dialogs, or discard the one for
+        a specific view.
+        """
+        for dialog in self._iterSettingsDialogs():
+            if viewID is None:
+                dialog.close()
+            elif dialog.viewID == viewID:
+                dialog.discardAndClose()
+
+    def _iterSettingsDialogs(self) -> Iterable[GuiStorySettingsBase]:
+        """Iterate over the open view settings dialogs."""
+        for obj in SHARED.mainGui.children():
+            if isinstance(obj, GuiStorySettingsBase):
+                yield obj
+
     def _iterViews(self) -> Iterable[GuiStoryViewBase]:
         """Iterate over the view widgets in tab order."""
         for i in range(self.tabMain.count()):
@@ -308,13 +334,17 @@ class GuiStoryView(QWidget):
                 yield view
 
     def _refreshCurrentView(self, force: bool = False) -> None:
-        """Refresh the current view, if loaded and visible."""
+        """Refresh the current view, if loaded and visible. Views with
+        changed settings are rebuilt when next shown.
+        """
         if (
             self._views is not None
             and self.isVisible()
             and isinstance(current := self.tabMain.currentWidget(), GuiStoryViewBase)
         ):
-            current.refresh(self.novelValue.handle, force=force)
+            viewID = current.settings.viewID
+            current.refresh(self.novelValue.handle, force=force or viewID in self._stale)
+            self._stale.discard(viewID)
 
     def _dumpNovelData(self, rootHandle: str | None) -> list[list[str | int]]:
         """Dump all novel data into a table."""

@@ -32,7 +32,7 @@ from novelwriter import SHARED
 from novelwriter.constants import nwFiles
 from novelwriter.enum import nwChange, nwView
 from novelwriter.shared import _GuiAlert
-from novelwriter.story.outline import GuiStoryOutlineView
+from novelwriter.story.outline import GuiOutlineViewSettings, GuiStoryOutlineView
 from novelwriter.story.storysettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
 from novelwriter.story.storyviewbase import GuiStoryViewBase
 
@@ -150,8 +150,9 @@ def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
     assert tabMain.count() == 0
     assert savedNames() == []
 
-    # Copy and delete do nothing with no views
+    # Copy, edit and delete do nothing with no views
     storyView.copyView.click()
+    storyView.editView.click()
     storyView.delView.click()
     assert tabMain.count() == 0
 
@@ -159,6 +160,140 @@ def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
     storyView.addView.click()
     assert tabNames() == ["Outline"]
     assert savedNames() == ["Outline"]
+
+
+@pytest.mark.gui
+def testStoryView_SettingsDialog(monkeypatch, nwGUI, prjLipsum):
+    """Test editing story views with the settings dialog."""
+    assert nwGUI.openProject(prjLipsum)
+    storyView = nwGUI.storyView
+    tabMain = storyView.tabMain
+    viewsFile = SHARED.project.storage.getMetaFile(nwFiles.VIEWS_FILE)
+    assert isinstance(viewsFile, Path)
+    viewsFile.unlink(missing_ok=True)
+    nwGUI._changeView(nwView.STORY)
+
+    def openDialog() -> GuiOutlineViewSettings:
+        storyView.editView.click()
+        viewID = tabMain.currentWidget().settings.viewID  # type: ignore
+        dialog = next(d for d in storyView._iterSettingsDialogs() if d.viewID == viewID)
+        assert isinstance(dialog, GuiOutlineViewSettings)
+        return dialog
+
+    def savedValues():
+        return [(v.name, v.getBool("outline.showScenes")) for v in StoryViewCollection(SHARED.project).storyViews()]
+
+    asked = 0
+    answer = True
+    rebuilt = 0
+
+    def question(*args, **kwargs) -> bool:
+        nonlocal asked
+        asked += 1
+        return answer
+
+    def refresh(self, rootHandle, force=False) -> None:
+        nonlocal rebuilt
+        rebuilt += int(force)
+
+    monkeypatch.setattr(SHARED, "question", question)
+    monkeypatch.setattr(GuiStoryOutlineView, "refresh", refresh)
+
+    # Opening the dialog again reuses the open one
+    dialog = openDialog()
+    assert openDialog() is dialog
+
+    # Saving updates the view and its tab, and rebuilds it
+    dialog.viewName.setText("Scenes")
+    dialog.showScenes.setChecked(False)
+    dialog.btnSave.click()
+    assert SHARED.findTopLevelWidget(GuiOutlineViewSettings) is None
+    assert tabMain.tabText(0) == "Scenes"
+    assert savedValues() == [("Scenes", False)]
+    assert rebuilt == 1
+
+    # A rename is saved on close without asking, and without a rebuild
+    dialog = openDialog()
+    dialog.viewName.setText("  Only  Scenes ")
+    dialog.close()
+    assert tabMain.tabText(0) == "Only Scenes"
+    assert savedValues() == [("Only Scenes", False)]
+    assert asked == 0
+    assert rebuilt == 1
+
+    # An empty name resolves to the default name
+    dialog = openDialog()
+    dialog.viewName.setText(" ")
+    dialog.btnSave.click()
+    assert tabMain.tabText(0) == "Outline"
+    assert savedValues() == [("Outline", False)]
+    assert rebuilt == 1
+
+    # Closing without changes emits nothing
+    dialog = openDialog()
+    dialog.close()
+    assert asked == 0
+    assert rebuilt == 1
+
+    # The sidebar, title and theme are handled by the base class
+    dialog = openDialog()
+    assert dialog.sidebar.accessibleName() == dialog.windowTitle()
+    button = dialog.sidebar._group.button(1)
+    assert button is not None
+    button.click()
+    storyView.updateTheme()
+
+    # The Close button asks to save changes, which can be declined
+    answer = False
+    dialog.showScenes.setChecked(True)
+    dialog.btnClose.click()
+    assert SHARED.findTopLevelWidget(GuiOutlineViewSettings) is None
+    assert savedValues() == [("Outline", False)]
+    assert asked == 1
+    assert rebuilt == 1
+    answer = True
+
+    # Settings for unknown views are ignored
+    storyView._viewSettingsChanged("unknown", True)
+    assert rebuilt == 1
+
+    # A view that is hidden when its settings change is rebuilt when shown
+    dialog = openDialog()
+    dialog.showSections.setChecked(True)
+    nwGUI._changeView(nwView.PROJECT)
+    dialog.btnSave.click()
+    assert rebuilt == 1
+    nwGUI._changeView(nwView.STORY)
+    assert rebuilt == 2
+    nwGUI._changeView(nwView.PROJECT)
+    nwGUI._changeView(nwView.STORY)
+    assert rebuilt == 2
+
+    # Deleting a view discards only its own open dialog, without asking
+    asked = 0
+    other = openDialog()
+    storyView.addView.click()
+    dialog = openDialog()
+    dialog.showScenes.setChecked(False)
+    storyView.delView.click()
+    assert asked == 1
+    assert list(storyView._iterSettingsDialogs()) == [other]
+    assert savedValues() == [("Outline", False)]
+
+    # Closing the project closes the dialog, and saves the changes
+    assert openDialog() is other
+    other.showScenes.setChecked(True)
+    assert nwGUI.closeProject(isYes=True)
+    assert asked == 2
+    assert SHARED.findTopLevelWidget(GuiOutlineViewSettings) is None
+
+    # Settings changes are ignored with no project open
+    count = rebuilt
+    storyView._viewSettingsChanged("unknown", True)
+    assert rebuilt == count
+
+    assert nwGUI.openProject(prjLipsum)
+    assert savedValues() == [("Outline", True)]
 
 
 @pytest.mark.gui
@@ -237,7 +372,7 @@ def testStoryView_BaseClass(qtbot, nwGUI):
     qtbot.addWidget(view)
     assert view.settings is settings
 
-    # Theme update does nothing by default, and refresh must be implemented
+    # The default implementations do nothing
     view.updateTheme()
-    with pytest.raises(NotImplementedError):
-        view.refresh(None)
+    view.refresh(None)
+    view.openSettings()

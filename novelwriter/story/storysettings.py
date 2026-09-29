@@ -26,7 +26,7 @@ import logging
 import uuid
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Self
 
 from PyQt6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
@@ -55,6 +55,7 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_ViewValue]] = {
 }
 
 SETTINGS_LABELS = {
+    "outline.defaultName":  QT_TRANSLATE_NOOP("StoryViews", "Outline"),
     "outline.grpDocuments": QT_TRANSLATE_NOOP("StoryViews", "Documents"),
     "outline.showParts":    QT_TRANSLATE_NOOP("StoryViews", "Show partitions"),
     "outline.showScenes":   QT_TRANSLATE_NOOP("StoryViews", "Show scenes"),
@@ -79,19 +80,19 @@ class StoryViewSettings:
         self._prefix = f"{self.KIND}."
         self._changed = False
 
-        self._name = ""
+        self._name = self.defaultName
         self._uuid = str(uuid.uuid4())
         self._order = 0
         self._settings = {k: v[1] for k, v in SETTINGS_TEMPLATE.items() if k.startswith(self._prefix)}
 
     @classmethod
-    def fromDict(cls, data: dict) -> StoryViewSettings:
+    def fromDict(cls, data: dict) -> StoryViewSettings | None:
         """Create a story view settings object from a dict."""
         match data.get("kind"):
             case "outline":
                 new = OutlineViewSettings()
             case _:
-                return StoryViewSettings()
+                return None
         new.unpack(data)
         return new
 
@@ -103,6 +104,11 @@ class StoryViewSettings:
     def name(self) -> str:
         """Return the story view name."""
         return self._name
+
+    @property
+    def defaultName(self) -> str:
+        """Return the story view default name."""
+        return QCoreApplication.translate("StoryViews", SETTINGS_LABELS.get(f"{self.KIND}.defaultName", "None"))
 
     @property
     def viewID(self) -> str:
@@ -183,6 +189,12 @@ class StoryViewSettings:
         """Reset the changed status of the settings object."""
         self._changed = False
 
+    def copy(self) -> Self:
+        """Return an identical copy of the settings."""
+        new = type(self)()
+        new.unpack(self.pack())
+        return new
+
     def pack(self) -> dict:
         """Pack all content into a JSON compatible dictionary."""
         logger.debug("Collecting story view setting for '%s'", self._name)
@@ -213,8 +225,7 @@ class StoryViewSettings:
     @classmethod
     def duplicate(cls, source: StoryViewSettings) -> StoryViewSettings:
         """Make a copy of another story view."""
-        new = type(source)()
-        new.unpack(source.pack())
+        new = source.copy()
         new.setViewID("")
         new.setName(f"{source.name} 2")
         return new

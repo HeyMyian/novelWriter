@@ -91,6 +91,32 @@ def testNToolDialog_Main(qtbot, nwGUI):
     dialog.activateDialog()
     dialog.close()
 
+    # Escape closes the dialog without a closeEvent override
+    dialog.activateDialog()
+    qtbot.keyClick(dialog, QtKeyEscape)
+    assert dialog.isHidden()
+
+    # Other keys are passed on
+    dialog.activateDialog()
+    qtbot.keyClick(dialog, Qt.Key.Key_A)
+    assert dialog.isVisible()
+
+    # Escape closes the dialog via a closeEvent override
+    closed = False
+
+    def closeEvent(event):
+        nonlocal closed
+        closed = True
+        event.accept()
+
+    dialog = NToolDialog(nwGUI)
+    qtbot.addWidget(dialog)
+    dialog.closeEvent = closeEvent  # type: ignore
+    dialog.activateDialog()
+    qtbot.keyClick(dialog, QtKeyEscape)
+    assert dialog.isHidden()
+    assert closed is True
+
 
 @pytest.mark.gui
 def testNNonBlockingDialog_Main(qtbot):

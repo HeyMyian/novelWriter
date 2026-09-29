@@ -26,7 +26,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QEvent, QModelIndex, QSize, Qt, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QPainter, QPaintEvent, QPalette
+from PyQt6.QtGui import QKeySequence, QPainter, QPaintEvent, QPalette
 from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -65,7 +65,7 @@ from novelwriter.types import (
 if TYPE_CHECKING:
     from enum import Enum
 
-    from PyQt6.QtGui import QFont, QMouseEvent, QWheelEvent
+    from PyQt6.QtGui import QFont, QKeyEvent, QMouseEvent, QWheelEvent
 
     from novelwriter.guimain import GuiMain
 
@@ -98,6 +98,13 @@ class NToolDialog(NDialog):
         self.setModal(False)
         if CONFIG.osDarwin:  # pragma: no cover
             self.setWindowFlag(Qt.WindowType.Tool)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        """Close on escape via closeEvent, which QDialog.reject bypasses."""
+        if event.matches(QKeySequence.StandardKey.Cancel):
+            self.close()
+        else:
+            super().keyPressEvent(event)
 
     def activateDialog(self) -> None:
         """Activate dialog on various operating systems."""
