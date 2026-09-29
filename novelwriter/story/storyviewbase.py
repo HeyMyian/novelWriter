@@ -77,6 +77,9 @@ class GuiStoryViewBase(QWidget):
     def updateTheme(self) -> None:
         """Update theme elements."""
 
+    def initSettings(self) -> None:
+        """Apply changes to the preferences."""
+
     def refresh(self, rootHandle: str | None, force: bool = False) -> None:
         """Refresh the view content."""
 

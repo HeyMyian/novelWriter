@@ -28,14 +28,13 @@ from typing import TYPE_CHECKING, NamedTuple
 from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PyQt6.QtGui import QColor
 
-from novelwriter import SHARED
-from novelwriter.constants import nwKeyWords, nwLabels, nwStats, nwStyles, nwUnicode, trConst, trStats
+from novelwriter import CONFIG, SHARED
+from novelwriter.constants import nwKeyWords, nwLabels, nwStats, nwStyles, trConst, trStats
 from novelwriter.types import QtTransparent
 
 if TYPE_CHECKING:
     from novelwriter.core.index import Index
     from novelwriter.core.indexdata import IndexHeading
-    from novelwriter.core.item import ProjectItem
 
 logger = logging.getLogger(__name__)
 
@@ -69,39 +68,36 @@ class OutlineNode:
     """
 
     __slots__ = (
-        "_counts",
-        "_document",
+        "_chars",
         "_handle",
         "_heading",
-        "_item",
         "_key",
         "_level",
         "_refs",
         "_style",
         "_title",
         "_tr",
+        "_words",
     )
 
     def __init__(
         self,
         handle: str,
         key: str,
-        item: ProjectItem | None,
         heading: IndexHeading | None,
         tr: _TrCache,
         style: NodeStyle,
     ) -> None:
         self._handle = handle
         self._key = key
-        self._item = item
         self._heading: IndexHeading | None = heading
         self._tr: _TrCache = tr
 
         # Parsed Data
         self._level = 0
         self._title = ""
-        self._document = ""
-        self._counts = ""
+        self._words = ""
+        self._chars = ""
         self._refs: dict[str, str] = {}
         self._style = style
 
@@ -132,14 +128,11 @@ class OutlineNode:
         return self._level
 
     @property
-    def label(self) -> str:
-        """The name of the document the heading belongs to."""
-        return self._document
-
-    @property
     def counts(self) -> str:
-        """The word and character counts of the heading."""
-        return self._counts
+        """The word or character count of the heading, as set in the
+        preferences.
+        """
+        return self._chars if CONFIG.useCharCount else self._words
 
     @property
     def synopsis(self) -> str:
@@ -171,12 +164,10 @@ class OutlineNode:
         if h := self._heading:
             self._level = nwStyles.H_LEVEL.get(h.level, 0)
             self._title = h.title
-            self._counts = f"{h.wordCount:n} {tr.sWords}  {nwUnicode.U_BULL}  {h.charCount:n} {tr.sChars}"
+            self._words = f"{h.wordCount:n} {tr.sWords}"
+            self._chars = f"{h.charCount:n} {tr.sChars}"
 
             self._refs = {k: ", ".join(v) for k, v in h.getReferences().items() if v}
-
-        if i := self._item:
-            self._document = i.itemName
 
 
 class OutlineModel(QAbstractTableModel):
@@ -288,10 +279,10 @@ class OutlineModel(QAbstractTableModel):
             level = nwStyles.H_LEVEL.get(hItem.level, 0)
             if level not in levels:
                 continue
-            if (nwItem := SHARED.project.tree[tHandle]) is None:
+            if SHARED.project.tree[tHandle] is None:
                 continue
             style = self._styles.get(level, BLANK_STYLE)
-            nodes.append(OutlineNode(tHandle, sTitle, nwItem, hItem, self._labels, style))
+            nodes.append(OutlineNode(tHandle, sTitle, hItem, self._labels, style))
 
         self._nodes = nodes
         self.endResetModel()

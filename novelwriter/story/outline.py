@@ -64,7 +64,7 @@ LINE_FLAGS = int(Qt.TextFlag.TextSingleLine) | int(QtAlignLeftMiddle)
 WRAP_FLAGS = int(Qt.TextFlag.TextWordWrap) | int(QtAlignLeftTop)
 
 ROW_PAD = 3
-ROW_RADIUS = 6
+ROW_EDGE = 4
 
 # Persistent column keys, independent of the column index
 COLUMN_KEYS = {
@@ -94,6 +94,12 @@ class GuiStoryOutlineView(GuiStoryViewBase):
     def updateTheme(self) -> None:
         """Update theme elements."""
         self.outlineContent.updateTheme()
+
+    def initSettings(self) -> None:
+        """Apply changes to the preferences."""
+        self.outlineContent.initViewport()
+        if viewport := self.outlineContent.viewport():  # pragma: no branch
+            viewport.update()
 
     def refresh(self, rootHandle: str | None, force: bool = False) -> None:
         """Refresh the outline content."""
@@ -347,7 +353,7 @@ class GuiStoryOutlineTree(NTreeView):
     ##
 
     def drawRow(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
-        """Paint the level-coloured box and border wrapping the row text
+        """Paint the level-coloured box and left edge behind the row text
         before the native cell painting. The native selection highlight is
         transparent (see _disableNativeHighlight), so the selection is
         shown by the box instead.
@@ -356,14 +362,10 @@ class GuiStoryOutlineTree(NTreeView):
             first = index.sibling(index.row(), OutlineModel.C_TITLE)
             selected = self._isRowSelected(first)
             block = option.rect.adjusted(0, ROW_PAD, -ROW_PAD, -ROW_PAD)
-            block.setLeft(self.visualRect(first).left())
-            painter.save()
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+            block.setLeft(self.visualRect(first).left() + ROW_PAD)
             painter.fillRect(option.rect, self.palette().base())
-            painter.setPen(node.style.border)
-            painter.setBrush(node.style.highlight if selected else node.style.background)
-            painter.drawRoundedRect(block.adjusted(0, 0, -1, -1), ROW_RADIUS, ROW_RADIUS)
-            painter.restore()
+            painter.fillRect(block, node.style.highlight if selected else node.style.background)
+            painter.fillRect(block.adjusted(0, 0, ROW_EDGE - block.width(), 0), node.style.border)
 
         super().drawRow(painter, option, index)
 
@@ -473,6 +475,10 @@ class _OutlineDelegate(QStyledItemDelegate):
         y = rect.y() + pad
         w = max(0, rect.width() - 2 * pad)
         h = max(0, rect.height() - 2 * pad)
+        if index.column() == OutlineModel.C_TITLE:
+            # The row box is also padded on the left of the first column
+            x += ROW_PAD
+            w = max(0, w - ROW_PAD)
 
         if node.level == 1:
             if index.column() == OutlineModel.C_TITLE:
@@ -492,11 +498,8 @@ class _OutlineDelegate(QStyledItemDelegate):
                 painter.drawText(QRect(x, y, w, hTitle), LINE_FLAGS, title)
 
                 painter.setFont(SHARED.theme.guiFont)
-                label = self._fm.elidedText(node.label, QtElideRight, w)
-                painter.drawText(QRect(x, y + hTitle, w, hLine), LINE_FLAGS, label)
-
                 counts = self._fm.elidedText(node.counts, QtElideRight, w)
-                painter.drawText(QRect(x, y + hTitle + hLine, w, hLine), LINE_FLAGS, counts)
+                painter.drawText(QRect(x, y + hTitle, w, hLine), LINE_FLAGS, counts)
 
             case OutlineModel.C_CHARS:
                 hLine = self._fm.height()
@@ -531,6 +534,9 @@ class _OutlineDelegate(QStyledItemDelegate):
             case OutlineModel.C_SYNOPSIS:
                 painter.setFont(SHARED.theme.guiFont)
                 painter.drawText(QRect(x, y, w, h), WRAP_FLAGS, node.synopsis)
+
+            case OutlineModel.C_WORLD if len(self._worldKeys) == 1:
+                self._paintWrapped(painter, x, y, w, h, node, self._worldKeys[0])
 
             case OutlineModel.C_WORLD:
                 hLine = self._fm.height()

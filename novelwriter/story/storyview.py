@@ -167,6 +167,11 @@ class GuiStoryView(QWidget):
         for dialog in self._iterSettingsDialogs():
             dialog.updateTheme()
 
+    def initSettings(self) -> None:
+        """Apply changes to the preferences."""
+        for view in self._iterViews():
+            view.initSettings()
+
     def openProjectTasks(self) -> None:
         """Run open project tasks.
 

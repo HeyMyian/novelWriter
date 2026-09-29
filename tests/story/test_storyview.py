@@ -398,6 +398,10 @@ def testStoryView_LazyLoad(nwGUI, prjLipsum):
     tabMain.setCurrentIndex(2)
     assert built() == [True, False, True]
 
+    # Preferences are applied without building any views
+    storyView.initSettings()
+    assert built() == [True, False, True]
+
     # Changing the novel while hidden does not rebuild the view
     current = tabMain.currentWidget().outlineContent  # type: ignore
     nwGUI._changeView(nwView.PROJECT)
@@ -425,6 +429,7 @@ def testStoryView_BaseClass(qtbot, nwGUI):
 
     # The default implementations do nothing
     view.updateTheme()
+    view.initSettings()
     view.refresh(None)
     view.saveViewState()
     assert view.settingsDialog() is None

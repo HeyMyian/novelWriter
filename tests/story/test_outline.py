@@ -71,6 +71,13 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
     assert tree.verticalScrollBarPolicy() == QtScrollAsNeeded
     assert tree.horizontalScrollBarPolicy() == QtScrollAsNeeded
 
+    # Preferences are applied to the viewport
+    CONFIG.hideVScroll = True
+    view.initSettings()
+    assert tree.verticalScrollBarPolicy() == QtScrollAlwaysOff
+    CONFIG.hideVScroll = False
+    view.initSettings()
+
     # Default settings
     view.refresh(None)
     assert model.rowCount(root) == 10
@@ -218,6 +225,10 @@ def testStoryOutline_Paint(qtbot, nwGUI, prjLipsum):
 
     # Paint all rows with one selected
     tree.setCurrentIndex(model.index(3, 0))
+    assert not view.grab().isNull()
+
+    # A single world option is wrapped
+    delegate.setWorldKeys([nwKeyWords.WORLD_KEY])
     assert not view.grab().isNull()
 
     # Partition rows are a single line

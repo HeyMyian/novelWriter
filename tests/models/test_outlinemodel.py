@@ -26,7 +26,7 @@ import pytest
 from PyQt6.QtCore import QModelIndex, Qt
 from PyQt6.QtTest import QAbstractItemModelTester
 
-from novelwriter import SHARED
+from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwKeyWords
 from novelwriter.models.outlinemodel import BLANK_STYLE, NODE_FLAGS, OutlineModel, OutlineNode
 from novelwriter.types import QtDisplayRole
@@ -95,18 +95,18 @@ def testOutlineModel_Interface(nwGUI, prjLipsum):
     assert node.key == "T0001"
     assert node.title == "Chapter One"
     assert node.level == 2
-    assert node.label == "Chapter One"
-    assert node.counts == "67 Words  •  419 Characters"
+    assert node.counts == "67 Words"
+    CONFIG.useCharCount = True
+    assert node.counts == "419 Characters"
     assert node.synopsis.startswith("Lorem ipsum dolor sit amet")
     assert node.style is not BLANK_STYLE
     assert node.refs(nwKeyWords.POV_KEY) == "Bod"
     assert node.refs(nwKeyWords.MENTION_KEY) == ""
 
-    # A node without a heading or an item is blank
-    blank = OutlineNode("", "", None, None, model._labels, BLANK_STYLE)
+    # A node without a heading is blank
+    blank = OutlineNode("", "", None, model._labels, BLANK_STYLE)
     assert blank.level == 0
     assert blank.title == ""
-    assert blank.label == ""
     assert blank.synopsis == ""
 
     # Clear the model
