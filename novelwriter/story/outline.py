@@ -148,10 +148,10 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
 class GuiStoryOutlineTree(NTreeView):
     """GUI: Project Story Outline.
 
-    An item view of the chapters and scenes of a novel, with sections
-    nested under scenes. Each row is rendered as three lines of text
-    by the outline delegate: the heading title, the document and line
-    number it belongs to, and its word and character count.
+    A flat list of the partitions, chapters, scenes and sections of a
+    novel, in story order. Each row is rendered as three lines of text
+    by the outline delegate: the heading title, the document it belongs
+    to, and its word and character count.
     """
 
     C_TITLE = 0
@@ -173,6 +173,8 @@ class GuiStoryOutlineTree(NTreeView):
         self.setModel(self._model)
         self.setItemDelegate(self._delegate)
         self.setFrameStyle(QFrame.Shape.NoFrame)
+        self.setRootIsDecorated(False)
+        self.setItemsExpandable(False)
         self.setUniformRowHeights(False)
         self.setAllColumnsShowFocus(True)
         self.setHeaderHidden(False)
@@ -249,10 +251,9 @@ class GuiStoryOutlineTree(NTreeView):
 
     def drawRow(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         """Paint the level-coloured box and border wrapping the row text
-        before the native cell and branch painting. The native selection
-        highlight is transparent (see _disableNativeHighlight), so the
-        cells, indent and fold arrow don't pick up a mismatched
-        highlight; the selection is shown by the box instead.
+        before the native cell painting. The native selection highlight is
+        transparent (see _disableNativeHighlight), so the selection is
+        shown by the box instead.
         """
         if node := self._model.node(index):
             first = index.sibling(index.row(), self.C_TITLE)

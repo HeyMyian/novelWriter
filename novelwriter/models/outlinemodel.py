@@ -25,7 +25,7 @@ import logging
 
 from typing import TYPE_CHECKING, NamedTuple
 
-from PyQt6.QtCore import QAbstractItemModel, QModelIndex, Qt
+from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PyQt6.QtGui import QColor
 
 from novelwriter import SHARED
@@ -64,15 +64,15 @@ BLANK_STYLE = NodeStyle(QtTransparent, QtTransparent, QtTransparent)
 class OutlineNode:
     """Core: Outline Model Node Class.
 
-    A single row in the story outline tree, representing one chapter,
-    scene or section heading. The tree is entirely rebuilt on demand
-    from the project index, so nodes hold plain copies of the values
-    needed for display rather than a live reference to the index data.
+    A single row in the story outline, representing one partition,
+    chapter, scene or section heading. The outline is entirely rebuilt
+    on demand from the project index, so nodes hold plain copies of the
+    values needed for display rather than a live reference to the index
+    data.
     """
 
     __slots__ = (
         "_characters",
-        "_children",
         "_counts",
         "_document",
         "_focus",
@@ -82,9 +82,7 @@ class OutlineNode:
         "_item",
         "_key",
         "_level",
-        "_parent",
         "_pov",
-        "_row",
         "_style",
         "_title",
         "_tr",
@@ -113,11 +111,6 @@ class OutlineNode:
         self._pov = ""
         self._focus = ""
         self._characters = ""
-
-        # Tree Structure
-        self._row = 0
-        self._parent: OutlineNode | None = None
-        self._children: list[OutlineNode] = []
         self._style = style
 
         self.refresh()
@@ -184,42 +177,6 @@ class OutlineNode:
         return self._style
 
     ##
-    #  Data Access
-    ##
-
-    def row(self) -> int:
-        """Return the node's row number."""
-        return self._row
-
-    def parent(self) -> OutlineNode | None:
-        """Return the parent of the node."""
-        return self._parent
-
-    def child(self, row: int) -> OutlineNode | None:
-        """Return a child of the node."""
-        if 0 <= row < len(self._children):
-            return self._children[row]
-        return None
-
-    def childCount(self) -> int:
-        """Return the number of children of the node."""
-        return len(self._children)
-
-    def addChild(self, child: OutlineNode) -> None:
-        """Add a child node to this node."""
-        child._parent = self
-        child._row = len(self._children)
-        self._children.append(child)
-
-    def data(self, column: int, role: Qt.ItemDataRole) -> None:
-        """Return display data for the node."""
-        return
-
-    def flags(self) -> Qt.ItemFlag:
-        """Return flags for the node."""
-        return NODE_FLAGS
-
-    ##
     #  Data Maintenance
     ##
 
@@ -240,18 +197,15 @@ class OutlineNode:
             self._document = i.itemName
 
 
-class OutlineModel(QAbstractItemModel):
+class OutlineModel(QAbstractTableModel):
     """Core: Outline Model Class.
 
-    A tree of partition, chapter, scene and section headings for a single
-    novel root, built fresh from the project index whenever buildOutline
-    is called. Partitions are flat, non-foldable dividers at the top
-    level. Scenes nest under the last seen chapter, and sections nest
-    under the last seen scene, falling back to the tree root when no such
-    ancestor exists.
+    A flat list of partition, chapter, scene and section headings for a
+    single novel root, in story order, built fresh from the project index
+    whenever buildOutline is called.
     """
 
-    __slots__ = ("_headers", "_labels", "_root", "_styles")
+    __slots__ = ("_headers", "_labels", "_nodes", "_styles")
 
     def __init__(self) -> None:
         super().__init__()
@@ -267,7 +221,6 @@ class OutlineModel(QAbstractItemModel):
         # Colours
         theme = SHARED.theme
         self._styles: dict[int, NodeStyle] = {}
-        self._background = {}
         for key in nwStyles.H_LEVEL.values():
             color = theme.getStructureColor(key)
             border = QColor(color)
@@ -278,7 +231,7 @@ class OutlineModel(QAbstractItemModel):
             highlight.setAlphaF(0.2)
             self._styles[key] = NodeStyle(border, background, highlight)
 
-        self._root = self._newRootNode()
+        self._nodes: list[OutlineNode] = []
 
     def __del__(self) -> None:  # pragma: no cover
         """Class destructor."""
@@ -288,29 +241,13 @@ class OutlineModel(QAbstractItemModel):
     #  Model Interface
     ##
 
-    def rowCount(self, index: QModelIndex) -> int:
-        """Return the number of rows for an entry."""
-        node = index.internalPointer() if index.isValid() else self._root
-        return node.childCount()
+    def rowCount(self, parent: QModelIndex) -> int:
+        """Return the number of rows."""
+        return 0 if parent.isValid() else len(self._nodes)
 
-    def columnCount(self, index: QModelIndex) -> int:
-        """Return the number of columns for an entry."""
-        return 3
-
-    def parent(self, index: QModelIndex) -> QModelIndex:
-        """Get the parent model index of another index."""
-        if index.isValid() and (node := index.internalPointer()) and (parent := node.parent()):
-            return QModelIndex() if parent is self._root else self.createIndex(parent.row(), 0, parent)
-        return QModelIndex()
-
-    def index(self, row: int, column: int, parent: QModelIndex | None = None) -> QModelIndex:
-        """Get the index of a child item of a parent."""
-        parent = parent or QModelIndex()
-        if self.hasIndex(row, column, parent):
-            node = parent.internalPointer() if parent.isValid() else self._root
-            if child := node.child(row):
-                return self.createIndex(row, column, child)
-        return QModelIndex()
+    def columnCount(self, parent: QModelIndex) -> int:
+        """Return the number of columns."""
+        return 0 if parent.isValid() else 3
 
     def data(self, index: QModelIndex, role: Qt.ItemDataRole) -> None:
         """Return display data for a node."""
@@ -324,9 +261,7 @@ class OutlineModel(QAbstractItemModel):
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlag:
         """Return flags for a node."""
-        if index.isValid():
-            return index.internalPointer().flags()
-        return Qt.ItemFlag.NoItemFlags
+        return NODE_FLAGS if index.isValid() else Qt.ItemFlag.NoItemFlags
 
     ##
     #  Data Access
@@ -334,61 +269,32 @@ class OutlineModel(QAbstractItemModel):
 
     def node(self, index: QModelIndex) -> OutlineNode | None:
         """Return the node for a given model index."""
-        return index.internalPointer() if index.isValid() else None
+        if index.isValid() and 0 <= (row := index.row()) < len(self._nodes):
+            return self._nodes[row]
+        return None
 
     ##
     #  Methods
     ##
 
     def clear(self) -> None:
-        """Clear the outline tree."""
+        """Clear the outline."""
         self.beginResetModel()
-        self._root = self._newRootNode()
+        self._nodes = []
         self.endResetModel()
 
     def buildOutline(self, index: Index, rootHandle: str | None) -> None:
-        """Rebuild the outline tree from the project index."""
+        """Rebuild the outline from the project index."""
         self.beginResetModel()
-        root = self._newRootNode()
-        chapter: OutlineNode | None = None
-        scene: OutlineNode | None = None
+        nodes: list[OutlineNode] = []
         for tHandle, sTitle, hItem in index.iterNovelStructure(rHandle=rootHandle):
             level = nwStyles.H_LEVEL.get(hItem.level, 0)
             if level < 1:
                 continue
-
             if (nwItem := SHARED.project.tree[tHandle]) is None:
                 continue
+            style = self._styles.get(level, BLANK_STYLE)
+            nodes.append(OutlineNode(tHandle, sTitle, nwItem, hItem, self._labels, style))
 
-            node = OutlineNode(
-                tHandle,
-                sTitle,
-                nwItem,
-                hItem,
-                self._labels,
-                self._styles.get(level, BLANK_STYLE),
-            )
-            if level == 1:
-                root.addChild(node)
-                chapter = None
-                scene = None
-            elif level == 2:
-                root.addChild(node)
-                chapter = node
-                scene = None
-            elif level == 3:
-                (chapter or root).addChild(node)
-                scene = node
-            else:
-                (scene or chapter or root).addChild(node)
-
-        self._root = root
+        self._nodes = nodes
         self.endResetModel()
-
-    ##
-    #  Internal Functions
-    ##
-
-    def _newRootNode(self) -> OutlineNode:
-        """Reset the root node to an empty state."""
-        return OutlineNode("", "", None, None, self._labels, BLANK_STYLE)
