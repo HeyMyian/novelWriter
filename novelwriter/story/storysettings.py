@@ -249,6 +249,7 @@ class StoryViewCollection:
 
     def __init__(self, project: NWProject) -> None:
         self._project = project
+        self._lastView = ""
         self._views: dict[str, StoryViewSettings] = {}
         self._unknown: dict[str, dict] = {}
         self._loadCollection()
@@ -256,6 +257,15 @@ class StoryViewCollection:
     def __len__(self) -> int:
         """Return the number of story views."""
         return len(self._views)
+
+    ##
+    #  Properties
+    ##
+
+    @property
+    def lastView(self) -> str:
+        """Return the last active view ID."""
+        return self._lastView
 
     ##
     #  Getters
@@ -275,12 +285,18 @@ class StoryViewCollection:
             self._views[view.viewID] = view
             self._saveCollection()
 
-    def setStoryViewsOrder(self, order: list[str]) -> None:
-        """Set the order of the story views from a list of view IDs."""
+    def setStoryViewsState(self, lastView: str, order: list[str]) -> None:
+        """Set the last active view ID and the order of the story views
+        from a list of view IDs, and save if either changed.
+        """
+        changed = lastView != self._lastView
+        self._lastView = lastView
         for i, key in enumerate(order):
-            if view := self._views.get(key):
+            if (view := self._views.get(key)) and view.order != i:
                 view.setOrder(i)
-        self._saveCollection()
+                changed = True
+        if changed:
+            self._saveCollection()
 
     ##
     #  Methods
@@ -326,7 +342,9 @@ class StoryViewCollection:
             return False
 
         for key, entry in views.items():
-            if isinstance(entry, dict):
+            if key == "lastView":
+                self._lastView = str(entry)
+            elif isinstance(entry, dict):
                 if view := StoryViewSettings.fromDict(entry):
                     self._views[view.viewID] = view
                 else:
@@ -344,7 +362,10 @@ class StoryViewCollection:
 
         logger.debug("Saving story views file")
         try:
-            data: dict[str, dict] = dict(self._unknown)
+            data: dict[str, str | dict] = {
+                "lastView": self._lastView,
+            }
+            data.update(self._unknown)
             data.update({k: v.pack() for k, v in self._views.items()})
             with open(viewsFile, mode="w+", encoding="utf-8") as outFile:
                 outFile.write(jsonEncode({"novelWriter.storyViews": data}, nmax=4))

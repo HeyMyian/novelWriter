@@ -145,8 +145,9 @@ def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
     assert tabNames() == ["Outline", "Outline"]
     assert savedNames() == ["Outline", "Outline"]
 
-    # The views and their order are restored on reopen
+    # The views, their order, and the current view are restored on reopen
     tabBar.moveTab(1, 0)
+    tabMain.setCurrentIndex(1)
     viewIDs = [tabMain.widget(i).settings.viewID for i in range(tabMain.count())]  # type: ignore
     assert nwGUI.closeProject(isYes=True)
     assert tabMain.count() == 0
@@ -156,6 +157,7 @@ def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
     assert nwGUI.openProject(prjLipsum)
     nwGUI._changeView(nwView.STORY)
     assert [tabMain.widget(i).settings.viewID for i in range(tabMain.count())] == viewIDs  # type: ignore
+    assert tabMain.currentIndex() == 1
 
     # All views can be deleted
     storyView.delView.click()
@@ -173,6 +175,12 @@ def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
     storyView.addView.click()
     assert tabNames() == ["Outline"]
     assert savedNames() == ["Outline"]
+
+    # Closing with no views clears the last view
+    storyView.delView.click()
+    assert nwGUI.closeProject(isYes=True)
+    assert nwGUI.openProject(prjLipsum)
+    assert StoryViewCollection(SHARED.project).lastView == ""
 
 
 @pytest.mark.gui

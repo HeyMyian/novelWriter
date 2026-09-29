@@ -223,13 +223,19 @@ def testStoryViewSettings_Collection(monkeypatch, mockGUI, fncPath: Path, mockRn
     assert len(views) == 2
     assert [v.viewID for v in views.storyViews()] == [viewIDOne, viewIDTwo]
 
-    # Reorder the views, unknown IDs are ignored
-    views.setStoryViewsOrder([viewIDTwo, viewIDOne, "not-a-real-id"])
+    # Set the last view and reorder the views, unknown IDs are ignored
+    views.setStoryViewsState(viewIDTwo, [viewIDTwo, viewIDOne, "not-a-real-id"])
     assert [v.viewID for v in views.storyViews()] == [viewIDTwo, viewIDOne]
+    assert views.lastView == viewIDTwo
+
+    # An unchanged state is not saved
+    with monkeypatch.context() as mp:
+        mp.setattr(views, "_saveCollection", lambda: pytest.fail("Unexpected save"))
+        views.setStoryViewsState(viewIDTwo, [viewIDTwo, viewIDOne])
 
     # Check the file content
     data = json.loads(viewsFile.read_text(encoding="utf-8"))
-    assert list(data["novelWriter.storyViews"].keys()) == [viewIDOne, viewIDTwo]
+    assert list(data["novelWriter.storyViews"].keys()) == ["lastView", viewIDOne, viewIDTwo]
 
     # Remove a view
     views.removeStoryView(viewIDOne)
@@ -237,11 +243,12 @@ def testStoryViewSettings_Collection(monkeypatch, mockGUI, fncPath: Path, mockRn
     assert [v.viewID for v in views.storyViews()] == [viewIDTwo]
 
     data = json.loads(viewsFile.read_text(encoding="utf-8"))
-    assert list(data["novelWriter.storyViews"].keys()) == [viewIDTwo]
+    assert list(data["novelWriter.storyViews"].keys()) == ["lastView", viewIDTwo]
     views.setStoryView(viewOne)
 
     # Load views file into new object
     another = StoryViewCollection(project)
+    assert another.lastView == viewIDTwo
     assert [(v.viewID, v.name) for v in another.storyViews()] == [
         (viewIDTwo, "View Two"),
         (viewIDOne, "View One"),
@@ -261,6 +268,7 @@ def testStoryViewSettings_Collection(monkeypatch, mockGUI, fncPath: Path, mockRn
     future.removeStoryView(viewIDOne)
     data = json.loads(viewsFile.read_text(encoding="utf-8"))
     assert data["novelWriter.storyViews"] == {
+        "lastView": viewIDTwo,
         "future": unknown,
         viewIDTwo: viewTwo.pack(),
     }

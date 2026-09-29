@@ -83,7 +83,7 @@ class GuiStoryView(QWidget):
         self.exportData.setToolTip(self.tr("Export the story view data"))
         self.exportData.clicked.connect(self._exportData)
 
-        # Mange Views
+        # Manage Views
         self.manageLabel = NColorLabel(
             self.tr("Manage Views"),
             self,
@@ -114,7 +114,7 @@ class GuiStoryView(QWidget):
         self.editView.clicked.connect(self._editCurrentView)
 
         self.refreshView = NPushButton(self, self.tr("Refresh"), icnSize, "refresh:change")
-        self.refreshView.setToolTip(self.tr("Refresh curent view"))
+        self.refreshView.setToolTip(self.tr("Refresh current view"))
         self.refreshView.clicked.connect(self._refreshRequested)
 
         # Assemble
@@ -180,7 +180,9 @@ class GuiStoryView(QWidget):
     def closeProjectTasks(self) -> None:
         """Run closing project tasks."""
         if self._views is not None:
-            self._views.setStoryViewsOrder([v.settings.viewID for v in self._iterViews()])
+            current = self.tabMain.currentWidget()
+            lastView = current.settings.viewID if isinstance(current, GuiStoryViewBase) else ""
+            self._views.setStoryViewsState(lastView, [v.settings.viewID for v in self._iterViews()])
         while self.tabMain.count() > 0:
             self._removeTab(0)
 
@@ -319,7 +321,9 @@ class GuiStoryView(QWidget):
         # The current view is refreshed by the caller, not on tab change
         self.tabMain.blockSignals(True)
         for view in views.storyViews():
-            self._addTab(view)
+            index = self._addTab(view)
+            if view.viewID == views.lastView:
+                self.tabMain.setCurrentIndex(index)
         self.tabMain.blockSignals(False)
 
     def _addView(self, view: StoryViewSettings) -> None:
