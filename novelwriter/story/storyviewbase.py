@@ -21,12 +21,25 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import logging
+
 from typing import TYPE_CHECKING
 
-from PyQt6.QtWidgets import QVBoxLayout, QWidget
+from PyQt6.QtCore import QEvent, pyqtSignal, pyqtSlot
+from PyQt6.QtWidgets import QAbstractButton, QDialogButtonBox, QHBoxLayout, QLabel, QLineEdit, QVBoxLayout, QWidget
+
+from novelwriter import SHARED
+from novelwriter.enum import nwStandardButton
+from novelwriter.extensions.configlayout import NColorLabel, NScrollableForm
+from novelwriter.extensions.modified import NToolDialog
+from novelwriter.extensions.pagedsidebar import NPagedSideBar
+from novelwriter.story.storysettings import StoryViewSettings
+from novelwriter.types import QtRoleAccept, QtRoleDestruct
 
 if TYPE_CHECKING:
-    from novelwriter.story.storysettings import StoryViewSettings
+    from novelwriter.guimain import GuiMain
+
+logger = logging.getLogger(__name__)
 
 
 class GuiStoryViewBase(QWidget):
@@ -35,6 +48,8 @@ class GuiStoryViewBase(QWidget):
     The base class for the views on the Story View tabs. Subclasses add
     their content to the outer layout and implement refresh.
     """
+
+    settingsChanged = pyqtSignal(str)
 
     def __init__(self, parent: QWidget, settings: StoryViewSettings) -> None:
         super().__init__(parent)
@@ -66,4 +81,212 @@ class GuiStoryViewBase(QWidget):
 
     def refresh(self, rootHandle: str | None, force: bool = False) -> None:
         """Refresh the view content."""
-        raise NotImplementedError
+
+    def openSettings(self) -> None:
+        """Open the settings dialog."""
+
+    ##
+    #  Private Slots
+    ##
+
+    @pyqtSlot(StoryViewSettings)
+    def _applyNewSettings(self, settings: StoryViewSettings) -> None:
+        """Apply new settings from the settings dialog."""
+        self._settings.unpack(settings.pack())
+        self.settingsChanged.emit(self._settings.viewID)
+
+    ##
+    #  Internal Functions
+    ##
+
+    def _openSettingsDialog(self, dialogClass: type[GuiStorySettingsBase]) -> None:
+        """Open a settings dialog, or activate it if already open."""
+        viewID = self._settings.viewID
+        for obj in SHARED.mainGui.children():
+            if isinstance(obj, GuiStorySettingsBase) and obj.viewID == viewID:
+                obj.activateDialog()
+                return
+
+        dialog = dialogClass(SHARED.mainGui, self._settings)
+        dialog.newSettingsReady.connect(self._applyNewSettings)
+        dialog.activateDialog()
+
+
+class GuiStorySettingsBase(NToolDialog):
+    """GUI: Story View Settings Dialog Base."""
+
+    newSettingsReady = pyqtSignal(StoryViewSettings)
+
+    def __init__(self, parent: GuiMain, settings: StoryViewSettings) -> None:
+        super().__init__(parent)
+
+        logger.debug("Create: GuiStorySettings")
+        self.setObjectName("GuiStorySettings")
+
+        self._settings = settings.__class__.fromDict(settings.pack())
+
+        options = SHARED.project.options
+        self.setMinimumSize(600, 400)
+        self.resize(
+            options.getInt("GuiStorySettings", "winWidth", 650),
+            options.getInt("GuiStorySettings", "winHeight", 550),
+        )
+
+        # Title
+        self.titleLabel = NColorLabel(
+            "Title",
+            self,
+            color=SHARED.theme.helpText,
+            scale=NColorLabel.HEADER_SCALE,
+            indent=4,
+        )
+
+        # Settings Name
+        self.nameLabel = QLabel(self.tr("Name"), self)
+        self.viewName = QLineEdit(self)
+
+        # SideBar
+        self.sidebar = NPagedSideBar(self)
+        self.sidebar.setLabelColor(SHARED.theme.helpText)
+        self.sidebar.setAccessibleName(self.titleLabel.text())
+
+        # Settings Form
+        self.form = NScrollableForm(self)
+
+        # Buttons
+        self.btnSave = SHARED.theme.getStandardButton(nwStandardButton.SAVE, self)
+        self.btnClose = SHARED.theme.getStandardButton(nwStandardButton.CLOSE, self)
+
+        self.btnBox = QDialogButtonBox(self)
+        self.btnBox.addButton(self.btnSave, QtRoleAccept)
+        self.btnBox.addButton(self.btnClose, QtRoleDestruct)
+        self.btnBox.clicked.connect(self._dialogButtonClicked)
+
+        # Assemble
+        self.topBox = QHBoxLayout()
+        self.topBox.addWidget(self.titleLabel)
+        self.topBox.addStretch(1)
+        self.topBox.addWidget(self.nameLabel)
+        self.topBox.addWidget(self.viewName, 1)
+
+        self.mainBox = QHBoxLayout()
+        self.mainBox.addWidget(self.sidebar)
+        self.mainBox.addWidget(self.form)
+        self.mainBox.setContentsMargins(0, 0, 0, 0)
+
+        self.outerBox = QVBoxLayout()
+        self.outerBox.addLayout(self.topBox)
+        self.outerBox.addLayout(self.mainBox)
+        self.outerBox.addWidget(self.btnBox)
+        self.outerBox.setSpacing(12)
+
+        self.setLayout(self.outerBox)
+        self.buildForm()
+        self.loadSettings()
+        self.updateTheme(init=True)
+
+        logger.debug("Ready: GuiStorySettings")
+
+    def __del__(self) -> None:  # pragma: no cover
+        """Class destructor."""
+        logger.debug("Delete: GuiStorySettings")
+
+    def updateTheme(self, *, init: bool = False) -> None:
+        """Update theme elements."""
+        logger.debug("Theme Update: GuiStorySettings")
+
+        if not init:
+            self.btnSave.refreshTheme()
+            self.btnClose.refreshTheme()
+
+        self.titleLabel.setTextColors(color=SHARED.theme.helpText)
+        self.sidebar.setLabelColor(SHARED.theme.helpText)
+
+    ##
+    #  Properties
+    ##
+
+    @property
+    def viewID(self) -> str:
+        """Return the view ID of the settings being edited."""
+        return self._settings.viewID
+
+    ##
+    #  Setters
+    ##
+
+    def setTitle(self, title: str) -> None:
+        """Set the dialog title."""
+        self.setWindowTitle(title)
+        self.titleLabel.setText(title)
+
+    ##
+    #  Overload
+    ##
+
+    def buildForm(self) -> None:
+        """Overload this to build the form."""
+
+    def loadSettings(self) -> None:
+        """Overload this to load settings."""
+
+    def saveSettings(self) -> None:
+        """Overload this to save settings."""
+
+    ##
+    #  Events
+    ##
+
+    def closeEvent(self, event: QEvent) -> None:
+        """Capture the user closing the window so we can save
+        settings.
+        """
+        logger.debug("Closing: GuiStorySettings")
+        self.saveSettings()
+        self._askToSaveBuild()
+        self._saveSettings()
+        event.accept()
+        self.softDelete()
+
+    ##
+    #  Private Slots
+    ##
+
+    @pyqtSlot("QAbstractButton*")
+    def _dialogButtonClicked(self, button: QAbstractButton) -> None:
+        """Handle button clicks from the dialog button box."""
+        if button == self.btnSave:
+            self.saveSettings()
+            self._emitBuildData()
+            self.close()
+        elif button == self.btnClose:
+            self._settings.resetChangedState()
+            self.close()
+        else:  # pragma: no cover
+            pass
+
+    ##
+    #  Internal Functions
+    ##
+
+    def _askToSaveBuild(self) -> None:
+        """Check if there are unsaved changes, and if there are, ask
+        whether the user wants to save them.
+        """
+        if self._settings.changed:
+            if SHARED.question(self.tr("Do you want to save your changes to '{0}'?").format(self._settings.name)):
+                self._emitBuildData()
+            self._settings.resetChangedState()
+
+    def _saveSettings(self) -> None:
+        """Save the various user settings."""
+        logger.debug("Saving State: GuiStorySettings")
+        options = SHARED.project.options
+        options.setValue("GuiStorySettings", "winWidth", self.width())
+        options.setValue("GuiStorySettings", "winHeight", self.height())
+        options.saveSettings()
+
+    def _emitBuildData(self) -> None:
+        """Assemble the settings data and emit the signal."""
+        self.newSettingsReady.emit(self._settings)
+        self._settings.resetChangedState()

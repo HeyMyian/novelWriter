@@ -49,11 +49,14 @@ T_ViewValue = str | int | float | bool
 
 # fmt: off
 SETTINGS_TEMPLATE: dict[str, tuple[type, T_ViewValue]] = {
+    "outline.showParts":    (bool, True),
     "outline.showScenes":   (bool, True),
     "outline.showSections": (bool, False),
 }
 
 SETTINGS_LABELS = {
+    "outline.grpDocuments": QT_TRANSLATE_NOOP("StoryViews", "Documents"),
+    "outline.showParts":    QT_TRANSLATE_NOOP("StoryViews", "Show partitions"),
     "outline.showScenes":   QT_TRANSLATE_NOOP("StoryViews", "Show scenes"),
     "outline.showSections": QT_TRANSLATE_NOOP("StoryViews", "Show sections"),
 }
@@ -82,13 +85,13 @@ class StoryViewSettings:
         self._settings = {k: v[1] for k, v in SETTINGS_TEMPLATE.items() if k.startswith(self._prefix)}
 
     @classmethod
-    def fromDict(cls, data: dict) -> StoryViewSettings | None:
+    def fromDict(cls, data: dict) -> StoryViewSettings:
         """Create a story view settings object from a dict."""
         match data.get("kind"):
             case "outline":
                 new = OutlineViewSettings()
             case _:
-                return None
+                return StoryViewSettings()
         new.unpack(data)
         return new
 

@@ -37,10 +37,12 @@ from PyQt6.QtWidgets import (
 )
 
 from novelwriter import CONFIG, SHARED
+from novelwriter.common import simplified
 from novelwriter.constants import nwUnicode
 from novelwriter.extensions.modified import NTreeView
+from novelwriter.extensions.switch import NSwitch
 from novelwriter.models.outlinemodel import OutlineModel
-from novelwriter.story.storyviewbase import GuiStoryViewBase
+from novelwriter.story.storyviewbase import GuiStorySettingsBase, GuiStoryViewBase
 from novelwriter.types import (
     QtAlignLeftMiddle,
     QtAlignLeftTop,
@@ -53,6 +55,7 @@ from novelwriter.types import (
 )
 
 if TYPE_CHECKING:
+    from novelwriter.guimain import GuiMain
     from novelwriter.story.storysettings import OutlineViewSettings
 
 logger = logging.getLogger(__name__)
@@ -85,6 +88,66 @@ class GuiStoryOutlineView(GuiStoryViewBase):
     def refresh(self, rootHandle: str | None, force: bool = False) -> None:
         """Refresh the outline content."""
         self.outlineContent.refresh(rootHandle, force=force)
+
+    def openSettings(self) -> None:
+        """Open the settings dialog."""
+        self._openSettingsDialog(GuiOutlineViewSettings)
+
+
+class GuiOutlineViewSettings(GuiStorySettingsBase):
+    """GUI: Outline View Settings Dialog."""
+
+    def __init__(self, parent: GuiMain, settings: OutlineViewSettings) -> None:
+        super().__init__(parent, settings)
+        self.setTitle(self.tr("Outline View Settings"))
+
+    def buildForm(self) -> None:
+        """Build the form."""
+        section = 0
+        settings = self._settings
+
+        iPx = SHARED.theme.baseIconHeight
+
+        # Documents
+        # =========
+
+        title = settings.getLabel("outline.grpDocuments")
+        section += 1
+        self.sidebar.addButton(title, section)
+        self.form.addGroupLabel(title, section)
+
+        self.showParts = NSwitch(self, height=iPx)
+        self.showScenes = NSwitch(self, height=iPx)
+        self.showSections = NSwitch(self, height=iPx)
+
+        self.form.addRow(settings.getLabel("outline.showParts"), self.showParts)
+        self.form.addRow(settings.getLabel("outline.showScenes"), self.showScenes)
+        self.form.addRow(settings.getLabel("outline.showSections"), self.showSections)
+
+        # Finalise
+        self.form.finalise()
+
+    def loadSettings(self) -> None:
+        """Populate the settings."""
+        settings = self._settings
+
+        self.viewName.setText(settings.name)
+
+        # Documents
+        self.showParts.setChecked(settings.getBool("outline.showParts"))
+        self.showScenes.setChecked(settings.getBool("outline.showScenes"))
+        self.showSections.setChecked(settings.getBool("outline.showSections"))
+
+    def saveSettings(self) -> None:
+        """Save the settings."""
+        settings = self._settings
+
+        settings.setName(simplified(self.viewName.text()))
+
+        # Documents
+        settings.setValue("outline.showParts", self.showParts.isChecked())
+        settings.setValue("outline.showScenes", self.showScenes.isChecked())
+        settings.setValue("outline.showSections", self.showSections.isChecked())
 
 
 class GuiStoryOutlineTree(NTreeView):

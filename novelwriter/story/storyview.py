@@ -106,6 +106,7 @@ class GuiStoryView(QWidget):
 
         self.editView = NIconButton(self, btnSize, "edit:change")
         self.editView.setToolTip(self.tr("Edit current view"))
+        self.editView.clicked.connect(self._editCurrentView)
 
         self.refreshView = NPushButton(self, self.tr("Refresh"), icnSize, "refresh:change")
         self.refreshView.setToolTip(self.tr("Refresh curent view"))
@@ -230,6 +231,23 @@ class GuiStoryView(QWidget):
             self._removeTab(self.tabMain.currentIndex())
 
     @pyqtSlot()
+    def _editCurrentView(self) -> None:
+        """Open the settings dialog for the current view."""
+        if isinstance(current := self.tabMain.currentWidget(), GuiStoryViewBase):
+            current.openSettings()
+
+    @pyqtSlot(str)
+    def _viewSettingsChanged(self, viewID: str) -> None:
+        """Save the changed view settings, and rebuild the view."""
+        if self._views is not None:
+            for view in self._iterViews():
+                if view.settings.viewID == viewID:
+                    self._views.setStoryView(view.settings)
+                    self.tabMain.setTabText(self.tabMain.indexOf(view), view.settings.name)
+                    view.refresh(self.novelValue.handle, force=True)
+                    break
+
+    @pyqtSlot()
     def _exportData(self) -> None:
         """Export the story outline data as a CSV file."""
         name = CONFIG.lastPath("outline") / f"{SHARED.project.data.fileSafeName}.csv"
@@ -272,7 +290,9 @@ class GuiStoryView(QWidget):
     def _addTab(self, view: StoryViewSettings) -> int:
         """Add a tab for a view, and return its index."""
         if isinstance(view, OutlineViewSettings):
-            return self.tabMain.addTab(GuiStoryOutlineView(self, view), view.name)
+            widget = GuiStoryOutlineView(self, view)
+            widget.settingsChanged.connect(self._viewSettingsChanged)
+            return self.tabMain.addTab(widget, view.name)
         return -1
 
     def _removeTab(self, index: int) -> None:
