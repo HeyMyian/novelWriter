@@ -26,7 +26,16 @@ import logging
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QEvent, pyqtSignal, pyqtSlot
-from PyQt6.QtWidgets import QAbstractButton, QDialogButtonBox, QHBoxLayout, QLabel, QLineEdit, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import (
+    QAbstractButton,
+    QDialogButtonBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from novelwriter import SHARED
 from novelwriter.common import simplified
@@ -95,7 +104,13 @@ class GuiStoryViewBase(QWidget):
 
 
 class GuiStorySettingsBase(NToolDialog):
-    """GUI: Story View Settings Dialog Base."""
+    """GUI: Story View Settings Dialog Base.
+
+    Subclasses build the settings form with section identifiers from
+    FORM_SECTION and up, and can add pages with identifiers below it.
+    """
+
+    FORM_SECTION = 10
 
     newSettingsReady = pyqtSignal(StoryViewSettings)
 
@@ -108,6 +123,11 @@ class GuiStorySettingsBase(NToolDialog):
         self._settings = settings.copy()
         self._savedName = settings.name
         self._discard = False
+        self._pages: dict[int, QWidget] = {}
+        self._before: list[tuple[int, str]] = []
+        self._after: list[tuple[int, str]] = []
+        self._beforeLabel = ""
+        self._afterLabel = ""
 
         options = SHARED.project.options
         self.setMinimumSize(600, 400)
@@ -136,7 +156,10 @@ class GuiStorySettingsBase(NToolDialog):
 
         # Settings Form
         self.form = NScrollableForm(self)
-        self.sidebar.buttonClicked.connect(self.form.scrollToSection)
+        self.sidebar.buttonClicked.connect(self._stackPageSelected)
+
+        # Content
+        self.toolStack = QStackedWidget(self)
 
         # Buttons
         self.btnSave = SHARED.theme.getStandardButton(nwStandardButton.SAVE, self)
@@ -156,7 +179,7 @@ class GuiStorySettingsBase(NToolDialog):
 
         self.mainBox = QHBoxLayout()
         self.mainBox.addWidget(self.sidebar)
-        self.mainBox.addWidget(self.form)
+        self.mainBox.addWidget(self.toolStack)
         self.mainBox.setContentsMargins(0, 0, 0, 0)
 
         self.outerBox = QVBoxLayout()
@@ -166,7 +189,7 @@ class GuiStorySettingsBase(NToolDialog):
         self.outerBox.setSpacing(12)
 
         self.setLayout(self.outerBox)
-        self.buildForm()
+        self._buildContent()
         self.loadSettings()
         self.updateTheme(init=True)
 
@@ -212,8 +235,30 @@ class GuiStorySettingsBase(NToolDialog):
         self.sidebar.setAccessibleName(title)
 
     ##
+    #  Methods
+    ##
+
+    def addPage(self, page: QWidget, title: str, pageId: int, after: bool = False) -> None:
+        """Add a page before or after the settings form."""
+        self._pages[pageId] = page
+        if after:
+            self._after.append((pageId, title))
+        else:
+            self._before.append((pageId, title))
+
+    def setPageLabel(self, label: str, after: bool = False) -> None:
+        """Set a sidebar label above the pages before or after the form."""
+        if after:
+            self._afterLabel = label
+        else:
+            self._beforeLabel = label
+
+    ##
     #  Overload
     ##
+
+    def buildPages(self) -> None:
+        """Overload this to add pages with addPage."""
 
     def buildForm(self) -> None:
         """Overload this to build the form."""
@@ -256,9 +301,36 @@ class GuiStorySettingsBase(NToolDialog):
         else:  # pragma: no cover
             pass
 
+    @pyqtSlot(int)
+    def _stackPageSelected(self, pageId: int) -> None:
+        """Switch to the page, or scroll to the form section."""
+        if page := self._pages.get(pageId):
+            self.toolStack.setCurrentWidget(page)
+        else:
+            self.toolStack.setCurrentWidget(self.form)
+            self.form.scrollToSection(pageId)
+
     ##
     #  Internal Functions
     ##
+
+    def _buildContent(self) -> None:
+        """Build the pages and the form, in sidebar order."""
+        self.buildPages()
+        if self._before and self._beforeLabel:
+            self.sidebar.addLabel(self._beforeLabel)
+        for pageId, title in self._before:
+            self.sidebar.addButton(title, pageId)
+            self.toolStack.addWidget(self._pages[pageId])
+        self.buildForm()
+        self.toolStack.addWidget(self.form)
+        if self._after and self._afterLabel:
+            self.sidebar.addLabel(self._afterLabel)
+        for pageId, title in self._after:
+            self.sidebar.addButton(title, pageId)
+            self.toolStack.addWidget(self._pages[pageId])
+        if self._before:
+            self.sidebar.setSelected(self._before[0][0])
 
     def _askToSave(self) -> None:
         """Check if there are unsaved changes, and if there are, ask

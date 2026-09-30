@@ -54,7 +54,7 @@ def testOutlineModel_Interface(nwGUI, prjLipsum):
 
     model = OutlineModel()
     assert model.rowCount(root) == 0
-    assert model.columnCount(root) == 7
+    assert model.columnCount(root) == 6
 
     # All levels
     model.buildOutline(index, None, {1, 2, 3, 4})
@@ -77,7 +77,6 @@ def testOutlineModel_Interface(nwGUI, prjLipsum):
     assert model.headerData(OutlineModel.C_CHARS, horizontal, QtDisplayRole) == "Characters"
     assert model.headerData(OutlineModel.C_WORLD, horizontal, QtDisplayRole) == "World"
     assert model.headerData(OutlineModel.C_MENTION, horizontal, QtDisplayRole) == "Mentions"
-    assert model.headerData(OutlineModel.C_SYNOPSIS, horizontal, QtDisplayRole) == "Synopsis"
     assert model.headerData(99, horizontal, QtDisplayRole) is None
     assert model.headerData(0, Qt.Orientation.Vertical, QtDisplayRole) is None
     assert model.headerData(0, horizontal, Qt.ItemDataRole.ToolTipRole) is None
@@ -100,7 +99,6 @@ def testOutlineModel_Interface(nwGUI, prjLipsum):
     assert node.counts == "67 Words"
     CONFIG.useCharCount = True
     assert node.counts == "419 Characters"
-    assert node.synopsis.startswith("Lorem ipsum dolor sit amet")
     assert node.style is not BLANK_STYLE
     assert node.refs(nwKeyWords.POV_KEY) == "Bod"
     assert node.refs(nwKeyWords.MENTION_KEY) == ""
@@ -116,7 +114,26 @@ def testOutlineModel_Interface(nwGUI, prjLipsum):
     blank = OutlineNode("", "", None, model._labels, BLANK_STYLE)
     assert blank.level == 0
     assert blank.title == ""
-    assert blank.synopsis == ""
+    assert blank.comments(0) == []
+
+    # Comment columns match keys regardless of spelling, and skip empty comments
+    heading = index.getItemHeading("fb609cd8319dc", "T0001")
+    assert heading is not None
+    heading.setComment("story", "Goal", "Find\n\nthe key")
+    heading.setComment("note", "Consistency", "Check")
+    comments = [("Comments", ("synopsis", "story.goal")), ("Notes", ("note.consistency", "note.missing"))]
+    model.buildOutline(index, None, {2}, comments=comments)
+    assert model.columnCount(root) == 8
+    assert model.headerData(OutlineModel.C_COMMENTS, horizontal, QtDisplayRole) == "Comments"
+    assert model.headerData(OutlineModel.C_COMMENTS + 1, horizontal, QtDisplayRole) == "Notes"
+    commented = model.node(model.index(1, 0))
+    assert isinstance(commented, OutlineNode)
+    synopsis, goal = commented.comments(0)
+    assert synopsis[0] == "Synopsis"
+    assert synopsis[1].startswith("Lorem ipsum dolor sit amet")
+    assert goal == ("Story Structure (Goal)", "Find\u2028the key")
+    assert commented.comments(1) == [("Note (Consistency)", "Check")]
+    assert commented.comments(2) == []
 
     # No progress unless words per page is set
     assert node.progress == ""

@@ -26,8 +26,9 @@ import math
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QModelIndex, QPoint, QPointF, QRect, QSize, Qt
+from PyQt6.QtCore import QModelIndex, QPoint, QPointF, QRect, QSize, Qt, pyqtSlot
 from PyQt6.QtGui import (
+    QDropEvent,
     QFontMetrics,
     QPainter,
     QPalette,
@@ -39,21 +40,38 @@ from PyQt6.QtGui import (
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QApplication,
+    QComboBox,
+    QCompleter,
     QFrame,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
     QStyledItemDelegate,
     QStyleOptionViewItem,
+    QTreeWidget,
+    QTreeWidgetItem,
+    QVBoxLayout,
     QWidget,
 )
 
 from novelwriter import CONFIG, SHARED
+from novelwriter.common import simplified
 from novelwriter.constants import nwKeyWords, nwLabels, nwUnicode, trConst
-from novelwriter.extensions.modified import NSpinBox, NTreeView
+from novelwriter.enum import nwToolButton
+from novelwriter.extensions.configlayout import NFixedPage
+from novelwriter.extensions.modified import NComboBox, NSpinBox, NTreeView
 from novelwriter.extensions.switch import NSwitch
 from novelwriter.models.outlinemodel import OutlineModel
+from novelwriter.story.storysettings import (
+    COMMENT_SYNOPSIS,
+    MAX_COMMENT_KEYS,
+    CommentColumn,
+    OutlineViewSettings,
+    newCommentID,
+)
 from novelwriter.story.storyviewbase import GuiStorySettingsBase, GuiStoryViewBase
 from novelwriter.types import (
     QtAlignLeftMiddle,
-    QtAlignLeftTop,
     QtElideRight,
     QtHeaderInteractive,
     QtModCtrl,
@@ -61,17 +79,24 @@ from novelwriter.types import (
     QtScrollAlwaysOff,
     QtScrollAsNeeded,
     QtTransparent,
+    QtUserRole,
 )
 
 if TYPE_CHECKING:
     from novelwriter.guimain import GuiMain
     from novelwriter.models.outlinemodel import OutlineNode
-    from novelwriter.story.storysettings import OutlineViewSettings
 
 logger = logging.getLogger(__name__)
 
 LINE_FLAGS = int(Qt.TextFlag.TextSingleLine) | int(QtAlignLeftMiddle)
-WRAP_FLAGS = int(Qt.TextFlag.TextWordWrap) | int(QtAlignLeftTop)
+
+COLUMN_FLAGS = (
+    Qt.ItemFlag.ItemIsEnabled
+    | Qt.ItemFlag.ItemIsSelectable
+    | Qt.ItemFlag.ItemIsEditable
+    | Qt.ItemFlag.ItemIsDropEnabled
+)
+COMMENT_FLAGS = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsDragEnabled
 
 ROW_PAD = 3
 ROW_EDGE = 4
@@ -86,7 +111,6 @@ COLUMN_KEYS = {
     OutlineModel.C_WORLD: "world",
     OutlineModel.C_CUSTOM: "custom",
     OutlineModel.C_MENTION: "mentions",
-    OutlineModel.C_SYNOPSIS: "synopsis",
 }
 
 
@@ -133,21 +157,30 @@ class GuiStoryOutlineView(GuiStoryViewBase):
 class GuiOutlineViewSettings(GuiStorySettingsBase):
     """GUI: Outline View Settings Dialog."""
 
+    PAGE_COMMENTS = 1
+
     def __init__(self, parent: GuiMain, settings: OutlineViewSettings) -> None:
         super().__init__(parent, settings)
         self.setTitle(self.tr("Outline View Settings"))
 
+    def buildPages(self) -> None:
+        """Build the extra pages."""
+        self.setPageLabel(self.tr("Custom"), after=True)
+        self.commentsPage = _CommentColumnsPage(self)
+        self.addPage(self.commentsPage, self._settings.getLabel("outline.pgComments"), self.PAGE_COMMENTS, after=True)
+
     def buildForm(self) -> None:
         """Build the form."""
-        section = 0
+        section = self.FORM_SECTION
         settings = self._settings
 
         iPx = SHARED.theme.baseIconHeight
+        self.sidebar.addLabel(self.tr("General"))
 
-        # General
-        # =======
+        # Appearance
+        # ==========
 
-        title = settings.getLabel("outline.grpGeneral")
+        title = settings.getLabel("outline.grpAppearance")
         section += 1
         self.sidebar.addButton(title, section)
         self.form.addGroupLabel(title, section)
@@ -220,18 +253,6 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.form.addRow(settings.getLabel("outline.clearDoublePage"), self.clearDoublePage)
         self.form.addRow(settings.getLabel("outline.useTargetCount"), self.useTargetCount)
 
-        # Comments
-        # ========
-
-        title = settings.getLabel("outline.grpComments")
-        section += 1
-        self.sidebar.addButton(title, section)
-        self.form.addGroupLabel(title, section)
-
-        self.showSynopsis = NSwitch(self, height=iPx)
-
-        self.form.addRow(settings.getLabel("outline.showSynopsis"), self.showSynopsis)
-
         # Finalise
         self.form.finalise()
 
@@ -265,7 +286,8 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.useTargetCount.setChecked(settings.getBool("outline.useTargetCount"))
 
         # Comments
-        self.showSynopsis.setChecked(settings.getBool("outline.showSynopsis"))
+        if isinstance(settings, OutlineViewSettings):  # pragma: no branch
+            self.commentsPage.setColumns(settings.comments)
 
     def saveSettings(self) -> None:
         """Save the settings."""
@@ -297,7 +319,241 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         settings.setValue("outline.useTargetCount", self.useTargetCount.isChecked())
 
         # Comments
-        settings.setValue("outline.showSynopsis", self.showSynopsis.isChecked())
+        if isinstance(settings, OutlineViewSettings):  # pragma: no branch
+            settings.setComments(self.commentsPage.columns())
+
+
+class _CommentColumnsPage(NFixedPage):
+    """GUI: Outline Comment Columns Settings Page.
+
+    Comment columns are top level items, and their comments are child
+    items that can be dragged between them. The column order in the
+    outline is set by the outline header, not here.
+    """
+
+    D_KEY = QtUserRole
+
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__(parent=parent)
+
+        index = SHARED.project.index
+        self._spelling: dict[str, str] = {}
+        for key in sorted(index.getStoryKeys()):
+            self._spelling.setdefault(f"story.{key.lower()}", key)
+        for key in sorted(index.getNoteKeys()):
+            self._spelling.setdefault(f"note.{key.lower()}", key)
+
+        self.trSynopsis = self.tr("Synopsis")
+        self.trStory = self.tr("Story")
+        self.trNote = self.tr("Note")
+        self.trColumn = self.tr("Column")
+
+        # Column Tree
+        self.columnTree = _CommentColumnsTree(self)
+        self.columnTree.setAccessibleName(self.tr("Comment Columns"))
+
+        # Comment Controls
+        self.commentLabel = QLabel(self.tr("Comment"), self)
+
+        self.commentValue = NComboBox(self)
+        self.commentValue.setEditable(True)
+        self.commentValue.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        if completer := self.commentValue.completer():  # pragma: no branch
+            completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+            completer.setFilterMode(Qt.MatchFlag.MatchContains)
+
+        self.addComment = SHARED.theme.getFlatButton(nwToolButton.ADD, self)
+        self.addComment.setToolTip(self.tr("Add comment to column"))
+        self.addComment.clicked.connect(self._addComment)
+
+        self.delComment = SHARED.theme.getFlatButton(nwToolButton.REMOVE, self)
+        self.delComment.setToolTip(self.tr("Remove comment"))
+        self.delComment.clicked.connect(self._removeComment)
+
+        # Column Controls
+        self.editColumn = SHARED.theme.getFlatButton(nwToolButton.EDIT, self)
+        self.editColumn.setToolTip(self.tr("Rename column"))
+        self.editColumn.clicked.connect(self._renameColumn)
+
+        self.addColumn = SHARED.theme.getFlatButton(nwToolButton.ADD, self)
+        self.addColumn.setToolTip(self.tr("Add column"))
+        self.addColumn.clicked.connect(self._addColumn)
+
+        self.delColumn = SHARED.theme.getFlatButton(nwToolButton.REMOVE, self)
+        self.delColumn.setToolTip(self.tr("Remove column"))
+        self.delColumn.clicked.connect(self._removeColumn)
+
+        # Assemble
+        self.listControls = QVBoxLayout()
+        self.listControls.addWidget(self.editColumn)
+        self.listControls.addWidget(self.addColumn)
+        self.listControls.addWidget(self.delColumn)
+        self.listControls.addStretch(1)
+
+        self.commentBox = QHBoxLayout()
+        self.commentBox.addWidget(self.commentLabel)
+        self.commentBox.addWidget(self.commentValue, 1)
+        self.commentBox.addWidget(self.addComment)
+        self.commentBox.addWidget(self.delComment)
+
+        self.innerBox = QGridLayout()
+        self.innerBox.addWidget(self.columnTree, 0, 0)
+        self.innerBox.addLayout(self.listControls, 0, 1)
+        self.innerBox.addLayout(self.commentBox, 1, 0)
+        self.innerBox.setRowStretch(0, 1)
+        self.innerBox.setColumnStretch(0, 1)
+
+        self.setCentralLayout(self.innerBox)
+
+    ##
+    #  Methods
+    ##
+
+    def setColumns(self, columns: list[CommentColumn]) -> None:
+        """Populate the tree from the comment columns."""
+        self.columnTree.clear()
+        for column in columns:
+            section = self._newColumnItem(column.cid, column.name)
+            for key in column.keys:
+                section.addChild(self._newCommentItem(key))
+        self.columnTree.expandAll()
+        self._refreshOptions()
+
+    def columns(self) -> list[CommentColumn]:
+        """Return the comment columns from the tree."""
+        columns = []
+        for i in range(self.columnTree.topLevelItemCount()):
+            if section := self.columnTree.topLevelItem(i):  # pragma: no branch
+                name = simplified(section.text(0)) or self.trColumn
+                keys = [str(c.data(0, self.D_KEY)) for n in range(section.childCount()) if (c := section.child(n))]
+                columns.append(CommentColumn(str(section.data(0, self.D_KEY)), name, tuple(keys)))
+        return columns
+
+    ##
+    #  Private Slots
+    ##
+
+    @pyqtSlot()
+    def _addComment(self) -> None:
+        """Add the selected comment to the selected column."""
+        combo = self.commentValue
+        if combo.findText(combo.currentText()) < 0:
+            return
+        section = self._selectedColumn()
+        if section is None and (count := self.columnTree.topLevelItemCount()) > 0:
+            section = self.columnTree.topLevelItem(count - 1)
+        if section is None:
+            section = self._newColumnItem(newCommentID(), self.trColumn)
+        if section.childCount() < MAX_COMMENT_KEYS:
+            item = self._newCommentItem(str(combo.currentData()))
+            section.addChild(item)
+            section.setExpanded(True)
+            self.columnTree.setCurrentItem(item)
+            self._refreshOptions()
+
+    @pyqtSlot()
+    def _removeComment(self) -> None:
+        """Remove the selected comment."""
+        if (item := self.columnTree.currentItem()) and (section := item.parent()):
+            section.removeChild(item)
+            self._refreshOptions()
+
+    @pyqtSlot()
+    def _addColumn(self) -> None:
+        """Add a new column and start renaming it."""
+        section = self._newColumnItem(newCommentID(), self.trColumn)
+        self.columnTree.setCurrentItem(section)
+        self.columnTree.editItem(section, 0)
+
+    @pyqtSlot()
+    def _renameColumn(self) -> None:
+        """Start renaming the selected column."""
+        if section := self._selectedColumn():
+            self.columnTree.editItem(section, 0)
+
+    @pyqtSlot()
+    def _removeColumn(self) -> None:
+        """Remove the selected column and its comments."""
+        if section := self._selectedColumn():
+            self.columnTree.takeTopLevelItem(self.columnTree.indexOfTopLevelItem(section))
+            self._refreshOptions()
+
+    ##
+    #  Internal Functions
+    ##
+
+    def _selectedColumn(self) -> QTreeWidgetItem | None:
+        """Return the column of the selected item, if any."""
+        if item := self.columnTree.currentItem():
+            return item.parent() or item
+        return None
+
+    def _newColumnItem(self, cid: str, name: str) -> QTreeWidgetItem:
+        """Add a new column item to the tree."""
+        section = QTreeWidgetItem(self.columnTree)
+        section.setText(0, name)
+        section.setData(0, self.D_KEY, cid)
+        section.setFont(0, SHARED.theme.guiFontB)
+        section.setFlags(COLUMN_FLAGS)
+        section.setExpanded(True)
+        return section
+
+    def _newCommentItem(self, key: str) -> QTreeWidgetItem:
+        """Create a new comment item."""
+        item = QTreeWidgetItem()
+        item.setText(0, self._commentLabel(key))
+        item.setData(0, self.D_KEY, key)
+        item.setFlags(COMMENT_FLAGS)
+        if key != COMMENT_SYNOPSIS and key not in self._spelling:
+            item.setForeground(0, SHARED.theme.helpText)
+        return item
+
+    def _commentLabel(self, key: str) -> str:
+        """Return the display label of a comment key."""
+        if key == COMMENT_SYNOPSIS:
+            return self.trSynopsis
+        modifier, _, name = key.partition(".")
+        kind = self.trStory if modifier == "story" else self.trNote
+        return f"{kind}: {self._spelling.get(key, name)}"
+
+    def _refreshOptions(self) -> None:
+        """Populate the comment options that are not already in use."""
+        used = {k for c in self.columns() for k in c.keys}
+        self.commentValue.clear()
+        for key in [COMMENT_SYNOPSIS, *self._spelling]:
+            if key not in used:
+                self.commentValue.addItem(self._commentLabel(key), key)
+
+
+class _CommentColumnsTree(QTreeWidget):
+    """GUI: Outline Comment Columns Tree.
+
+    A non-collapsible tree where comments can be moved between columns,
+    as long as the target column is not full.
+    """
+
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__(parent=parent)
+        self.setHeaderHidden(True)
+        self.setRootIsDecorated(False)
+        self.setItemsExpandable(False)
+        self.setExpandsOnDoubleClick(False)
+        self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.setDefaultDropAction(Qt.DropAction.MoveAction)
+        if root := self.invisibleRootItem():  # pragma: no branch
+            root.setFlags(root.flags() & ~Qt.ItemFlag.ItemIsDropEnabled)
+
+    def dropEvent(self, event: QDropEvent) -> None:
+        """Only accept drops into a column that has room."""
+        source = self.currentItem()
+        if target := self.itemAt(event.position().toPoint()):
+            section = target.parent() or target
+            if source and source.parent() is not section and section.childCount() >= MAX_COMMENT_KEYS:
+                event.ignore()
+                return
+        super().dropEvent(event)
+        self.expandAll()
 
 
 class GuiStoryOutlineTree(NTreeView):
@@ -319,6 +575,7 @@ class GuiStoryOutlineTree(NTreeView):
         self._built = False
         self._lastHandle: str | None = None
         self._lastRevision = -1
+        self._commentIDs: list[str] | None = None
 
         self.setModel(self._model)
         self.setItemDelegate(self._delegate)
@@ -340,9 +597,6 @@ class GuiStoryOutlineTree(NTreeView):
             header.setMinimumSectionSize(60)
             header.setDefaultSectionSize(160)
             header.setSectionResizeMode(QtHeaderInteractive)
-            header.resizeSection(OutlineModel.C_TITLE, 260)
-
-        self._loadColumnState()
 
     ##
     #  Methods
@@ -397,8 +651,26 @@ class GuiStoryOutlineTree(NTreeView):
             perPage = settings.getInt("outline.countPerPage") if settings.getBool("outline.showProgress") else 0
             clearDouble = settings.getBool("outline.clearDoublePage")
             target = data.targetCount if settings.getBool("outline.useTargetCount") else 0
+            comments = settings.comments
+            commentIDs = [c.cid for c in comments]
+            if commentIDs != self._commentIDs and self._commentIDs is not None:
+                # Save the state by column key before the columns change
+                self.saveColumnState()
+
             self._delegate.setRowLines(settings.getInt("outline.rowLines"))
-            self._model.buildOutline(index, rootHandle, levels, perPage, clearDouble, target, data.targetCountChars)
+            self._model.buildOutline(
+                index,
+                rootHandle,
+                levels,
+                perPage,
+                clearDouble,
+                target,
+                data.targetCountChars,
+                [(c.name, c.keys) for c in comments],
+            )
+            if commentIDs != self._commentIDs:
+                self._commentIDs = commentIDs
+                self._loadColumnState()
 
             worldKeys = []
             if settings.getBool("outline.showWorld"):
@@ -415,7 +687,8 @@ class GuiStoryOutlineTree(NTreeView):
             self.setColumnHidden(OutlineModel.C_WORLD, not worldKeys)
             self.setColumnHidden(OutlineModel.C_CUSTOM, not settings.getBool("outline.showCustom"))
             self.setColumnHidden(OutlineModel.C_MENTION, not settings.getBool("outline.showMentions"))
-            self.setColumnHidden(OutlineModel.C_SYNOPSIS, not settings.getBool("outline.showSynopsis"))
+            for i, column in enumerate(comments, OutlineModel.C_COMMENTS):
+                self.setColumnHidden(i, not column.keys)
             self._built = True
             self._lastHandle = rootHandle
             self._lastRevision = index.indexRevision
@@ -423,15 +696,16 @@ class GuiStoryOutlineTree(NTreeView):
     def saveColumnState(self) -> None:
         """Save the column order and widths to the settings object. Hidden
         columns and the stretched last column keep their last known width.
+        The state is only saved once it has been loaded on the first build.
         """
-        if header := self.header():  # pragma: no branch
+        if self._commentIDs is not None and (header := self.header()):
             previous = self._settings.getState("columns")
             previous = previous if isinstance(previous, dict) else {}
             order = [header.logicalIndex(v) for v in range(header.count())]
             stretched = next((c for c in reversed(order) if not self.isColumnHidden(c)), -1)
             state = {}
             for column in order:
-                key = COLUMN_KEYS[column]
+                key = self._columnKey(column)
                 if column == stretched or self.isColumnHidden(column):
                     width = previous.get(key, header.defaultSectionSize())
                 else:
@@ -493,22 +767,35 @@ class GuiStoryOutlineTree(NTreeView):
         super().drawRow(painter, option, index)
 
     def _loadColumnState(self) -> None:
-        """Load the column order and widths from the settings object. The
-        title column is always first, and unknown columns are skipped.
+        """Reset the columns, and load the column order and widths from
+        the settings object. The title column is always first, unknown
+        columns are skipped, and new columns are added at the end.
         """
-        state = self._settings.getState("columns")
-        if isinstance(state, dict) and (header := self.header()):
-            columns = {v: k for k, v in COLUMN_KEYS.items()}
+        if header := self.header():  # pragma: no branch
+            for column in range(header.count()):
+                header.moveSection(header.visualIndex(column), column)
+                header.resizeSection(column, header.defaultSectionSize())
+            header.resizeSection(OutlineModel.C_TITLE, 260)
+
+            state = self._settings.getState("columns")
+            state = state if isinstance(state, dict) else {}
+            columns = {self._columnKey(c): c for c in range(header.count())}
             visual = 1
             for key, width in state.items():
                 if (column := columns.get(key)) is None:
-                    logger.warning("Unknown outline column '%s'", key)
+                    logger.debug("Skipping outline column '%s'", key)
                     continue
                 if isinstance(width, int) and width >= header.minimumSectionSize():
                     header.resizeSection(column, width)
                 if column != OutlineModel.C_TITLE:
                     header.moveSection(header.visualIndex(column), visual)
                     visual += 1
+
+    def _columnKey(self, column: int) -> str:
+        """Return the persistent key of a column."""
+        if column >= OutlineModel.C_COMMENTS and self._commentIDs:
+            return f"comment:{self._commentIDs[column - OutlineModel.C_COMMENTS]}"
+        return COLUMN_KEYS[column]
 
     def _isRowSelected(self, index: QModelIndex) -> bool:
         """Return whether the given row index is selected."""
@@ -533,6 +820,8 @@ class _OutlineDelegate(QStyledItemDelegate):
         "_lineHeight",
         "_lineOption",
         "_margin",
+        "_modCol",
+        "_modFormat",
         "_noteCol",
         "_rowHeight",
         "_rowLines",
@@ -553,6 +842,7 @@ class _OutlineDelegate(QStyledItemDelegate):
         self._highlight: set[str] = set()
         self._syntaxColors = False
         self._boldFormat = QTextCharFormat()
+        self._modFormat = QTextCharFormat()
         self._accentFormat = QTextCharFormat()
         self._lineOption = QTextOption()
         self._lineOption.setWrapMode(QTextOption.WrapMode.NoWrap)
@@ -605,6 +895,7 @@ class _OutlineDelegate(QStyledItemDelegate):
         self._fmB = QFontMetrics(SHARED.theme.guiFontB)
         self._updateHeights()
         self._boldFormat.setFont(SHARED.theme.guiFontB)
+        self._modFormat.setFont(SHARED.theme.guiFontB)
         self._updateColors()
 
     ##
@@ -692,19 +983,17 @@ class _OutlineDelegate(QStyledItemDelegate):
             case OutlineModel.C_PLOT:
                 self._paintStacked(painter, x, y, w, h, node, [nwKeyWords.PLOT_KEY, nwKeyWords.TIME_KEY])
 
-            case OutlineModel.C_SYNOPSIS:
-                painter.setFont(SHARED.theme.guiFont)
-                painter.setPen(self._noteCol)
-                painter.drawText(QRect(x, y, w, h), WRAP_FLAGS, node.synopsis)
-
             case OutlineModel.C_WORLD:
                 self._paintStacked(painter, x, y, w, h, node, self._worldKeys)
 
             case OutlineModel.C_CUSTOM:
                 self._paintWrapped(painter, x, y, w, h, node, nwKeyWords.CUSTOM_KEY, labelled=False)
 
-            case OutlineModel.C_MENTION:  # pragma: no branch
+            case OutlineModel.C_MENTION:
                 self._paintWrapped(painter, x, y, w, h, node, nwKeyWords.MENTION_KEY, labelled=False)
+
+            case column:
+                self._paintComments(painter, x, y, w, h, node.comments(column - OutlineModel.C_COMMENTS))
 
         painter.restore()
 
@@ -724,14 +1013,17 @@ class _OutlineDelegate(QStyledItemDelegate):
         if self._syntaxColors:
             syntax = SHARED.theme.syntaxTheme
             self._noteCol = syntax.note
+            self._modCol = syntax.mod
             self._keyCol = syntax.key
             self._tagCol = syntax.tag
         else:
             self._noteCol = self._textCol
+            self._modCol = self._textCol
             self._keyCol = self._textCol
             self._tagCol = self._textCol
 
         self._boldFormat.setForeground(self._keyCol)
+        self._modFormat.setForeground(self._modCol)
         self._accentFormat.setForeground(SHARED.theme.accentText)
 
     def _paintLabelled(self, painter: QPainter, x: int, y: int, maxX: int, h: int, node: OutlineNode, key: str) -> int:
@@ -778,16 +1070,33 @@ class _OutlineDelegate(QStyledItemDelegate):
             formats = []
             if labelled:
                 label = f"{self._keyLabels[key]}:"
-                bold = QTextLayout.FormatRange()
-                bold.start = 0
-                bold.length = len(label)
-                bold.format = self._boldFormat
-                formats.append(bold)
+                formats.append(self._labelFormat(len(label), self._boldFormat))
                 text = f"{label} {refs}"
             formats.extend(self._highlightFormats(node, key, len(text) - len(refs), len(text)))
             painter.setPen(self._tagCol)
             return self._drawLayout(painter, x, y, w, h, text, formats, self._wrapOption)
         return 0
+
+    def _paintComments(self, painter: QPainter, x: int, y: int, w: int, h: int, entries: list[tuple[str, str]]) -> None:
+        """Paint labelled comments wrapped below each other, leaving at
+        least one line for each following comment.
+        """
+        hLine = self._fm.height()
+        used = 0
+        painter.setPen(self._noteCol)
+        for i, (label, text) in enumerate(entries, 1):
+            reserved = (len(entries) - i) * hLine
+            formats = [self._labelFormat(len(label) + 1, self._modFormat)]
+            text = f"{label}: {text}"
+            used += self._drawLayout(painter, x, y + used, w, h - used - reserved, text, formats, self._wrapOption)
+
+    def _labelFormat(self, length: int, fmt: QTextCharFormat) -> QTextLayout.FormatRange:
+        """Return a label format range from the start of a text."""
+        label = QTextLayout.FormatRange()
+        label.start = 0
+        label.length = length
+        label.format = fmt
+        return label
 
     def _highlightFormats(self, node: OutlineNode, key: str, offset: int, limit: int) -> list[QTextLayout.FormatRange]:
         """Return format ranges for the highlighted tags of a key, with

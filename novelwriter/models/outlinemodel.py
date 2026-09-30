@@ -31,7 +31,8 @@ from PyQt6.QtGui import QColor
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import formatPercent
-from novelwriter.constants import nwKeyWords, nwLabels, nwStats, nwStyles, trConst, trStats
+from novelwriter.constants import nwKeyWords, nwLabels, nwStats, nwStyles, nwUnicode, trConst, trStats
+from novelwriter.story.storysettings import COMMENT_SYNOPSIS
 from novelwriter.types import QtTransparent
 
 if TYPE_CHECKING:
@@ -47,6 +48,9 @@ class _TrCache(NamedTuple):
     sWords: str
     sChars: str
     sPage: str
+    sSynopsis: str
+    sStory: str
+    sNote: str
 
 
 class NodeStyle(NamedTuple):
@@ -72,6 +76,8 @@ class OutlineNode:
 
     __slots__ = (
         "_chars",
+        "_columns",
+        "_comments",
         "_handle",
         "_heading",
         "_key",
@@ -92,11 +98,13 @@ class OutlineNode:
         heading: IndexHeading | None,
         tr: _TrCache,
         style: NodeStyle,
+        columns: list[tuple[str, ...]] | None = None,
     ) -> None:
         self._handle = handle
         self._key = key
         self._heading: IndexHeading | None = heading
         self._tr: _TrCache = tr
+        self._columns = columns or []
 
         # Parsed Data
         self._level = 0
@@ -106,6 +114,7 @@ class OutlineNode:
         self._progress = ""
         self._refs: dict[str, str] = {}
         self._lists: dict[str, list[str]] = {}
+        self._comments: list[list[tuple[str, str]]] = []
         self._style = style
 
         self.refresh()
@@ -147,13 +156,6 @@ class OutlineNode:
         return self._progress
 
     @property
-    def synopsis(self) -> str:
-        """The synopsis of the heading."""
-        if hItem := self._heading:
-            return hItem.synopsis
-        return ""
-
-    @property
     def style(self) -> NodeStyle:
         """The style for the heading's structural level."""
         return self._style
@@ -176,6 +178,10 @@ class OutlineNode:
             pos += len(name) + 2
         return spans
 
+    def comments(self, column: int) -> list[tuple[str, str]]:
+        """Return the label and text of the comments of a column."""
+        return self._comments[column] if 0 <= column < len(self._comments) else []
+
     ##
     #  Data Maintenance
     ##
@@ -196,6 +202,22 @@ class OutlineNode:
             self._lists = {k: v for k, v in h.getReferences().items() if v}
             self._refs = {k: ", ".join(v) for k, v in self._lists.items()}
 
+            # Comment keys are matched regardless of spelling
+            kinds = {"story": tr.sStory, "note": tr.sNote}
+            lookup = {COMMENT_SYNOPSIS: (tr.sSynopsis, h.synopsis)}
+            for key, text in h.comments.items():
+                kind, _, name = key.partition(".")
+                if kind in kinds and name:
+                    lookup[key.lower()] = (f"{kinds[kind]} ({name.title()})", text)
+            self._comments = []
+            for keys in self._columns:
+                entries = []
+                for key in keys:
+                    label, text = lookup.get(key, ("", ""))
+                    if text:
+                        entries.append((label, nwUnicode.U_LSEP.join(t for t in text.split("\n") if t)))
+                self._comments.append(entries)
+
 
 class OutlineModel(QAbstractTableModel):
     """Core: Outline Model Class.
@@ -205,7 +227,7 @@ class OutlineModel(QAbstractTableModel):
     whenever buildOutline is called.
     """
 
-    __slots__ = ("_headers", "_labels", "_nodes", "_styles")
+    __slots__ = ("_fixed", "_headers", "_labels", "_nodes", "_styles")
 
     C_TITLE = 0
     C_CHARS = 1
@@ -213,23 +235,26 @@ class OutlineModel(QAbstractTableModel):
     C_WORLD = 3
     C_CUSTOM = 4
     C_MENTION = 5
-    C_SYNOPSIS = 6
+    C_COMMENTS = 6
 
     def __init__(self) -> None:
         super().__init__()
-        self._headers = [
+        self._fixed = [
             self.tr("Story"),
             trConst(nwLabels.KEY_NAME[nwKeyWords.CHAR_KEY]),
             trConst(nwLabels.KEY_NAME[nwKeyWords.PLOT_KEY]),
             self.tr("World"),
             trConst(nwLabels.KEY_NAME[nwKeyWords.CUSTOM_KEY]),
             trConst(nwLabels.KEY_NAME[nwKeyWords.MENTION_KEY]),
-            self.tr("Synopsis"),
         ]
+        self._headers = self._fixed.copy()
         self._labels = _TrCache(
             sWords=trStats(nwLabels.STATS_NAME[nwStats.WORDS]),
             sChars=trStats(nwLabels.STATS_NAME[nwStats.CHARS]),
             sPage=self.tr("Page {0}"),
+            sSynopsis="",
+            sStory="",
+            sNote="",
         )
 
         # Colours
@@ -306,6 +331,7 @@ class OutlineModel(QAbstractTableModel):
         clearDouble: bool = False,
         target: int = 0,
         useChars: bool = False,
+        comments: list[tuple[str, tuple[str, ...]]] | None = None,
     ) -> None:
         """Rebuild the outline from the project index, including only
         headings of the given levels. If count per page is set, the page
@@ -313,8 +339,17 @@ class OutlineModel(QAbstractTableModel):
         chapters start on a new page, or a new odd page if clear double
         is set. Progress is relative to the target if it is larger than
         the total count. Counts are in characters if use chars is set.
+        Comment columns are added from the header names and comment keys.
         """
         self.beginResetModel()
+        comments = comments or []
+        columns = [keys for _, keys in comments]
+        lookup = SHARED.project.localLookup
+        labels = self._labels._replace(
+            sSynopsis=lookup("Synopsis"),
+            sStory=lookup("Story Structure"),
+            sNote=lookup("Note"),
+        )
         nodes: list[OutlineNode] = []
         progress: list[tuple[OutlineNode, int, int]] = []
         count = 0
@@ -328,7 +363,7 @@ class OutlineModel(QAbstractTableModel):
                 start = count
             if level in levels:
                 style = self._styles.get(level, BLANK_STYLE)
-                node = OutlineNode(tHandle, sTitle, hItem, self._labels, style)
+                node = OutlineNode(tHandle, sTitle, hItem, labels, style, columns)
                 nodes.append(node)
                 if countPerPage > 0:
                     progress.append((node, pages + 1 + (count - start) // countPerPage, count))
@@ -339,4 +374,5 @@ class OutlineModel(QAbstractTableModel):
             node.setProgress(page, before / total if total else 0.0)
 
         self._nodes = nodes
+        self._headers = self._fixed + [name for name, _ in comments]
         self.endResetModel()

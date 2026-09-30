@@ -30,7 +30,12 @@ import pytest
 
 from novelwriter.constants import nwFiles
 from novelwriter.core.project import NWProject
-from novelwriter.story.storysettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
+from novelwriter.story.storysettings import (
+    CommentColumn,
+    OutlineViewSettings,
+    StoryViewCollection,
+    StoryViewSettings,
+)
 
 from tests.helpers import buildTestProject
 from tests.mocked import causeOSError
@@ -166,7 +171,6 @@ def testStoryViewSettings_Values():
         "outline.countPerPage": 350,
         "outline.clearDoublePage": True,
         "outline.useTargetCount": True,
-        "outline.showSynopsis": True,
     }
 
     # Invalid setting
@@ -226,7 +230,6 @@ def testStoryViewSettings_Values():
         "outline.countPerPage": 350,
         "outline.clearDoublePage": True,
         "outline.useTargetCount": True,
-        "outline.showSynopsis": True,
     }
 
 
@@ -259,6 +262,54 @@ def testStoryViewSettings_State():
     # Invalid state is replaced by an empty state
     another.unpack({"state": ["not", "a", "dict"]})
     assert another.getState("columns") is None
+
+
+@pytest.mark.core
+def testStoryViewSettings_Comments():
+    """Test OutlineViewSettings comment columns."""
+    view = OutlineViewSettings()
+
+    # A new view has a comments column with the synopsis
+    (default,) = view.comments
+    assert len(default.cid) == 8
+    assert default.name == "Comments"
+    assert default.keys == ("synopsis",)
+
+    # Keys are lower case, valid, unique and limited in number, and
+    # column IDs are unique
+    view.setComments([
+        CommentColumn("a", "One", ("story.Goal", "synopsis.x", "note.", "short", "story", 1)),  # type: ignore
+        CommentColumn("a", "Two", ("story.goal", "note.a", "note.b", "note.c", "note.d", "note.e", "note.f")),
+        CommentColumn("", "Three", ("synopsis",)),
+    ])
+    one, two, three = view.comments
+    assert view.changed is True
+    assert one == CommentColumn("a", "One", ("story.goal",))
+    assert two.cid not in ("", "a")
+    assert two.keys == ("note.a", "note.b", "note.c", "note.d", "note.e")
+    assert three.cid not in ("", "a", two.cid)
+    assert three.keys == ("synopsis",)
+
+    # Setting the same columns is not a change
+    view.resetChangedState()
+    view.setComments(view.comments)
+    assert view.changed is False
+
+    # Columns are packed and unpacked
+    another = OutlineViewSettings()
+    another.unpack(view.pack())
+    assert another.comments == view.comments
+    assert another.changed is False
+
+    # Invalid entries are skipped, and missing columns give the default
+    another.unpack({"comments": ["bad", {"id": "b", "name": 1, "keys": []}, {"id": "c", "name": "C", "keys": 1}]})
+    assert another.comments == []
+    another.unpack({})
+    assert [c.keys for c in another.comments] == [("synopsis",)]
+
+    # Updating copies the columns
+    another.updateSettings(view)
+    assert another.comments == view.comments
 
 
 @pytest.mark.core

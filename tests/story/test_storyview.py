@@ -35,7 +35,7 @@ from novelwriter.enum import nwChange, nwView
 from novelwriter.shared import _GuiAlert
 from novelwriter.story.outline import GuiOutlineViewSettings, GuiStoryOutlineView
 from novelwriter.story.storysettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
-from novelwriter.story.storyviewbase import GuiStoryViewBase
+from novelwriter.story.storyviewbase import GuiStorySettingsBase, GuiStoryViewBase
 
 from tests.helpers import cmpFiles
 
@@ -520,3 +520,43 @@ def testStoryView_BaseClass(qtbot, nwGUI):
     view.saveViewState()
     view.setHighlight({"bod"})
     assert view.settingsDialog() is None
+
+
+@pytest.mark.gui
+def testStoryView_SettingsPages(qtbot, nwGUI):
+    """Test the story view settings dialog base class pages."""
+
+    class Dialog(GuiStorySettingsBase):
+        def buildPages(self) -> None:
+            self.first = QLabel("First", self)
+            self.last = QLabel("Last", self)
+            self.setPageLabel("Before")
+            self.setPageLabel("After", after=True)
+            self.addPage(self.last, "Last", 2, after=True)
+            self.addPage(self.first, "First", 1)
+
+        def buildForm(self) -> None:
+            self.form.addGroupLabel("Group", self.FORM_SECTION + 1)
+
+    # The default implementation has only the form
+    dialog = GuiStorySettingsBase(nwGUI, OutlineViewSettings())
+    assert dialog.toolStack.count() == 1
+    assert dialog.sidebar.findChildren(QLabel) == []
+    assert dialog.toolStack.currentWidget() is dialog.form
+    dialog.discardAndClose()
+
+    # Pages are placed before and after the form, and the first is selected
+    dialog = Dialog(nwGUI, OutlineViewSettings())
+    stack = dialog.toolStack
+    assert [stack.widget(i) for i in range(stack.count())] == [dialog.first, dialog.form, dialog.last]
+    assert [b.text() for b in dialog.sidebar._group.buttons()] == ["First", "Last"]
+    assert [x.text() for x in dialog.sidebar.findChildren(QLabel)] == ["Before", "After"]
+    assert dialog.sidebar._group.checkedId() == 1
+    assert stack.currentWidget() is dialog.first
+
+    # Selecting a page or a form section switches the stack
+    dialog._stackPageSelected(2)
+    assert stack.currentWidget() is dialog.last
+    dialog._stackPageSelected(GuiStorySettingsBase.FORM_SECTION + 1)
+    assert stack.currentWidget() is dialog.form
+    dialog.discardAndClose()
