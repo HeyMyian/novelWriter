@@ -113,6 +113,18 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
     view.refresh(None, force=True)
     assert model.node(model.index(11, 0)).progress == "Page 27 (81.9\u202f%)"  # type: ignore
 
+    # Row height follows the number of lines, within limits
+    delegate = tree._delegate
+    hLine = delegate._fm.height()
+    assert delegate._rowHeight == delegate._lineHeight + 2 * hLine
+    settings.setValue("outline.rowLines", 6)
+    view.refresh(None, force=True)
+    assert delegate._rowHeight == delegate._lineHeight + 5 * hLine
+    delegate.setRowLines(1)
+    assert delegate._rowHeight == delegate._lineHeight + 2 * hLine
+    delegate.setRowLines(20)
+    assert delegate._rowHeight == delegate._lineHeight + 9 * hLine
+
     # Everything disabled leaves chapters only
     for key in ALL_SETTINGS:
         settings.setValue(key, False)

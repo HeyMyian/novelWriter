@@ -75,6 +75,8 @@ WRAP_FLAGS = int(Qt.TextFlag.TextWordWrap) | int(QtAlignLeftTop)
 
 ROW_PAD = 3
 ROW_EDGE = 4
+MIN_LINES = 3
+MAX_LINES = 10
 
 # Persistent column keys, independent of the column index
 COLUMN_KEYS = {
@@ -151,8 +153,11 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.form.addGroupLabel(title, section)
 
         self.syntaxColors = NSwitch(self, height=iPx)
+        self.rowLines = NSpinBox(self, minVal=MIN_LINES, maxVal=MAX_LINES)
+        self.rowLines.setFixedNumbersWidth(3)
 
         self.form.addRow(settings.getLabel("outline.syntaxColors"), self.syntaxColors)
+        self.form.addRow(settings.getLabel("outline.rowLines"), self.rowLines, unit=self.tr("lines"))
 
         # Documents
         # =========
@@ -236,6 +241,7 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
 
         # General
         self.syntaxColors.setChecked(settings.getBool("outline.syntaxColors"))
+        self.rowLines.setValue(settings.getInt("outline.rowLines"))
 
         # Documents
         self.showParts.setChecked(settings.getBool("outline.showParts"))
@@ -267,6 +273,7 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
 
         # General
         settings.setValue("outline.syntaxColors", self.syntaxColors.isChecked())
+        settings.setValue("outline.rowLines", self.rowLines.value())
 
         # Documents
         settings.setValue("outline.showParts", self.showParts.isChecked())
@@ -390,6 +397,7 @@ class GuiStoryOutlineTree(NTreeView):
             perPage = settings.getInt("outline.countPerPage") if settings.getBool("outline.showProgress") else 0
             clearDouble = settings.getBool("outline.clearDoublePage")
             target = data.targetCount if settings.getBool("outline.useTargetCount") else 0
+            self._delegate.setRowLines(settings.getInt("outline.rowLines"))
             self._model.buildOutline(index, rootHandle, levels, perPage, clearDouble, target, data.targetCountChars)
 
             worldKeys = []
@@ -510,7 +518,7 @@ class GuiStoryOutlineTree(NTreeView):
 class _OutlineDelegate(QStyledItemDelegate):
     """GUI: Story Outline Row Delegate.
 
-    Paints each row over three lines of height.
+    Paints each row over a set number of lines of height.
     """
 
     __slots__ = (
@@ -527,6 +535,7 @@ class _OutlineDelegate(QStyledItemDelegate):
         "_margin",
         "_noteCol",
         "_rowHeight",
+        "_rowLines",
         "_syntaxColors",
         "_tagCol",
         "_textCol",
@@ -538,6 +547,7 @@ class _OutlineDelegate(QStyledItemDelegate):
         super().__init__(parent=parent)
         self._margin = 8
         self._rowHeight = 0
+        self._rowLines = MIN_LINES
         self._lineHeight = 0
         self._worldKeys: list[str] = []
         self._highlight: set[str] = set()
@@ -580,6 +590,11 @@ class _OutlineDelegate(QStyledItemDelegate):
         self._syntaxColors = enabled
         self._updateColors()
 
+    def setRowLines(self, lines: int) -> None:
+        """Set the number of lines per row."""
+        self._rowLines = min(max(lines, MIN_LINES), MAX_LINES)
+        self._updateHeights()
+
     ##
     #  Methods
     ##
@@ -588,8 +603,7 @@ class _OutlineDelegate(QStyledItemDelegate):
         """Refresh the cached theme fonts and colours."""
         self._fm = QFontMetrics(SHARED.theme.guiFont)
         self._fmB = QFontMetrics(SHARED.theme.guiFontB)
-        self._lineHeight = self._fmB.height() + 2 * self._margin + 2 * ROW_PAD
-        self._rowHeight = self._lineHeight + 2 * self._fm.height()
+        self._updateHeights()
         self._boldFormat.setFont(SHARED.theme.guiFontB)
         self._updateColors()
 
@@ -598,8 +612,8 @@ class _OutlineDelegate(QStyledItemDelegate):
     ##
 
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
-        """Return the row height: one line for partitions, three lines for
-        all other rows.
+        """Return the row height: one line for partitions, the set number
+        of lines for all other rows.
         """
         model = index.model()
         if isinstance(model, OutlineModel) and (node := model.node(index)) and node.level == 1:
@@ -697,6 +711,11 @@ class _OutlineDelegate(QStyledItemDelegate):
     ##
     #  Internal Functions
     ##
+
+    def _updateHeights(self) -> None:
+        """Refresh the cached row heights from the font metrics."""
+        self._lineHeight = self._fmB.height() + 2 * self._margin + 2 * ROW_PAD
+        self._rowHeight = self._lineHeight + (self._rowLines - 1) * self._fm.height()
 
     def _updateColors(self) -> None:
         """Refresh the cached colours from the theme."""
