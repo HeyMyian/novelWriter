@@ -33,7 +33,7 @@ from novelwriter import CONFIG, SHARED
 from novelwriter.common import formatPercent
 from novelwriter.constants import nwLabels, nwStats, nwStyles, nwUnicode, trConst, trStats
 from novelwriter.story.storysettings import COMMENT_SYNOPSIS
-from novelwriter.types import QtTransparent
+from novelwriter.types import QtDisplayRole, QtTransparent
 
 if TYPE_CHECKING:
     from novelwriter.core.index import Index
@@ -68,11 +68,7 @@ BLANK_STYLE = NodeStyle(QtTransparent, QtTransparent, QtTransparent)
 class OutlineNode:
     """Core: Outline Model Node Class.
 
-    A single row in the story outline, representing one partition,
-    chapter, scene or section heading. The outline is entirely rebuilt
-    on demand from the project index, so nodes hold plain copies of the
-    values needed for display rather than a live reference to the index
-    data.
+    A single heading row, holding copies of the values for display.
     """
 
     __slots__ = (
@@ -85,7 +81,6 @@ class OutlineNode:
         "_level",
         "_lists",
         "_progress",
-        "_refs",
         "_style",
         "_title",
         "_tr",
@@ -113,7 +108,6 @@ class OutlineNode:
         self._words = ""
         self._chars = ""
         self._progress = ""
-        self._refs: dict[str, str] = {}
         self._lists: dict[str, list[str]] = {}
         self._entries: list[list[tuple[str, str, str]]] = []
         self._style = style
@@ -146,9 +140,7 @@ class OutlineNode:
 
     @property
     def counts(self) -> str:
-        """The word or character count of the heading, as set in the
-        preferences.
-        """
+        """The word or character count, as set in the preferences."""
         return self._chars if CONFIG.useCharCount else self._words
 
     @property
@@ -164,10 +156,6 @@ class OutlineNode:
     ##
     #  Data Access
     ##
-
-    def refs(self, keyword: str) -> str:
-        """Return the references of the heading for a keyword."""
-        return self._refs.get(keyword, "")
 
     def refSpans(self, keyword: str, tags: set[str]) -> list[tuple[int, int]]:
         """Return the start and length of the given tag keys in refs."""
@@ -201,10 +189,9 @@ class OutlineNode:
             self._chars = f"{h.charCount:n} {tr.sChars}"
 
             self._lists = {k: v for k, v in h.getReferences().items() if v}
-            self._refs = {k: ", ".join(v) for k, v in self._lists.items()}
 
             kinds = {"story": tr.sStory, "note": tr.sNote}
-            lookup = {k: (tr.sKeys.get(k, k), v) for k, v in self._refs.items()}
+            lookup = {k: (tr.sKeys.get(k, k), ", ".join(v)) for k, v in self._lists.items()}
             lookup[COMMENT_SYNOPSIS] = (tr.sSynopsis, h.synopsis)
 
             # Comment keys are matched regardless of spelling
@@ -226,9 +213,7 @@ class OutlineNode:
 class OutlineModel(QAbstractTableModel):
     """Core: Outline Model Class.
 
-    A flat list of partition, chapter, scene and section headings for a
-    single novel root, in story order, built fresh from the project index
-    whenever buildOutline is called.
+    A flat list of the headings of a novel, in story order.
     """
 
     __slots__ = ("_fixed", "_headers", "_labels", "_nodes", "_styles")
@@ -287,7 +272,7 @@ class OutlineModel(QAbstractTableModel):
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: Qt.ItemDataRole) -> str | None:
         """Return the header labels for the outline columns."""
-        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
+        if orientation == Qt.Orientation.Horizontal and role == QtDisplayRole:
             return self._headers[section] if 0 <= section < len(self._headers) else None
         return None
 
@@ -326,13 +311,9 @@ class OutlineModel(QAbstractTableModel):
         useChars: bool = False,
         columns: list[tuple[str, tuple[str, ...]]] | None = None,
     ) -> None:
-        """Rebuild the outline from the project index, including only
-        headings of the given levels. If count per page is set, the page
-        and progress of each heading is also calculated. Partitions and
-        chapters start on a new page, or a new odd page if clear double
-        is set. Progress is relative to the target if it is larger than
-        the total count. Counts are in characters if use chars is set.
-        Columns are added after the title from their names and keys.
+        """Rebuild the outline for the given heading levels and columns.
+        If count per page is set, the page and progress of each heading
+        is added, with partitions and chapters starting on a new page.
         """
         self.beginResetModel()
         columns = columns or []

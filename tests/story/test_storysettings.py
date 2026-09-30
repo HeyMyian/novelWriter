@@ -30,12 +30,7 @@ import pytest
 
 from novelwriter.constants import nwFiles
 from novelwriter.core.project import NWProject
-from novelwriter.story.storysettings import (
-    OutlineColumn,
-    OutlineViewSettings,
-    StoryViewCollection,
-    StoryViewSettings,
-)
+from novelwriter.story.storysettings import OutlineColumn, OutlineViewSettings, StoryViewCollection, StoryViewSettings
 
 from tests.helpers import buildTestProject
 from tests.mocked import causeOSError
@@ -168,7 +163,7 @@ def testStoryViewSettings_Values():
 
     # Invalid setting
     view.setValue("foo", "bar")
-    assert view.getStr("foo") == "None"
+    assert view.getInt("foo") == 0
     assert view.changed is False
 
     # Value must be correct type
@@ -183,10 +178,8 @@ def testStoryViewSettings_Values():
     # Check bool values
     view.setValue(boolSetting, True)
     assert view.changed is True
-    assert view.getStr(boolSetting) == "True"
     assert view.getInt(boolSetting) == 1
     assert view.getBool(boolSetting) is True
-    assert view.getFloat(boolSetting) == 1.0
 
     # Changes can be reset
     view.resetChangedState()

@@ -332,8 +332,8 @@ def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
             if i % 2
             else {nwKeyWords.FOCUS_KEY: ["John"]}
         )
-        node._refs = {k: ", ".join(v) for k, v in node._lists.items()}
-        node._entries = [[(k, labels[k], node._refs[k]) for k in keys if k in node._refs] for keys in node._columns]
+        refs = {k: ", ".join(v) for k, v in node._lists.items()}
+        node._entries = [[(k, labels[k], refs[k]) for k in keys if k in refs] for keys in node._columns]
         node._entries[-1].append(("synopsis", "Synopsis", "Text"))
         if i % 2:
             node._progress = ""
@@ -347,20 +347,20 @@ def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
     assert delegate._highlight == {"jane", "jack", "main", "night", "company", "custom"}
     assert not view.grab().isNull()
 
-    # Highlights are cut at the limit, and are not added past it
+    # Highlights are placed after the label offset
     node = model._nodes[1]
-    formats = delegate._highlightFormats(node, nwKeyWords.CHAR_KEY, 0, 14)
-    assert [(f.start, f.length) for f in formats] == [(0, 4), (12, 2)]
-    formats = delegate._highlightFormats(node, nwKeyWords.CHAR_KEY, 6, 10)
-    assert [(f.start, f.length) for f in formats] == [(6, 4)]
+    formats = delegate._highlightFormats(node, nwKeyWords.CHAR_KEY, 0)
+    assert [(f.start, f.length) for f in formats] == [(0, 4), (12, 4)]
+    formats = delegate._highlightFormats(node, nwKeyWords.CHAR_KEY, 6)
+    assert [(f.start, f.length) for f in formats] == [(6, 4), (18, 4)]
 
     # Entries are stacked, leaving a line for each following entry, and
     # the text is limited to whole lines within the height
     calls = []
     drawLayout = _OutlineDelegate._drawLayout
 
-    def recordLayout(self, painter, x, y, w, h, text, formats, option):
-        used = drawLayout(self, painter, x, y, w, h, text, formats, option)
+    def recordLayout(self, painter, x, y, w, h, text, formats):
+        used = drawLayout(self, painter, x, y, w, h, text, formats)
         calls.append((y, h, text, used, painter.pen().color(), formats[0].format))
         return used
 

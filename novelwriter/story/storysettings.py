@@ -103,9 +103,7 @@ def newColumnID() -> str:
 
 
 def isColumnKey(key: str) -> bool:
-    """Check if a key is a reference keyword, the synopsis, or a story
-    or note comment key.
-    """
+    """Check if a key is a valid outline column key."""
     if key in nwKeyWords.CAN_LOOKUP:
         return True
     modifier, _, name = key.partition(".")
@@ -120,9 +118,7 @@ def isColumnKey(key: str) -> bool:
 class StoryViewSettings:
     """Story: Story View Settings Class.
 
-    This class manages the story view settings for a view on the Story
-    Views panel. The settings can be packed/unpacked to/from a
-    dictionary for JSON.
+    The settings of a single story view, packed to and from JSON.
     """
 
     __slots__ = ("_changed", "_name", "_order", "_prefix", "_settings", "_state", "_stateChanged", "_uuid")
@@ -194,12 +190,8 @@ class StoryViewSettings:
         self._name = str(name)
 
     def setViewID(self, value: str | uuid.UUID) -> None:
-        """Set a UUID view ID."""
-        value = checkUuid(value, "")
-        if not value:
-            self._uuid = str(uuid.uuid4())
-        elif value != self._uuid:
-            self._uuid = value
+        """Set a UUID view ID, or generate one if invalid."""
+        self._uuid = checkUuid(value, "") or str(uuid.uuid4())
 
     def setOrder(self, value: int) -> None:
         """Set the story view order."""
@@ -220,7 +212,7 @@ class StoryViewSettings:
 
     def setValue(self, key: str, value: T_ViewValue) -> None:
         """Set a specific value for a story view setting."""
-        if (d := SETTINGS_TEMPLATE.get(key)) and len(d) == 2 and isinstance(value, d[0]):
+        if (d := SETTINGS_TEMPLATE.get(key)) and isinstance(value, d[0]):
             self._changed |= value != self._settings[key]
             self._settings[key] = value
 
@@ -237,11 +229,6 @@ class StoryViewSettings:
         """Return a view state value, or None if not set."""
         return self._state.get(key)
 
-    def getStr(self, key: str) -> str:
-        """Type safe value access for strings."""
-        value = self._settings.get(key, SETTINGS_TEMPLATE.get(key, (None, None))[1])
-        return str(value)
-
     def getBool(self, key: str) -> bool:
         """Type safe value access for bools."""
         value = self._settings.get(key, SETTINGS_TEMPLATE.get(key, (None, None))[1])
@@ -251,11 +238,6 @@ class StoryViewSettings:
         """Type safe value access for integers."""
         value = self._settings.get(key, SETTINGS_TEMPLATE.get(key, (None, None))[1])
         return int(value) if isinstance(value, int | float) else 0
-
-    def getFloat(self, key: str) -> float:
-        """Type safe value access for floats."""
-        value = self._settings.get(key, SETTINGS_TEMPLATE.get(key, (None, None))[1])
-        return float(value) if isinstance(value, int | float) else 0.0
 
     ##
     #  Methods
@@ -436,9 +418,7 @@ class OutlineViewSettings(StoryViewSettings):
 class StoryViewCollection:
     """Story: Story View Collection Class.
 
-    This object holds all the story view setting objects defined by the
-    given project. The story view settings are saved as a single JSON
-    file in the project folder.
+    All story views of a project, saved as a single JSON file.
     """
 
     def __init__(self, project: NWProject) -> None:
@@ -486,9 +466,8 @@ class StoryViewCollection:
             self._saveCollection()
 
     def setStoryViewsState(self, lastView: str, highlight: str, order: list[str]) -> None:
-        """Set the last active view ID, the highlighted reference, and the
-        order of the story views from a list of view IDs, and save if any
-        of them or any view state changed.
+        """Set the last view, the highlight and the view order, and save
+        if anything changed.
         """
         changed = (
             lastView != self._lastView

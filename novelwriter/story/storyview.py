@@ -60,6 +60,8 @@ class GuiStoryView(QWidget):
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
 
+        logger.debug("Create: GuiStoryView")
+
         self._views: StoryViewCollection | None = None
         self._stale: set[str] = set()
         self._highlight: set[str] = set()
@@ -182,6 +184,8 @@ class GuiStoryView(QWidget):
         self.setLayout(self.outerBox)
         self._setProjectControls(False)
 
+        logger.debug("Ready: GuiStoryView")
+
     ##
     #  Methods
     ##
@@ -212,11 +216,7 @@ class GuiStoryView(QWidget):
             view.initSettings()
 
     def openProjectTasks(self) -> None:
-        """Run open project tasks.
-
-        The views are not loaded here, but lazily the first time the
-        user switches to the story view, see viewStory.
-        """
+        """Run open project tasks. The views are loaded in viewStory."""
         self.novelValue.refreshNovelList()
         self.novelValue.setHandle(SHARED.project.data.getLastHandle("story"))
         self._setProjectControls(True)
@@ -337,9 +337,7 @@ class GuiStoryView(QWidget):
 
     @pyqtSlot()
     def _editCurrentView(self) -> None:
-        """Open the settings dialog for the current view, or activate it
-        if it is already open.
-        """
+        """Open or activate the settings dialog for the current view."""
         if isinstance(current := self.tabMain.currentWidget(), GuiStoryViewBase) and (
             dialogClass := current.settingsDialog()
         ):
@@ -435,9 +433,7 @@ class GuiStoryView(QWidget):
             self.novelValue.setEnabled(False)
 
     def _closeSettingsDialogs(self, viewID: str | None = None) -> None:
-        """Close all open view settings dialogs, or discard the one for
-        a specific view.
-        """
+        """Close all settings dialogs, or discard the one for a view."""
         for dialog in self._iterSettingsDialogs():
             if viewID is None:
                 dialog.close()
@@ -457,9 +453,7 @@ class GuiStoryView(QWidget):
                 yield view
 
     def _refreshCurrentView(self, force: bool = False) -> None:
-        """Refresh the current view, if loaded and visible. Views with
-        changed settings are rebuilt when next shown.
-        """
+        """Refresh the current view, if loaded and visible."""
         if (
             self._views is not None
             and self.isVisible()
@@ -471,9 +465,7 @@ class GuiStoryView(QWidget):
             self._refreshTagList()
 
     def _refreshTagList(self, force: bool = False) -> None:
-        """Rebuild the list of references that can be highlighted, if the
-        index has changed, and keep the current selection if possible.
-        """
+        """Rebuild the highlight list if the index has changed."""
         index = SHARED.project.index
         if force or index.indexRevision != self._tagsRevision:
             self._tagsRevision = index.indexRevision
@@ -514,17 +506,7 @@ class GuiStoryView(QWidget):
                 trStats(nwLabels.STATS_NAME[nwStats.CHARS]),
                 trStats(nwLabels.STATS_NAME[nwStats.WORDS]),
                 trStats(nwLabels.STATS_NAME[nwStats.PARAGRAPHS]),
-                trConst(nwLabels.KEY_NAME[nwKeyWords.POV_KEY]),
-                trConst(nwLabels.KEY_NAME[nwKeyWords.FOCUS_KEY]),
-                trConst(nwLabels.KEY_NAME[nwKeyWords.CHAR_KEY]),
-                trConst(nwLabels.KEY_NAME[nwKeyWords.PLOT_KEY]),
-                trConst(nwLabels.KEY_NAME[nwKeyWords.TIME_KEY]),
-                trConst(nwLabels.KEY_NAME[nwKeyWords.WORLD_KEY]),
-                trConst(nwLabels.KEY_NAME[nwKeyWords.OBJECT_KEY]),
-                trConst(nwLabels.KEY_NAME[nwKeyWords.ENTITY_KEY]),
-                trConst(nwLabels.KEY_NAME[nwKeyWords.CUSTOM_KEY]),
-                trConst(nwLabels.KEY_NAME[nwKeyWords.STORY_KEY]),
-                trConst(nwLabels.KEY_NAME[nwKeyWords.MENTION_KEY]),
+                *(trConst(nwLabels.KEY_NAME[k]) for k in nwKeyWords.CAN_LOOKUP),
                 self.tr("Synopsis"),
                 *sHeaders,
                 *nHeaders,
@@ -534,9 +516,7 @@ class GuiStoryView(QWidget):
         for tHandle, _, hItem in index.iterNovelStructure(rHandle=rootHandle, activeOnly=True):
             if hItem.level != "H0" and (nwItem := project.tree[tHandle]):
                 refs = hItem.getReferences()
-                comments = dict(hItem.comments.items())
-                story = [comments.get(k, "") for k in sMatch]
-                notes = [comments.get(k, "") for k in nMatch]
+                comments = hItem.comments
                 data.append([
                     hItem.level,
                     hItem.title,
@@ -546,20 +526,10 @@ class GuiStoryView(QWidget):
                     hItem.charCount,
                     hItem.wordCount,
                     hItem.paraCount,
-                    ", ".join(refs[nwKeyWords.POV_KEY]),
-                    ", ".join(refs[nwKeyWords.FOCUS_KEY]),
-                    ", ".join(refs[nwKeyWords.CHAR_KEY]),
-                    ", ".join(refs[nwKeyWords.PLOT_KEY]),
-                    ", ".join(refs[nwKeyWords.TIME_KEY]),
-                    ", ".join(refs[nwKeyWords.WORLD_KEY]),
-                    ", ".join(refs[nwKeyWords.OBJECT_KEY]),
-                    ", ".join(refs[nwKeyWords.ENTITY_KEY]),
-                    ", ".join(refs[nwKeyWords.CUSTOM_KEY]),
-                    ", ".join(refs[nwKeyWords.STORY_KEY]),
-                    ", ".join(refs[nwKeyWords.MENTION_KEY]),
+                    *(", ".join(refs[k]) for k in nwKeyWords.CAN_LOOKUP),
                     hItem.synopsis,
-                    *story,
-                    *notes,
+                    *(comments.get(k, "") for k in sMatch),
+                    *(comments.get(k, "") for k in nMatch),
                 ])
 
         return data

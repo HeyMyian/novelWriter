@@ -274,9 +274,7 @@ class GuiStorySettingsBase(NToolDialog):
     ##
 
     def closeEvent(self, event: QEvent) -> None:
-        """Capture the user closing the window so we can save
-        settings.
-        """
+        """Apply changes and ask to save them when closing."""
         logger.debug("Closing: GuiStorySettings")
         if not self._discard:
             self._applyChanges()
@@ -333,9 +331,7 @@ class GuiStorySettingsBase(NToolDialog):
             self.sidebar.setSelected(self._before[0][0])
 
     def _askToSave(self) -> None:
-        """Check if there are unsaved changes, and if there are, ask
-        whether the user wants to save them.
-        """
+        """Ask to save unsaved changes, if any."""
         if self._settings.changed:
             if SHARED.question(self.tr("Do you want to save your changes to '{0}'?").format(self._settings.name)):
                 self._emitSettings()

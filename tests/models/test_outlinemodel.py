@@ -97,8 +97,7 @@ def testOutlineModel_Interface(nwGUI, prjLipsum):
     CONFIG.useCharCount = True
     assert node.counts == "419 Characters"
     assert node.style is not BLANK_STYLE
-    assert node.refs(nwKeyWords.POV_KEY) == "Bod"
-    assert node.refs(nwKeyWords.MENTION_KEY) == ""
+    assert node.progress == ""
 
     # Spans of tag keys in the references
     node._lists[nwKeyWords.CHAR_KEY] = ["Jane", "John", "Jack"]
@@ -112,6 +111,20 @@ def testOutlineModel_Interface(nwGUI, prjLipsum):
     assert blank.level == 0
     assert blank.title == ""
     assert blank.entries(0) == []
+
+    # Clear the model
+    model.clear()
+    assert model.rowCount(root) == 0
+
+
+@pytest.mark.core
+def testOutlineModel_Columns(nwGUI, prjLipsum):
+    """Test the outline model columns."""
+    assert nwGUI.openProject(prjLipsum)
+    index = SHARED.project.index
+    root = QModelIndex()
+    horizontal = Qt.Orientation.Horizontal
+    model = OutlineModel()
 
     # Columns hold references and comments, where comment keys match
     # regardless of spelling, and empty entries are skipped
@@ -139,8 +152,13 @@ def testOutlineModel_Interface(nwGUI, prjLipsum):
     assert commented.entries(2) == [("@pov", "Point of View", "Bod")]
     assert commented.entries(3) == []
 
-    # No progress unless words per page is set
-    assert node.progress == ""
+
+@pytest.mark.core
+def testOutlineModel_Progress(nwGUI, prjLipsum):
+    """Test the outline model page and progress calculation."""
+    assert nwGUI.openProject(prjLipsum)
+    index = SHARED.project.index
+    model = OutlineModel()
 
     # Progress, with partitions and chapters starting on a new page
     model.buildOutline(index, None, {1, 2, 3, 4}, 100)
@@ -194,7 +212,3 @@ def testOutlineModel_Interface(nwGUI, prjLipsum):
     model.buildOutline(index, None, {2}, 1000, False, 100000, True)
     progress = [model.node(model.index(r, 0)).progress for r in range(3)]  # type: ignore
     assert progress == ["Page 4 (1.3\u202f%)", "Page 6 (2.0\u202f%)", "Page 14 (9.2\u202f%)"]
-
-    # Clear the model
-    model.clear()
-    assert model.rowCount(root) == 0

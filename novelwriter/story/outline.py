@@ -279,9 +279,7 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
 class _ColumnsPage(NFixedPage):
     """GUI: Outline Columns Settings Page.
 
-    Columns are top level items, and their references and comments are
-    child items that can be dragged between them. The column order in
-    the outline is set by the outline header, not here.
+    Columns are top level items, with their entries as child items.
     """
 
     D_KEY = QtUserRole
@@ -499,8 +497,7 @@ class _ColumnsPage(NFixedPage):
 class _ColumnsTree(QTreeWidget):
     """GUI: Outline Columns Tree.
 
-    A non-collapsible tree where entries can be moved between columns,
-    as long as the target column is not full.
+    A non-collapsible tree where entries can be dragged between columns.
     """
 
     def __init__(self, parent: QWidget) -> None:
@@ -591,20 +588,8 @@ class GuiStoryOutlineTree(NTreeView):
         if viewport := self.viewport():  # pragma: no branch
             viewport.update()
 
-    def _disableNativeHighlight(self) -> None:
-        """Make the native row selection highlight transparent so it does
-        not clash with the delegate's level-coloured selection box, which
-        is drawn only around the text. Reapplied on theme changes as the
-        palette is otherwise refreshed from the application palette.
-        """
-        palette = self.palette()
-        palette.setColor(QPalette.ColorRole.Highlight, QtTransparent)
-        self.setPalette(palette)
-
     def refresh(self, rootHandle: str | None, force: bool = False) -> None:
-        """Rebuild the outline from the project index, but only if there
-        is a genuine change since the last build, or if forced.
-        """
+        """Rebuild the outline if anything changed, or if forced."""
         index = SHARED.project.index
         if force or not self._built or rootHandle != self._lastHandle or index.indexRevision != self._lastRevision:
             logger.info("Building story view '%s'", self._settings.name)
@@ -651,9 +636,8 @@ class GuiStoryOutlineTree(NTreeView):
             self._lastRevision = index.indexRevision
 
     def saveColumnState(self) -> None:
-        """Save the column order and widths to the settings object. Hidden
-        columns and the stretched last column keep their last known width.
-        The state is only saved once it has been loaded on the first build.
+        """Save the column order and widths, once loaded. Hidden and
+        stretched columns keep their last known width.
         """
         if self._columnIDs is not None and (header := self.header()):
             previous = self._settings.getState("columns")
@@ -707,11 +691,7 @@ class GuiStoryOutlineTree(NTreeView):
         super().wheelEvent(event)
 
     def drawRow(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
-        """Paint the level-coloured box and left edge behind the row text
-        before the native cell painting. The native selection highlight is
-        transparent (see _disableNativeHighlight), so the selection is
-        shown by the box instead.
-        """
+        """Paint the level-coloured row box, which also shows selection."""
         if node := self._model.node(index):  # pragma: no branch
             first = index.sibling(index.row(), OutlineModel.C_TITLE)
             selected = self._isRowSelected(first)
@@ -723,10 +703,21 @@ class GuiStoryOutlineTree(NTreeView):
 
         super().drawRow(painter, option, index)
 
+    ##
+    #  Internal Functions
+    ##
+
+    def _disableNativeHighlight(self) -> None:
+        """Hide the native selection highlight, as drawRow draws its own.
+        This must be reapplied on theme changes.
+        """
+        palette = self.palette()
+        palette.setColor(QPalette.ColorRole.Highlight, QtTransparent)
+        self.setPalette(palette)
+
     def _loadColumnState(self) -> None:
-        """Reset the columns, and load the column order and widths from
-        the settings object. The title column is always first, unknown
-        columns are skipped, and new columns are added at the end.
+        """Reset the columns and load their order and widths. The title
+        stays first, and new columns are added at the end.
         """
         if header := self.header():  # pragma: no branch
             for column in range(header.count()):
@@ -837,9 +828,7 @@ class _OutlineDelegate(QStyledItemDelegate):
     ##
 
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
-        """Return the row height: one line for partitions, the set number
-        of lines for all other rows.
-        """
+        """Return one line for partitions, and the row height otherwise."""
         model = index.model()
         if isinstance(model, OutlineModel) and (node := model.node(index)) and node.level == 1:
             return QSize(option.rect.width(), self._lineHeight)
@@ -931,9 +920,7 @@ class _OutlineDelegate(QStyledItemDelegate):
     def _paintEntries(
         self, painter: QPainter, x: int, y: int, w: int, h: int, node: OutlineNode, entries: list[tuple[str, str, str]]
     ) -> None:
-        """Paint labelled entries wrapped below each other, leaving at
-        least one line for each following entry.
-        """
+        """Paint wrapped entries, leaving a line for each following one."""
         hLine = self._fm.height()
         used = 0
         for i, (key, label, text) in enumerate(entries, 1):
@@ -942,12 +929,12 @@ class _OutlineDelegate(QStyledItemDelegate):
             full = f"{label} {text}"
             if key in nwKeyWords.VALID_KEYS:
                 formats = [self._labelFormat(len(label), self._boldFormat)]
-                formats.extend(self._highlightFormats(node, key, len(label) + 1, len(full)))
+                formats.extend(self._highlightFormats(node, key, len(label) + 1))
                 painter.setPen(self._tagCol)
             else:
                 formats = [self._labelFormat(len(label), self._modFormat)]
                 painter.setPen(self._noteCol)
-            used += self._drawLayout(painter, x, y + used, w, h - used - reserved, full, formats, self._wrapOption)
+            used += self._drawLayout(painter, x, y + used, w, h - used - reserved, full, formats)
 
     def _labelFormat(self, length: int, fmt: QTextCharFormat) -> QTextLayout.FormatRange:
         """Return a label format range from the start of a text."""
@@ -957,38 +944,27 @@ class _OutlineDelegate(QStyledItemDelegate):
         label.format = fmt
         return label
 
-    def _highlightFormats(self, node: OutlineNode, key: str, offset: int, limit: int) -> list[QTextLayout.FormatRange]:
-        """Return format ranges for the highlighted tags of a key, with
-        the text offset by offset and cut at limit.
-        """
+    def _highlightFormats(self, node: OutlineNode, key: str, offset: int) -> list[QTextLayout.FormatRange]:
+        """Return format ranges for the highlighted tags of a key."""
         formats = []
         if self._highlight:
             for start, length in node.refSpans(key, self._highlight):
-                if (start := start + offset) < limit:
-                    accent = QTextLayout.FormatRange()
-                    accent.start = start
-                    accent.length = min(length, limit - start)
-                    accent.format = self._accentFormat
-                    formats.append(accent)
+                accent = QTextLayout.FormatRange()
+                accent.start = start + offset
+                accent.length = length
+                accent.format = self._accentFormat
+                formats.append(accent)
         return formats
 
     def _drawLayout(
-        self,
-        painter: QPainter,
-        x: int,
-        y: int,
-        w: int,
-        h: int,
-        text: str,
-        formats: list[QTextLayout.FormatRange],
-        option: QTextOption,
+        self, painter: QPainter, x: int, y: int, w: int, h: int, text: str, formats: list[QTextLayout.FormatRange]
     ) -> int:
-        """Draw formatted text, wrapped by the option, over as many whole
-        lines as fit the height, and return the height used.
+        """Draw wrapped text in the whole lines that fit, and return the
+        height used.
         """
         layout = QTextLayout(text, SHARED.theme.guiFont)
         layout.setFormats(formats)
-        layout.setTextOption(option)
+        layout.setTextOption(self._wrapOption)
         layout.beginLayout()
         yPos = 0.0
         for _ in range(h // self._fm.height()):
