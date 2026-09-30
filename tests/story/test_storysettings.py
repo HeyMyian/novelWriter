@@ -31,7 +31,7 @@ import pytest
 from novelwriter.constants import nwFiles
 from novelwriter.core.project import NWProject
 from novelwriter.story.storysettings import (
-    CommentColumn,
+    OutlineColumn,
     OutlineViewSettings,
     StoryViewCollection,
     StoryViewSettings,
@@ -160,13 +160,6 @@ def testStoryViewSettings_Values():
         "outline.showChapters": True,
         "outline.showScenes": True,
         "outline.showSections": False,
-        "outline.showCharacters": True,
-        "outline.showPlot": True,
-        "outline.showWorld": True,
-        "outline.showObject": False,
-        "outline.showEntity": False,
-        "outline.showCustom": False,
-        "outline.showMentions": False,
         "outline.showProgress": True,
         "outline.countPerPage": 350,
         "outline.clearDoublePage": True,
@@ -219,13 +212,6 @@ def testStoryViewSettings_Values():
         "outline.showChapters": True,
         "outline.showScenes": True,
         "outline.showSections": False,
-        "outline.showCharacters": True,
-        "outline.showPlot": True,
-        "outline.showWorld": True,
-        "outline.showObject": False,
-        "outline.showEntity": False,
-        "outline.showCustom": False,
-        "outline.showMentions": False,
         "outline.showProgress": True,
         "outline.countPerPage": 350,
         "outline.clearDoublePage": True,
@@ -265,26 +251,29 @@ def testStoryViewSettings_State():
 
 
 @pytest.mark.core
-def testStoryViewSettings_Comments():
-    """Test OutlineViewSettings comment columns."""
+def testStoryViewSettings_Columns():
+    """Test OutlineViewSettings outline columns."""
     view = OutlineViewSettings()
 
-    # A new view has a comments column with the synopsis
-    (default,) = view.comments
-    assert len(default.cid) == 8
-    assert default.name == "Comments"
-    assert default.keys == ("synopsis",)
+    # A new view has the default columns
+    assert [(c.name, c.keys) for c in view.columns] == [
+        ("Characters", ("@pov", "@focus", "@char")),
+        ("Plot", ("@plot", "@time")),
+        ("World", ("@location",)),
+        ("Comments", ("synopsis",)),
+    ]
+    assert all(len(c.cid) == 8 for c in view.columns)
 
     # Keys are lower case, valid, unique and limited in number, and
     # column IDs are unique
-    view.setComments([
-        CommentColumn("a", "One", ("story.Goal", "synopsis.x", "note.", "short", "story", 1)),  # type: ignore
-        CommentColumn("a", "Two", ("story.goal", "note.a", "note.b", "note.c", "note.d", "note.e", "note.f")),
-        CommentColumn("", "Three", ("synopsis",)),
+    view.setColumns([
+        OutlineColumn("a", "One", ("story.Goal", "@POV", "@tag", "synopsis.x", "note.", "short", "story", 1)),  # type: ignore
+        OutlineColumn("a", "Two", ("story.goal", "note.a", "note.b", "note.c", "note.d", "note.e", "note.f")),
+        OutlineColumn("", "Three", ("synopsis",)),
     ])
-    one, two, three = view.comments
+    one, two, three = view.columns
     assert view.changed is True
-    assert one == CommentColumn("a", "One", ("story.goal",))
+    assert one == OutlineColumn("a", "One", ("story.goal", "@pov"))
     assert two.cid not in ("", "a")
     assert two.keys == ("note.a", "note.b", "note.c", "note.d", "note.e")
     assert three.cid not in ("", "a", two.cid)
@@ -292,24 +281,24 @@ def testStoryViewSettings_Comments():
 
     # Setting the same columns is not a change
     view.resetChangedState()
-    view.setComments(view.comments)
+    view.setColumns(view.columns)
     assert view.changed is False
 
     # Columns are packed and unpacked
     another = OutlineViewSettings()
     another.unpack(view.pack())
-    assert another.comments == view.comments
+    assert another.columns == view.columns
     assert another.changed is False
 
     # Invalid entries are skipped, and missing columns give the default
-    another.unpack({"comments": ["bad", {"id": "b", "name": 1, "keys": []}, {"id": "c", "name": "C", "keys": 1}]})
-    assert another.comments == []
+    another.unpack({"columns": ["bad", {"id": "b", "name": 1, "keys": []}, {"id": "c", "name": "C", "keys": 1}]})
+    assert another.columns == []
     another.unpack({})
-    assert [c.keys for c in another.comments] == [("synopsis",)]
+    assert len(another.columns) == 4
 
     # Updating copies the columns
     another.updateSettings(view)
-    assert another.comments == view.comments
+    assert another.columns == view.columns
 
 
 @pytest.mark.core

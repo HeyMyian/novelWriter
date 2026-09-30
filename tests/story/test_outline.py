@@ -32,7 +32,7 @@ from novelwriter.constants import nwKeyWords
 from novelwriter.enum import nwView
 from novelwriter.models.outlinemodel import OutlineModel
 from novelwriter.story.outline import GuiOutlineViewSettings, GuiStoryOutlineView, _OutlineDelegate
-from novelwriter.story.storysettings import CommentColumn, OutlineViewSettings
+from novelwriter.story.storysettings import OutlineColumn, OutlineViewSettings
 from novelwriter.types import QtModCtrl, QtModNone, QtScrollAlwaysOff, QtScrollAsNeeded
 
 ALL_SETTINGS = (
@@ -40,13 +40,6 @@ ALL_SETTINGS = (
     "outline.showParts",
     "outline.showScenes",
     "outline.showSections",
-    "outline.showCharacters",
-    "outline.showPlot",
-    "outline.showWorld",
-    "outline.showObject",
-    "outline.showEntity",
-    "outline.showCustom",
-    "outline.showMentions",
     "outline.showProgress",
 )
 
@@ -83,20 +76,18 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
     # Default settings
     view.refresh(None)
     assert model.rowCount(root) == 10
-    assert tree._delegate._worldKeys == [nwKeyWords.WORLD_KEY]
-    assert [tree.isColumnHidden(c) for c in range(7)] == [False, False, False, False, True, True, False]
+    assert model.columnCount(root) == 5
+    assert not any(tree.isColumnHidden(c) for c in range(5))
 
     # Everything enabled
     for key in ALL_SETTINGS:
         settings.setValue(key, True)
     view.refresh(None, force=True)
     assert model.rowCount(root) == 12
-    assert tree._delegate._worldKeys == [nwKeyWords.WORLD_KEY, nwKeyWords.OBJECT_KEY, nwKeyWords.ENTITY_KEY]
     assert tree._delegate._tagCol == SHARED.theme.syntaxTheme.tag
     assert tree._delegate._keyCol == SHARED.theme.syntaxTheme.key
     assert tree._delegate._noteCol == SHARED.theme.syntaxTheme.note
     assert tree._delegate._modCol == SHARED.theme.syntaxTheme.mod
-    assert not any(tree.isColumnHidden(c) for c in range(7))
     assert model.node(model.index(11, 0)).progress == "Page 16 (81.9\u202f%)"  # type: ignore
 
     # Progress follows the page settings
@@ -130,19 +121,17 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
         settings.setValue(key, False)
     view.refresh(None, force=True)
     assert model.rowCount(root) == 3
-    assert tree._delegate._worldKeys == []
     assert tree._delegate._tagCol == tree._delegate._textCol
     assert tree._delegate._keyCol == tree._delegate._textCol
     assert tree._delegate._noteCol == tree._delegate._textCol
     assert tree._delegate._modCol == tree._delegate._textCol
-    assert [tree.isColumnHidden(c) for c in range(7)] == [False, True, True, True, True, True, False]
     assert model.node(model.index(0, 0)).progress == ""  # type: ignore
 
-    # Comment columns without comments are hidden
-    settings.setComments([*settings.comments, CommentColumn("empty", "Empty", ())])
+    # Columns without content are hidden
+    settings.setColumns([*settings.columns, OutlineColumn("empty", "Empty", ())])
     view.refresh(None, force=True)
-    assert model.columnCount(root) == 8
-    assert [tree.isColumnHidden(c) for c in (6, 7)] == [False, True]
+    assert model.columnCount(root) == 6
+    assert [tree.isColumnHidden(c) for c in (4, 5)] == [False, True]
 
     # No rebuild without a change
     model.clear()
@@ -176,15 +165,16 @@ def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
     header = tree.header()
     assert header is not None
 
-    comments = f"comment:{view.settings.comments[0].cid}"  # type: ignore
+    # The default columns are characters, plot, world and comments
+    chars, plot, world, comments = (f"column:{c.cid}" for c in view.settings.columns)  # type: ignore
 
     # Move and resize columns, and hide one
-    header.moveSection(header.visualIndex(OutlineModel.C_COMMENTS), 1)
+    header.moveSection(header.visualIndex(4), 1)
     header.resizeSection(OutlineModel.C_TITLE, 300)
-    header.resizeSection(OutlineModel.C_COMMENTS, 250)
-    header.resizeSection(OutlineModel.C_PLOT, 200)
-    header.resizeSection(OutlineModel.C_WORLD, 120)
-    tree.setColumnHidden(OutlineModel.C_WORLD, True)
+    header.resizeSection(4, 250)
+    header.resizeSection(2, 200)
+    header.resizeSection(3, 120)
+    tree.setColumnHidden(3, True)
 
     # The state is saved when the project is closed
     assert nwGUI.closeProject(isYes=True)
@@ -196,62 +186,44 @@ def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
     tree = view.outlineContent
     header = tree.header()
     assert header is not None
-    # Plot is now the last visible column, so it is stretched and not saved
+    # Plot is the last visible column, so it is stretched and not saved
     assert view.settings.getState("columns") == {
         "title": 300,
         comments: 250,
-        "characters": 160,
-        "plot": 160,
-        "world": 160,
-        "custom": 160,
-        "mentions": 160,
+        chars: 160,
+        plot: 160,
+        world: 160,
     }
-    assert [header.logicalIndex(i) for i in range(7)] == [
-        OutlineModel.C_TITLE,
-        OutlineModel.C_COMMENTS,
-        OutlineModel.C_CHARS,
-        OutlineModel.C_PLOT,
-        OutlineModel.C_WORLD,
-        OutlineModel.C_CUSTOM,
-        OutlineModel.C_MENTION,
-    ]
+    assert [header.logicalIndex(i) for i in range(5)] == [0, 4, 1, 2, 3]
     assert header.sectionSize(OutlineModel.C_TITLE) == 300
-    assert header.sectionSize(OutlineModel.C_COMMENTS) == 250
+    assert header.sectionSize(4) == 250
 
-    # Changing the comment columns keeps the state by key, and adds new
-    # columns at the end
+    # Changing the columns keeps the state by key, and adds new columns
+    # at the end
     outline = view.settings
     assert isinstance(outline, OutlineViewSettings)
-    header.resizeSection(OutlineModel.C_CHARS, 180)
-    outline.setComments([CommentColumn("new", "New", ("note.new",)), *outline.comments])
+    header.resizeSection(1, 180)
+    outline.setColumns([OutlineColumn("new", "New", ("note.new",)), *outline.columns])
     view.refresh(None, force=True)
-    assert [header.logicalIndex(i) for i in range(3)] == [
-        OutlineModel.C_TITLE,
-        OutlineModel.C_COMMENTS + 1,
-        OutlineModel.C_CHARS,
-    ]
-    assert header.logicalIndex(7) == OutlineModel.C_COMMENTS
-    assert header.sectionSize(OutlineModel.C_COMMENTS + 1) == 250
-    assert header.sectionSize(OutlineModel.C_CHARS) == 180
-    assert header.sectionSize(OutlineModel.C_COMMENTS) == 160
+    assert [header.logicalIndex(i) for i in range(6)] == [0, 5, 2, 3, 4, 1]
+    assert header.sectionSize(5) == 250
+    assert header.sectionSize(2) == 180
+    assert header.sectionSize(1) == 160
 
     # Title stays first, unknown keys and invalid widths are skipped, and
     # missing columns are kept after the known ones
     settings = OutlineViewSettings()
-    settings.setState("columns", {"plot": "wide", "unknown": 100, "title": 30, "mentions": 90})
-    settings.setValue("outline.showMentions", True)
+    plot = f"column:{settings.columns[1].cid}"
+    comments = f"column:{settings.columns[3].cid}"
+    settings.setState("columns", {plot: "wide", "unknown": 100, "title": 30, comments: 90})
     tree = GuiStoryOutlineView(nwGUI, settings).outlineContent
     tree.refresh(None)
     header = tree.header()
     assert header is not None
-    assert [header.logicalIndex(i) for i in range(3)] == [
-        OutlineModel.C_TITLE,
-        OutlineModel.C_PLOT,
-        OutlineModel.C_MENTION,
-    ]
+    assert [header.logicalIndex(i) for i in range(3)] == [0, 2, 4]
     assert header.sectionSize(OutlineModel.C_TITLE) == 260
-    assert header.sectionSize(OutlineModel.C_PLOT) == 160
-    assert header.sectionSize(OutlineModel.C_MENTION) == 90
+    assert header.sectionSize(2) == 160
+    assert header.sectionSize(4) == 90
 
     # Nothing is saved before the state is loaded on the first build
     settings = OutlineViewSettings()
@@ -261,13 +233,13 @@ def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
 
     # A hidden column without a previous width gets the default width
     tree.refresh(None)
-    tree.setColumnHidden(OutlineModel.C_CUSTOM, True)
+    tree.setColumnHidden(1, True)
     tree.saveColumnState()
-    assert settings.getState("columns")["custom"] == 160
+    assert settings.getState("columns")[f"column:{settings.columns[0].cid}"] == 160
 
     # The stretched last column keeps its previous width
     settings = OutlineViewSettings()
-    comments = f"comment:{settings.comments[0].cid}"
+    comments = f"column:{settings.columns[3].cid}"
     settings.setState("columns", {comments: 300})
     tree = GuiStoryOutlineView(nwGUI, settings).outlineContent
     tree.refresh(None)
@@ -329,6 +301,9 @@ def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
     settings = OutlineViewSettings()
     for key in ALL_SETTINGS:
         settings.setValue(key, True)
+    more = ("@entity", "@custom", "@mention", "synopsis")
+    columns = [c for c in settings.columns if c.keys != ("synopsis",)]
+    settings.setColumns([*columns, OutlineColumn("more", "More", more)])
 
     view = GuiStoryOutlineView(nwGUI, settings)
     view.resize(1600, 800)
@@ -338,6 +313,7 @@ def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
     tree = view.outlineContent
     model = tree._model
     delegate = tree._delegate
+    labels = model._labels.sKeys
 
     # Fill in all reference types, with some left empty
     for i, node in enumerate(model._nodes):
@@ -357,6 +333,8 @@ def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
             else {nwKeyWords.FOCUS_KEY: ["John"]}
         )
         node._refs = {k: ", ".join(v) for k, v in node._lists.items()}
+        node._entries = [[(k, labels[k], node._refs[k]) for k in keys if k in node._refs] for keys in node._columns]
+        node._entries[-1].append(("synopsis", "Synopsis", "Text"))
         if i % 2:
             node._progress = ""
 
@@ -364,59 +342,49 @@ def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
     tree.setCurrentIndex(model.index(3, 0))
     assert not view.grab().isNull()
 
-    # Highlighted references in labelled, wrapped and plain cells
+    # Highlighted references
     tree.setHighlight({"jane", "jack", "main", "night", "company", "custom"})
     assert delegate._highlight == {"jane", "jack", "main", "night", "company", "custom"}
     assert not view.grab().isNull()
 
-    # Highlights are cut at the elided length, and are not added past it
+    # Highlights are cut at the limit, and are not added past it
     node = model._nodes[1]
     formats = delegate._highlightFormats(node, nwKeyWords.CHAR_KEY, 0, 14)
     assert [(f.start, f.length) for f in formats] == [(0, 4), (12, 2)]
     formats = delegate._highlightFormats(node, nwKeyWords.CHAR_KEY, 6, 10)
     assert [(f.start, f.length) for f in formats] == [(6, 4)]
 
-    # A single world option is wrapped
-    delegate.setWorldKeys([nwKeyWords.WORLD_KEY])
-    assert not view.grab().isNull()
+    # Entries are stacked, leaving a line for each following entry, and
+    # the text is limited to whole lines within the height
+    calls = []
+    drawLayout = _OutlineDelegate._drawLayout
 
-    # Wrapped text is limited to whole lines within the height
-    node = model._nodes[1]
-    node._lists[nwKeyWords.PLOT_KEY] = [f"Plot{i}" for i in range(30)]
-    node._refs[nwKeyWords.PLOT_KEY] = ", ".join(node._lists[nwKeyWords.PLOT_KEY])
+    def recordLayout(self, painter, x, y, w, h, text, formats, option):
+        used = drawLayout(self, painter, x, y, w, h, text, formats, option)
+        calls.append((y, h, text, used, painter.pen().color(), formats[0].format))
+        return used
+
     hLine = delegate._fm.height()
     pixmap = QPixmap(200, 200)
     painter = QPainter(pixmap)
-    assert 2 * hLine - 2 <= delegate._paintWrapped(painter, 0, 0, 150, 2 * hLine + 5, node, nwKeyWords.PLOT_KEY)
-    assert delegate._paintWrapped(painter, 0, 0, 150, 2 * hLine + 5, node, nwKeyWords.PLOT_KEY) <= 2 * hLine + 2
-    assert delegate._paintWrapped(painter, 0, 0, 150, hLine, model._nodes[0], nwKeyWords.CHAR_KEY) == 0
-
-    # Stacked values leave a line for each following key with references
-    calls = []
-    paintWrapped = _OutlineDelegate._paintWrapped
-
-    def recordWrapped(self, painter, x, y, w, h, node, key, labelled=True):
-        used = paintWrapped(self, painter, x, y, w, h, node, key, labelled)
-        calls.append((key, y, h, used))
-        return used
-
-    node._lists[nwKeyWords.WORLD_KEY] = [f"World{i}" for i in range(30)]
-    node._refs[nwKeyWords.WORLD_KEY] = ", ".join(node._lists[nwKeyWords.WORLD_KEY])
-    keys = [nwKeyWords.WORLD_KEY, nwKeyWords.OBJECT_KEY, nwKeyWords.ENTITY_KEY]
+    entries = [
+        ("@location", "Locations", ", ".join(f"World{i}" for i in range(30))),
+        ("note.purpose", "Note (Purpose)", "Text"),
+    ]
     with monkeypatch.context() as mp:
-        mp.setattr(_OutlineDelegate, "_paintWrapped", recordWrapped)
-        delegate._paintStacked(painter, 0, 0, 150, 3 * hLine, node, keys)
-        world, entity = calls
-        assert world[:3] == (nwKeyWords.WORLD_KEY, 0, 2 * hLine)
-        assert entity[:3] == (nwKeyWords.ENTITY_KEY, world[3], 3 * hLine - world[3])
-
-        # A single key with references uses the full height
-        calls.clear()
-        delegate._paintStacked(painter, 0, 0, 150, 3 * hLine, node, [nwKeyWords.OBJECT_KEY, nwKeyWords.WORLD_KEY])
-        assert calls[0][:3] == (nwKeyWords.WORLD_KEY, 0, 3 * hLine)
+        mp.setattr(_OutlineDelegate, "_drawLayout", recordLayout)
+        delegate._paintEntries(painter, 0, 0, 150, 3 * hLine, node, entries)
+        world, note = calls
+        assert world[:2] == (0, 2 * hLine)
+        assert world[2].startswith("Locations: World0, World1")
+        assert 2 * hLine - 2 <= world[3] <= 2 * hLine + 2
+        assert world[4] == delegate._tagCol
+        assert world[5] == delegate._boldFormat
+        assert note[:3] == (world[3], 3 * hLine - world[3], "Note (Purpose): Text")
+        assert note[4] == delegate._noteCol
+        assert note[5] == delegate._modFormat
 
     painter.end()
-    assert not view.grab().isNull()
 
     # Partition rows are a single line
     option = QStyleOptionViewItem()
@@ -433,8 +401,8 @@ def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryOutline_CommentsPage(qtbot, nwGUI, prjLipsum):
-    """Test the comment columns settings page."""
+def testStoryOutline_ColumnsPage(qtbot, nwGUI, prjLipsum):
+    """Test the outline columns settings page."""
     assert nwGUI.openProject(prjLipsum)
     index = SHARED.project.index
     heading = index.getItemHeading("fb609cd8319dc", "T0001")
@@ -445,13 +413,16 @@ def testStoryOutline_CommentsPage(qtbot, nwGUI, prjLipsum):
     for key in "ABC":
         heading.setComment("note", key, "Text")
 
+    refs = list(nwKeyWords.CAN_LOOKUP)
+    notes = ["story.goal", "note.a", "note.b", "note.c", "note.consistency", "note.purpose"]
+
     settings = OutlineViewSettings()
-    settings.setComments([*settings.comments, CommentColumn("b", "Other", ("note.gone",))])
+    settings.setColumns([OutlineColumn("a", "Comments", ("synopsis",)), OutlineColumn("b", "Other", ("note.gone",))])
     dialog = GuiOutlineViewSettings(nwGUI, settings)
     qtbot.addWidget(dialog)
-    page = dialog.commentsPage
+    page = dialog.columnsPage
     tree = page.columnTree
-    combo = page.commentValue
+    combo = page.entryValue
 
     def options() -> list[str]:
         return [combo.itemData(i) for i in range(combo.count())]
@@ -467,41 +438,45 @@ def testStoryOutline_CommentsPage(qtbot, nwGUI, prjLipsum):
     assert keys(1) == ["note.gone"]
     assert tree.topLevelItem(1).child(0).text(0) == "Note: gone"  # type: ignore
     assert tree.topLevelItem(1).child(0).foreground(0).color() == SHARED.theme.helpText  # type: ignore
-    assert options() == ["story.goal", "note.a", "note.b", "note.c", "note.consistency", "note.purpose"]
-    assert combo.itemText(0) == "Story: Goal"
-    assert combo.itemText(4) == "Note: Consistency"
+    assert options() == [*refs, *notes]
+    assert combo.itemText(0) == "Point of View"
+    assert combo.itemText(11) == "Story: Goal"
+    assert combo.itemText(15) == "Note: Consistency"
+    assert not combo.itemIcon(0).isNull()
+    assert not combo.itemIcon(11).isNull()
 
-    # Comments are added to the selected column, but only if the text matches
+    # Entries are added to the selected column, but only if the text matches
     tree.setCurrentItem(tree.topLevelItem(0))
-    combo.setCurrentIndex(4)
-    page.addComment.click()
+    combo.setCurrentIndex(15)
+    page.addEntry.click()
     assert keys(0) == ["synopsis", "note.consistency"]
     assert "note.consistency" not in options()
     combo.setEditText("Nope")
-    page.addComment.click()
+    page.addEntry.click()
     assert keys(0) == ["synopsis", "note.consistency"]
 
-    # A column is full at five comments
+    # A column is full at five entries
     for _ in range(4):
         combo.setCurrentIndex(0)
-        page.addComment.click()
-    assert keys(0) == ["synopsis", "note.consistency", "story.goal", "note.a", "note.b"]
-    assert options() == ["note.c", "note.purpose"]
+        page.addEntry.click()
+    assert keys(0) == ["synopsis", "note.consistency", "@pov", "@focus", "@char"]
+    assert tree.topLevelItem(0).child(2).foreground(0).color() != SHARED.theme.helpText  # type: ignore
+    assert options()[0] == "@plot"
 
-    # Without a selection, comments are added to the last column
+    # Without a selection, entries are added to the last column
     tree.setCurrentItem(None)  # type: ignore
-    page.addComment.click()
-    assert keys(1) == ["note.gone", "note.c"]
-    assert options() == ["note.purpose"]
+    page.addEntry.click()
+    assert keys(1) == ["note.gone", "@plot"]
+    assert "@plot" not in options()
 
-    # Removing a comment only applies to comment items
+    # Removing an entry only applies to entry items
     tree.setCurrentItem(tree.topLevelItem(1))
-    page.delComment.click()
-    assert keys(1) == ["note.gone", "note.c"]
+    page.delEntry.click()
+    assert keys(1) == ["note.gone", "@plot"]
     tree.setCurrentItem(tree.topLevelItem(1).child(1))  # type: ignore
-    page.delComment.click()
+    page.delEntry.click()
     assert keys(1) == ["note.gone"]
-    assert options() == ["note.c", "note.purpose"]
+    assert options()[0] == "@plot"
 
     # Columns are added, renamed and removed, with empty names replaced
     page.addColumn.click()
@@ -513,7 +488,7 @@ def testStoryOutline_CommentsPage(qtbot, nwGUI, prjLipsum):
     tree.setCurrentItem(tree.topLevelItem(0).child(1))  # type: ignore
     page.delColumn.click()
     assert tree.topLevelItemCount() == 2
-    assert options() == ["synopsis", "story.goal", "note.a", "note.b", "note.c", "note.consistency", "note.purpose"]
+    assert options() == [*refs, "synopsis", *notes]
 
     # Without a selection, the column controls do nothing
     tree.setCurrentItem(None)  # type: ignore
@@ -521,17 +496,17 @@ def testStoryOutline_CommentsPage(qtbot, nwGUI, prjLipsum):
     page.delColumn.click()
     assert tree.topLevelItemCount() == 2
 
-    # Adding a comment without any columns creates one
+    # Adding an entry without any columns creates one
     page.setColumns([])
     combo.setCurrentIndex(0)
-    page.addComment.click()
+    page.addEntry.click()
     assert page.columns()[0].name == "Column"
-    assert page.columns()[0].keys == ("synopsis",)
+    assert page.columns()[0].keys == ("@pov",)
 
     # Drops are only accepted into columns with room
     page.setColumns([
-        CommentColumn("a", "A", ("note.a",)),
-        CommentColumn("b", "B", ("synopsis", "story.goal", "note.b", "note.c", "note.consistency")),
+        OutlineColumn("a", "A", ("note.a",)),
+        OutlineColumn("b", "B", ("synopsis", "story.goal", "note.b", "note.c", "note.consistency")),
     ])
     source = tree.topLevelItem(0).child(0)  # type: ignore
     full = tree.topLevelItem(1)
@@ -561,6 +536,6 @@ def testStoryOutline_CommentsPage(qtbot, nwGUI, prjLipsum):
 
     # The page is saved to the settings
     dialog._applyChanges()
-    assert [c.cid for c in settings.comments] != ["a", "b"]
-    assert [c.cid for c in dialog._settings.comments] == ["a", "b"]  # type: ignore
+    assert [c.keys for c in settings.columns] == [("synopsis",), ("note.gone",)]
+    assert dialog._settings.columns == page.columns()  # type: ignore
     dialog.discardAndClose()
