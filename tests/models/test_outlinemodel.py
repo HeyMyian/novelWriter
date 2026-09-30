@@ -109,6 +109,48 @@ def testOutlineModel_Interface(nwGUI, prjLipsum):
     assert blank.title == ""
     assert blank.synopsis == ""
 
+    # No progress unless words per page is set
+    assert node.progress == ""
+
+    # Progress, with partitions and chapters starting on a new page
+    model.buildOutline(index, None, {1, 2, 3, 4}, 100)
+    progress = [model.node(model.index(r, 0)).progress for r in range(12)]  # type: ignore
+    assert progress[0] == "Page 1 (0.0\u202f%)"
+    assert progress[1] == "Page 4 (7.3\u202f%)"
+    assert progress[3] == "Page 6 (10.6\u202f%)"
+    assert progress[5] == "Page 8 (18.7\u202f%)"
+    assert progress[8] == "Page 17 (46.3\u202f%)"
+    assert progress[11] == "Page 27 (81.9\u202f%)"
+
+    # Clear double page starts partitions and chapters on odd pages
+    model.buildOutline(index, None, {1, 2, 3, 4}, 100, True)
+    progress = [model.node(model.index(r, 0)).progress for r in range(12)]  # type: ignore
+    assert progress[0] == "Page 1 (0.0\u202f%)"
+    assert progress[1] == "Page 5 (7.3\u202f%)"
+    assert progress[3] == "Page 9 (10.6\u202f%)"
+    assert progress[5] == "Page 11 (18.7\u202f%)"
+    assert progress[8] == "Page 21 (46.3\u202f%)"
+    assert progress[11] == "Page 31 (81.9\u202f%)"
+
+    # Filtered levels still count all words
+    model.buildOutline(index, None, {2}, 100)
+    progress = [model.node(model.index(r, 0)).progress for r in range(3)]  # type: ignore
+    assert progress == ["Page 4 (7.3\u202f%)", "Page 6 (10.6\u202f%)", "Page 17 (46.3\u202f%)"]
+
+    # A smaller target is ignored, and a larger one is used instead
+    model.buildOutline(index, None, {2}, 100, False, 1000)
+    assert model.node(model.index(2, 0)).progress == "Page 17 (46.3\u202f%)"  # type: ignore
+    model.buildOutline(index, None, {2}, 100, False, 6000)
+    assert model.node(model.index(2, 0)).progress == "Page 17 (23.2\u202f%)"  # type: ignore
+
+    # Character counts are used for both pages and progress
+    model.buildOutline(index, None, {2}, 1000, False, 0, True)
+    progress = [model.node(model.index(r, 0)).progress for r in range(3)]  # type: ignore
+    assert progress == ["Page 4 (6.5\u202f%)", "Page 6 (9.7\u202f%)", "Page 14 (45.6\u202f%)"]
+    model.buildOutline(index, None, {2}, 1000, False, 100000, True)
+    progress = [model.node(model.index(r, 0)).progress for r in range(3)]  # type: ignore
+    assert progress == ["Page 4 (1.3\u202f%)", "Page 6 (2.0\u202f%)", "Page 14 (9.2\u202f%)"]
+
     # Clear the model
     model.clear()
     assert model.rowCount(root) == 0

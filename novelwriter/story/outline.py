@@ -38,7 +38,7 @@ from PyQt6.QtWidgets import (
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwKeyWords, nwLabels, nwUnicode, trConst
-from novelwriter.extensions.modified import NTreeView
+from novelwriter.extensions.modified import NSpinBox, NTreeView
 from novelwriter.extensions.switch import NSwitch
 from novelwriter.models.outlinemodel import OutlineModel
 from novelwriter.story.storyviewbase import GuiStorySettingsBase, GuiStoryViewBase
@@ -168,6 +168,25 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.form.addRow(settings.getLabel("outline.showCustom"), self.showCustom)
         self.form.addRow(settings.getLabel("outline.showMentions"), self.showMentions)
 
+        # Progression
+        # ===========
+
+        title = settings.getLabel("outline.grpProgress")
+        section += 1
+        self.sidebar.addButton(title, section)
+        self.form.addGroupLabel(title, section)
+
+        self.showProgress = NSwitch(self, height=iPx)
+        self.countPerPage = NSpinBox(self, minVal=10, maxVal=9999, step=10)
+        self.clearDoublePage = NSwitch(self, height=iPx)
+        self.useTargetCount = NSwitch(self, height=iPx)
+
+        self.form.addRow(settings.getLabel("outline.showProgress"), self.showProgress)
+        unit = self.tr("characters") if SHARED.project.data.targetCountChars else self.tr("words")
+        self.form.addRow(settings.getLabel("outline.countPerPage"), self.countPerPage, unit=unit)
+        self.form.addRow(settings.getLabel("outline.clearDoublePage"), self.clearDoublePage)
+        self.form.addRow(settings.getLabel("outline.useTargetCount"), self.useTargetCount)
+
         # Finalise
         self.form.finalise()
 
@@ -189,6 +208,12 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.showCustom.setChecked(settings.getBool("outline.showCustom"))
         self.showMentions.setChecked(settings.getBool("outline.showMentions"))
 
+        # Progression
+        self.showProgress.setChecked(settings.getBool("outline.showProgress"))
+        self.countPerPage.setValue(settings.getInt("outline.countPerPage"))
+        self.clearDoublePage.setChecked(settings.getBool("outline.clearDoublePage"))
+        self.useTargetCount.setChecked(settings.getBool("outline.useTargetCount"))
+
     def saveSettings(self) -> None:
         """Save the settings."""
         settings = self._settings
@@ -206,6 +231,12 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         settings.setValue("outline.showEntity", self.showEntity.isChecked())
         settings.setValue("outline.showCustom", self.showCustom.isChecked())
         settings.setValue("outline.showMentions", self.showMentions.isChecked())
+
+        # Progression
+        settings.setValue("outline.showProgress", self.showProgress.isChecked())
+        settings.setValue("outline.countPerPage", self.countPerPage.value())
+        settings.setValue("outline.clearDoublePage", self.clearDoublePage.isChecked())
+        settings.setValue("outline.useTargetCount", self.useTargetCount.isChecked())
 
 
 class GuiStoryOutlineTree(NTreeView):
@@ -300,7 +331,11 @@ class GuiStoryOutlineTree(NTreeView):
                 levels.add(3)
             if settings.getBool("outline.showSections"):
                 levels.add(4)
-            self._model.buildOutline(index, rootHandle, levels)
+            data = SHARED.project.data
+            perPage = settings.getInt("outline.countPerPage") if settings.getBool("outline.showProgress") else 0
+            clearDouble = settings.getBool("outline.clearDoublePage")
+            target = data.targetCount if settings.getBool("outline.useTargetCount") else 0
+            self._model.buildOutline(index, rootHandle, levels, perPage, clearDouble, target, data.targetCountChars)
 
             worldKeys = []
             if settings.getBool("outline.showWorld"):
@@ -402,6 +437,7 @@ class _OutlineDelegate(QStyledItemDelegate):
         "_boldFormat",
         "_fm",
         "_fmB",
+        "_helpCol",
         "_keyLabels",
         "_lineHeight",
         "_margin",
@@ -446,6 +482,7 @@ class _OutlineDelegate(QStyledItemDelegate):
         self._lineHeight = self._fmB.height() + 2 * self._margin + 2 * ROW_PAD
         self._rowHeight = self._lineHeight + 2 * self._fm.height()
         self._textCol = QApplication.palette().text().color()
+        self._helpCol = SHARED.theme.helpText
         self._boldFormat.setFont(SHARED.theme.guiFontB)
 
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
@@ -498,8 +535,13 @@ class _OutlineDelegate(QStyledItemDelegate):
                 painter.drawText(QRect(x, y, w, hTitle), LINE_FLAGS, title)
 
                 painter.setFont(SHARED.theme.guiFont)
+                painter.setPen(self._helpCol)
                 counts = self._fm.elidedText(node.counts, QtElideRight, w)
                 painter.drawText(QRect(x, y + hTitle, w, hLine), LINE_FLAGS, counts)
+
+                if node.progress:
+                    progress = self._fm.elidedText(node.progress, QtElideRight, w)
+                    painter.drawText(QRect(x, y + hTitle + hLine, w, hLine), LINE_FLAGS, progress)
 
             case OutlineModel.C_CHARS:
                 hLine = self._fm.height()

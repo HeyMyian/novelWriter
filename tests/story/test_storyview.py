@@ -26,7 +26,7 @@ from shutil import copyfile
 
 import pytest
 
-from PyQt6.QtWidgets import QFileDialog
+from PyQt6.QtWidgets import QFileDialog, QLabel
 
 from novelwriter import SHARED
 from novelwriter.constants import nwFiles
@@ -256,8 +256,15 @@ def testStoryView_SettingsDialog(monkeypatch, nwGUI, prjLipsum):
     assert asked == 0
     assert rebuilt == 1
 
+    # The page count unit follows the project count mode
+    dialog = openDialog()
+    assert "words" in [w.text() for w in dialog.findChildren(QLabel)]
+    dialog.close()
+    SHARED.project.data.setProjectTarget(0, None, True)
+
     # The sidebar, title and theme are handled by the base class
     dialog = openDialog()
+    assert "characters" in [w.text() for w in dialog.findChildren(QLabel)]
     assert dialog.sidebar.accessibleName() == dialog.windowTitle()
     button = dialog.sidebar._group.button(1)
     assert button is not None

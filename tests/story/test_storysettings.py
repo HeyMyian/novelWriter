@@ -159,6 +159,10 @@ def testStoryViewSettings_Values():
         "outline.showEntity": False,
         "outline.showCustom": False,
         "outline.showMentions": False,
+        "outline.showProgress": True,
+        "outline.countPerPage": 350,
+        "outline.clearDoublePage": True,
+        "outline.useTargetCount": True,
     }
 
     # Invalid setting
@@ -211,6 +215,10 @@ def testStoryViewSettings_Values():
         "outline.showEntity": False,
         "outline.showCustom": False,
         "outline.showMentions": False,
+        "outline.showProgress": True,
+        "outline.countPerPage": 350,
+        "outline.clearDoublePage": True,
+        "outline.useTargetCount": True,
     }
 
 

@@ -49,34 +49,44 @@ T_ViewValue = str | int | float | bool
 
 # fmt: off
 SETTINGS_TEMPLATE: dict[str, tuple[type, T_ViewValue]] = {
-    "outline.showParts":      (bool, True),
-    "outline.showScenes":     (bool, True),
-    "outline.showSections":   (bool, False),
-    "outline.showCharacters": (bool, True),
-    "outline.showPlot":       (bool, True),
-    "outline.showWorld":      (bool, True),
-    "outline.showObject":     (bool, False),
-    "outline.showEntity":     (bool, False),
-    "outline.showCustom":     (bool, False),
-    "outline.showMentions":   (bool, False),
+    "outline.showParts":       (bool, True),
+    "outline.showScenes":      (bool, True),
+    "outline.showSections":    (bool, False),
+    "outline.showCharacters":  (bool, True),
+    "outline.showPlot":        (bool, True),
+    "outline.showWorld":       (bool, True),
+    "outline.showObject":      (bool, False),
+    "outline.showEntity":      (bool, False),
+    "outline.showCustom":      (bool, False),
+    "outline.showMentions":    (bool, False),
+    "outline.showProgress":    (bool, True),
+    "outline.countPerPage":    (int, 350),
+    "outline.clearDoublePage": (bool, True),
+    "outline.useTargetCount":  (bool, True),
 }
 
 SETTINGS_LABELS = {
-    "outline.defaultName":  QT_TRANSLATE_NOOP("StoryViews", "Outline"),
+    "outline.defaultName":     QT_TRANSLATE_NOOP("StoryViews", "Outline"),
 
-    "outline.grpDocuments": QT_TRANSLATE_NOOP("StoryViews", "Documents"),
-    "outline.showParts":    QT_TRANSLATE_NOOP("StoryViews", "Show partitions"),
-    "outline.showScenes":   QT_TRANSLATE_NOOP("StoryViews", "Show scenes"),
-    "outline.showSections": QT_TRANSLATE_NOOP("StoryViews", "Show sections"),
+    "outline.grpDocuments":    QT_TRANSLATE_NOOP("StoryViews", "Documents"),
+    "outline.showParts":       QT_TRANSLATE_NOOP("StoryViews", "Show partitions"),
+    "outline.showScenes":      QT_TRANSLATE_NOOP("StoryViews", "Show scenes"),
+    "outline.showSections":    QT_TRANSLATE_NOOP("StoryViews", "Show sections"),
 
-    "outline.grpClass":       QT_TRANSLATE_NOOP("StoryViews", "References"),
-    "outline.showCharacters": QT_TRANSLATE_NOOP("StoryViews", "Show point of view, focus and characters"),
-    "outline.showPlot":       QT_TRANSLATE_NOOP("StoryViews", "Show plots and timelines"),
-    "outline.showWorld":      QT_TRANSLATE_NOOP("StoryViews", "Show locations"),
-    "outline.showObject":     QT_TRANSLATE_NOOP("StoryViews", "Show objects"),
-    "outline.showEntity":     QT_TRANSLATE_NOOP("StoryViews", "Show entities"),
-    "outline.showCustom":     QT_TRANSLATE_NOOP("StoryViews", "Show custom references"),
-    "outline.showMentions":   QT_TRANSLATE_NOOP("StoryViews", "Show mentions"),
+    "outline.grpClass":        QT_TRANSLATE_NOOP("StoryViews", "References"),
+    "outline.showCharacters":  QT_TRANSLATE_NOOP("StoryViews", "Show point of view, focus and characters"),
+    "outline.showPlot":        QT_TRANSLATE_NOOP("StoryViews", "Show plots and timelines"),
+    "outline.showWorld":       QT_TRANSLATE_NOOP("StoryViews", "Show locations"),
+    "outline.showObject":      QT_TRANSLATE_NOOP("StoryViews", "Show objects"),
+    "outline.showEntity":      QT_TRANSLATE_NOOP("StoryViews", "Show entities"),
+    "outline.showCustom":      QT_TRANSLATE_NOOP("StoryViews", "Show custom references"),
+    "outline.showMentions":    QT_TRANSLATE_NOOP("StoryViews", "Show mentions"),
+
+    "outline.grpProgress":     QT_TRANSLATE_NOOP("StoryViews", "Progression"),
+    "outline.showProgress":    QT_TRANSLATE_NOOP("StoryViews", "Show story progression"),
+    "outline.countPerPage":    QT_TRANSLATE_NOOP("StoryViews", "Count per page"),
+    "outline.clearDoublePage": QT_TRANSLATE_NOOP("StoryViews", "Clear double page"),
+    "outline.useTargetCount":  QT_TRANSLATE_NOOP("StoryViews", "Relative to project target"),
 }
 # fmt: on
 

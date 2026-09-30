@@ -22,6 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import logging
+import math
 
 from typing import TYPE_CHECKING, NamedTuple
 
@@ -29,6 +30,7 @@ from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PyQt6.QtGui import QColor
 
 from novelwriter import CONFIG, SHARED
+from novelwriter.common import formatPercent
 from novelwriter.constants import nwKeyWords, nwLabels, nwStats, nwStyles, trConst, trStats
 from novelwriter.types import QtTransparent
 
@@ -44,6 +46,7 @@ NODE_FLAGS = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
 class _TrCache(NamedTuple):
     sWords: str
     sChars: str
+    sPage: str
 
 
 class NodeStyle(NamedTuple):
@@ -73,6 +76,7 @@ class OutlineNode:
         "_heading",
         "_key",
         "_level",
+        "_progress",
         "_refs",
         "_style",
         "_title",
@@ -98,6 +102,7 @@ class OutlineNode:
         self._title = ""
         self._words = ""
         self._chars = ""
+        self._progress = ""
         self._refs: dict[str, str] = {}
         self._style = style
 
@@ -135,6 +140,11 @@ class OutlineNode:
         return self._chars if CONFIG.useCharCount else self._words
 
     @property
+    def progress(self) -> str:
+        """The page and story progress of the heading, if set."""
+        return self._progress
+
+    @property
     def synopsis(self) -> str:
         """The synopsis of the heading."""
         if hItem := self._heading:
@@ -157,6 +167,10 @@ class OutlineNode:
     ##
     #  Data Maintenance
     ##
+
+    def setProgress(self, page: int, fraction: float) -> None:
+        """Set the page number and word count progress fraction."""
+        self._progress = f"{self._tr.sPage.format(f'{page:n}')} ({formatPercent(fraction, prec=1)})"
 
     def refresh(self) -> None:
         """Refresh data values."""
@@ -202,6 +216,7 @@ class OutlineModel(QAbstractTableModel):
         self._labels = _TrCache(
             sWords=trStats(nwLabels.STATS_NAME[nwStats.WORDS]),
             sChars=trStats(nwLabels.STATS_NAME[nwStats.CHARS]),
+            sPage=self.tr("Page {0}"),
         )
 
         # Colours
@@ -269,20 +284,46 @@ class OutlineModel(QAbstractTableModel):
         self._nodes = []
         self.endResetModel()
 
-    def buildOutline(self, index: Index, rootHandle: str | None, levels: set[int]) -> None:
+    def buildOutline(
+        self,
+        index: Index,
+        rootHandle: str | None,
+        levels: set[int],
+        countPerPage: int = 0,
+        clearDouble: bool = False,
+        target: int = 0,
+        useChars: bool = False,
+    ) -> None:
         """Rebuild the outline from the project index, including only
-        headings of the given levels.
+        headings of the given levels. If count per page is set, the page
+        and progress of each heading is also calculated. Partitions and
+        chapters start on a new page, or a new odd page if clear double
+        is set. Progress is relative to the target if it is larger than
+        the total count. Counts are in characters if use chars is set.
         """
         self.beginResetModel()
         nodes: list[OutlineNode] = []
+        progress: list[tuple[OutlineNode, int, int]] = []
+        count = 0
+        pages = 0
+        start = 0
         for tHandle, sTitle, hItem in index.iterNovelStructure(rHandle=rootHandle):
             level = nwStyles.H_LEVEL.get(hItem.level, 0)
-            if level not in levels:
-                continue
-            if SHARED.project.tree[tHandle] is None:
-                continue
-            style = self._styles.get(level, BLANK_STYLE)
-            nodes.append(OutlineNode(tHandle, sTitle, hItem, self._labels, style))
+            if countPerPage > 0 and level <= 2:
+                span = math.ceil((count - start) / countPerPage)
+                pages += span + span % 2 if clearDouble else span
+                start = count
+            if level in levels:
+                style = self._styles.get(level, BLANK_STYLE)
+                node = OutlineNode(tHandle, sTitle, hItem, self._labels, style)
+                nodes.append(node)
+                if countPerPage > 0:
+                    progress.append((node, pages + 1 + (count - start) // countPerPage, count))
+            count += hItem.charCount if useChars else hItem.wordCount
+
+        total = max(count, target)
+        for node, page, before in progress:
+            node.setProgress(page, before / total if total else 0.0)
 
         self._nodes = nodes
         self.endResetModel()

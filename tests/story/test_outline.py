@@ -27,7 +27,7 @@ from PyQt6.QtCore import QModelIndex
 from PyQt6.QtGui import QPainter, QPixmap
 from PyQt6.QtWidgets import QStyleOptionViewItem
 
-from novelwriter import CONFIG
+from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwKeyWords
 from novelwriter.enum import nwView
 from novelwriter.models.outlinemodel import OutlineModel
@@ -46,6 +46,7 @@ ALL_SETTINGS = (
     "outline.showEntity",
     "outline.showCustom",
     "outline.showMentions",
+    "outline.showProgress",
 )
 
 
@@ -91,6 +92,21 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
     assert model.rowCount(root) == 12
     assert tree._delegate._worldKeys == [nwKeyWords.WORLD_KEY, nwKeyWords.OBJECT_KEY, nwKeyWords.ENTITY_KEY]
     assert not any(tree.isColumnHidden(c) for c in range(7))
+    assert model.node(model.index(11, 0)).progress == "Page 16 (81.9\u202f%)"  # type: ignore
+
+    # Progress follows the page settings
+    settings.setValue("outline.countPerPage", 100)
+    settings.setValue("outline.clearDoublePage", False)
+    view.refresh(None, force=True)
+    assert model.node(model.index(11, 0)).progress == "Page 27 (81.9\u202f%)"  # type: ignore
+
+    # Progress is relative to the project target if it is larger
+    SHARED.project.data.setProjectTarget(6012, None, False)
+    view.refresh(None, force=True)
+    assert model.node(model.index(11, 0)).progress == "Page 27 (41.0\u202f%)"  # type: ignore
+    settings.setValue("outline.useTargetCount", False)
+    view.refresh(None, force=True)
+    assert model.node(model.index(11, 0)).progress == "Page 27 (81.9\u202f%)"  # type: ignore
 
     # Everything disabled leaves chapters only
     for key in ALL_SETTINGS:
@@ -99,6 +115,7 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
     assert model.rowCount(root) == 3
     assert tree._delegate._worldKeys == []
     assert [tree.isColumnHidden(c) for c in range(7)] == [False, True, True, True, True, True, False]
+    assert model.node(model.index(0, 0)).progress == ""  # type: ignore
 
     # No rebuild without a change
     model.clear()
@@ -222,6 +239,8 @@ def testStoryOutline_Paint(qtbot, nwGUI, prjLipsum):
             if i % 2
             else {nwKeyWords.FOCUS_KEY: "John"}
         )
+        if i % 2:
+            node._progress = ""
 
     # Paint all rows with one selected
     tree.setCurrentIndex(model.index(3, 0))
