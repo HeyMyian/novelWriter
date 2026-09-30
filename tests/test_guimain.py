@@ -94,7 +94,6 @@ def testGuiMain_ProjectBlocker(nwGUI):
     nwGUI.openNextDocument(C.hSceneDoc, False, True)
     nwGUI._autoSaveProject()
     nwGUI.showProjectSettingsDialog()
-    nwGUI.showNovelDetailsDialog()
     nwGUI.showBuildManuscriptDialog()
     nwGUI.showProjectWordListDialog()
     nwGUI.showWritingStatsDialog()

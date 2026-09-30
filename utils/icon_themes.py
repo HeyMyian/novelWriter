@@ -100,7 +100,6 @@ ICONS = [
     "unfold-hide",
     "unfold-show",
     "sb_build",
-    "sb_details",
     "sb_novel",
     "sb_project",
     "sb_search",

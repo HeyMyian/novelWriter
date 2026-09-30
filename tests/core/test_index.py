@@ -939,42 +939,6 @@ def testIndex_ExtractData(nwGUI, fncPath, mockRnd):
     del project.tree._items["0000000000000"]
     del project.tree._nodes["0000000000000"]
 
-    # Extract stats
-    assert index.getNovelWordCount(activeOnly=False) == 43
-    assert index.getNovelWordCount(activeOnly=True) == 15
-    assert index.getNovelWordCount(rootHandle=C.hNovelRoot, activeOnly=False) == 43
-    assert index.getNovelWordCount(rootHandle=C.hNovelRoot, activeOnly=True) == 15
-    assert index.getNovelWordCount(rootHandle=C.hWorldRoot, activeOnly=False) == 0
-    assert index.getNovelWordCount(rootHandle=C.hWorldRoot, activeOnly=True) == 0
-    assert index.getNovelTitleCounts(activeOnly=False) == [0, 3, 2, 3, 0]
-    assert index.getNovelTitleCounts(activeOnly=True) == [0, 1, 2, 3, 0]
-
-    # Table of Contents
-    assert index.getTableOfContents(C.hNovelRoot, 0, activeOnly=True) == []
-    assert index.getTableOfContents(C.hNovelRoot, 1, activeOnly=True) == [
-        (f"{C.hTitlePage}:T0001", 1, "New Novel", 15),
-    ]
-    assert index.getTableOfContents(C.hNovelRoot, 2, activeOnly=True) == [
-        (f"{C.hTitlePage}:T0001", 1, "New Novel", 5),
-        (f"{C.hChapterDoc}:T0001", 2, "New Chapter", 4),
-        (f"{hHandle}:T0001", 2, "Chapter One", 6),
-    ]
-    assert index.getTableOfContents(C.hNovelRoot, 3, activeOnly=True) == [
-        (f"{C.hTitlePage}:T0001", 1, "New Novel", 5),
-        (f"{C.hChapterDoc}:T0001", 2, "New Chapter", 2),
-        (f"{C.hSceneDoc}:T0001", 3, "New Scene", 2),
-        (f"{hHandle}:T0001", 2, "Chapter One", 2),
-        (f"{sHandle}:T0001", 3, "Scene One", 2),
-        (f"{tHandle}:T0001", 3, "Scene Two", 2),
-    ]
-
-    assert index.getTableOfContents(C.hNovelRoot, 0, activeOnly=False) == []
-    assert index.getTableOfContents(C.hNovelRoot, 1, activeOnly=False) == [
-        (f"{C.hTitlePage}:T0001", 1, "New Novel", 9),
-        (f"{nHandle}:T0001", 1, "Hello World!", 12),
-        (f"{nHandle}:T0002", 1, "Hello World!", 22),
-    ]
-
     assert index.saveIndex() is True
     assert project.saveProject() is True
     project.closeProject()

@@ -40,7 +40,7 @@ from novelwriter.common import (
     jsonEncode,
     safeExists,
 )
-from novelwriter.constants import nwFiles, nwKeyWords, nwStyles
+from novelwriter.constants import nwFiles, nwKeyWords
 from novelwriter.core.indexdata import NOTE_TYPES, TT_NONE, IndexHeading, IndexNode, T_NoteTypes
 from novelwriter.enum import nwComment, nwItemClass, nwItemLayout, nwItemType, nwNovelExtra
 from novelwriter.error import logException
@@ -638,48 +638,6 @@ class Index:
     def getNoteKeys(self) -> set[str]:
         """Return all note comment keys."""
         return self._itemIndex.allNoteKeys()
-
-    def getNovelWordCount(self, rootHandle: str | None = None, activeOnly: bool = True) -> int:
-        """Count the number of words in one or all novel roots."""
-        return sum(
-            hItem.wordCount
-            for _, _, hItem in self._itemIndex.iterNovelStructure(rHandle=rootHandle, activeOnly=activeOnly)
-        )
-
-    def getNovelTitleCounts(self, rootHandle: str | None = None, activeOnly: bool = True) -> list[int]:
-        """Count the number of titles in one or all novel roots."""
-        hCount = [0, 0, 0, 0, 0]
-        for _, _, hItem in self._itemIndex.iterNovelStructure(rHandle=rootHandle, activeOnly=activeOnly):
-            iLevel = nwStyles.H_LEVEL.get(hItem.level, 0)
-            hCount[iLevel] += 1
-        return hCount
-
-    def getTableOfContents(
-        self,
-        rHandle: str | None,
-        maxDepth: int,
-        activeOnly: bool = True,
-    ) -> list[tuple[str, int, str, int]]:
-        """Generate a table of contents up to a maximum depth."""
-        tOrder = []
-        tData = {}
-        pKey = None
-        for tHandle, sTitle, hItem in self._itemIndex.iterNovelStructure(rHandle=rHandle, activeOnly=activeOnly):
-            tKey = f"{tHandle}:{sTitle}"
-            iLevel = nwStyles.H_LEVEL.get(hItem.level, 0)
-            if iLevel > maxDepth:
-                if pKey in tData:
-                    tData[pKey]["words"] += hItem.wordCount
-            else:
-                pKey = tKey
-                tOrder.append(tKey)
-                tData[tKey] = {
-                    "level": iLevel,
-                    "title": hItem.title,
-                    "words": hItem.wordCount,
-                }
-
-        return [(tKey, tData[tKey]["level"], tData[tKey]["title"], tData[tKey]["words"]) for tKey in tOrder]
 
     def getCounts(self, tHandle: str, sTitle: str | None = None) -> tuple[int, int, int]:
         """Return the counts for a file, or a section of a file,
