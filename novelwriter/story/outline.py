@@ -22,6 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import logging
+import math
 
 from typing import TYPE_CHECKING
 
@@ -614,27 +615,14 @@ class _OutlineDelegate(QStyledItemDelegate):
                 self._paintWrapped(painter, x, y + hLine, w, h - hLine, node, nwKeyWords.CHAR_KEY)
 
             case OutlineModel.C_PLOT:
-                hLine = self._fm.height()
-
-                # Line 1: Plot
-                if node.refs(nwKeyWords.PLOT_KEY):
-                    self._paintLabelled(painter, x, y, x + w, hLine, node, nwKeyWords.PLOT_KEY)
-
-                # Line 2: Timeline
-                self._paintWrapped(painter, x, y + hLine, w, h - hLine, node, nwKeyWords.TIME_KEY)
+                self._paintStacked(painter, x, y, w, h, node, [nwKeyWords.PLOT_KEY, nwKeyWords.TIME_KEY])
 
             case OutlineModel.C_SYNOPSIS:
                 painter.setFont(SHARED.theme.guiFont)
                 painter.drawText(QRect(x, y, w, h), WRAP_FLAGS, node.synopsis)
 
-            case OutlineModel.C_WORLD if len(self._worldKeys) == 1:
-                self._paintWrapped(painter, x, y, w, h, node, self._worldKeys[0])
-
             case OutlineModel.C_WORLD:
-                hLine = self._fm.height()
-                for i, key in enumerate(self._worldKeys):
-                    if node.refs(key):
-                        self._paintLabelled(painter, x, y + i * hLine, x + w, hLine, node, key)
+                self._paintStacked(painter, x, y, w, h, node, self._worldKeys)
 
             case OutlineModel.C_CUSTOM:
                 self._paintWrapped(painter, x, y, w, h, node, nwKeyWords.CUSTOM_KEY, labelled=False)
@@ -661,11 +649,25 @@ class _OutlineDelegate(QStyledItemDelegate):
             painter.drawText(QRect(x, y, maxX - x, h), LINE_FLAGS, value)
         return x + self._fm.horizontalAdvance(value)
 
+    def _paintStacked(
+        self, painter: QPainter, x: int, y: int, w: int, h: int, node: OutlineNode, keys: list[str]
+    ) -> None:
+        """Paint wrapped values for keys below each other, leaving at
+        least one line for each following key with references.
+        """
+        keys = [k for k in keys if node.refs(k)]
+        hLine = self._fm.height()
+        used = 0
+        for i, key in enumerate(keys, 1):
+            reserved = (len(keys) - i) * hLine
+            used += self._paintWrapped(painter, x, y + used, w, h - used - reserved, node, key)
+
     def _paintWrapped(
         self, painter: QPainter, x: int, y: int, w: int, h: int, node: OutlineNode, key: str, labelled: bool = True
-    ) -> None:
+    ) -> int:
         """Paint a value wrapped over the full width, if the node has
-        references for the key, optionally after a bold label.
+        references for the key, optionally after a bold label, and
+        return the height used.
         """
         if refs := node.refs(key):
             text = refs
@@ -679,7 +681,8 @@ class _OutlineDelegate(QStyledItemDelegate):
                 formats.append(bold)
                 text = f"{label} {refs}"
             formats.extend(self._highlightFormats(node, key, len(text) - len(refs), len(text)))
-            self._drawLayout(painter, x, y, w, h, text, formats, self._wrapOption)
+            return self._drawLayout(painter, x, y, w, h, text, formats, self._wrapOption)
+        return 0
 
     def _highlightFormats(self, node: OutlineNode, key: str, offset: int, limit: int) -> list[QTextLayout.FormatRange]:
         """Return format ranges for the highlighted tags of a key, with
@@ -706,16 +709,21 @@ class _OutlineDelegate(QStyledItemDelegate):
         text: str,
         formats: list[QTextLayout.FormatRange],
         option: QTextOption,
-    ) -> None:
-        """Draw formatted text, wrapped by the option, within a box."""
+    ) -> int:
+        """Draw formatted text, wrapped by the option, over as many whole
+        lines as fit the height, and return the height used.
+        """
         layout = QTextLayout(text, SHARED.theme.guiFont)
         layout.setFormats(formats)
         layout.setTextOption(option)
         layout.beginLayout()
         yPos = 0.0
-        while yPos < h and (line := layout.createLine()).isValid():
+        for _ in range(h // self._fm.height()):
+            if not (line := layout.createLine()).isValid():
+                break
             line.setLineWidth(w)
             line.setPosition(QPointF(0.0, yPos))
             yPos += line.height()
         layout.endLayout()
         layout.draw(painter, QPointF(x, y))
+        return math.ceil(yPos)

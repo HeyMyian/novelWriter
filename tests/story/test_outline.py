@@ -31,7 +31,7 @@ from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwKeyWords
 from novelwriter.enum import nwView
 from novelwriter.models.outlinemodel import OutlineModel
-from novelwriter.story.outline import GuiStoryOutlineView
+from novelwriter.story.outline import GuiStoryOutlineView, _OutlineDelegate
 from novelwriter.story.storysettings import OutlineViewSettings
 from novelwriter.types import QtModCtrl, QtModNone, QtScrollAlwaysOff, QtScrollAsNeeded
 
@@ -251,7 +251,7 @@ def testStoryOutline_WheelScroll(qtbot, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryOutline_Paint(qtbot, nwGUI, prjLipsum):
+def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
     """Test painting the outline rows."""
     assert nwGUI.openProject(prjLipsum)
 
@@ -307,6 +307,44 @@ def testStoryOutline_Paint(qtbot, nwGUI, prjLipsum):
 
     # A single world option is wrapped
     delegate.setWorldKeys([nwKeyWords.WORLD_KEY])
+    assert not view.grab().isNull()
+
+    # Wrapped text is limited to whole lines within the height
+    node = model._nodes[1]
+    node._lists[nwKeyWords.PLOT_KEY] = [f"Plot{i}" for i in range(30)]
+    node._refs[nwKeyWords.PLOT_KEY] = ", ".join(node._lists[nwKeyWords.PLOT_KEY])
+    hLine = delegate._fm.height()
+    pixmap = QPixmap(200, 200)
+    painter = QPainter(pixmap)
+    assert 2 * hLine - 2 <= delegate._paintWrapped(painter, 0, 0, 150, 2 * hLine + 5, node, nwKeyWords.PLOT_KEY)
+    assert delegate._paintWrapped(painter, 0, 0, 150, 2 * hLine + 5, node, nwKeyWords.PLOT_KEY) <= 2 * hLine + 2
+    assert delegate._paintWrapped(painter, 0, 0, 150, hLine, model._nodes[0], nwKeyWords.CHAR_KEY) == 0
+
+    # Stacked values leave a line for each following key with references
+    calls = []
+    paintWrapped = _OutlineDelegate._paintWrapped
+
+    def recordWrapped(self, painter, x, y, w, h, node, key, labelled=True):
+        used = paintWrapped(self, painter, x, y, w, h, node, key, labelled)
+        calls.append((key, y, h, used))
+        return used
+
+    node._lists[nwKeyWords.WORLD_KEY] = [f"World{i}" for i in range(30)]
+    node._refs[nwKeyWords.WORLD_KEY] = ", ".join(node._lists[nwKeyWords.WORLD_KEY])
+    keys = [nwKeyWords.WORLD_KEY, nwKeyWords.OBJECT_KEY, nwKeyWords.ENTITY_KEY]
+    with monkeypatch.context() as mp:
+        mp.setattr(_OutlineDelegate, "_paintWrapped", recordWrapped)
+        delegate._paintStacked(painter, 0, 0, 150, 3 * hLine, node, keys)
+        world, entity = calls
+        assert world[:3] == (nwKeyWords.WORLD_KEY, 0, 2 * hLine)
+        assert entity[:3] == (nwKeyWords.ENTITY_KEY, world[3], 3 * hLine - world[3])
+
+        # A single key with references uses the full height
+        calls.clear()
+        delegate._paintStacked(painter, 0, 0, 150, 3 * hLine, node, [nwKeyWords.OBJECT_KEY, nwKeyWords.WORLD_KEY])
+        assert calls[0][:3] == (nwKeyWords.WORLD_KEY, 0, 3 * hLine)
+
+    painter.end()
     assert not view.grab().isNull()
 
     # Partition rows are a single line
