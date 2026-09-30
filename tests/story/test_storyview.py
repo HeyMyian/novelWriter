@@ -26,6 +26,7 @@ from shutil import copyfile
 
 import pytest
 
+from PyQt6.QtCore import QAbstractAnimation
 from PyQt6.QtWidgets import QFileDialog, QLabel
 
 from novelwriter import SHARED
@@ -427,6 +428,70 @@ def testStoryView_LazyLoad(nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
+def testStoryView_Highlight(qtbot, nwGUI, prjLipsum):
+    """Test highlighting a reference in the views."""
+    assert nwGUI.openProject(prjLipsum)
+    storyView = nwGUI.storyView
+    tabMain = storyView.tabMain
+    combo = storyView.highlightValue
+    lineEdit = combo.lineEdit()
+    assert lineEdit is not None
+
+    def highlights():
+        return [tabMain.widget(i).outlineContent._delegate._highlight for i in range(tabMain.count())]  # type: ignore
+
+    # The references are listed when the view is shown
+    nwGUI._changeView(nwView.STORY)
+    assert [combo.itemData(i) for i in range(combo.count())] == ["", "bod", "europe", "main"]
+    assert [combo.itemText(i) for i in range(combo.count())] == ["", "Bod", "Europe", "Main"]
+
+    # Selecting a reference highlights it in all views, also new ones
+    combo.setCurrentIndex(combo.findData("bod"))
+    assert highlights() == [{"bod"}]
+    storyView.addView.click()
+    assert highlights() == [{"bod"}, {"bod"}]
+
+    # Matching text selects a reference, and other text is reverted
+    lineEdit.setText("europe")
+    lineEdit.editingFinished.emit()
+    assert combo.currentData() == "europe"
+    lineEdit.setText("Eur")
+    lineEdit.editingFinished.emit()
+    assert combo.currentText() == "Europe"
+    assert highlights() == [{"europe"}, {"europe"}]
+
+    # Clearing the text clears the highlight
+    lineEdit.clear()
+    assert combo.currentIndex() == 0
+    assert highlights() == [set(), set()]
+
+    # The selection is kept when the list is rebuilt
+    combo.setCurrentIndex(combo.findData("main"))
+    storyView.updateTheme()
+    assert combo.currentData() == "main"
+    assert highlights() == [{"main"}, {"main"}]
+
+    # A reference that no longer exists is cleared
+    storyView._highlight = {"gone"}
+    nwGUI.rebuildIndex()
+    assert combo.currentIndex() == 0
+    assert highlights() == [set(), set()]
+
+    # Closing the project clears the list
+    combo.setCurrentIndex(combo.findData("bod"))
+    assert nwGUI.closeProject(isYes=True)
+    assert combo.count() == 0
+    assert storyView._highlight == set()
+    assert not combo.isEnabled()
+    storyView.updateTheme()
+    assert combo.count() == 0
+
+    # Let the clear button fade out
+    running = QAbstractAnimation.State.Running
+    qtbot.waitUntil(lambda: all(a.state() != running for a in combo.findChildren(QAbstractAnimation)))
+
+
+@pytest.mark.gui
 def testStoryView_BaseClass(qtbot, nwGUI):
     """Test the story view base class."""
     settings = OutlineViewSettings()
@@ -439,4 +504,5 @@ def testStoryView_BaseClass(qtbot, nwGUI):
     view.initSettings()
     view.refresh(None)
     view.saveViewState()
+    view.setHighlight({"bod"})
     assert view.settingsDialog() is None

@@ -109,6 +109,10 @@ class GuiStoryOutlineView(GuiStoryViewBase):
         """Save the view state to the settings object."""
         self.outlineContent.saveColumnState()
 
+    def setHighlight(self, tags: set[str]) -> None:
+        """Set the reference tag keys to highlight."""
+        self.outlineContent.setHighlight(tags)
+
     def settingsDialog(self) -> type[GuiStorySettingsBase]:
         """Return the settings dialog class of the view."""
         return GuiOutlineViewSettings
@@ -376,6 +380,12 @@ class GuiStoryOutlineTree(NTreeView):
                 state[key] = width
             self._settings.setState("columns", state)
 
+    def setHighlight(self, tags: set[str]) -> None:
+        """Set the reference tag keys to highlight."""
+        self._delegate.setHighlight(tags)
+        if viewport := self.viewport():  # pragma: no branch
+            viewport.update()
+
     def clear(self) -> None:
         """Clear the outline."""
         self._model.clear()
@@ -434,12 +444,15 @@ class _OutlineDelegate(QStyledItemDelegate):
     """
 
     __slots__ = (
+        "_accentFormat",
         "_boldFormat",
         "_fm",
         "_fmB",
         "_helpCol",
+        "_highlight",
         "_keyLabels",
         "_lineHeight",
+        "_lineOption",
         "_margin",
         "_rowHeight",
         "_textCol",
@@ -453,7 +466,11 @@ class _OutlineDelegate(QStyledItemDelegate):
         self._rowHeight = 0
         self._lineHeight = 0
         self._worldKeys: list[str] = []
+        self._highlight: set[str] = set()
         self._boldFormat = QTextCharFormat()
+        self._accentFormat = QTextCharFormat()
+        self._lineOption = QTextOption()
+        self._lineOption.setWrapMode(QTextOption.WrapMode.NoWrap)
         self._wrapOption = QTextOption()
         self._wrapOption.setWrapMode(QTextOption.WrapMode.WordWrap)
         self._keyLabels = {
@@ -475,6 +492,10 @@ class _OutlineDelegate(QStyledItemDelegate):
         """Set the keywords to show in the world column, in order."""
         self._worldKeys = keys
 
+    def setHighlight(self, tags: set[str]) -> None:
+        """Set the reference tag keys to highlight."""
+        self._highlight = tags
+
     def updateTheme(self) -> None:
         """Refresh the cached theme fonts and colours."""
         self._fm = QFontMetrics(SHARED.theme.guiFont)
@@ -484,6 +505,7 @@ class _OutlineDelegate(QStyledItemDelegate):
         self._textCol = QApplication.palette().text().color()
         self._helpCol = SHARED.theme.helpText
         self._boldFormat.setFont(SHARED.theme.guiFontB)
+        self._accentFormat.setForeground(SHARED.theme.accentText)
 
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
         """Return the row height: one line for partitions, three lines for
@@ -550,14 +572,14 @@ class _OutlineDelegate(QStyledItemDelegate):
                 # Line 1: Point of View and Focus
                 xPos = x
                 for key in (nwKeyWords.POV_KEY, nwKeyWords.FOCUS_KEY):
-                    if not (value := node.refs(key)):
+                    if not node.refs(key):
                         continue
                     if xPos > x:
                         painter.setFont(SHARED.theme.guiFont)
                         sep = f"  {nwUnicode.U_BULL}  "
                         painter.drawText(QRect(xPos, y, maxX - xPos, hLine), LINE_FLAGS, sep)
                         xPos += self._fm.horizontalAdvance(sep)
-                    xPos = self._paintLabelled(painter, xPos, y, maxX, hLine, self._keyLabels[key], value)
+                    xPos = self._paintLabelled(painter, xPos, y, maxX, hLine, node, key)
 
                 # Line 2: Characters
                 self._paintWrapped(painter, x, y + hLine, w, h - hLine, node, nwKeyWords.CHAR_KEY)
@@ -566,9 +588,8 @@ class _OutlineDelegate(QStyledItemDelegate):
                 hLine = self._fm.height()
 
                 # Line 1: Plot
-                if value := node.refs(nwKeyWords.PLOT_KEY):
-                    label = self._keyLabels[nwKeyWords.PLOT_KEY]
-                    self._paintLabelled(painter, x, y, x + w, hLine, label, value)
+                if node.refs(nwKeyWords.PLOT_KEY):
+                    self._paintLabelled(painter, x, y, x + w, hLine, node, nwKeyWords.PLOT_KEY)
 
                 # Line 2: Timeline
                 self._paintWrapped(painter, x, y + hLine, w, h - hLine, node, nwKeyWords.TIME_KEY)
@@ -583,52 +604,89 @@ class _OutlineDelegate(QStyledItemDelegate):
             case OutlineModel.C_WORLD:
                 hLine = self._fm.height()
                 for i, key in enumerate(self._worldKeys):
-                    if value := node.refs(key):
-                        self._paintLabelled(painter, x, y + i * hLine, x + w, hLine, self._keyLabels[key], value)
+                    if node.refs(key):
+                        self._paintLabelled(painter, x, y + i * hLine, x + w, hLine, node, key)
 
             case OutlineModel.C_CUSTOM:
-                painter.setFont(SHARED.theme.guiFont)
-                painter.drawText(QRect(x, y, w, h), WRAP_FLAGS, node.refs(nwKeyWords.CUSTOM_KEY))
+                self._paintWrapped(painter, x, y, w, h, node, nwKeyWords.CUSTOM_KEY, labelled=False)
 
             case OutlineModel.C_MENTION:  # pragma: no branch
-                painter.setFont(SHARED.theme.guiFont)
-                painter.drawText(QRect(x, y, w, h), WRAP_FLAGS, node.refs(nwKeyWords.MENTION_KEY))
+                self._paintWrapped(painter, x, y, w, h, node, nwKeyWords.MENTION_KEY, labelled=False)
 
         painter.restore()
 
-    def _paintLabelled(self, painter: QPainter, x: int, y: int, maxX: int, h: int, label: str, value: str) -> int:
+    def _paintLabelled(self, painter: QPainter, x: int, y: int, maxX: int, h: int, node: OutlineNode, key: str) -> int:
         """Paint a bold label followed by a regular value on one line,
         and return the x position after the value.
         """
-        text = f"{label}: "
+        text = f"{self._keyLabels[key]}: "
         painter.setFont(SHARED.theme.guiFontB)
         painter.drawText(QRect(x, y, maxX - x, h), LINE_FLAGS, text)
         x += self._fmB.horizontalAdvance(text)
 
         painter.setFont(SHARED.theme.guiFont)
-        value = self._fm.elidedText(value, QtElideRight, maxX - x)
-        painter.drawText(QRect(x, y, maxX - x, h), LINE_FLAGS, value)
+        value = self._fm.elidedText(node.refs(key), QtElideRight, maxX - x)
+        if formats := self._highlightFormats(node, key, 0, len(value)):
+            self._drawLayout(painter, x, y, maxX - x, h, value, formats, self._lineOption)
+        else:
+            painter.drawText(QRect(x, y, maxX - x, h), LINE_FLAGS, value)
         return x + self._fm.horizontalAdvance(value)
 
-    def _paintWrapped(self, painter: QPainter, x: int, y: int, w: int, h: int, node: OutlineNode, key: str) -> None:
-        """Paint a bold label followed by a regular value wrapped over
-        the full width, if the node has references for the key.
+    def _paintWrapped(
+        self, painter: QPainter, x: int, y: int, w: int, h: int, node: OutlineNode, key: str, labelled: bool = True
+    ) -> None:
+        """Paint a value wrapped over the full width, if the node has
+        references for the key, optionally after a bold label.
         """
-        if value := node.refs(key):
-            label = f"{self._keyLabels[key]}:"
-            bold = QTextLayout.FormatRange()
-            bold.start = 0
-            bold.length = len(label)
-            bold.format = self._boldFormat
+        if refs := node.refs(key):
+            text = refs
+            formats = []
+            if labelled:
+                label = f"{self._keyLabels[key]}:"
+                bold = QTextLayout.FormatRange()
+                bold.start = 0
+                bold.length = len(label)
+                bold.format = self._boldFormat
+                formats.append(bold)
+                text = f"{label} {refs}"
+            formats.extend(self._highlightFormats(node, key, len(text) - len(refs), len(text)))
+            self._drawLayout(painter, x, y, w, h, text, formats, self._wrapOption)
 
-            layout = QTextLayout(f"{label} {value}", SHARED.theme.guiFont)
-            layout.setFormats([bold])
-            layout.setTextOption(self._wrapOption)
-            layout.beginLayout()
-            yPos = 0.0
-            while yPos < h and (line := layout.createLine()).isValid():
-                line.setLineWidth(w)
-                line.setPosition(QPointF(0.0, yPos))
-                yPos += line.height()
-            layout.endLayout()
-            layout.draw(painter, QPointF(x, y))
+    def _highlightFormats(self, node: OutlineNode, key: str, offset: int, limit: int) -> list[QTextLayout.FormatRange]:
+        """Return format ranges for the highlighted tags of a key, with
+        the text offset by offset and cut at limit.
+        """
+        formats = []
+        if self._highlight:
+            for start, length in node.refSpans(key, self._highlight):
+                if (start := start + offset) < limit:
+                    accent = QTextLayout.FormatRange()
+                    accent.start = start
+                    accent.length = min(length, limit - start)
+                    accent.format = self._accentFormat
+                    formats.append(accent)
+        return formats
+
+    def _drawLayout(
+        self,
+        painter: QPainter,
+        x: int,
+        y: int,
+        w: int,
+        h: int,
+        text: str,
+        formats: list[QTextLayout.FormatRange],
+        option: QTextOption,
+    ) -> None:
+        """Draw formatted text, wrapped by the option, within a box."""
+        layout = QTextLayout(text, SHARED.theme.guiFont)
+        layout.setFormats(formats)
+        layout.setTextOption(option)
+        layout.beginLayout()
+        yPos = 0.0
+        while yPos < h and (line := layout.createLine()).isValid():
+            line.setLineWidth(w)
+            line.setPosition(QPointF(0.0, yPos))
+            yPos += line.height()
+        layout.endLayout()
+        layout.draw(painter, QPointF(x, y))

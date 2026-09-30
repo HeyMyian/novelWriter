@@ -240,6 +240,10 @@ class NComboBox(QComboBox):
         # platforms and allows for scrolling of long lists of items
         self.setStyleSheet("QComboBox {combobox-popup: 0;}")
 
+    def setMinCharsWidth(self, count: int) -> None:
+        """Set a fixed with for a certain amount of characters."""
+        self.setMinimumWidth(count * SHARED.theme.textNWidth + 25)
+
 
 class NSpinBox(QSpinBox):
     """Custom: Modified QSpinBox.

@@ -103,6 +103,13 @@ def testOutlineModel_Interface(nwGUI, prjLipsum):
     assert node.refs(nwKeyWords.POV_KEY) == "Bod"
     assert node.refs(nwKeyWords.MENTION_KEY) == ""
 
+    # Spans of tag keys in the references
+    node._lists[nwKeyWords.CHAR_KEY] = ["Jane", "John", "Jack"]
+    assert node.refSpans(nwKeyWords.CHAR_KEY, {"john", "jack"}) == [(6, 4), (12, 4)]
+    assert node.refSpans(nwKeyWords.POV_KEY, {"bod"}) == [(0, 3)]
+    assert node.refSpans(nwKeyWords.POV_KEY, {"jane"}) == []
+    assert node.refSpans(nwKeyWords.MENTION_KEY, {"bod"}) == []
+
     # A node without a heading is blank
     blank = OutlineNode("", "", None, model._labels, BLANK_STYLE)
     assert blank.level == 0

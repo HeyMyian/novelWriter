@@ -27,14 +27,15 @@ import logging
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import pyqtSlot
-from PyQt6.QtWidgets import QFileDialog, QHBoxLayout, QVBoxLayout, QWidget
+from PyQt6.QtCore import Qt, pyqtSlot
+from PyQt6.QtWidgets import QComboBox, QFileDialog, QHBoxLayout, QVBoxLayout, QWidget
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import formatFileFilter
 from novelwriter.constants import nwKeyWords, nwLabels, nwStats, trConst, trStats
+from novelwriter.enum import nwItemClass
 from novelwriter.extensions.configlayout import NColorLabel
-from novelwriter.extensions.modified import NIconButton, NPushButton
+from novelwriter.extensions.modified import NComboBox, NIconButton, NPushButton
 from novelwriter.extensions.novelselector import NovelSelector
 from novelwriter.extensions.tabwidget import NTabWidget
 from novelwriter.story.outline import GuiStoryOutlineView
@@ -61,6 +62,8 @@ class GuiStoryView(QWidget):
 
         self._views: StoryViewCollection | None = None
         self._stale: set[str] = set()
+        self._highlight: set[str] = set()
+        self._tagsRevision = -1
 
         icnSize = SHARED.theme.baseIconSize
         btnSize = 1.4 * icnSize
@@ -117,6 +120,35 @@ class GuiStoryView(QWidget):
         self.refreshView.setToolTip(self.tr("Refresh current view"))
         self.refreshView.clicked.connect(self._refreshRequested)
 
+        # Highlight
+        self.highlightLabel = NColorLabel(
+            self.tr("Highlight Reference"),
+            self,
+            color=SHARED.theme.helpText,
+            scale=NColorLabel.NORMAL_SCALE,
+            bold=True,
+        )
+
+        self.highlightValue = NComboBox(self)
+        self.highlightValue.setEditable(True)
+        self.highlightValue.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.highlightValue.setMinCharsWidth(22)
+        self.highlightValue.setIconSize(icnSize)
+        self.highlightValue.currentIndexChanged.connect(self._highlightChanged)
+
+        if view := self.highlightValue.view():  # pragma: no branch
+            view.setIconSize(icnSize)
+
+        if completer := self.highlightValue.completer():  # pragma: no branch
+            completer.setFilterMode(Qt.MatchFlag.MatchContains)
+            if popup := completer.popup():  # pragma: no branch
+                popup.setIconSize(icnSize)
+
+        if lineEdit := self.highlightValue.lineEdit():  # pragma: no branch
+            lineEdit.setClearButtonEnabled(True)
+            lineEdit.textChanged.connect(self._highlightTextChanged)
+            lineEdit.editingFinished.connect(self._highlightEditingFinished)
+
         # Assemble
         self.topBox = QHBoxLayout()
         self.topBox.addWidget(self.titleLabel)
@@ -133,6 +165,10 @@ class GuiStoryView(QWidget):
         self.topBox.addWidget(self.editView)
         self.topBox.addSpacing(8)
         self.topBox.addWidget(self.refreshView)
+        self.topBox.addSpacing(32)
+        self.topBox.addWidget(self.highlightLabel)
+        self.topBox.addSpacing(8)
+        self.topBox.addWidget(self.highlightValue)
         self.topBox.addStretch(1)
         self.topBox.setContentsMargins(4, 4, 0, 0)
         self.topBox.setSpacing(4)
@@ -154,6 +190,7 @@ class GuiStoryView(QWidget):
         """Update theme elements."""
         self.titleLabel.setTextColors(color=SHARED.theme.helpText)
         self.manageLabel.setTextColors(color=SHARED.theme.helpText)
+        self.highlightLabel.setTextColors(color=SHARED.theme.helpText)
         self.novelValue.updateTheme()
         self.refreshView.refreshTheme()
         self.exportData.refreshTheme()
@@ -162,6 +199,8 @@ class GuiStoryView(QWidget):
         self.copyView.refreshTheme()
         self.editView.refreshTheme()
         self.tabMain.refreshTheme()
+        if self._views is not None:
+            self._refreshTagList(force=True)
         for view in self._iterViews():
             view.updateTheme()
         for dialog in self._iterSettingsDialogs():
@@ -197,6 +236,12 @@ class GuiStoryView(QWidget):
         self._closeSettingsDialogs()
         self._views = None
         self._stale.clear()
+        self._highlight = set()
+        self._tagsRevision = -1
+
+        self.highlightValue.blockSignals(True)
+        self.highlightValue.clear()
+        self.highlightValue.blockSignals(False)
 
         # Clearing must not emit a change, as it would reset the last handle
         self.novelValue.blockSignals(True)
@@ -243,6 +288,27 @@ class GuiStoryView(QWidget):
     def _currentViewChanged(self, index: int) -> None:
         """Refresh the view that was switched to."""
         self._refreshCurrentView()
+
+    @pyqtSlot(int)
+    def _highlightChanged(self, index: int) -> None:
+        """Highlight the selected reference in all views."""
+        tag = self.highlightValue.itemData(index)
+        self._highlight = {tag} if tag else set()
+        for view in self._iterViews():
+            view.setHighlight(self._highlight)
+
+    @pyqtSlot(str)
+    def _highlightTextChanged(self, text: str) -> None:
+        """Clear the highlight when the text is cleared."""
+        if not text and self.highlightValue.currentIndex() > 0:
+            self.highlightValue.setCurrentIndex(0)
+
+    @pyqtSlot()
+    def _highlightEditingFinished(self) -> None:
+        """Revert text that does not match a reference."""
+        combo = self.highlightValue
+        if combo.findText(combo.currentText()) < 0:
+            combo.setEditText(combo.itemText(combo.currentIndex()))
 
     @pyqtSlot()
     def _addNewView(self) -> None:
@@ -342,7 +408,9 @@ class GuiStoryView(QWidget):
     def _addTab(self, view: StoryViewSettings) -> int:
         """Add a tab for a view, and return its index."""
         if viewClass := VIEW_CLASSES.get(type(view)):
-            return self.tabMain.addTab(viewClass(self, view), view.name)
+            widget = viewClass(self, view)
+            widget.setHighlight(self._highlight)
+            return self.tabMain.addTab(widget, view.name)
         return -1
 
     def _removeTab(self, index: int) -> None:
@@ -359,6 +427,7 @@ class GuiStoryView(QWidget):
         self.copyView.setEnabled(enabled)
         self.editView.setEnabled(enabled)
         self.refreshView.setEnabled(enabled)
+        self.highlightValue.setEnabled(enabled)
         if not enabled:
             self.novelValue.setEnabled(False)
 
@@ -396,6 +465,28 @@ class GuiStoryView(QWidget):
             viewID = current.settings.viewID
             current.refresh(self.novelValue.handle, force=force or viewID in self._stale)
             self._stale.discard(viewID)
+            self._refreshTagList()
+
+    def _refreshTagList(self, force: bool = False) -> None:
+        """Rebuild the list of references that can be highlighted, if the
+        index has changed, and keep the current selection if possible.
+        """
+        index = SHARED.project.index
+        if force or index.indexRevision != self._tagsRevision:
+            self._tagsRevision = index.indexRevision
+            current = next(iter(self._highlight), "")
+            combo = self.highlightValue
+            combo.blockSignals(True)
+            combo.clear()
+            combo.addItem("", "")
+            iPx = SHARED.theme.baseIconHeight
+            for tag, name, tClass, _, _ in sorted(index.getTagsData(), key=lambda x: x[1].lower()):
+                iClass = nwItemClass.__members__.get(tClass, nwItemClass.NO_CLASS)
+                combo.addItem(SHARED.theme.getIcon(nwLabels.CLASS_ICON[iClass], iPx, iPx), name, tag)
+            combo.setCurrentData(current, "")
+            combo.blockSignals(False)
+            if combo.currentData() != current:
+                self._highlightChanged(combo.currentIndex())
 
     def _dumpNovelData(self, rootHandle: str | None) -> list[list[str | int]]:
         """Dump all novel data into a table."""

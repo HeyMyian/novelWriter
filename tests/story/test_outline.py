@@ -224,27 +224,40 @@ def testStoryOutline_Paint(qtbot, nwGUI, prjLipsum):
 
     # Fill in all reference types, with some left empty
     for i, node in enumerate(model._nodes):
-        node._refs = (
+        node._lists = (
             {
-                nwKeyWords.POV_KEY: "Jane",
-                nwKeyWords.FOCUS_KEY: "John",
-                nwKeyWords.CHAR_KEY: "Jane, John, Jack, Jill, James, Julia, Joseph, Joanna",
-                nwKeyWords.PLOT_KEY: "Main",
-                nwKeyWords.TIME_KEY: "Morning, Afternoon, Evening, Night",
-                nwKeyWords.WORLD_KEY: "Europe",
-                nwKeyWords.ENTITY_KEY: "Company",
-                nwKeyWords.CUSTOM_KEY: "Custom",
-                nwKeyWords.MENTION_KEY: "Jack",
+                nwKeyWords.POV_KEY: ["Jane"],
+                nwKeyWords.FOCUS_KEY: ["John"],
+                nwKeyWords.CHAR_KEY: ["Jane", "John", "Jack", "Jill", "James", "Julia", "Joseph", "Joanna"],
+                nwKeyWords.PLOT_KEY: ["Main"],
+                nwKeyWords.TIME_KEY: ["Morning", "Afternoon", "Evening", "Night"],
+                nwKeyWords.WORLD_KEY: ["Europe"],
+                nwKeyWords.ENTITY_KEY: ["Company"],
+                nwKeyWords.CUSTOM_KEY: ["Custom"],
+                nwKeyWords.MENTION_KEY: ["Jack"],
             }
             if i % 2
-            else {nwKeyWords.FOCUS_KEY: "John"}
+            else {nwKeyWords.FOCUS_KEY: ["John"]}
         )
+        node._refs = {k: ", ".join(v) for k, v in node._lists.items()}
         if i % 2:
             node._progress = ""
 
     # Paint all rows with one selected
     tree.setCurrentIndex(model.index(3, 0))
     assert not view.grab().isNull()
+
+    # Highlighted references in labelled, wrapped and plain cells
+    tree.setHighlight({"jane", "jack", "main", "night", "company", "custom"})
+    assert delegate._highlight == {"jane", "jack", "main", "night", "company", "custom"}
+    assert not view.grab().isNull()
+
+    # Highlights are cut at the elided length, and are not added past it
+    node = model._nodes[1]
+    formats = delegate._highlightFormats(node, nwKeyWords.CHAR_KEY, 0, 14)
+    assert [(f.start, f.length) for f in formats] == [(0, 4), (12, 2)]
+    formats = delegate._highlightFormats(node, nwKeyWords.CHAR_KEY, 6, 10)
+    assert [(f.start, f.length) for f in formats] == [(6, 4)]
 
     # A single world option is wrapped
     delegate.setWorldKeys([nwKeyWords.WORLD_KEY])

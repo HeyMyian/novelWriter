@@ -76,6 +76,7 @@ class OutlineNode:
         "_heading",
         "_key",
         "_level",
+        "_lists",
         "_progress",
         "_refs",
         "_style",
@@ -104,6 +105,7 @@ class OutlineNode:
         self._chars = ""
         self._progress = ""
         self._refs: dict[str, str] = {}
+        self._lists: dict[str, list[str]] = {}
         self._style = style
 
         self.refresh()
@@ -164,6 +166,16 @@ class OutlineNode:
         """Return the references of the heading for a keyword."""
         return self._refs.get(keyword, "")
 
+    def refSpans(self, keyword: str, tags: set[str]) -> list[tuple[int, int]]:
+        """Return the start and length of the given tag keys in refs."""
+        spans = []
+        pos = 0
+        for name in self._lists.get(keyword, ()):
+            if name.lower() in tags:
+                spans.append((pos, len(name)))
+            pos += len(name) + 2
+        return spans
+
     ##
     #  Data Maintenance
     ##
@@ -181,7 +193,8 @@ class OutlineNode:
             self._words = f"{h.wordCount:n} {tr.sWords}"
             self._chars = f"{h.charCount:n} {tr.sChars}"
 
-            self._refs = {k: ", ".join(v) for k, v in h.getReferences().items() if v}
+            self._lists = {k: v for k, v in h.getReferences().items() if v}
+            self._refs = {k: ", ".join(v) for k, v in self._lists.items()}
 
 
 class OutlineModel(QAbstractTableModel):
