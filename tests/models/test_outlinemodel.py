@@ -21,6 +21,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from PyQt6.QtCore import QModelIndex, Qt
@@ -138,6 +140,20 @@ def testOutlineModel_Interface(nwGUI, prjLipsum):
     assert progress[5] == "Page 11 (18.7\u202f%)"
     assert progress[8] == "Page 21 (46.3\u202f%)"
     assert progress[11] == "Page 31 (81.9\u202f%)"
+
+    # Without titles and chapters, pages run on and clear double is ignored
+    scenes = [e for e in index.iterNovelStructure() if e[2].level == "H3"]
+    scenesOnly = SimpleNamespace(iterNovelStructure=lambda rHandle: iter(scenes))
+    expected = [
+        "Page 1 (0.0\u202f%)",
+        "Page 2 (8.6\u202f%)",
+        "Page 5 (23.4\u202f%)",
+        "Page 10 (45.2\u202f%)",
+        "Page 15 (73.1\u202f%)",
+    ]
+    for clearDouble in (False, True):
+        model.buildOutline(scenesOnly, None, {3}, 100, clearDouble)  # type: ignore
+        assert [model.node(model.index(r, 0)).progress for r in range(5)] == expected  # type: ignore
 
     # Filtered levels still count all words
     model.buildOutline(index, None, {2}, 100)

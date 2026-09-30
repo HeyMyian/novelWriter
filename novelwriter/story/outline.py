@@ -152,10 +152,12 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.form.addGroupLabel(title, section)
 
         self.showParts = NSwitch(self, height=iPx)
+        self.showChapters = NSwitch(self, height=iPx)
         self.showScenes = NSwitch(self, height=iPx)
         self.showSections = NSwitch(self, height=iPx)
 
         self.form.addRow(settings.getLabel("outline.showParts"), self.showParts)
+        self.form.addRow(settings.getLabel("outline.showChapters"), self.showChapters)
         self.form.addRow(settings.getLabel("outline.showScenes"), self.showScenes)
         self.form.addRow(settings.getLabel("outline.showSections"), self.showSections)
 
@@ -211,6 +213,7 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
 
         # Documents
         self.showParts.setChecked(settings.getBool("outline.showParts"))
+        self.showChapters.setChecked(settings.getBool("outline.showChapters"))
         self.showScenes.setChecked(settings.getBool("outline.showScenes"))
         self.showSections.setChecked(settings.getBool("outline.showSections"))
 
@@ -235,6 +238,7 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
 
         # Documents
         settings.setValue("outline.showParts", self.showParts.isChecked())
+        settings.setValue("outline.showChapters", self.showChapters.isChecked())
         settings.setValue("outline.showScenes", self.showScenes.isChecked())
         settings.setValue("outline.showSections", self.showSections.isChecked())
 
@@ -339,9 +343,11 @@ class GuiStoryOutlineTree(NTreeView):
         if force or not self._built or rootHandle != self._lastHandle or index.indexRevision != self._lastRevision:
             logger.info("Building story view '%s'", self._settings.name)
             settings = self._settings
-            levels = {2}
+            levels = set()
             if settings.getBool("outline.showParts"):
                 levels.add(1)
+            if settings.getBool("outline.showChapters"):
+                levels.add(2)
             if settings.getBool("outline.showScenes"):
                 levels.add(3)
             if settings.getBool("outline.showSections"):

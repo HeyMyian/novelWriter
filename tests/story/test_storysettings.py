@@ -150,6 +150,7 @@ def testStoryViewSettings_Values():
     assert StoryViewSettings().pack()["settings"] == {}
     assert view.pack()["settings"] == {
         "outline.showParts": True,
+        "outline.showChapters": True,
         "outline.showScenes": True,
         "outline.showSections": False,
         "outline.showCharacters": True,
@@ -206,6 +207,7 @@ def testStoryViewSettings_Values():
     skipped.unpack({"settings": {123: "value", "other.key": True, boolSetting: object()}})
     assert skipped.pack()["settings"] == {
         "outline.showParts": True,
+        "outline.showChapters": True,
         "outline.showScenes": True,
         "outline.showSections": False,
         "outline.showCharacters": True,

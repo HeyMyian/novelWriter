@@ -51,6 +51,7 @@ T_ViewValue = str | int | float | bool
 SETTINGS_TEMPLATE: dict[str, tuple[type, T_ViewValue]] = {
     "outline.showParts":       (bool, True),
     "outline.showScenes":      (bool, True),
+    "outline.showChapters":    (bool, True),
     "outline.showSections":    (bool, False),
     "outline.showCharacters":  (bool, True),
     "outline.showPlot":        (bool, True),
@@ -70,6 +71,7 @@ SETTINGS_LABELS = {
 
     "outline.grpDocuments":    QT_TRANSLATE_NOOP("StoryViews", "Documents"),
     "outline.showParts":       QT_TRANSLATE_NOOP("StoryViews", "Show partitions"),
+    "outline.showChapters":    QT_TRANSLATE_NOOP("StoryViews", "Show chapters"),
     "outline.showScenes":      QT_TRANSLATE_NOOP("StoryViews", "Show scenes"),
     "outline.showSections":    QT_TRANSLATE_NOOP("StoryViews", "Show sections"),
 

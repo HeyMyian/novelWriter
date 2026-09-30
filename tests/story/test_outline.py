@@ -127,6 +127,13 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
     view.refresh(None)
     assert model.rowCount(root) == 3
 
+    # Chapters can be hidden
+    settings.setValue("outline.showChapters", False)
+    settings.setValue("outline.showScenes", True)
+    view.refresh(None, force=True)
+    assert model.rowCount(root) == 5
+    assert {model.node(model.index(r, 0)).level for r in range(5)} == {3}  # type: ignore
+
 
 @pytest.mark.gui
 def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
