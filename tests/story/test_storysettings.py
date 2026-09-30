@@ -149,6 +149,7 @@ def testStoryViewSettings_Values():
     # Only the settings for the view's own kind are present
     assert StoryViewSettings().pack()["settings"] == {}
     assert view.pack()["settings"] == {
+        "outline.syntaxColors": False,
         "outline.showParts": True,
         "outline.showChapters": True,
         "outline.showScenes": True,
@@ -164,6 +165,7 @@ def testStoryViewSettings_Values():
         "outline.countPerPage": 350,
         "outline.clearDoublePage": True,
         "outline.useTargetCount": True,
+        "outline.showSynopsis": True,
     }
 
     # Invalid setting
@@ -206,6 +208,7 @@ def testStoryViewSettings_Values():
     skipped = OutlineViewSettings()
     skipped.unpack({"settings": {123: "value", "other.key": True, boolSetting: object()}})
     assert skipped.pack()["settings"] == {
+        "outline.syntaxColors": False,
         "outline.showParts": True,
         "outline.showChapters": True,
         "outline.showScenes": True,
@@ -221,6 +224,7 @@ def testStoryViewSettings_Values():
         "outline.countPerPage": 350,
         "outline.clearDoublePage": True,
         "outline.useTargetCount": True,
+        "outline.showSynopsis": True,
     }
 
 

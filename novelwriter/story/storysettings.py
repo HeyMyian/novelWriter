@@ -49,10 +49,13 @@ T_ViewValue = str | int | float | bool
 
 # fmt: off
 SETTINGS_TEMPLATE: dict[str, tuple[type, T_ViewValue]] = {
+    "outline.syntaxColors":    (bool, False),
+
     "outline.showParts":       (bool, True),
     "outline.showScenes":      (bool, True),
     "outline.showChapters":    (bool, True),
     "outline.showSections":    (bool, False),
+
     "outline.showCharacters":  (bool, True),
     "outline.showPlot":        (bool, True),
     "outline.showWorld":       (bool, True),
@@ -60,14 +63,20 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_ViewValue]] = {
     "outline.showEntity":      (bool, False),
     "outline.showCustom":      (bool, False),
     "outline.showMentions":    (bool, False),
+
     "outline.showProgress":    (bool, True),
     "outline.countPerPage":    (int, 350),
     "outline.clearDoublePage": (bool, True),
     "outline.useTargetCount":  (bool, True),
+
+    "outline.showSynopsis":    (bool, True),
 }
 
 SETTINGS_LABELS = {
     "outline.defaultName":     QT_TRANSLATE_NOOP("StoryViews", "Outline"),
+
+    "outline.grpGeneral":      QT_TRANSLATE_NOOP("StoryViews", "General"),
+    "outline.syntaxColors":    QT_TRANSLATE_NOOP("StoryViews", "Use syntax colours"),
 
     "outline.grpDocuments":    QT_TRANSLATE_NOOP("StoryViews", "Documents"),
     "outline.showParts":       QT_TRANSLATE_NOOP("StoryViews", "Show partitions"),
@@ -89,6 +98,9 @@ SETTINGS_LABELS = {
     "outline.countPerPage":    QT_TRANSLATE_NOOP("StoryViews", "Count per page"),
     "outline.clearDoublePage": QT_TRANSLATE_NOOP("StoryViews", "Clear double page"),
     "outline.useTargetCount":  QT_TRANSLATE_NOOP("StoryViews", "Relative to project target"),
+
+    "outline.grpComments":     QT_TRANSLATE_NOOP("StoryViews", "Comments"),
+    "outline.showSynopsis":    QT_TRANSLATE_NOOP("StoryViews", "Show synopsis"),
 }
 # fmt: on
 

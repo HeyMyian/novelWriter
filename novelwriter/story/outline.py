@@ -56,7 +56,6 @@ from novelwriter.types import (
     QtAlignLeftTop,
     QtElideRight,
     QtHeaderInteractive,
-    QtHeaderStretch,
     QtModCtrl,
     QtModShift,
     QtScrollAlwaysOff,
@@ -143,6 +142,18 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
 
         iPx = SHARED.theme.baseIconHeight
 
+        # General
+        # =======
+
+        title = settings.getLabel("outline.grpGeneral")
+        section += 1
+        self.sidebar.addButton(title, section)
+        self.form.addGroupLabel(title, section)
+
+        self.syntaxColors = NSwitch(self, height=iPx)
+
+        self.form.addRow(settings.getLabel("outline.syntaxColors"), self.syntaxColors)
+
         # Documents
         # =========
 
@@ -204,12 +215,27 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.form.addRow(settings.getLabel("outline.clearDoublePage"), self.clearDoublePage)
         self.form.addRow(settings.getLabel("outline.useTargetCount"), self.useTargetCount)
 
+        # Comments
+        # ========
+
+        title = settings.getLabel("outline.grpComments")
+        section += 1
+        self.sidebar.addButton(title, section)
+        self.form.addGroupLabel(title, section)
+
+        self.showSynopsis = NSwitch(self, height=iPx)
+
+        self.form.addRow(settings.getLabel("outline.showSynopsis"), self.showSynopsis)
+
         # Finalise
         self.form.finalise()
 
     def loadSettings(self) -> None:
         """Populate the settings."""
         settings = self._settings
+
+        # General
+        self.syntaxColors.setChecked(settings.getBool("outline.syntaxColors"))
 
         # Documents
         self.showParts.setChecked(settings.getBool("outline.showParts"))
@@ -232,9 +258,15 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.clearDoublePage.setChecked(settings.getBool("outline.clearDoublePage"))
         self.useTargetCount.setChecked(settings.getBool("outline.useTargetCount"))
 
+        # Comments
+        self.showSynopsis.setChecked(settings.getBool("outline.showSynopsis"))
+
     def saveSettings(self) -> None:
         """Save the settings."""
         settings = self._settings
+
+        # General
+        settings.setValue("outline.syntaxColors", self.syntaxColors.isChecked())
 
         # Documents
         settings.setValue("outline.showParts", self.showParts.isChecked())
@@ -256,6 +288,9 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         settings.setValue("outline.countPerPage", self.countPerPage.value())
         settings.setValue("outline.clearDoublePage", self.clearDoublePage.isChecked())
         settings.setValue("outline.useTargetCount", self.useTargetCount.isChecked())
+
+        # Comments
+        settings.setValue("outline.showSynopsis", self.showSynopsis.isChecked())
 
 
 class GuiStoryOutlineTree(NTreeView):
@@ -294,11 +329,10 @@ class GuiStoryOutlineTree(NTreeView):
         self._disableNativeHighlight()
 
         if header := self.header():  # pragma: no branch
-            header.setStretchLastSection(False)
+            header.setStretchLastSection(True)
             header.setMinimumSectionSize(60)
             header.setDefaultSectionSize(160)
             header.setSectionResizeMode(QtHeaderInteractive)
-            header.setSectionResizeMode(OutlineModel.C_SYNOPSIS, QtHeaderStretch)
             header.resizeSection(OutlineModel.C_TITLE, 260)
 
         self._loadColumnState()
@@ -366,31 +400,31 @@ class GuiStoryOutlineTree(NTreeView):
             if settings.getBool("outline.showEntity"):
                 worldKeys.append(nwKeyWords.ENTITY_KEY)
             self._delegate.setWorldKeys(worldKeys)
+            self._delegate.setSyntaxColors(settings.getBool("outline.syntaxColors"))
 
             self.setColumnHidden(OutlineModel.C_CHARS, not settings.getBool("outline.showCharacters"))
             self.setColumnHidden(OutlineModel.C_PLOT, not settings.getBool("outline.showPlot"))
             self.setColumnHidden(OutlineModel.C_WORLD, not worldKeys)
             self.setColumnHidden(OutlineModel.C_CUSTOM, not settings.getBool("outline.showCustom"))
             self.setColumnHidden(OutlineModel.C_MENTION, not settings.getBool("outline.showMentions"))
+            self.setColumnHidden(OutlineModel.C_SYNOPSIS, not settings.getBool("outline.showSynopsis"))
             self._built = True
             self._lastHandle = rootHandle
             self._lastRevision = index.indexRevision
 
     def saveColumnState(self) -> None:
         """Save the column order and widths to the settings object. Hidden
-        columns keep their last known width, and stretched columns have no
-        width as it depends on the window size.
+        columns and the stretched last column keep their last known width.
         """
         if header := self.header():  # pragma: no branch
             previous = self._settings.getState("columns")
             previous = previous if isinstance(previous, dict) else {}
+            order = [header.logicalIndex(v) for v in range(header.count())]
+            stretched = next((c for c in reversed(order) if not self.isColumnHidden(c)), -1)
             state = {}
-            for visual in range(header.count()):
-                column = header.logicalIndex(visual)
+            for column in order:
                 key = COLUMN_KEYS[column]
-                if header.sectionResizeMode(column) == QtHeaderStretch:
-                    width = 0
-                elif self.isColumnHidden(column):
+                if column == stretched or self.isColumnHidden(column):
                     width = previous.get(key, header.defaultSectionSize())
                 else:
                     width = header.sectionSize(column)
@@ -486,11 +520,15 @@ class _OutlineDelegate(QStyledItemDelegate):
         "_fmB",
         "_helpCol",
         "_highlight",
+        "_keyCol",
         "_keyLabels",
         "_lineHeight",
         "_lineOption",
         "_margin",
+        "_noteCol",
         "_rowHeight",
+        "_syntaxColors",
+        "_tagCol",
         "_textCol",
         "_worldKeys",
         "_wrapOption",
@@ -503,6 +541,7 @@ class _OutlineDelegate(QStyledItemDelegate):
         self._lineHeight = 0
         self._worldKeys: list[str] = []
         self._highlight: set[str] = set()
+        self._syntaxColors = False
         self._boldFormat = QTextCharFormat()
         self._accentFormat = QTextCharFormat()
         self._lineOption = QTextOption()
@@ -524,6 +563,10 @@ class _OutlineDelegate(QStyledItemDelegate):
         }
         self.updateTheme()
 
+    ##
+    #  Setters
+    ##
+
     def setWorldKeys(self, keys: list[str]) -> None:
         """Set the keywords to show in the world column, in order."""
         self._worldKeys = keys
@@ -532,16 +575,27 @@ class _OutlineDelegate(QStyledItemDelegate):
         """Set the reference tag keys to highlight."""
         self._highlight = tags
 
+    def setSyntaxColors(self, enabled: bool) -> None:
+        """Set whether to use the editor syntax colours."""
+        self._syntaxColors = enabled
+        self._updateColors()
+
+    ##
+    #  Methods
+    ##
+
     def updateTheme(self) -> None:
         """Refresh the cached theme fonts and colours."""
         self._fm = QFontMetrics(SHARED.theme.guiFont)
         self._fmB = QFontMetrics(SHARED.theme.guiFontB)
         self._lineHeight = self._fmB.height() + 2 * self._margin + 2 * ROW_PAD
         self._rowHeight = self._lineHeight + 2 * self._fm.height()
-        self._textCol = QApplication.palette().text().color()
-        self._helpCol = SHARED.theme.helpText
         self._boldFormat.setFont(SHARED.theme.guiFontB)
-        self._accentFormat.setForeground(SHARED.theme.accentText)
+        self._updateColors()
+
+    ##
+    #  Overrides
+    ##
 
     def sizeHint(self, option: QStyleOptionViewItem, index: QModelIndex) -> QSize:
         """Return the row height: one line for partitions, three lines for
@@ -612,6 +666,7 @@ class _OutlineDelegate(QStyledItemDelegate):
                         continue
                     if xPos > x:
                         painter.setFont(SHARED.theme.guiFont)
+                        painter.setPen(self._textCol)
                         sep = f"  {nwUnicode.U_BULL}  "
                         painter.drawText(QRect(xPos, y, maxX - xPos, hLine), LINE_FLAGS, sep)
                         xPos += self._fm.horizontalAdvance(sep)
@@ -625,6 +680,7 @@ class _OutlineDelegate(QStyledItemDelegate):
 
             case OutlineModel.C_SYNOPSIS:
                 painter.setFont(SHARED.theme.guiFont)
+                painter.setPen(self._noteCol)
                 painter.drawText(QRect(x, y, w, h), WRAP_FLAGS, node.synopsis)
 
             case OutlineModel.C_WORLD:
@@ -638,16 +694,39 @@ class _OutlineDelegate(QStyledItemDelegate):
 
         painter.restore()
 
+    ##
+    #  Internal Functions
+    ##
+
+    def _updateColors(self) -> None:
+        """Refresh the cached colours from the theme."""
+        self._textCol = QApplication.palette().text().color()
+        self._helpCol = SHARED.theme.helpText
+        if self._syntaxColors:
+            syntax = SHARED.theme.syntaxTheme
+            self._noteCol = syntax.note
+            self._keyCol = syntax.key
+            self._tagCol = syntax.tag
+        else:
+            self._noteCol = self._textCol
+            self._keyCol = self._textCol
+            self._tagCol = self._textCol
+
+        self._boldFormat.setForeground(self._keyCol)
+        self._accentFormat.setForeground(SHARED.theme.accentText)
+
     def _paintLabelled(self, painter: QPainter, x: int, y: int, maxX: int, h: int, node: OutlineNode, key: str) -> int:
         """Paint a bold label followed by a regular value on one line,
         and return the x position after the value.
         """
         text = f"{self._keyLabels[key]}: "
         painter.setFont(SHARED.theme.guiFontB)
+        painter.setPen(self._keyCol)
         painter.drawText(QRect(x, y, maxX - x, h), LINE_FLAGS, text)
         x += self._fmB.horizontalAdvance(text)
 
         painter.setFont(SHARED.theme.guiFont)
+        painter.setPen(self._tagCol)
         value = self._fm.elidedText(node.refs(key), QtElideRight, maxX - x)
         if formats := self._highlightFormats(node, key, 0, len(value)):
             self._drawLayout(painter, x, y, maxX - x, h, value, formats, self._lineOption)
@@ -687,6 +766,7 @@ class _OutlineDelegate(QStyledItemDelegate):
                 formats.append(bold)
                 text = f"{label} {refs}"
             formats.extend(self._highlightFormats(node, key, len(text) - len(refs), len(text)))
+            painter.setPen(self._tagCol)
             return self._drawLayout(painter, x, y, w, h, text, formats, self._wrapOption)
         return 0
 

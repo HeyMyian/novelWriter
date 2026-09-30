@@ -36,6 +36,7 @@ from novelwriter.story.storysettings import OutlineViewSettings
 from novelwriter.types import QtModCtrl, QtModNone, QtScrollAlwaysOff, QtScrollAsNeeded
 
 ALL_SETTINGS = (
+    "outline.syntaxColors",
     "outline.showParts",
     "outline.showScenes",
     "outline.showSections",
@@ -46,6 +47,7 @@ ALL_SETTINGS = (
     "outline.showEntity",
     "outline.showCustom",
     "outline.showMentions",
+    "outline.showSynopsis",
     "outline.showProgress",
 )
 
@@ -91,6 +93,9 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
     view.refresh(None, force=True)
     assert model.rowCount(root) == 12
     assert tree._delegate._worldKeys == [nwKeyWords.WORLD_KEY, nwKeyWords.OBJECT_KEY, nwKeyWords.ENTITY_KEY]
+    assert tree._delegate._tagCol == SHARED.theme.syntaxTheme.tag
+    assert tree._delegate._keyCol == SHARED.theme.syntaxTheme.key
+    assert tree._delegate._noteCol == SHARED.theme.syntaxTheme.note
     assert not any(tree.isColumnHidden(c) for c in range(7))
     assert model.node(model.index(11, 0)).progress == "Page 16 (81.9\u202f%)"  # type: ignore
 
@@ -114,7 +119,10 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
     view.refresh(None, force=True)
     assert model.rowCount(root) == 3
     assert tree._delegate._worldKeys == []
-    assert [tree.isColumnHidden(c) for c in range(7)] == [False, True, True, True, True, True, False]
+    assert tree._delegate._tagCol == tree._delegate._textCol
+    assert tree._delegate._keyCol == tree._delegate._textCol
+    assert tree._delegate._noteCol == tree._delegate._textCol
+    assert [tree.isColumnHidden(c) for c in range(7)] == [False, True, True, True, True, True, True]
     assert model.node(model.index(0, 0)).progress == ""  # type: ignore
 
     # No rebuild without a change
@@ -152,6 +160,7 @@ def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
     # Move and resize columns, and hide one
     header.moveSection(header.visualIndex(OutlineModel.C_SYNOPSIS), 1)
     header.resizeSection(OutlineModel.C_TITLE, 300)
+    header.resizeSection(OutlineModel.C_SYNOPSIS, 250)
     header.resizeSection(OutlineModel.C_PLOT, 200)
     header.resizeSection(OutlineModel.C_WORLD, 120)
     tree.setColumnHidden(OutlineModel.C_WORLD, True)
@@ -166,11 +175,12 @@ def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
     tree = view.outlineContent
     header = tree.header()
     assert header is not None
+    # Plot is now the last visible column, so it is stretched and not saved
     assert view.settings.getState("columns") == {
         "title": 300,
-        "synopsis": 0,
+        "synopsis": 250,
         "characters": 160,
-        "plot": 200,
+        "plot": 160,
         "world": 160,
         "custom": 160,
         "mentions": 160,
@@ -185,7 +195,7 @@ def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
         OutlineModel.C_MENTION,
     ]
     assert header.sectionSize(OutlineModel.C_TITLE) == 300
-    assert header.sectionSize(OutlineModel.C_PLOT) == 200
+    assert header.sectionSize(OutlineModel.C_SYNOPSIS) == 250
 
     # Title stays first, unknown keys and invalid widths are skipped, and
     # missing columns are kept after the known ones
@@ -209,6 +219,13 @@ def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
     tree.setColumnHidden(OutlineModel.C_CUSTOM, True)
     tree.saveColumnState()
     assert settings.getState("columns")["custom"] == 160
+
+    # The stretched last column keeps its previous width
+    settings = OutlineViewSettings()
+    settings.setState("columns", {"synopsis": 300})
+    tree = GuiStoryOutlineView(nwGUI, settings).outlineContent
+    tree.saveColumnState()
+    assert settings.getState("columns")["synopsis"] == 300
 
 
 @pytest.mark.gui
