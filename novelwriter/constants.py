@@ -25,7 +25,7 @@ from typing import ClassVar
 
 from PyQt6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
-from novelwriter.enum import nwBuildFmt, nwComment, nwItemClass, nwItemLayout, nwOutline, nwStatusShape, nwTheme
+from novelwriter.enum import nwBuildFmt, nwComment, nwItemClass, nwItemLayout, nwStatusShape, nwTheme
 
 
 def trConst(text: str) -> str:
@@ -161,10 +161,11 @@ class nwFiles:
 
     # Project Meta Files
     BUILDS_FILE = "builds.json"
+    DICT_FILE = "userdict.json"
     INDEX_FILE = "index.json"
     OPTS_FILE = "options.json"
-    DICT_FILE = "userdict.json"
     SESS_FILE = "sessions.jsonl"
+    VIEWS_FILE = "views.json"
 
 
 class nwKeyWords:
@@ -238,6 +239,21 @@ class nwKeyWords:
         ENTITY_KEY: nwItemClass.ENTITY,
         CUSTOM_KEY: nwItemClass.CUSTOM,
         STORY_KEY: nwItemClass.NOVEL,
+    }
+
+    # Map to Class Icons
+    KEY_ICON: ClassVar[dict[str, str]] = {
+        POV_KEY: "cls_character:root",
+        FOCUS_KEY: "cls_character:root",
+        CHAR_KEY: "cls_character:root",
+        PLOT_KEY: "cls_plot:root",
+        TIME_KEY: "cls_timeline:root",
+        WORLD_KEY: "cls_world:root",
+        OBJECT_KEY: "cls_object:root",
+        ENTITY_KEY: "cls_entity:root",
+        CUSTOM_KEY: "cls_custom:root",
+        STORY_KEY: "cls_novel:root",
+        MENTION_KEY: "key_mention:root",
     }
 
 
@@ -367,28 +383,6 @@ class nwLabels:
         nwKeyWords.STORY_KEY: "Ctrl+K, N",
         nwKeyWords.MENTION_KEY: "Ctrl+K, M",
     }
-    OUTLINE_COLS: ClassVar[dict[nwOutline, str]] = {
-        nwOutline.TITLE: QT_TRANSLATE_NOOP("Constant", "Title"),
-        nwOutline.LEVEL: QT_TRANSLATE_NOOP("Constant", "Level"),
-        nwOutline.LABEL: QT_TRANSLATE_NOOP("Constant", "Document"),
-        nwOutline.LINE: QT_TRANSLATE_NOOP("Constant", "Line"),
-        nwOutline.STATUS: QT_TRANSLATE_NOOP("Constant", "Status"),
-        nwOutline.CCOUNT: QT_TRANSLATE_NOOP("Constant", "Chars"),
-        nwOutline.WCOUNT: QT_TRANSLATE_NOOP("Constant", "Words"),
-        nwOutline.PCOUNT: QT_TRANSLATE_NOOP("Constant", "Pars"),
-        nwOutline.POV: QT_TRANSLATE_NOOP("Constant", "POV"),
-        nwOutline.FOCUS: QT_TRANSLATE_NOOP("Constant", "Focus"),
-        nwOutline.CHAR: KEY_NAME[nwKeyWords.CHAR_KEY],
-        nwOutline.PLOT: KEY_NAME[nwKeyWords.PLOT_KEY],
-        nwOutline.WORLD: KEY_NAME[nwKeyWords.WORLD_KEY],
-        nwOutline.TIME: KEY_NAME[nwKeyWords.TIME_KEY],
-        nwOutline.OBJECT: KEY_NAME[nwKeyWords.OBJECT_KEY],
-        nwOutline.ENTITY: KEY_NAME[nwKeyWords.ENTITY_KEY],
-        nwOutline.CUSTOM: KEY_NAME[nwKeyWords.CUSTOM_KEY],
-        nwOutline.STORY: KEY_NAME[nwKeyWords.STORY_KEY],
-        nwOutline.MENTION: KEY_NAME[nwKeyWords.MENTION_KEY],
-        nwOutline.SYNOP: QT_TRANSLATE_NOOP("Constant", "Synopsis"),
-    }
     STATS_NAME: ClassVar[dict[str, str]] = {
         nwStats.CHARS: QT_TRANSLATE_NOOP("Stats", "Characters"),
         nwStats.CHARS_TEXT: QT_TRANSLATE_NOOP("Stats", "Characters in text"),
@@ -515,6 +509,16 @@ class nwLabels:
         nwTheme.AUTO: QT_TRANSLATE_NOOP("Constant", "System Theme"),
         nwTheme.LIGHT: QT_TRANSLATE_NOOP("Constant", "Light Theme"),
         nwTheme.DARK: QT_TRANSLATE_NOOP("Constant", "Dark Theme"),
+    }
+    COMMENT_ICON: ClassVar[dict[nwComment, str]] = {
+        nwComment.PLAIN: "cmn_general:faded",
+        nwComment.IGNORE: "cmn_general:disabled",
+        nwComment.SYNOPSIS: "cmn_general:note",
+        nwComment.SHORT: "cmn_general:note",
+        nwComment.NOTE: "cmn_note:note",
+        nwComment.FOOTNOTE: "cmn_note:active",
+        nwComment.COMMENT: "cmn_general:faded",
+        nwComment.STORY: "cmn_story:note",
     }
     BACKUP_INTERVAL: ClassVar[dict[str, str]] = {
         "session": QT_TRANSLATE_NOOP("Constant", "Per Session"),

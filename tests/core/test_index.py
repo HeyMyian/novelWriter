@@ -137,9 +137,11 @@ def testIndex_LoadSave(qtbot, monkeypatch, prjLipsum, nwGUI, tstPaths):
     # Delete a handle
     assert index._tagsIndex["Bod"] is not None
     assert index._itemIndex[bHandle] is not None
+    revision = index.indexRevision
     index.deleteHandle(bHandle)
     assert index._tagsIndex["Bod"] is None
     assert index._itemIndex[bHandle] is None
+    assert index.indexRevision == revision + 1
 
     # Clear the index
     index.clear()
@@ -289,9 +291,7 @@ def testIndex_CheckThese(nwGUI, fncPath, mockRnd):
     assert isinstance(cItem, ProjectItem)
     assert isinstance(wItem, ProjectItem)
 
-    assert index.rootChangedSince(C.hNovelRoot, 0) is False
-    assert index.rootChangedSince(None, 0) is False
-    assert index.indexChangedSince(0) is False
+    revision = index.indexRevision
 
     assert index.scanText(cHandle, ("# Jane Smith\n@tag: Jane\n@tag:\n@:\n"))
     assert index.scanText(wHandle, ("# Earth\n@tag: Earth\n"))
@@ -310,23 +310,8 @@ def testIndex_CheckThese(nwGUI, fncPath, mockRnd):
     assert index._tagsIndex.tagClass("Jane") == "CHARACTER"
 
     assert index.getItemHeading(nHandle, "T0001").title == "Hello World!"  # type: ignore
-    assert index.getReferences(nHandle, "T0001") == {
-        "@char": [],
-        "@custom": [],
-        "@entity": [],
-        "@focus": [],
-        "@location": ["Earth"],
-        "@mention": [],
-        "@object": [],
-        "@plot": [],
-        "@pov": ["Jane"],
-        "@story": [],
-        "@tag": [],
-        "@time": [],
-    }
 
-    assert index.rootChangedSince(C.hNovelRoot, 0) is True
-    assert index.indexChangedSince(0) is True
+    assert index.indexRevision == revision + 3
 
     assert cItem.mainHeading == "H1"
     assert nItem.mainHeading == "H1"
@@ -739,68 +724,14 @@ def testIndex_ExtractData(nwGUI, fncPath, mockRnd):
         ),
     )
 
-    # The novel structure should contain the pointer to the novel file header
-    keys = []
-    for aKey, _, _, _ in index.novelStructure():
-        keys.append(aKey)
-
-    assert keys == [
-        f"{C.hTitlePage}:T0001",
-        f"{C.hChapterDoc}:T0001",
-        f"{C.hSceneDoc}:T0001",
-        f"{nHandle}:T0001",
-    ]
-
-    # Check that excluded files can be skipped
-    project.tree[nHandle].setActive(False)  # type: ignore
-
-    keys = []
-    for aKey, _, _, _ in index.novelStructure(activeOnly=False):
-        keys.append(aKey)
-
-    assert keys == [
-        f"{C.hTitlePage}:T0001",
-        f"{C.hChapterDoc}:T0001",
-        f"{C.hSceneDoc}:T0001",
-        f"{nHandle}:T0001",
-    ]
-
-    keys = []
-    for aKey, _, _, _ in index.novelStructure(activeOnly=True):
-        keys.append(aKey)
-
-    assert keys == [
-        f"{C.hTitlePage}:T0001",
-        f"{C.hChapterDoc}:T0001",
-        f"{C.hSceneDoc}:T0001",
-    ]
-
     # The novel file should have the correct counts
     cC, wC, pC = index.getCounts(nHandle)
     assert cC == 62  # Characters in text and title only
     assert wC == 12  # Words in text and title only
     assert pC == 2  # Paragraphs in text only
 
-    # getReferences
-    # =============
-
-    # Look up an invalid handle
-    refs = index.getReferences("Not a handle")
-    assert refs["@tag"] == []
-    assert refs["@pov"] == []
-    assert refs["@char"] == []
-
-    # The novel file should now refer to Jane as @pov and @char
-    refs = index.getReferences(nHandle)
-    assert refs["@tag"] == ["Scene"]
-    assert refs["@pov"] == ["Jane"]
-    assert refs["@char"] == ["Jane", "John"]
-
-    # A title that doesn't match any heading in the file yields no references
-    refs = index.getReferences(nHandle, "T9999")
-    assert refs["@tag"] == []
-    assert refs["@pov"] == []
-    assert refs["@char"] == []
+    # Check that excluded files can be skipped
+    project.tree[nHandle].setActive(False)  # type: ignore
 
     # getReferenceForHeader
     # =====================
@@ -1314,11 +1245,11 @@ def testItemIndex_Main(nwGUI, fncPath, mockRnd):
     assert cHandle in itemIndex
     assert itemIndex[cHandle].item == project.tree[cHandle]  # type: ignore
     assert itemIndex.allItemTags(cHandle) == []
-    assert list(itemIndex.iterItemHeaders(cHandle))[0][0] == "T0000"
+    assert list(itemIndex[cHandle].items())[0][0] == "T0000"  # type: ignore
 
     # Add a heading to the item, which should replace the T000000 heading
     assert itemIndex.addItemHeading(cHandle, 1, "H2", "Chapter One") == "T0001"
-    assert list(itemIndex.iterItemHeaders(cHandle))[0][0] == "T0001"
+    assert list(itemIndex[cHandle].items())[0][0] == "T0001"  # type: ignore
 
     # Add a heading to an invalid item
     assert itemIndex.addItemHeading(C.hInvalid, 1, "H1", "Stuff") == "T0000"
