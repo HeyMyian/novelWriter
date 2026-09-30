@@ -66,7 +66,6 @@ class GuiStoryView(QWidget):
         self._tagsRevision = -1
 
         icnSize = SHARED.theme.baseIconSize
-        btnSize = 1.4 * icnSize
 
         # Story View
         self.titleLabel = NColorLabel(
@@ -82,7 +81,7 @@ class GuiStoryView(QWidget):
         self.novelValue.setMinimumWidth(200)
         self.novelValue.novelSelectionChanged.connect(self._novelValueChanged)
 
-        self.exportData = NIconButton(self, btnSize, "export:action")
+        self.exportData = NIconButton(self, icnSize, "export:action")
         self.exportData.setToolTip(self.tr("Export the story view data"))
         self.exportData.clicked.connect(self._exportData)
 
@@ -100,19 +99,19 @@ class GuiStoryView(QWidget):
         self.tabMain.setMovable(True)
         self.tabMain.currentChanged.connect(self._currentViewChanged)
 
-        self.addView = NIconButton(self, btnSize, "add:add")
+        self.addView = NIconButton(self, icnSize, "add:add")
         self.addView.setToolTip(self.tr("Add a new view"))
         self.addView.clicked.connect(self._addNewView)
 
-        self.delView = NIconButton(self, btnSize, "remove:remove")
+        self.delView = NIconButton(self, icnSize, "remove:remove")
         self.delView.setToolTip(self.tr("Delete current view"))
         self.delView.clicked.connect(self._deleteCurrentView)
 
-        self.copyView = NIconButton(self, btnSize, "copy:action")
+        self.copyView = NIconButton(self, icnSize, "copy:action")
         self.copyView.setToolTip(self.tr("Duplicate current view"))
         self.copyView.clicked.connect(self._copyCurrentView)
 
-        self.editView = NIconButton(self, btnSize, "edit:change")
+        self.editView = NIconButton(self, icnSize, "edit:change")
         self.editView.setToolTip(self.tr("Edit current view"))
         self.editView.clicked.connect(self._editCurrentView)
 
@@ -349,6 +348,7 @@ class GuiStoryView(QWidget):
                 if dialog.viewID == viewID:
                     dialog.activateDialog()
                     return
+            current.saveViewState()
             dialog = dialogClass(SHARED.mainGui, current.settings)
             dialog.newSettingsReady.connect(self._applyViewSettings)
             dialog.activateDialog()

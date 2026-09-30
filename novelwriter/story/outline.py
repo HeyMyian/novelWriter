@@ -244,9 +244,12 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.clearDoublePage.setChecked(settings.getBool("outline.clearDoublePage"))
         self.useTargetCount.setChecked(settings.getBool("outline.useTargetCount"))
 
-        # Columns
+        # Columns, in the order of the outline header
         if isinstance(settings, OutlineViewSettings):  # pragma: no branch
-            self.columnsPage.setColumns(settings.columns)
+            state = settings.getState("columns")
+            rank = {k: i for i, k in enumerate(state)} if isinstance(state, dict) else {}
+            columns = sorted(settings.columns, key=lambda c: rank.get(f"column:{c.cid}", len(rank)))
+            self.columnsPage.setColumns(columns)
 
     def saveSettings(self) -> None:
         """Save the settings."""

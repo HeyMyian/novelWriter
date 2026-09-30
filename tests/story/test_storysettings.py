@@ -239,6 +239,14 @@ def testStoryViewSettings_State():
     view.setState("columns", {"title": 200})
     assert view.stateChanged is False
 
+    # A new key order is a change
+    view.setState("columns", {"title": 200, "plot": 100})
+    view.resetChangedState()
+    view.setState("columns", {"plot": 100, "title": 200})
+    assert list(view.getState("columns")) == ["plot", "title"]
+    assert view.stateChanged is True
+    view.setState("columns", {"title": 200})
+
     # State is packed and unpacked
     another = OutlineViewSettings()
     another.unpack(view.pack())
@@ -282,6 +290,11 @@ def testStoryViewSettings_Columns():
     # Setting the same columns is not a change
     view.resetChangedState()
     view.setColumns(view.columns)
+    assert view.changed is False
+
+    # A new order is kept, but is not a change
+    view.setColumns([three, one, two])
+    assert view.columns == [three, one, two]
     assert view.changed is False
 
     # Columns are packed and unpacked

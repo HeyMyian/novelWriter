@@ -208,7 +208,13 @@ class StoryViewSettings:
 
     def setState(self, key: str, value: Any) -> None:
         """Set a JSON compatible view state value, validated by the view."""
-        if value != self._state.get(key):
+        old = self._state.get(key)
+        if isinstance(value, dict) and isinstance(old, dict):
+            # Dict equality ignores order, which is part of the state
+            changed = list(value.items()) != list(old.items())
+        else:
+            changed = value != old
+        if changed:
             self._state[key] = value
             self._stateChanged = True
 
@@ -344,9 +350,9 @@ class OutlineViewSettings(StoryViewSettings):
     ##
 
     def setColumns(self, columns: list[OutlineColumn]) -> None:
-        """Set the outline columns."""
+        """Set the outline columns. A new order alone is not a change."""
         columns = self._checkColumns([{"id": c.cid, "name": c.name, "keys": c.keys} for c in columns])
-        self._changed |= columns != self._columns
+        self._changed |= set(columns) != set(self._columns)
         self._columns = columns
 
     ##

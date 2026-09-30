@@ -417,6 +417,15 @@ def testStoryOutline_ColumnsPage(qtbot, nwGUI, prjLipsum):
     notes = ["story.goal", "note.a", "note.b", "note.c", "note.consistency", "note.purpose"]
 
     settings = OutlineViewSettings()
+    # The columns are listed in the order of the outline header, with
+    # columns not in the header last
+    settings.setColumns([OutlineColumn("a", "A", ()), OutlineColumn("b", "B", ()), OutlineColumn("c", "C", ())])
+    settings.setState("columns", {"title": 100, "column:c": 100, "column:a": 100})
+    dialog = GuiOutlineViewSettings(nwGUI, settings)
+    assert [c.cid for c in dialog.columnsPage.columns()] == ["c", "a", "b"]
+    dialog.discardAndClose()
+
+    settings = OutlineViewSettings()
     settings.setColumns([OutlineColumn("a", "Comments", ("synopsis",)), OutlineColumn("b", "Other", ("note.gone",))])
     dialog = GuiOutlineViewSettings(nwGUI, settings)
     qtbot.addWidget(dialog)

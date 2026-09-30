@@ -212,6 +212,7 @@ class OutlineNode:
                 kind, _, name = key.partition(".")
                 if kind in kinds and name:
                     lookup[key.lower()] = (f"{kinds[kind]} ({name.title()})", text)
+
             self._entries = []
             for keys in self._columns:
                 entries = []
