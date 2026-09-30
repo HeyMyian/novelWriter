@@ -33,7 +33,6 @@ from PyQt6.QtGui import (
     QIcon,
     QPainter,
     QPalette,
-    QPixmap,
     QTextCharFormat,
     QTextLayout,
     QTextOption,
@@ -59,7 +58,7 @@ from PyQt6.QtWidgets import (
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import simplified
 from novelwriter.constants import nwKeyWords, nwLabels, trConst
-from novelwriter.enum import nwToolButton
+from novelwriter.enum import nwComment, nwToolButton
 from novelwriter.extensions.configlayout import NFixedPage
 from novelwriter.extensions.modified import NComboBox, NSpinBox, NTreeView
 from novelwriter.extensions.switch import NSwitch
@@ -294,12 +293,7 @@ class _ColumnsPage(NFixedPage):
         for key in sorted(index.getNoteKeys()):
             self._spelling.setdefault(f"note.{key.lower()}", key)
 
-        iPx = SHARED.theme.baseIconHeight
         iSz = SHARED.theme.baseIconSize
-
-        blank = QPixmap(iPx, iPx)
-        blank.fill(QtTransparent)
-        self._blankIcon = QIcon(blank)
 
         self.trSynopsis = self.tr("Synopsis")
         self.trStory = self.tr("Story")
@@ -485,13 +479,10 @@ class _ColumnsPage(NFixedPage):
 
     def _keyIcon(self, key: str) -> QIcon:
         """Return the icon of a column key."""
-        icon = nwKeyWords.KEY_ICON.get(key)
-        if icon is None and (comment := MODIFIERS.get(key.partition(".")[0])):
-            icon = nwLabels.COMMENT_ICON.get(comment)
-        if icon:
-            iPx = SHARED.theme.baseIconHeight
-            return SHARED.theme.getIcon(icon, iPx, iPx)
-        return self._blankIcon
+        if not (icon := nwKeyWords.KEY_ICON.get(key)):
+            icon = nwLabels.COMMENT_ICON[MODIFIERS.get(key.partition(".")[0], nwComment.PLAIN)]
+        iPx = SHARED.theme.baseIconHeight
+        return SHARED.theme.getIcon(icon, iPx, iPx)
 
     def _refreshOptions(self) -> None:
         """Populate the column key options that are not already in use."""
