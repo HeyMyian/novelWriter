@@ -79,10 +79,6 @@ class GuiSideBar(QWidget):
         self.tbTheme.setToolTip(self.tr("Switch Colour Theme"))
         self.tbTheme.clicked.connect(self._cycleColorTheme)
 
-        self.tbDetails = NFlatIconButton(self, iSz, "sb_details:sidebar", 0.25)
-        self.tbDetails.setToolTip("{0} [Shift+F6]".format(self.tr("Novel Details")))
-        self.tbDetails.clicked.connect(self.mainGui.showNovelDetailsDialog)
-
         self.tbStats = NFlatIconButton(self, iSz, "sb_stats:sidebar", 0.25)
         self.tbStats.setToolTip("{0} [F6]".format(self.tr("Writing Statistics")))
         self.tbStats.clicked.connect(self.mainGui.showWritingStatsDialog)
@@ -111,7 +107,6 @@ class GuiSideBar(QWidget):
         self.outerBox.addWidget(self.tbStory)
         self.outerBox.addWidget(self.tbBuild)
         self.outerBox.addStretch(1)
-        self.outerBox.addWidget(self.tbDetails)
         self.outerBox.addWidget(self.tbStats)
         self.outerBox.addWidget(self.tbTheme)
         self.outerBox.addWidget(self.tbSettings)
@@ -133,7 +128,6 @@ class GuiSideBar(QWidget):
             self.tbSearch.refreshTheme()
             self.tbStory.refreshTheme()
             self.tbBuild.refreshTheme()
-            self.tbDetails.refreshTheme()
             self.tbStats.refreshTheme()
             self.tbTheme.refreshTheme()
             self.tbSettings.refreshTheme()

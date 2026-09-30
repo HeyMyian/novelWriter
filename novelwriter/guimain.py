@@ -66,7 +66,6 @@ from novelwriter.gui.statusbar import GuiMainStatus
 from novelwriter.manuscript.manuscript import GuiManuscript
 from novelwriter.story.storyview import GuiStoryView
 from novelwriter.tools.dictionaries import GuiDictionaries
-from novelwriter.tools.noveldetails import GuiNovelDetails
 from novelwriter.tools.welcome import GuiWelcome
 from novelwriter.tools.writingstats import GuiWritingStats
 
@@ -772,14 +771,6 @@ class GuiMain(QMainWindow):
             dialog = GuiProjectSettings(self, gotoPage=focusTab)
             dialog.newProjectSettingsReady.connect(self._processProjectSettingsChanges)
             dialog.exec()
-
-    @pyqtSlot()
-    def showNovelDetailsDialog(self) -> None:
-        """Open the novel details dialog."""
-        if SHARED.hasProject:
-            dialog = GuiNovelDetails(self)
-            dialog.activateDialog()
-            dialog.updateValues()
 
     @pyqtSlot()
     def showBuildManuscriptDialog(self) -> None:
