@@ -304,6 +304,7 @@ class StoryViewCollection:
     def __init__(self, project: NWProject) -> None:
         self._project = project
         self._lastView = ""
+        self._highlight = ""
         self._views: dict[str, StoryViewSettings] = {}
         self._unknown: dict[str, dict] = {}
         self._loadCollection()
@@ -320,6 +321,11 @@ class StoryViewCollection:
     def lastView(self) -> str:
         """Return the last active view ID."""
         return self._lastView
+
+    @property
+    def highlight(self) -> str:
+        """Return the highlighted reference tag key."""
+        return self._highlight
 
     ##
     #  Getters
@@ -339,13 +345,18 @@ class StoryViewCollection:
             self._views[view.viewID] = view
             self._saveCollection()
 
-    def setStoryViewsState(self, lastView: str, order: list[str]) -> None:
-        """Set the last active view ID and the order of the story views
-        from a list of view IDs, and save if either or any view state
-        changed.
+    def setStoryViewsState(self, lastView: str, highlight: str, order: list[str]) -> None:
+        """Set the last active view ID, the highlighted reference, and the
+        order of the story views from a list of view IDs, and save if any
+        of them or any view state changed.
         """
-        changed = lastView != self._lastView or any(v.stateChanged for v in self._views.values())
+        changed = (
+            lastView != self._lastView
+            or highlight != self._highlight
+            or any(v.stateChanged for v in self._views.values())
+        )
         self._lastView = lastView
+        self._highlight = highlight
         for i, key in enumerate(order):
             if (view := self._views.get(key)) and view.order != i:
                 view.setOrder(i)
@@ -401,6 +412,8 @@ class StoryViewCollection:
         for key, entry in views.items():
             if key == "lastView":
                 self._lastView = str(entry)
+            elif key == "highlight":
+                self._highlight = str(entry)
             elif isinstance(entry, dict):
                 if view := StoryViewSettings.fromDict(entry):
                     self._views[view.viewID] = view
@@ -421,6 +434,7 @@ class StoryViewCollection:
         try:
             data: dict[str, str | dict] = {
                 "lastView": self._lastView,
+                "highlight": self._highlight,
             }
             data.update(self._unknown)
             data.update({k: v.pack() for k, v in self._views.items()})

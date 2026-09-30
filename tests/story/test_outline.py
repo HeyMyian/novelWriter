@@ -23,9 +23,9 @@ from __future__ import annotations
 
 import pytest
 
-from PyQt6.QtCore import QModelIndex
-from PyQt6.QtGui import QPainter, QPixmap
-from PyQt6.QtWidgets import QStyleOptionViewItem
+from PyQt6.QtCore import QModelIndex, QPoint, QPointF, Qt
+from PyQt6.QtGui import QPainter, QPixmap, QWheelEvent
+from PyQt6.QtWidgets import QApplication, QStyleOptionViewItem
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwKeyWords
@@ -33,7 +33,7 @@ from novelwriter.enum import nwView
 from novelwriter.models.outlinemodel import OutlineModel
 from novelwriter.story.outline import GuiStoryOutlineView
 from novelwriter.story.storysettings import OutlineViewSettings
-from novelwriter.types import QtScrollAlwaysOff, QtScrollAsNeeded
+from novelwriter.types import QtModCtrl, QtModNone, QtScrollAlwaysOff, QtScrollAsNeeded
 
 ALL_SETTINGS = (
     "outline.showParts",
@@ -202,6 +202,52 @@ def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
     tree.setColumnHidden(OutlineModel.C_CUSTOM, True)
     tree.saveColumnState()
     assert settings.getState("columns")["custom"] == 160
+
+
+@pytest.mark.gui
+def testStoryOutline_WheelScroll(qtbot, nwGUI, prjLipsum):
+    """Test that the mouse wheel scrolls one item per step."""
+    assert nwGUI.openProject(prjLipsum)
+
+    settings = OutlineViewSettings()
+    view = GuiStoryOutlineView(nwGUI, settings)
+    view.resize(800, 200)
+    view.show()
+    view.refresh(None)
+
+    tree = view.outlineContent
+    vBar = tree.verticalScrollBar()
+    assert vBar is not None
+    qtbot.waitUntil(lambda: vBar.maximum() > 3)
+
+    def scroll(steps: int, modifiers: Qt.KeyboardModifier = QtModNone) -> int:
+        vBar.setValue(0)
+        tree.wheelEvent(
+            QWheelEvent(
+                QPointF(10.0, 10.0),
+                QPointF(10.0, 10.0),
+                QPoint(0, 0),
+                QPoint(0, -120 * steps),
+                Qt.MouseButton.NoButton,
+                modifiers,
+                Qt.ScrollPhase.NoScrollPhase,
+                False,
+            )
+        )
+        return vBar.value()
+
+    # One item per step, regardless of desktop setting
+    lines = QApplication.wheelScrollLines()
+    QApplication.setWheelScrollLines(3)
+    assert scroll(1) == 1
+    assert scroll(2) == 2
+    QApplication.setWheelScrollLines(1)
+    assert scroll(1) == 1
+
+    # Control scrolls a page, as before
+    QApplication.setWheelScrollLines(3)
+    assert scroll(1, QtModCtrl) == vBar.pageStep()
+    QApplication.setWheelScrollLines(lines)
 
 
 @pytest.mark.gui

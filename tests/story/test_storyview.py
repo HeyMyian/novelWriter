@@ -445,6 +445,14 @@ def testStoryView_Highlight(qtbot, nwGUI, prjLipsum):
     assert [combo.itemData(i) for i in range(combo.count())] == ["", "bod", "europe", "main"]
     assert [combo.itemText(i) for i in range(combo.count())] == ["", "Bod", "Europe", "Main"]
 
+    # The completer matches any part of the name
+    completer = combo.completer()
+    assert completer is not None
+    assert completer.popup() is not None
+    completer.setCompletionPrefix("UR")
+    assert completer.completionCount() == 1
+    assert completer.currentCompletion() == "Europe"
+
     # Selecting a reference highlights it in all views, also new ones
     combo.setCurrentIndex(combo.findData("bod"))
     assert highlights() == [{"bod"}]
@@ -477,7 +485,7 @@ def testStoryView_Highlight(qtbot, nwGUI, prjLipsum):
     assert combo.currentIndex() == 0
     assert highlights() == [set(), set()]
 
-    # Closing the project clears the list
+    # Closing the project saves the highlight, and clears the list
     combo.setCurrentIndex(combo.findData("bod"))
     assert nwGUI.closeProject(isYes=True)
     assert combo.count() == 0
@@ -485,6 +493,12 @@ def testStoryView_Highlight(qtbot, nwGUI, prjLipsum):
     assert not combo.isEnabled()
     storyView.updateTheme()
     assert combo.count() == 0
+
+    # The highlight is restored when the views are loaded
+    assert nwGUI.openProject(prjLipsum)
+    nwGUI._changeView(nwView.STORY)
+    assert combo.currentData() == "bod"
+    assert highlights() == [{"bod"}, {"bod"}]
 
     # Let the clear button fade out
     running = QAbstractAnimation.State.Running

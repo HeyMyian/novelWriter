@@ -28,7 +28,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import Qt, pyqtSlot
-from PyQt6.QtWidgets import QComboBox, QFileDialog, QHBoxLayout, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QComboBox, QCompleter, QFileDialog, QHBoxLayout, QVBoxLayout, QWidget
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import formatFileFilter
@@ -140,6 +140,7 @@ class GuiStoryView(QWidget):
             view.setIconSize(icnSize)
 
         if completer := self.highlightValue.completer():  # pragma: no branch
+            completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
             completer.setFilterMode(Qt.MatchFlag.MatchContains)
             if popup := completer.popup():  # pragma: no branch
                 popup.setIconSize(icnSize)
@@ -228,7 +229,8 @@ class GuiStoryView(QWidget):
                 widget.saveViewState()
             current = self.tabMain.currentWidget()
             lastView = current.settings.viewID if isinstance(current, GuiStoryViewBase) else ""
-            self._views.setStoryViewsState(lastView, [v.settings.viewID for v in self._iterViews()])
+            highlight = next(iter(self._highlight), "")
+            self._views.setStoryViewsState(lastView, highlight, [v.settings.viewID for v in self._iterViews()])
         while self.tabMain.count() > 0:
             self._removeTab(0)
 
@@ -388,6 +390,7 @@ class GuiStoryView(QWidget):
         if len(views) == 0:
             views.setStoryView(OutlineViewSettings())
         self._views = views
+        self._highlight = {views.highlight} if views.highlight else set()
 
         # The current view is refreshed by the caller, not on tab change
         self.tabMain.blockSignals(True)

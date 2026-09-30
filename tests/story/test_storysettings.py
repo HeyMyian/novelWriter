@@ -291,25 +291,32 @@ def testStoryViewSettings_Collection(monkeypatch, mockGUI, fncPath: Path, mockRn
     assert [v.viewID for v in views.storyViews()] == [viewIDOne, viewIDTwo]
 
     # Set the last view and reorder the views, unknown IDs are ignored
-    views.setStoryViewsState(viewIDTwo, [viewIDTwo, viewIDOne, "not-a-real-id"])
+    views.setStoryViewsState(viewIDTwo, "", [viewIDTwo, viewIDOne, "not-a-real-id"])
     assert [v.viewID for v in views.storyViews()] == [viewIDTwo, viewIDOne]
     assert views.lastView == viewIDTwo
+    assert views.highlight == ""
 
     # An unchanged state is not saved
     with monkeypatch.context() as mp:
         mp.setattr(views, "_saveCollection", lambda: pytest.fail("Unexpected save"))
-        views.setStoryViewsState(viewIDTwo, [viewIDTwo, viewIDOne])
+        views.setStoryViewsState(viewIDTwo, "", [viewIDTwo, viewIDOne])
+
+    # A changed highlight is saved
+    views.setStoryViewsState(viewIDTwo, "bod", [viewIDTwo, viewIDOne])
+    assert views.highlight == "bod"
+    data = json.loads(viewsFile.read_text(encoding="utf-8"))
+    assert data["novelWriter.storyViews"]["highlight"] == "bod"
 
     # A changed view state is saved, and the flag reset
     viewOne.setState("columns", {"title": 200})
-    views.setStoryViewsState(viewIDTwo, [viewIDTwo, viewIDOne])
+    views.setStoryViewsState(viewIDTwo, "bod", [viewIDTwo, viewIDOne])
     assert viewOne.stateChanged is False
     data = json.loads(viewsFile.read_text(encoding="utf-8"))
     assert data["novelWriter.storyViews"][viewIDOne]["state"] == {"columns": {"title": 200}}
 
     # Check the file content
     data = json.loads(viewsFile.read_text(encoding="utf-8"))
-    assert list(data["novelWriter.storyViews"].keys()) == ["lastView", viewIDOne, viewIDTwo]
+    assert list(data["novelWriter.storyViews"].keys()) == ["lastView", "highlight", viewIDOne, viewIDTwo]
 
     # Remove a view
     views.removeStoryView(viewIDOne)
@@ -317,12 +324,13 @@ def testStoryViewSettings_Collection(monkeypatch, mockGUI, fncPath: Path, mockRn
     assert [v.viewID for v in views.storyViews()] == [viewIDTwo]
 
     data = json.loads(viewsFile.read_text(encoding="utf-8"))
-    assert list(data["novelWriter.storyViews"].keys()) == ["lastView", viewIDTwo]
+    assert list(data["novelWriter.storyViews"].keys()) == ["lastView", "highlight", viewIDTwo]
     views.setStoryView(viewOne)
 
     # Load views file into new object
     another = StoryViewCollection(project)
     assert another.lastView == viewIDTwo
+    assert another.highlight == "bod"
     assert [(v.viewID, v.name) for v in another.storyViews()] == [
         (viewIDTwo, "View Two"),
         (viewIDOne, "View One"),
@@ -343,6 +351,7 @@ def testStoryViewSettings_Collection(monkeypatch, mockGUI, fncPath: Path, mockRn
     data = json.loads(viewsFile.read_text(encoding="utf-8"))
     assert data["novelWriter.storyViews"] == {
         "lastView": viewIDTwo,
+        "highlight": "bod",
         "future": unknown,
         viewIDTwo: viewTwo.pack(),
     }

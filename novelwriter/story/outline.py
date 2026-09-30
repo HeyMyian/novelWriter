@@ -25,8 +25,16 @@ import logging
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QModelIndex, QPointF, QRect, QSize, Qt
-from PyQt6.QtGui import QFontMetrics, QPainter, QPalette, QTextCharFormat, QTextLayout, QTextOption
+from PyQt6.QtCore import QModelIndex, QPoint, QPointF, QRect, QSize, Qt
+from PyQt6.QtGui import (
+    QFontMetrics,
+    QPainter,
+    QPalette,
+    QTextCharFormat,
+    QTextLayout,
+    QTextOption,
+    QWheelEvent,
+)
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -48,6 +56,8 @@ from novelwriter.types import (
     QtElideRight,
     QtHeaderInteractive,
     QtHeaderStretch,
+    QtModCtrl,
+    QtModShift,
     QtScrollAlwaysOff,
     QtScrollAsNeeded,
     QtTransparent,
@@ -396,6 +406,25 @@ class GuiStoryOutlineTree(NTreeView):
     ##
     #  Overrides
     ##
+
+    def wheelEvent(self, event: QWheelEvent) -> None:
+        """Scroll one item per wheel step, regardless of desktop setting."""
+        lines = QApplication.wheelScrollLines()
+        if lines > 1 and not event.modifiers() & (QtModCtrl | QtModShift):
+            delta = event.angleDelta()
+            event = QWheelEvent(
+                event.position(),
+                event.globalPosition(),
+                event.pixelDelta(),
+                QPoint(round(delta.x() / lines), round(delta.y() / lines)),
+                event.buttons(),
+                event.modifiers(),
+                event.phase(),
+                event.inverted(),
+                Qt.MouseEventSource.MouseEventNotSynthesized,
+                event.pointingDevice(),
+            )
+        super().wheelEvent(event)
 
     def drawRow(self, painter: QPainter, option: QStyleOptionViewItem, index: QModelIndex) -> None:
         """Paint the level-coloured box and left edge behind the row text
