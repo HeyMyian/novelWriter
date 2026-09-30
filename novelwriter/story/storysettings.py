@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING, Any, NamedTuple, Self
 from PyQt6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
 from novelwriter.common import checkUuid, jsonEncode, safeExists
-from novelwriter.constants import nwFiles
+from novelwriter.constants import nwFiles, nwKeyWords
 from novelwriter.enum import nwComment
 from novelwriter.error import logException
 from novelwriter.text.formats import MODIFIERS
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 T_ViewValue = str | int | float | bool
 
 COMMENT_SYNOPSIS = "synopsis"
-MAX_COMMENT_KEYS = 5
+MAX_COLUMN_KEYS = 5
 
 # The Settings Template
 # =====================
@@ -61,14 +61,6 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_ViewValue]] = {
     "outline.showScenes":      (bool, True),
     "outline.showChapters":    (bool, True),
     "outline.showSections":    (bool, False),
-
-    "outline.showCharacters":  (bool, True),
-    "outline.showPlot":        (bool, True),
-    "outline.showWorld":       (bool, True),
-    "outline.showObject":      (bool, False),
-    "outline.showEntity":      (bool, False),
-    "outline.showCustom":      (bool, False),
-    "outline.showMentions":    (bool, False),
 
     "outline.showProgress":    (bool, True),
     "outline.countPerPage":    (int, 350),
@@ -89,34 +81,33 @@ SETTINGS_LABELS = {
     "outline.showScenes":      QT_TRANSLATE_NOOP("StoryViews", "Show scenes"),
     "outline.showSections":    QT_TRANSLATE_NOOP("StoryViews", "Show sections"),
 
-    "outline.grpClass":        QT_TRANSLATE_NOOP("StoryViews", "References"),
-    "outline.showCharacters":  QT_TRANSLATE_NOOP("StoryViews", "Show point of view, focus and characters"),
-    "outline.showPlot":        QT_TRANSLATE_NOOP("StoryViews", "Show plots and timelines"),
-    "outline.showWorld":       QT_TRANSLATE_NOOP("StoryViews", "Show locations"),
-    "outline.showObject":      QT_TRANSLATE_NOOP("StoryViews", "Show objects"),
-    "outline.showEntity":      QT_TRANSLATE_NOOP("StoryViews", "Show entities"),
-    "outline.showCustom":      QT_TRANSLATE_NOOP("StoryViews", "Show custom references"),
-    "outline.showMentions":    QT_TRANSLATE_NOOP("StoryViews", "Show mentions"),
-
     "outline.grpProgress":     QT_TRANSLATE_NOOP("StoryViews", "Progression"),
     "outline.showProgress":    QT_TRANSLATE_NOOP("StoryViews", "Show story progression"),
     "outline.countPerPage":    QT_TRANSLATE_NOOP("StoryViews", "Count per page"),
     "outline.clearDoublePage": QT_TRANSLATE_NOOP("StoryViews", "Clear double page"),
     "outline.useTargetCount":  QT_TRANSLATE_NOOP("StoryViews", "Relative to project target"),
 
-    "outline.pgComments":      QT_TRANSLATE_NOOP("StoryViews", "Comments"),
+    "outline.pgColumns":       QT_TRANSLATE_NOOP("StoryViews", "Columns"),
+
+    "outline.defCharacters":   QT_TRANSLATE_NOOP("StoryViews", "Characters"),
+    "outline.defPlot":         QT_TRANSLATE_NOOP("StoryViews", "Plot"),
+    "outline.defWorld":        QT_TRANSLATE_NOOP("StoryViews", "World"),
     "outline.defComments":     QT_TRANSLATE_NOOP("StoryViews", "Comments"),
 }
 # fmt: on
 
 
-def newCommentID() -> str:
-    """Generate a new short comment column ID."""
+def newColumnID() -> str:
+    """Generate a new short outline column ID."""
     return uuid.uuid4().hex[:8]
 
 
-def isCommentKey(key: str) -> bool:
-    """Check if a key is the synopsis or a story or note comment key."""
+def isColumnKey(key: str) -> bool:
+    """Check if a key is a reference keyword, the synopsis, or a story
+    or note comment key.
+    """
+    if key in nwKeyWords.CAN_LOOKUP:
+        return True
     modifier, _, name = key.partition(".")
     match MODIFIERS.get(modifier):
         case nwComment.SYNOPSIS:
@@ -320,8 +311,8 @@ class StoryViewSettings:
         return new
 
 
-class CommentColumn(NamedTuple):
-    """Story: Outline Comment Column."""
+class OutlineColumn(NamedTuple):
+    """Story: Outline Column."""
 
     cid: str
     name: str
@@ -331,69 +322,90 @@ class CommentColumn(NamedTuple):
 class OutlineViewSettings(StoryViewSettings):
     """Story: Outline View Settings Class."""
 
-    __slots__ = ("_comments",)
+    __slots__ = ("_columns",)
 
     KIND = "outline"
 
     def __init__(self) -> None:
         super().__init__()
-        self._comments = self._defaultComments()
+        self._columns = self._defaultColumns()
 
     ##
     #  Properties
     ##
 
     @property
-    def comments(self) -> list[CommentColumn]:
-        """Return the comment columns."""
-        return self._comments.copy()
+    def columns(self) -> list[OutlineColumn]:
+        """Return the outline columns."""
+        return self._columns.copy()
 
     ##
     #  Setters
     ##
 
-    def setComments(self, columns: list[CommentColumn]) -> None:
-        """Set the comment columns."""
-        columns = self._checkComments([{"id": c.cid, "name": c.name, "keys": c.keys} for c in columns])
-        self._changed |= columns != self._comments
-        self._comments = columns
+    def setColumns(self, columns: list[OutlineColumn]) -> None:
+        """Set the outline columns."""
+        columns = self._checkColumns([{"id": c.cid, "name": c.name, "keys": c.keys} for c in columns])
+        self._changed |= columns != self._columns
+        self._columns = columns
 
     ##
     #  Methods
     ##
 
     def updateSettings(self, source: StoryViewSettings) -> None:
-        """Update the name, settings values and comment columns."""
+        """Update the name, settings values and outline columns."""
         super().updateSettings(source)
         if isinstance(source, OutlineViewSettings):  # pragma: no branch
-            self._comments = source.comments
+            self._columns = source.columns
 
     def pack(self) -> dict:
         """Pack all content into a JSON compatible dictionary."""
         data = super().pack()
-        data["comments"] = [{"id": c.cid, "name": c.name, "keys": list(c.keys)} for c in self._comments]
+        data["columns"] = [{"id": c.cid, "name": c.name, "keys": list(c.keys)} for c in self._columns]
         return data
 
     def unpack(self, data: dict) -> None:
         """Unpack a dictionary and populate the class."""
         super().unpack(data)
-        comments = data.get("comments")
-        if isinstance(comments, list):
-            self._comments = self._checkComments([c for c in comments if isinstance(c, dict)])
+        columns = data.get("columns")
+        if isinstance(columns, list):
+            self._columns = self._checkColumns([c for c in columns if isinstance(c, dict)])
         else:
-            self._comments = self._defaultComments()
+            self._columns = self._defaultColumns()
 
     ##
     #  Internal Functions
     ##
 
-    def _defaultComments(self) -> list[CommentColumn]:
-        """Return the default comment columns."""
-        return [CommentColumn(newCommentID(), self.getLabel("outline.defComments"), (COMMENT_SYNOPSIS,))]
+    def _defaultColumns(self) -> list[OutlineColumn]:
+        """Return the default outline columns."""
+        return [
+            OutlineColumn(
+                newColumnID(),
+                self.getLabel("outline.defCharacters"),
+                (nwKeyWords.POV_KEY, nwKeyWords.FOCUS_KEY, nwKeyWords.CHAR_KEY),
+            ),
+            OutlineColumn(
+                newColumnID(),
+                self.getLabel("outline.defPlot"),
+                (nwKeyWords.PLOT_KEY, nwKeyWords.TIME_KEY),
+            ),
+            OutlineColumn(
+                newColumnID(),
+                self.getLabel("outline.defWorld"),
+                (nwKeyWords.WORLD_KEY,),
+            ),
+            OutlineColumn(
+                newColumnID(),
+                self.getLabel("outline.defComments"),
+                (COMMENT_SYNOPSIS,),
+            ),
+        ]
 
     @staticmethod
-    def _checkComments(entries: list[dict]) -> list[CommentColumn]:
-        """Return valid comment columns, with unique IDs and keys."""
+    def _checkColumns(entries: list[dict]) -> list[OutlineColumn]:
+        """Return valid outline columns, with unique IDs and keys."""
         columns = []
         ids = set()
         used = set()
@@ -404,14 +416,14 @@ class OutlineViewSettings(StoryViewSettings):
             if not isinstance(name, str) or not isinstance(keys, list | tuple):
                 continue
             if not isinstance(cid, str) or not cid or cid in ids:
-                cid = newCommentID()
+                cid = newColumnID()
             valid = []
             for key in keys:
-                if isinstance(key, str) and isCommentKey(key := key.lower()) and key not in used:
+                if isinstance(key, str) and isColumnKey(key := key.lower()) and key not in used:
                     valid.append(key)
                     used.add(key)
             ids.add(cid)
-            columns.append(CommentColumn(cid, name, tuple(valid[:MAX_COMMENT_KEYS])))
+            columns.append(OutlineColumn(cid, name, tuple(valid[:MAX_COLUMN_KEYS])))
         return columns
 
 

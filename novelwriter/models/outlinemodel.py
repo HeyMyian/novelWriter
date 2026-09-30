@@ -31,7 +31,7 @@ from PyQt6.QtGui import QColor
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import formatPercent
-from novelwriter.constants import nwKeyWords, nwLabels, nwStats, nwStyles, nwUnicode, trConst, trStats
+from novelwriter.constants import nwLabels, nwStats, nwStyles, nwUnicode, trConst, trStats
 from novelwriter.story.storysettings import COMMENT_SYNOPSIS
 from novelwriter.types import QtTransparent
 
@@ -51,6 +51,7 @@ class _TrCache(NamedTuple):
     sSynopsis: str
     sStory: str
     sNote: str
+    sKeys: dict[str, str]
 
 
 class NodeStyle(NamedTuple):
@@ -77,7 +78,7 @@ class OutlineNode:
     __slots__ = (
         "_chars",
         "_columns",
-        "_comments",
+        "_entries",
         "_handle",
         "_heading",
         "_key",
@@ -114,7 +115,7 @@ class OutlineNode:
         self._progress = ""
         self._refs: dict[str, str] = {}
         self._lists: dict[str, list[str]] = {}
-        self._comments: list[list[tuple[str, str]]] = []
+        self._entries: list[list[tuple[str, str, str]]] = []
         self._style = style
 
         self.refresh()
@@ -178,9 +179,9 @@ class OutlineNode:
             pos += len(name) + 2
         return spans
 
-    def comments(self, column: int) -> list[tuple[str, str]]:
-        """Return the label and text of the comments of a column."""
-        return self._comments[column] if 0 <= column < len(self._comments) else []
+    def entries(self, column: int) -> list[tuple[str, str, str]]:
+        """Return the key, label and text of the entries of a column."""
+        return self._entries[column] if 0 <= column < len(self._entries) else []
 
     ##
     #  Data Maintenance
@@ -202,21 +203,23 @@ class OutlineNode:
             self._lists = {k: v for k, v in h.getReferences().items() if v}
             self._refs = {k: ", ".join(v) for k, v in self._lists.items()}
 
-            # Comment keys are matched regardless of spelling
             kinds = {"story": tr.sStory, "note": tr.sNote}
-            lookup = {COMMENT_SYNOPSIS: (tr.sSynopsis, h.synopsis)}
+            lookup = {k: (tr.sKeys.get(k, k), v) for k, v in self._refs.items()}
+            lookup[COMMENT_SYNOPSIS] = (tr.sSynopsis, h.synopsis)
+
+            # Comment keys are matched regardless of spelling
             for key, text in h.comments.items():
                 kind, _, name = key.partition(".")
                 if kind in kinds and name:
                     lookup[key.lower()] = (f"{kinds[kind]} ({name.title()})", text)
-            self._comments = []
+            self._entries = []
             for keys in self._columns:
                 entries = []
                 for key in keys:
                     label, text = lookup.get(key, ("", ""))
                     if text:
-                        entries.append((label, nwUnicode.U_LSEP.join(t for t in text.split("\n") if t)))
-                self._comments.append(entries)
+                        entries.append((key, label, nwUnicode.U_LSEP.join(t for t in text.split("\n") if t)))
+                self._entries.append(entries)
 
 
 class OutlineModel(QAbstractTableModel):
@@ -230,23 +233,11 @@ class OutlineModel(QAbstractTableModel):
     __slots__ = ("_fixed", "_headers", "_labels", "_nodes", "_styles")
 
     C_TITLE = 0
-    C_CHARS = 1
-    C_PLOT = 2
-    C_WORLD = 3
-    C_CUSTOM = 4
-    C_MENTION = 5
-    C_COMMENTS = 6
+    C_COLUMNS = 1
 
     def __init__(self) -> None:
         super().__init__()
-        self._fixed = [
-            self.tr("Story"),
-            trConst(nwLabels.KEY_NAME[nwKeyWords.CHAR_KEY]),
-            trConst(nwLabels.KEY_NAME[nwKeyWords.PLOT_KEY]),
-            self.tr("World"),
-            trConst(nwLabels.KEY_NAME[nwKeyWords.CUSTOM_KEY]),
-            trConst(nwLabels.KEY_NAME[nwKeyWords.MENTION_KEY]),
-        ]
+        self._fixed = [self.tr("Story")]
         self._headers = self._fixed.copy()
         self._labels = _TrCache(
             sWords=trStats(nwLabels.STATS_NAME[nwStats.WORDS]),
@@ -255,6 +246,7 @@ class OutlineModel(QAbstractTableModel):
             sSynopsis="",
             sStory="",
             sNote="",
+            sKeys={k: trConst(v) for k, v in nwLabels.KEY_NAME.items()},
         )
 
         # Colours
@@ -331,7 +323,7 @@ class OutlineModel(QAbstractTableModel):
         clearDouble: bool = False,
         target: int = 0,
         useChars: bool = False,
-        comments: list[tuple[str, tuple[str, ...]]] | None = None,
+        columns: list[tuple[str, tuple[str, ...]]] | None = None,
     ) -> None:
         """Rebuild the outline from the project index, including only
         headings of the given levels. If count per page is set, the page
@@ -339,11 +331,11 @@ class OutlineModel(QAbstractTableModel):
         chapters start on a new page, or a new odd page if clear double
         is set. Progress is relative to the target if it is larger than
         the total count. Counts are in characters if use chars is set.
-        Comment columns are added from the header names and comment keys.
+        Columns are added after the title from their names and keys.
         """
         self.beginResetModel()
-        comments = comments or []
-        columns = [keys for _, keys in comments]
+        columns = columns or []
+        keys = [k for _, k in columns]
         lookup = SHARED.project.localLookup
         labels = self._labels._replace(
             sSynopsis=lookup("Synopsis"),
@@ -363,7 +355,7 @@ class OutlineModel(QAbstractTableModel):
                 start = count
             if level in levels:
                 style = self._styles.get(level, BLANK_STYLE)
-                node = OutlineNode(tHandle, sTitle, hItem, labels, style, columns)
+                node = OutlineNode(tHandle, sTitle, hItem, labels, style, keys)
                 nodes.append(node)
                 if countPerPage > 0:
                     progress.append((node, pages + 1 + (count - start) // countPerPage, count))
@@ -374,5 +366,5 @@ class OutlineModel(QAbstractTableModel):
             node.setProgress(page, before / total if total else 0.0)
 
         self._nodes = nodes
-        self._headers = self._fixed + [name for name, _ in comments]
+        self._headers = self._fixed + [name for name, _ in columns]
         self.endResetModel()
