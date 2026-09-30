@@ -17,6 +17,12 @@
     "cls_trash": "delete-bin",
     "cls_world": "road-map",
 
+    "key_mention": "user-heart",
+
+    "cmn_general": "shining",
+    "cmn_note": "chat-4",
+    "cmn_story": "issues",
+
     "prj_folder": "folder-6",
     "prj_document": "file-text",
     "prj_title": "file-text",

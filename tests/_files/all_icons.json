@@ -17,6 +17,12 @@
     "cls_trash",
     "cls_world",
 
+    "key_mention",
+
+    "cmn_general",
+    "cmn_note",
+    "cmn_story",
+
     "prj_folder",
     "prj_document",
     "prj_title",

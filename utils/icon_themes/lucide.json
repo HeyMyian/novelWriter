@@ -17,6 +17,12 @@
     "cls_trash": "trash-2",
     "cls_world": "earth",
 
+    "key_mention": "user-round-check",
+
+    "cmn_general": "chevrons-right",
+    "cmn_note": "message-square-text",
+    "cmn_story": "sparkles",
+
     "prj_folder": "folder",
     "prj_document": "file-text",
     "prj_title": "file-text",

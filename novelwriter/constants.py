@@ -241,6 +241,21 @@ class nwKeyWords:
         STORY_KEY: nwItemClass.NOVEL,
     }
 
+    # Map to Class Icons
+    KEY_ICON: ClassVar[dict[str, str]] = {
+        POV_KEY: "cls_character:root",
+        FOCUS_KEY: "cls_character:root",
+        CHAR_KEY: "cls_character:root",
+        PLOT_KEY: "cls_plot:root",
+        TIME_KEY: "cls_timeline:root",
+        WORLD_KEY: "cls_world:root",
+        OBJECT_KEY: "cls_object:root",
+        ENTITY_KEY: "cls_entity:root",
+        CUSTOM_KEY: "cls_custom:root",
+        STORY_KEY: "cls_novel:root",
+        MENTION_KEY: "key_mention:root",
+    }
+
 
 class nwLists:
     """Various Lists."""
@@ -494,6 +509,16 @@ class nwLabels:
         nwTheme.AUTO: QT_TRANSLATE_NOOP("Constant", "System Theme"),
         nwTheme.LIGHT: QT_TRANSLATE_NOOP("Constant", "Light Theme"),
         nwTheme.DARK: QT_TRANSLATE_NOOP("Constant", "Dark Theme"),
+    }
+    COMMENT_ICON: ClassVar[dict[nwComment, str]] = {
+        nwComment.PLAIN: "cmn_general:faded",
+        nwComment.IGNORE: "cmn_general:disabled",
+        nwComment.SYNOPSIS: "cmn_general:note",
+        nwComment.SHORT: "cmn_general:note",
+        nwComment.NOTE: "cmn_note:note",
+        nwComment.FOOTNOTE: "cmn_note:active",
+        nwComment.COMMENT: "cmn_general:faded",
+        nwComment.STORY: "cmn_story:note",
     }
     BACKUP_INTERVAL: ClassVar[dict[str, str]] = {
         "session": QT_TRANSLATE_NOOP("Constant", "Per Session"),

@@ -17,6 +17,12 @@
     "cls_trash": "delete",
     "cls_world": "globe",
 
+    "key_mention": "person_heart",
+
+    "cmn_general": "notes",
+    "cmn_note": "chat",
+    "cmn_story": "label_important",
+
     "prj_folder": "folder",
     "prj_document": "news",
     "prj_title": "news",

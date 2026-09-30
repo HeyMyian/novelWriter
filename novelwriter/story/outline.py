@@ -72,6 +72,7 @@ from novelwriter.story.storysettings import (
     newColumnID,
 )
 from novelwriter.story.storyviewbase import GuiStorySettingsBase, GuiStoryViewBase
+from novelwriter.text.formats import MODIFIERS
 from novelwriter.types import (
     QtAlignLeftMiddle,
     QtElideRight,
@@ -484,9 +485,12 @@ class _ColumnsPage(NFixedPage):
 
     def _keyIcon(self, key: str) -> QIcon:
         """Return the icon of a column key."""
-        if itemClass := nwKeyWords.KEY_CLASS.get(key):
+        icon = nwKeyWords.KEY_ICON.get(key)
+        if icon is None and (comment := MODIFIERS.get(key.partition(".")[0])):
+            icon = nwLabels.COMMENT_ICON.get(comment)
+        if icon:
             iPx = SHARED.theme.baseIconHeight
-            return SHARED.theme.getIcon(nwLabels.CLASS_ICON[itemClass], iPx, iPx)
+            return SHARED.theme.getIcon(icon, iPx, iPx)
         return self._blankIcon
 
     def _refreshOptions(self) -> None:
