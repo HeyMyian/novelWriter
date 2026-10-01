@@ -153,7 +153,7 @@ if __name__ == "__main__":
     styles = ", ".join(["all", "default", "optional", "free", "non_free", *utils.icon_themes.ICON_SOURCES.keys()])
     cmdIcons = parsers.add_parser("icons", help="Build icon theme files from upstream sources.")
     cmdIcons.add_argument("style", help=f"What icon style to build: {styles}")
-    cmdIcons.add_argument("--work-dir", help="Working directory.", default="build_icons")
+    cmdIcons.add_argument("--work-dir", help="Working directory.")
     cmdIcons.set_defaults(func=utils.icon_themes.main)
 
     # Import Translations

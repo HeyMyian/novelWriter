@@ -30,22 +30,34 @@ import zipfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-from utils.common import ROOT_DIR, log
+from utils.common import ROOT_DIR, log, readEnvFile
 
 UTILS = Path(__file__).parent
 ET.register_namespace("", "http://www.w3.org/2000/svg")
+
+# FontAwesome
+# Repo: https://github.com/FortAwesome/Font-Awesome/
+# Website: https://fontawesome.com/
+
+# Remix
+# Repo: https://github.com/Remix-Design/RemixIcon
+# Website: https://remixicon.com/
+
+# Lucide
+# Repo: https://github.com/lucide-icons/lucide
+# Website: https://lucide.dev/
 
 ICON_SOURCES = {
     "material": "https://github.com/google/material-design-icons.git",
     "font_awesome": "https://github.com/FortAwesome/Font-Awesome/archive/refs/tags/7.3.1.zip",
     "remix": "https://github.com/Remix-Design/RemixIcon/archive/refs/tags/v4.9.1.zip",
-    "lucide": "https://github.com/lucide-icons/lucide/archive/refs/tags/1.24.0.zip",
+    "lucide": "https://github.com/lucide-icons/lucide/archive/refs/tags/1.49.0.zip",
 }
 ICON_EXTRACT = {
     "material": "material-design-icons",
     "font_awesome": "Font-Awesome-7.3.1",
     "remix": "RemixIcon-4.9.1",
-    "lucide": "lucide-1.24.0",
+    "lucide": "lucide-1.49.0",
 }
 ICONS = [
     # Remember to also update tests/files/all_icons.json for test coverage
@@ -397,10 +409,19 @@ def main(args: argparse.Namespace) -> None:
     log("")
     log("[b]Build Icon Themes[e]")
     log("[b]=================[e]")
+
+    if args.work_dir:
+        workDir = Path(args.work_dir).absolute()
+    elif cacheDir := readEnvFile().get("CACHE_DIR"):
+        workDir = Path(cacheDir).expanduser().absolute() / "icons"
+    else:
+        workDir = ROOT_DIR / "build_icons"
+
+    workDir.mkdir(parents=True, exist_ok=True)
+
+    log(f"Work Dir: {workDir}")
     log("")
 
-    workDir = Path(args.work_dir).absolute()
-    workDir.mkdir(exist_ok=True)
     iconsDir = ROOT_DIR / "novelwriter" / "assets" / "icons"
 
     style = args.style
