@@ -13,8 +13,8 @@
     "cls_object": "hammer",
     "cls_plot": "hat-glasses",
     "cls_template": "book-dashed",
-    "cls_timeline": "history",
-    "cls_trash": "trash-2",
+    "cls_timeline": "rotate-ccw-clock",
+    "cls_trash": "trash",
     "cls_world": "earth",
 
     "key_mention": "user-round-check",
