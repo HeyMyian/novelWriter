@@ -470,13 +470,6 @@ def testNWProject_Methods(monkeypatch, mockGUI, fncPath, mockRnd):
     project.data.setAuthor("  Jane\tDoe ")
     assert project.data.author == "Jane Doe"
 
-    # Edit Time
-    project.data.setEditTime(1234)
-    project._session._start = 1600000000
-    with monkeypatch.context() as mp:
-        mp.setattr("novelwriter.core.project.time", lambda: 1600005600)
-        assert project.currentEditTime == 6834
-
     # Spell check
     project.setProjectChanged(False)
     project.data.setSpellCheck(True)

@@ -39,6 +39,7 @@ from utils.common import (
     copySourceCode,
     copyTestCode,
     extractVersion,
+    log,
     makeCheckSum,
     systemCall,
     toUpload,
@@ -134,24 +135,23 @@ def aptPackages(target: DistroTarget) -> list[str]:
 def makeDebianPackage(
     target: DistroTarget,
     signKey: str | None,
-    sourceBuild: bool,
     buildNum: int,
     installSource: str,
-) -> str:
+) -> None:
     """Build a Debian package."""
-    print("")
-    print("Build Debian Package")
-    print("====================")
-    print(f"Target: {target.family.title()} {target.numVersion} {target.codename.title()}")
-    print("")
+    log("")
+    log("[b]Build Debian Package[e]")
+    log("[b]====================[e]")
+    log(f"Target: {target.family.title()} {target.numVersion} {target.codename.title()}")
+    log("")
 
     # Version Info
     # ============
 
-    numVers, hexVers, relDate = extractVersion()
+    numVers, _, relDate = extractVersion()
     relDate = datetime.strptime(relDate, "%Y-%m-%d")
     pkgDate = email.utils.format_datetime(relDate.replace(hour=12, tzinfo=None))
-    print("")
+    log("")
 
     pkgVers = numVers.replace("a", "~a").replace("b", "~b").replace("rc", "~rc")
     pkgVers = f"{pkgVers}+{target.suffix}{buildNum}"
@@ -167,8 +167,8 @@ def makeDebianPackage(
 
     bldDir.mkdir(exist_ok=True)
     if outDir.exists():
-        print("Removing old build files ...")
-        print("")
+        log("[b]Removing old build files ...[e]")
+        log("")
         shutil.rmtree(outDir)
 
     outDir.mkdir(exist_ok=False)
@@ -177,22 +177,22 @@ def makeDebianPackage(
     # =======================
 
     if not checkAssetsExist():
-        print("ERROR: Missing build assets")
+        log("[cr]ERROR:[e] Missing build assets")
         sys.exit(1)
 
     # Copy novelWriter Source
     # =======================
 
-    print("Copying novelWriter source ...")
-    print("")
+    log("[b]Copying novelWriter source ...[e]")
+    log("")
 
     copySourceCode(outDir)
     copyTestCode(outDir)
     updateMetaFile(outDir / "novelwriter" / "assets" / "meta.toml", buildFormat="debian", installSource=installSource)
 
-    print("")
-    print("Copying or generating additional files ...")
-    print("")
+    log("")
+    log("[b]Copying or generating additional files ...[e]")
+    log("")
 
     copyPackageFiles(outDir, oldLicense=target.old)
 
@@ -200,13 +200,13 @@ def makeDebianPackage(
     # =======================
 
     shutil.copytree(SETUP_DIR / "debian", debDir)
-    print("Copied: debian/*")
+    log("[cg]Copied:[e] debian/*")
 
     control = DEB_CONTROL.replace("%build-dependencies%", ",\n  ".join(BUILD_DEPENDS))
     control = control.replace("%dependencies%", ",\n  ".join(runtimeDepends(target)))
     control = control.replace("%test-dependencies%", ",\n  ".join(TEST_DEPENDS))
     writeFile(debDir / "control", control)
-    print("Wrote:  debian/control")
+    log("[cg]Wrote:[e]  debian/control")
 
     writeFile(
         debDir / "changelog",
@@ -216,49 +216,39 @@ def makeDebianPackage(
             f" -- Veronica Berglyd Olsen <code@vkbo.net>  {pkgDate}\n"
         ),
     )
-    print("Wrote:  debian/changelog")
+    log("[cg]Wrote:[e]  debian/changelog")
 
     # Copy/Write Data Files
     # =====================
 
     shutil.copytree(SETUP_DIR / "data", datDir)
-    print("Copied: data/*")
+    log("[cg]Copied:[e] data/*")
 
     shutil.copyfile(SETUP_DIR / "description_short.txt", outDir / "data" / "description_short.txt")
-    print("Copied: data/description_short.txt")
+    log("[cg]Copied:[e] data/description_short.txt")
 
     # Build Package
     # =============
 
-    print("")
-    print("Running dpkg-buildpackage ...")
-    print("")
+    log("")
+    log("[b]Running dpkg-buildpackage ...[e]")
+    log("")
 
     if signKey is None:
         signArgs = ["-us", "-uc"]
     else:
         signArgs = [f"-k{signKey}"]
 
-    if sourceBuild:
-        systemCall(["debuild", "-S", *signArgs], cwd=outDir)
-        toUpload(bldDir / f"{bldPkg}.tar.xz")
-    else:
-        systemCall(["dpkg-buildpackage", *signArgs], cwd=outDir)
-        shutil.copyfile(bldDir / f"{bldPkg}.tar.xz", bldDir / f"{bldPkg}.debian.tar.xz")
-        toUpload(bldDir / f"{bldPkg}.debian.tar.xz")
-        toUpload(bldDir / f"{bldPkg}_all.deb")
-        toUpload(makeCheckSum(f"{bldPkg}.debian.tar.xz", cwd=bldDir))
-        toUpload(makeCheckSum(f"{bldPkg}_all.deb", cwd=bldDir))
+    systemCall(["dpkg-buildpackage", *signArgs], cwd=outDir)
+    shutil.copyfile(bldDir / f"{bldPkg}.tar.xz", bldDir / f"{bldPkg}.debian.tar.xz")
+    toUpload(bldDir / f"{bldPkg}.debian.tar.xz")
+    toUpload(bldDir / f"{bldPkg}_all.deb")
+    toUpload(makeCheckSum(f"{bldPkg}.debian.tar.xz", cwd=bldDir))
+    toUpload(makeCheckSum(f"{bldPkg}_all.deb", cwd=bldDir))
 
-    print("")
-    print("Done!")
-    print("")
-
-    if sourceBuild:
-        ppaName = "novelwriter" if hexVers[-2] == "f" else "novelwriter-pre"
-        return f"dput {ppaName}/{target.codename} {bldDir}/{bldPkg}_source.changes"
-
-    return ""
+    log("")
+    log("[cg]Done![e]")
+    log("")
 
 
 def printDebDepends(args: argparse.Namespace) -> None:
@@ -271,7 +261,7 @@ def printDebDepends(args: argparse.Namespace) -> None:
 def debian(args: argparse.Namespace) -> None:
     """Build a .deb package for a single distro target."""
     if sys.platform != "linux":
-        print("ERROR: Command 'build-deb' can only be used on Linux")
+        log("[cr]ERROR:[e] Command 'build-deb' can only be used on Linux")
         sys.exit(1)
 
     target = DISTRO_TARGETS[args.distro]
@@ -280,49 +270,7 @@ def debian(args: argparse.Namespace) -> None:
     installSource = args.install_source or "cloudsmith"
 
     if date.today() > target.eol:
-        print(f"ERROR: {target.family.title()} {target.codename} is EOL, not building package for it.")
+        log(f"[cr]ERROR:[e] {target.family.title()} {target.codename} is EOL, not building package for it.")
         sys.exit(1)
 
-    makeDebianPackage(target, signKey, False, bldNum, installSource)
-
-
-def launchpad(args: argparse.Namespace) -> None:
-    """Build Debian packages for Launchpad."""
-    if sys.platform != "linux":
-        print("ERROR: Command 'build-ubuntu' can only be used on Linux")
-        sys.exit(1)
-
-    print("")
-    print("Launchpad Packages")
-    print("==================")
-    print("")
-
-    if args.build:
-        bldNum = int(args.build)
-    else:
-        bldNum = 0
-
-    ubuntuTargets = [t for t in DISTRO_TARGETS.values() if t.family == "ubuntu"]
-
-    print("Building Ubuntu packages for:")
-    print("")
-    for target in ubuntuTargets:
-        print(f" * Ubuntu {target.numVersion} {target.codename.title()}")
-    print("")
-
-    signKey = SIGN_KEY if args.sign else None
-
-    print(f"Sign Key: {signKey!s}")
-    print("")
-
-    dputCmd = []
-    for target in ubuntuTargets:
-        dCmd = makeDebianPackage(target, signKey, True, bldNum, "launchpad")
-        dputCmd.append(dCmd)
-
-    print("Packages Built")
-    print("==============")
-    print("")
-    for dCmd in dputCmd:
-        print(f" > {dCmd}")
-    print("")
+    makeDebianPackage(target, signKey, bldNum, installSource)

@@ -43,6 +43,7 @@ from utils.common import (
     extractReqs,
     extractVersion,
     isStableVersion,
+    log,
     readFile,
     stripVersion,
     writeFile,
@@ -65,9 +66,9 @@ def printChannel(args: argparse.Namespace) -> None:
 
 def cleanBuildDirs(args: argparse.Namespace) -> None:
     """Recursively delete the 'build' and 'dist' folders."""
-    print("")
-    print("Cleaning up build environment ...")
-    print("")
+    log("")
+    log("[b]Cleaning up build environment ...[e]")
+    log("")
 
     folders = [
         ROOT_DIR / ".flatpak-builder",
@@ -80,6 +81,7 @@ def cleanBuildDirs(args: argparse.Namespace) -> None:
         ROOT_DIR / "dist_flathub",
         ROOT_DIR / "dist_flatpak",
         ROOT_DIR / "dist_pypi",
+        ROOT_DIR / "dist_upload",
         ROOT_DIR / "dist",
         ROOT_DIR / "novelWriter.egg-info",
     ]
@@ -88,13 +90,13 @@ def cleanBuildDirs(args: argparse.Namespace) -> None:
         if folder.is_dir():
             try:
                 shutil.rmtree(folder)
-                print(f"Deleted: {folder}")
+                log(f"[cg]Deleted:[e] {folder}")
             except OSError:
-                print(f"Failed:  {folder}")
+                log(f"[cr]Failed:[e]  {folder}")
         else:
-            print(f"Missing: {folder}")
+            log(f"[cy]Missing:[e] {folder}")
 
-    print("")
+    log("")
 
 
 def genMacOSPlist(args: argparse.Namespace) -> None:
@@ -114,7 +116,7 @@ def genMacOSPlist(args: argparse.Namespace) -> None:
         macosBundleCopyright=f"Copyright {copyrightYear}, Veronica Berglyd Olsen",
     )
 
-    print(f"Writing Info.plist to {outDir}/Info.plist")
+    log(f"[b]Writing Info.plist to {outDir}/Info.plist[e]")
     writeFile(outDir / "Info.plist", plistXML)
 
 
@@ -151,24 +153,18 @@ if __name__ == "__main__":
     styles = ", ".join(["all", "default", "optional", "free", "non_free", *utils.icon_themes.ICON_SOURCES.keys()])
     cmdIcons = parsers.add_parser("icons", help="Build icon theme files from upstream sources.")
     cmdIcons.add_argument("style", help=f"What icon style to build: {styles}")
-    cmdIcons.add_argument("--work-dir", help="Working directory.", default="build_icons")
+    cmdIcons.add_argument("--work-dir", help="Working directory.")
     cmdIcons.set_defaults(func=utils.icon_themes.main)
 
     # Import Translations
     cmdImportTS = parsers.add_parser("qtlimport", help="Import updated i18n files from a Crowdin zip file.")
     cmdImportTS.add_argument("file", help="Path to zip file from Crowdin")
+    cmdImportTS.add_argument("--threshold", type=float, default=75.0, help="Minimum translation percentage.")
+    cmdImportTS.add_argument("--credits-since", metavar="DATE", help="Print translator credits since DATE.")
     cmdImportTS.set_defaults(func=utils.assets.importI18nUpdates)
 
     # Update i18n Sources
-    cmdUpdateTS = parsers.add_parser(
-        "qtlupdate",
-        help=(
-            "Update translation files for internationalisation. "
-            "The files to be updated must be provided as arguments. "
-            "New files can be created by giving a 'nw_<lang>.ts' file name "
-            "where <lang> is a valid language code."
-        ),
-    )
+    cmdUpdateTS = parsers.add_parser("qtlupdate", help="Update translation files for internationalisation.")
     cmdUpdateTS.add_argument("files", nargs="+")
     cmdUpdateTS.set_defaults(func=utils.assets.updateTranslationSources)
 
@@ -177,14 +173,7 @@ if __name__ == "__main__":
     cmdBuildQM.set_defaults(func=utils.assets.buildTranslationAssets)
 
     # Update Docs i18n Sources
-    cmdUpdateDocsPo = parsers.add_parser(
-        "docs-lupdate",
-        help=(
-            "Update translation files for internationalisation of the docs. "
-            "The langauges to be updated can be added as arguments, "
-            "or set to all to update all existing translations."
-        ),
-    )
+    cmdUpdateDocsPo = parsers.add_parser("docs-lupdate", help="Update translation files for the docs.")
     cmdUpdateDocsPo.add_argument("lang", nargs="+")
     cmdUpdateDocsPo.set_defaults(func=utils.docs.updateDocsTranslationSources)
 
@@ -207,9 +196,7 @@ if __name__ == "__main__":
     cmdCleanAssets.set_defaults(func=utils.assets.cleanBuiltAssets)
 
     # Build Assets
-    cmdBuildAssets = parsers.add_parser(
-        "build-assets", help="Build all assets. Includes docs-pdf, sample and qtlrelease."
-    )
+    cmdBuildAssets = parsers.add_parser("build-assets", help="Build all assets (except icon themes).")
     cmdBuildAssets.set_defaults(func=utils.assets.buildAllAssets)
 
     # Python Packaging
@@ -217,9 +204,7 @@ if __name__ == "__main__":
 
     # Build Debian Package
     distros = ", ".join(utils.build_debian.DISTRO_TARGETS.keys())
-    cmdBuildDeb = parsers.add_parser(
-        "build-deb", help="Build .deb packages for publishing. Add --sign to sign package."
-    )
+    cmdBuildDeb = parsers.add_parser("build-deb", help="Build .deb packages for publishing.")
     cmdBuildDeb.add_argument("distro", help=f"Release to build for: {distros}.")
     cmdBuildDeb.add_argument("--sign", action="store_true", help="Sign the package.")
     cmdBuildDeb.add_argument("--build", type=int, help="Set build number, appended to the distro suffix.")
@@ -230,14 +215,6 @@ if __name__ == "__main__":
     cmdDebDepends = parsers.add_parser("build-deb-depends", help="Print the apt package dependencies.")
     cmdDebDepends.add_argument("distro", help=f"Release to build for: {distros}.")
     cmdDebDepends.set_defaults(func=utils.build_debian.printDebDepends)
-
-    # Build Ubuntu Packages for Launchpad
-    cmdBuildUbuntu = parsers.add_parser(
-        "build-ubuntu", help="Build source packages for Launchpad. Add --sign to sign package."
-    )
-    cmdBuildUbuntu.add_argument("--sign", action="store_true", help="Sign the package.")
-    cmdBuildUbuntu.add_argument("--build", type=int, help="Set build number.")
-    cmdBuildUbuntu.set_defaults(func=utils.build_debian.launchpad)
 
     # Build AppImage
     # See https://github.com/pypa/manylinux
@@ -253,9 +230,7 @@ if __name__ == "__main__":
     cmdBuildFlatpak.set_defaults(func=utils.build_flatpak.flatpak)
 
     # Build Flathub Submission Files
-    cmdBuildFlathub = parsers.add_parser(
-        "build-flathub", help="Generate the manifest and support files for a Flathub submission."
-    )
+    cmdBuildFlathub = parsers.add_parser("build-flathub", help="Generate manifest and support files for a Flathub.")
     cmdBuildFlathub.add_argument("path", nargs="?", help="Path to copy the generated files into.")
     cmdBuildFlathub.set_defaults(func=utils.build_flatpak.flathub)
 
@@ -264,9 +239,7 @@ if __name__ == "__main__":
     cmdBuildPypi.set_defaults(func=utils.build_pypi.pypi)
 
     # Build Windows Inno Setup Installer
-    cmdBuildSetupExe = parsers.add_parser(
-        "build-win-exe", help="Build a setup.exe file with Python embedded for Windows."
-    )
+    cmdBuildSetupExe = parsers.add_parser("build-win-exe", help="Build a setup.exe installer for Windows.")
     cmdBuildSetupExe.set_defaults(func=utils.build_windows.main)
 
     # Build Binary
