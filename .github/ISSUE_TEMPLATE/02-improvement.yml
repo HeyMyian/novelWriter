@@ -1,6 +1,6 @@
 name: Suggest Improvement
 description: Suggest something that can be improved.
-title: "Improvement: "
+title: "[Improve] "
 labels: ["enhancement", "triage"]
 type: feature
 body:
