@@ -59,12 +59,15 @@ ICON_EXTRACT = {
     "remix": "RemixIcon-4.9.1",
     "lucide": "lucide-1.49.0",
 }
+
+# fmt: off
 ICONS = [
     # Remember to also update tests/files/all_icons.json for test coverage
     "alert_error",
     "alert_info",
     "alert_question",
     "alert_warn",
+
     "cls_archive",
     "cls_character",
     "cls_custom",
@@ -77,16 +80,20 @@ ICONS = [
     "cls_timeline",
     "cls_trash",
     "cls_world",
+
     "key_mention",
+
     "cmn_general",
     "cmn_note",
     "cmn_story",
+
     "prj_folder",
     "prj_document",
     "prj_title",
     "prj_chapter",
     "prj_scene",
     "prj_note",
+
     "fmt_bold",
     "fmt_italic",
     "fmt_mark",
@@ -97,6 +104,7 @@ ICONS = [
     "fmt_superscript",
     "fmt_underline",
     "fmt_toolbar",
+
     "search",
     "search_auto",
     "search_cancel",
@@ -107,19 +115,23 @@ ICONS = [
     "search_regex",
     "search_replace",
     "search_word",
+
     "bullet-off",
     "bullet-on",
     "unfold-hide",
     "unfold-show",
+
     "sb_build",
     "sb_novel",
     "sb_project",
     "sb_search",
     "sb_stats",
     "sb_story",
+
     "theme_light",
     "theme_dark",
     "theme_auto",
+
     "btn_ok",
     "btn_cancel",
     "btn_yes",
@@ -137,6 +149,7 @@ ICONS = [
     "btn_build",
     "btn_print",
     "btn_preview",
+
     "add",
     "bookmarks",
     "browse",
@@ -189,6 +202,7 @@ ICONS = [
     "unchecked",
     "view",
 ]
+# fmt: on
 
 
 def _loadMap(name: str) -> dict[str, str]:
@@ -276,8 +290,7 @@ def processMaterialIcons(workDir: Path, iconsDir: Path, jobs: dict) -> None:
 
         target = iconsDir / f"{file}.icons"
         _writeThemeFile(target, name, "Google Inc", "Apache 2.0", icons)
-
-    log("")
+        log("")
 
 
 def processFontAwesome(workDir: Path, iconsDir: Path, jobs: dict) -> None:
@@ -319,12 +332,10 @@ def processFontAwesome(workDir: Path, iconsDir: Path, jobs: dict) -> None:
                 icons[key] = svg
             else:
                 log(f"[cr]Not Found:[e] {icon}.svg")
-                continue
 
         target = iconsDir / f"{file}.icons"
         _writeThemeFile(target, name, "Fonticons Inc", "CC BY 4.0", icons)
-
-    log("")
+        log("")
 
 
 def processLucide(workDir: Path, iconsDir: Path, jobs: dict) -> None:
@@ -354,8 +365,7 @@ def processLucide(workDir: Path, iconsDir: Path, jobs: dict) -> None:
 
         target = iconsDir / f"{file}.icons"
         _writeThemeFile(target, name, "Cole Bemis, Lucide Contributors", "ISC/MIT License", icons)
-
-    log("")
+        log("")
 
 
 def processRemix(workDir: Path, iconsDir: Path, jobs: dict) -> None:
@@ -400,8 +410,7 @@ def processRemix(workDir: Path, iconsDir: Path, jobs: dict) -> None:
 
         target = iconsDir / f"{file}.icons"
         _writeThemeFile(target, name, "Remix Icon", "Apache 2.0", icons)
-
-    log("")
+        log("")
 
 
 def main(args: argparse.Namespace) -> None:
