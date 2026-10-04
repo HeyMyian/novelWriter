@@ -61,10 +61,10 @@ The translation files needed at runtime can be built with:
 python pkgutils.py qtlrelease
 ```
 
-Material design icons are included with the source. Optional icon themes can be built with:
+Default icon themes can be built with:
 
 ```bash
-python pkgutils.py icons optional
+python pkgutils.py icons default
 ```
 
 
