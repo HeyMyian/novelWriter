@@ -30,7 +30,6 @@ from PyQt6.QtGui import QAction, QColor
 from PyQt6.QtWidgets import QColorDialog, QFileDialog, QToolButton
 
 from novelwriter import CONFIG, SHARED
-from novelwriter.constants import trStats
 from novelwriter.core.project import NWProject
 from novelwriter.core.spellcheck import SpellEnchant
 from novelwriter.dialogs.editlabel import GuiEditLabel
@@ -193,13 +192,13 @@ def testGuiProjectSettings_GoalsPage(qtbot, nwGUI, projPath, mockRnd):
     # The count mode defaults to words, which is reflected in both the
     # switch and the unit labels next to the target fields
     assert goals.countCharacters.isChecked() is False
-    assert goals._editableUnit["targetCount"].text() == trStats("Words")
-    assert goals._editableUnit["dailyGoal"].text() == trStats("Words")
+    assert goals._editableUnit["targetCount"].text() == "words"
+    assert goals._editableUnit["dailyGoal"].text() == "words"
 
     # Toggling the switch updates both unit labels to characters
     goals.countCharacters.setChecked(True)
-    assert goals._editableUnit["targetCount"].text() == trStats("Characters")
-    assert goals._editableUnit["dailyGoal"].text() == trStats("Characters")
+    assert goals._editableUnit["targetCount"].text() == "characters"
+    assert goals._editableUnit["dailyGoal"].text() == "characters"
 
     # Set some values and save
     goals.targetCount.setValue(50000)

@@ -1913,7 +1913,7 @@ class GuiDocEditor(QTextEdit):
             and (item := self._nwItem)
             and (parent := item.itemParent)
         ):
-            heading, title = processHeading(text.partition("\n")[0])
+            heading, title, _ = processHeading(text.partition("\n")[0])
             label, dlgOk = GuiEditLabel.getLabel(
                 self,
                 text=title or f"{item.itemName} (1)",
