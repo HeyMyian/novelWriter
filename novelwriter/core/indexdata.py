@@ -402,7 +402,7 @@ class IndexHeading:
                 self._tag = str(entry.get("tag", ""))
                 self.setLine(entry.get("line", 0))
                 self.setCounts(entry.get("counts", [0, 0, 0]))
-                if not set(entry.keys()) == {"level", "title", "line", "mod", "tag", "counts"}:
+                if not entry.keys() >= {"level", "title", "line", "mod", "tag", "counts"}:
                     raise KeyError("Heading meta is missing keys")
             elif key == "refs":
                 for tag, value in entry.items():

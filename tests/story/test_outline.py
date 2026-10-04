@@ -75,7 +75,7 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
 
     # Default settings
     view.refresh(None)
-    assert model.rowCount(root) == 10
+    assert model.rowCount(root) == 9
     assert model.columnCount(root) == 5
     assert not any(tree.isColumnHidden(c) for c in range(5))
 
@@ -83,26 +83,26 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
     for key in ALL_SETTINGS:
         settings.setValue(key, True)
     view.refresh(None, force=True)
-    assert model.rowCount(root) == 12
+    assert model.rowCount(root) == 11
     assert tree._delegate._tagCol == SHARED.theme.syntaxTheme.tag
     assert tree._delegate._keyCol == SHARED.theme.syntaxTheme.key
     assert tree._delegate._noteCol == SHARED.theme.syntaxTheme.note
     assert tree._delegate._modCol == SHARED.theme.syntaxTheme.mod
-    assert model.node(model.index(11, 0)).progress == "Page 16 (81.9\u202f%)"  # type: ignore
+    assert model.node(model.index(10, 0)).progress == "Page 16 (81.9\u202f%)"  # type: ignore
 
     # Progress follows the page settings
     settings.setValue("outline.countPerPage", 100)
     settings.setValue("outline.clearDoublePage", False)
     view.refresh(None, force=True)
-    assert model.node(model.index(11, 0)).progress == "Page 27 (81.9\u202f%)"  # type: ignore
+    assert model.node(model.index(10, 0)).progress == "Page 27 (81.9\u202f%)"  # type: ignore
 
     # Progress is relative to the project target if it is larger
     SHARED.project.data.setProjectTarget(6012, None, False)
     view.refresh(None, force=True)
-    assert model.node(model.index(11, 0)).progress == "Page 27 (41.0\u202f%)"  # type: ignore
+    assert model.node(model.index(10, 0)).progress == "Page 27 (41.0\u202f%)"  # type: ignore
     settings.setValue("outline.useTargetCount", False)
     view.refresh(None, force=True)
-    assert model.node(model.index(11, 0)).progress == "Page 27 (81.9\u202f%)"  # type: ignore
+    assert model.node(model.index(10, 0)).progress == "Page 27 (81.9\u202f%)"  # type: ignore
 
     # Row height follows the number of lines, within limits
     delegate = tree._delegate
@@ -388,8 +388,8 @@ def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
 
     # Partition rows are a single line
     option = QStyleOptionViewItem()
-    part = model.index(0, 0)
-    chapter = model.index(1, 0)
+    part = model.index(1, 0)
+    chapter = model.index(2, 0)
     assert model.node(part).level == 1  # type: ignore
     assert delegate.sizeHint(option, part).height() < delegate.sizeHint(option, chapter).height()
 
