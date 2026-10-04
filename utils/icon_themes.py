@@ -35,13 +35,13 @@ from utils.common import ROOT_DIR, log, readEnvFile
 UTILS = Path(__file__).parent
 ET.register_namespace("", "http://www.w3.org/2000/svg")
 
-# FontAwesome
-# Repo: https://github.com/FortAwesome/Font-Awesome/
-# Website: https://fontawesome.com/
+# Material
+# Repo: https://github.com/google/material-design-icons
+# Website: https://fonts.google.com/icons
 
-# Remix
-# Repo: https://github.com/Remix-Design/RemixIcon
-# Website: https://remixicon.com/
+# FontAwesome
+# Repo: https://github.com/FortAwesome/Font-Awesome
+# Website: https://fontawesome.com/
 
 # Lucide
 # Repo: https://github.com/lucide-icons/lucide
@@ -50,19 +50,17 @@ ET.register_namespace("", "http://www.w3.org/2000/svg")
 ICON_SOURCES = {
     "material": "https://github.com/google/material-design-icons.git",
     "font_awesome": "https://github.com/FortAwesome/Font-Awesome/archive/refs/tags/7.3.1.zip",
-    "remix": "https://github.com/Remix-Design/RemixIcon/archive/refs/tags/v4.9.1.zip",
     "lucide": "https://github.com/lucide-icons/lucide/archive/refs/tags/1.49.0.zip",
 }
 ICON_EXTRACT = {
     "material": "material-design-icons",
     "font_awesome": "Font-Awesome-7.3.1",
-    "remix": "RemixIcon-4.9.1",
     "lucide": "lucide-1.49.0",
 }
 
 # fmt: off
 ICONS = [
-    # Remember to also update tests/files/all_icons.json for test coverage
+    # Remember to also update tests/_files/all_icons.json for test coverage
     "alert_error",
     "alert_info",
     "alert_question",
@@ -368,51 +366,6 @@ def processLucide(workDir: Path, iconsDir: Path, jobs: dict) -> None:
         log("")
 
 
-def processRemix(workDir: Path, iconsDir: Path, jobs: dict) -> None:
-    """Process Remix icons of a given spec and write output file."""
-    srcRepo = workDir / ICON_EXTRACT["remix"]
-    if not srcRepo.is_dir():
-        _downloadIconPack(workDir, "remix")
-
-    for file, job in jobs.items():
-        name: str = job["name"]
-        style = "fill" if job["filled"] else "line"
-
-        log(f"[b]Processing:[e] {name}")
-
-        icons: dict[str, ET.Element] = {}
-        iconSrc = srcRepo / "icons"
-        iconGroups = [x for x in iconSrc.iterdir() if x.is_dir()]
-        for key, icon in _loadMap("remix").items():
-            if icon.endswith(("-line", "-fill")):
-                fileName = f"{icon}.svg"
-            else:
-                fileName = f"{icon}-{style}.svg"
-            for group in iconGroups:
-                iconFile = group / fileName
-                if iconFile.is_file():
-                    break
-            else:
-                fileName = f"{icon}.svg"
-                for group in iconGroups:
-                    iconFile = group / fileName
-                    if iconFile.is_file():
-                        break
-                else:
-                    log(f"[cr]Not Found:[e] {fileName}")
-                    continue
-
-            svg = ET.fromstring(iconFile.read_text(encoding="utf-8"))
-            svg.set("fill", "#000000")
-            svg.set("height", "128")
-            svg.set("width", "128")
-            icons[key] = svg
-
-        target = iconsDir / f"{file}.icons"
-        _writeThemeFile(target, name, "Remix Icon", "Apache 2.0", icons)
-        log("")
-
-
 def main(args: argparse.Namespace) -> None:
     """Build icon themes entry point."""
     log("")
@@ -434,7 +387,7 @@ def main(args: argparse.Namespace) -> None:
     iconsDir = ROOT_DIR / "novelwriter" / "assets" / "icons"
 
     style = args.style
-    if style in ("all", "default", "material"):
+    if style in ("all", "default", "free", "material"):
         processMaterialIcons(
             workDir,
             iconsDir,
@@ -478,7 +431,7 @@ def main(args: argparse.Namespace) -> None:
             },
         )
 
-    if style in ("all", "optional", "free", "font_awesome"):
+    if style in ("all", "default", "free", "font_awesome"):
         processFontAwesome(
             workDir,
             iconsDir,
@@ -489,29 +442,13 @@ def main(args: argparse.Namespace) -> None:
             },
         )
 
-    if style in ("all", "optional", "free", "lucide"):
+    if style in ("all", "default", "free", "lucide"):
         processLucide(
             workDir,
             iconsDir,
             {
                 "lucide": {
                     "name": "Lucide",
-                },
-            },
-        )
-
-    if style in ("all", "optional", "non-free", "remix"):
-        processRemix(
-            workDir,
-            iconsDir,
-            {
-                "remix_outline": {
-                    "name": "Remix Icon - Outline",
-                    "filled": False,
-                },
-                "remix_filled": {
-                    "name": "Remix Icon - Filled",
-                    "filled": True,
                 },
             },
         )
