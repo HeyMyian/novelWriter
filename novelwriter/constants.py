@@ -25,7 +25,15 @@ from typing import ClassVar
 
 from PyQt6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
-from novelwriter.enum import nwBuildFmt, nwComment, nwItemClass, nwItemLayout, nwStatusShape, nwTheme
+from novelwriter.enum import (
+    nwBuildFmt,
+    nwComment,
+    nwItemClass,
+    nwItemLayout,
+    nwStatusShape,
+    nwStdLabel,
+    nwTheme,
+)
 
 
 def trConst(text: str) -> str:
@@ -36,6 +44,11 @@ def trConst(text: str) -> str:
 def trStats(text: str) -> str:
     """Translate a stats constants."""
     return QCoreApplication.translate("Stats", text)
+
+
+def trLabel(label: nwStdLabel) -> str:
+    """Return a translated standard label."""
+    return QCoreApplication.translate("Constant", nwLabels.STANDARD_LABEL.get(label, ""))
 
 
 class nwConst:
@@ -339,6 +352,12 @@ class nwLabels:
         nwItemLayout.NO_LAYOUT: QT_TRANSLATE_NOOP("Constant", "None"),
         nwItemLayout.DOCUMENT: QT_TRANSLATE_NOOP("Constant", "Novel Document"),
         nwItemLayout.NOTE: QT_TRANSLATE_NOOP("Constant", "Project Note"),
+    }
+    STANDARD_LABEL: ClassVar[dict[nwStdLabel, str]] = {
+        nwStdLabel.NOTE: QT_TRANSLATE_NOOP("Constant", "Note"),
+        nwStdLabel.STORY_STRUCTURE: QT_TRANSLATE_NOOP("Constant", "Story Structure"),
+        nwStdLabel.STORY: QT_TRANSLATE_NOOP("Constant", "Story"),
+        nwStdLabel.SYNOPSIS: QT_TRANSLATE_NOOP("Constant", "Synopsis"),
     }
     ITEM_DESCRIPTION: ClassVar[dict[str, str]] = {
         "none": QT_TRANSLATE_NOOP("Constant", "None"),

@@ -57,8 +57,8 @@ from PyQt6.QtWidgets import (
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import simplified
-from novelwriter.constants import nwKeyWords, nwLabels, trConst
-from novelwriter.enum import nwComment, nwToolButton
+from novelwriter.constants import nwKeyWords, nwLabels, trConst, trLabel
+from novelwriter.enum import nwComment, nwStdLabel, nwToolButton
 from novelwriter.extensions.configlayout import NFixedPage
 from novelwriter.extensions.modified import NComboBox, NSpinBox, NTreeView
 from novelwriter.extensions.switch import NSwitch
@@ -296,9 +296,9 @@ class _ColumnsPage(NFixedPage):
 
         iSz = SHARED.theme.baseIconSize
 
-        self.trSynopsis = self.tr("Synopsis")
-        self.trStory = self.tr("Story")
-        self.trNote = self.tr("Note")
+        self.trSynopsis = trLabel(nwStdLabel.SYNOPSIS)
+        self.trStory = trLabel(nwStdLabel.STORY)
+        self.trNote = trLabel(nwStdLabel.NOTE)
         self.trColumn = self.tr("Column")
 
         # Column Tree

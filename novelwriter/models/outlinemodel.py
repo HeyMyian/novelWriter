@@ -31,7 +31,8 @@ from PyQt6.QtGui import QColor
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import formatPercent
-from novelwriter.constants import nwLabels, nwStats, nwStyles, nwUnicode, trConst, trStats
+from novelwriter.constants import nwLabels, nwStats, nwStyles, nwUnicode, trConst, trLabel, trStats
+from novelwriter.enum import nwStdLabel
 from novelwriter.story.storysettings import COMMENT_SYNOPSIS
 from novelwriter.types import QtDisplayRole, QtTransparent
 
@@ -223,7 +224,7 @@ class OutlineModel(QAbstractTableModel):
 
     def __init__(self) -> None:
         super().__init__()
-        self._fixed = [self.tr("Story")]
+        self._fixed = [trLabel(nwStdLabel.STORY)]
         self._headers = self._fixed.copy()
         self._labels = _TrCache(
             sWords=trStats(nwLabels.STATS_NAME[nwStats.WORDS]),
@@ -318,11 +319,10 @@ class OutlineModel(QAbstractTableModel):
         self.beginResetModel()
         columns = columns or []
         keys = [k for _, k in columns]
-        lookup = SHARED.project.localLookup
         labels = self._labels._replace(
-            sSynopsis=lookup("Synopsis"),
-            sStory=lookup("Story Structure"),
-            sNote=lookup("Note"),
+            sSynopsis=trLabel(nwStdLabel.SYNOPSIS),
+            sStory=trLabel(nwStdLabel.STORY_STRUCTURE),
+            sNote=trLabel(nwStdLabel.NOTE),
         )
         nodes: list[OutlineNode] = []
         progress: list[tuple[OutlineNode, int, int]] = []

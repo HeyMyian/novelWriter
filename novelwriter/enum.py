@@ -279,3 +279,12 @@ class nwState(Enum):
     NORMAL = 0
     INACTIVE = 1
     ERROR = 2
+
+
+class nwStdLabel(Enum):
+    """Enum: Standard Labels."""
+
+    NOTE = 0
+    STORY = 1
+    STORY_STRUCTURE = 2
+    SYNOPSIS = 3
