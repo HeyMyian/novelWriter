@@ -25,7 +25,16 @@ from typing import ClassVar
 
 from PyQt6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
-from novelwriter.enum import nwBuildFmt, nwComment, nwItemClass, nwItemLayout, nwStatusShape, nwTheme
+from novelwriter.enum import (
+    nwBuildFmt,
+    nwComment,
+    nwItemClass,
+    nwItemLayout,
+    nwStatusShape,
+    nwStdLabel,
+    nwStdUnit,
+    nwTheme,
+)
 
 
 def trConst(text: str) -> str:
@@ -36,6 +45,16 @@ def trConst(text: str) -> str:
 def trStats(text: str) -> str:
     """Translate a stats constants."""
     return QCoreApplication.translate("Stats", text)
+
+
+def trLabel(label: nwStdLabel) -> str:
+    """Return a translated standard label."""
+    return QCoreApplication.translate("Constant", nwLabels.STANDARD_LABEL.get(label, ""))
+
+
+def trUnit(unit: nwStdUnit) -> str:
+    """Return a translated standard unit."""
+    return QCoreApplication.translate("Unit", nwLabels.UNIT_LABELS.get(unit, ""))
 
 
 class nwConst:
@@ -340,6 +359,12 @@ class nwLabels:
         nwItemLayout.DOCUMENT: QT_TRANSLATE_NOOP("Constant", "Novel Document"),
         nwItemLayout.NOTE: QT_TRANSLATE_NOOP("Constant", "Project Note"),
     }
+    STANDARD_LABEL: ClassVar[dict[nwStdLabel, str]] = {
+        nwStdLabel.NOTE: QT_TRANSLATE_NOOP("Constant", "Note"),
+        nwStdLabel.STORY_STRUCTURE: QT_TRANSLATE_NOOP("Constant", "Story Structure"),
+        nwStdLabel.STORY: QT_TRANSLATE_NOOP("Constant", "Story"),
+        nwStdLabel.SYNOPSIS: QT_TRANSLATE_NOOP("Constant", "Synopsis"),
+    }
     ITEM_DESCRIPTION: ClassVar[dict[str, str]] = {
         "none": QT_TRANSLATE_NOOP("Constant", "None"),
         "root": QT_TRANSLATE_NOOP("Constant", "Root Folder"),
@@ -402,6 +427,14 @@ class nwLabels:
         nwStats.CHARS: QT_TRANSLATE_NOOP("Stats", "Characters: {0} ({1})"),
         nwStats.WORDS: QT_TRANSLATE_NOOP("Stats", "Words: {0} ({1})"),
     }
+    UNIT_LABELS: ClassVar[dict[nwStdUnit, str]] = {
+        nwStdUnit.CHARS: QT_TRANSLATE_NOOP("Units", "characters"),
+        nwStdUnit.WORDS: QT_TRANSLATE_NOOP("Units", "words"),
+        nwStdUnit.LINES: QT_TRANSLATE_NOOP("Units", "lines"),
+        nwStdUnit.PIXELS: QT_TRANSLATE_NOOP("Units", "px"),
+        nwStdUnit.SECONDS: QT_TRANSLATE_NOOP("Units", "seconds"),
+        nwStdUnit.MINUTES: QT_TRANSLATE_NOOP("Units", "minutes"),
+    }
     BUILD_FMT: ClassVar[dict[nwBuildFmt, str]] = {
         nwBuildFmt.ODT: QT_TRANSLATE_NOOP("Constant", "Open Document (.odt)"),
         nwBuildFmt.FODT: QT_TRANSLATE_NOOP("Constant", "Flat Open Document (.fodt)"),
@@ -462,12 +495,12 @@ class nwLabels:
         "*.csv": QT_TRANSLATE_NOOP("Constant", "CSV files"),
         "*": QT_TRANSLATE_NOOP("Constant", "All files"),
     }
-    UNIT_NAME: ClassVar[dict[str, str]] = {
+    PAGE_UNIT_NAME: ClassVar[dict[str, str]] = {
         "mm": QT_TRANSLATE_NOOP("Constant", "Millimetres"),
         "cm": QT_TRANSLATE_NOOP("Constant", "Centimetres"),
         "in": QT_TRANSLATE_NOOP("Constant", "Inches"),
     }
-    UNIT_SCALE: ClassVar[dict[str, float]] = {
+    PAGE_UNIT_SCALE: ClassVar[dict[str, float]] = {
         "mm": 1.0,
         "cm": 10.0,
         "in": 25.4,

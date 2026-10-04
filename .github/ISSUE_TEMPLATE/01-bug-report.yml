@@ -1,6 +1,6 @@
 name: Bug Report
 description: Report a bug or issue.
-title: "Bug: "
+title: "[Bug] "
 labels: ["bug", "triage"]
 type: bug
 body:
@@ -14,7 +14,7 @@ body:
   - type: textarea
     id: description
     attributes:
-      label: Description
+      label: Bug Description
       description: Provide a clear and concise description of what happened.
       placeholder: Tell us what you see.
     validations:

@@ -1212,11 +1212,11 @@ def testItemIndex_Main(nwGUI, fncPath, mockRnd):
     assert list(itemIndex[cHandle].items())[0][0] == "T0000"  # type: ignore
 
     # Add a heading to the item, which should replace the T000000 heading
-    assert itemIndex.addItemHeading(cHandle, 1, "H2", "Chapter One") == "T0001"
+    assert itemIndex.addItemHeading(cHandle, 1, "H2", "Chapter One", False) == "T0001"
     assert list(itemIndex[cHandle].items())[0][0] == "T0001"  # type: ignore
 
     # Add a heading to an invalid item
-    assert itemIndex.addItemHeading(C.hInvalid, 1, "H1", "Stuff") == "T0000"
+    assert itemIndex.addItemHeading(C.hInvalid, 1, "H1", "Stuff", False) == "T0000"
 
     # Set the remaining data values
     itemIndex.setHeadingCounts(cHandle, "T0001", 60, 10, 2)
@@ -1229,8 +1229,9 @@ def testItemIndex_Main(nwGUI, fncPath, mockRnd):
 
     assert idxData[cHandle]["T0001"]["meta"] == {
         "level": "H2",
-        "line": 1,
         "title": "Chapter One",
+        "mod": False,
+        "line": 1,
         "tag": "one",
         "counts": (60, 10, 2),
     }
@@ -1243,8 +1244,8 @@ def testItemIndex_Main(nwGUI, fncPath, mockRnd):
     # Add the other two files
     itemIndex.add(nHandle, project.tree[nHandle])  # type: ignore
     itemIndex.add(sHandle, project.tree[sHandle])  # type: ignore
-    itemIndex.addItemHeading(nHandle, 1, "H1", "Novel")
-    itemIndex.addItemHeading(sHandle, 1, "H3", "Scene One")
+    itemIndex.addItemHeading(nHandle, 1, "H1", "Novel", False)
+    itemIndex.addItemHeading(sHandle, 1, "H3", "Scene One", False)
 
     # Check Item and Heading Direct Access
     # ====================================
@@ -1258,25 +1259,31 @@ def testItemIndex_Main(nwGUI, fncPath, mockRnd):
     assert itemIndex[cHandle].allTags() == ["one"]  # type: ignore
 
     # Check the content of a single heading
-    assert itemIndex[cHandle]["T0001"].key == "T0001"  # type: ignore
-    assert itemIndex[cHandle]["T0001"].level == "H2"  # type: ignore
-    assert itemIndex[cHandle]["T0001"].line == 1  # type: ignore
-    assert itemIndex[cHandle]["T0001"].title == "Chapter One"  # type: ignore
-    assert itemIndex[cHandle]["T0001"].tag == "one"  # type: ignore
-    assert itemIndex[cHandle]["T0001"].charCount == 60  # type: ignore
-    assert itemIndex[cHandle]["T0001"].wordCount == 10  # type: ignore
-    assert itemIndex[cHandle]["T0001"].paraCount == 2  # type: ignore
-    assert itemIndex[cHandle]["T0001"].synopsis == "In the beginning ..."  # type: ignore
-    assert "jane" in itemIndex[cHandle]["T0001"].references  # type: ignore
-    assert "john" in itemIndex[cHandle]["T0001"].references  # type: ignore
+    iItem = itemIndex[cHandle]
+    assert iItem is not None
+    hItem = iItem["T0001"]
+    assert hItem is not None
+
+    assert hItem.key == "T0001"
+    assert hItem.level == "H2"
+    assert hItem.title == "Chapter One"
+    assert hItem.modified is False
+    assert hItem.line == 1
+    assert hItem.tag == "one"
+    assert hItem.charCount == 60
+    assert hItem.wordCount == 10
+    assert hItem.paraCount == 2
+    assert hItem.synopsis == "In the beginning ..."
+    assert "jane" in hItem.references
+    assert "john" in hItem.references
 
     # Check heading level setter
-    itemIndex[cHandle]["T0001"].setLevel("H3")  # Change it  # type: ignore
-    assert itemIndex[cHandle]["T0001"].level == "H3"  # type: ignore
-    itemIndex[cHandle]["T0001"].setLevel("H2")  # Set it back  # type: ignore
-    assert itemIndex[cHandle]["T0001"].level == "H2"  # type: ignore
-    itemIndex[cHandle]["T0001"].setLevel("H5")  # Invalid level  # type: ignore
-    assert itemIndex[cHandle]["T0001"].level == "H2"  # type: ignore
+    hItem.setLevel("H3")  # Change it
+    assert hItem.level == "H3"
+    hItem.setLevel("H2")  # Set it back
+    assert hItem.level == "H2"
+    hItem.setLevel("H5")  # Invalid level
+    assert hItem.level == "H2"
 
     # Data Extraction
     # ===============
@@ -1301,7 +1308,7 @@ def testItemIndex_Main(nwGUI, fncPath, mockRnd):
     uHandle = project.newFile("Title Page", mHandle)
     assert uHandle is not None
     itemIndex.add(uHandle, project.tree[uHandle])  # type: ignore
-    itemIndex.addItemHeading(uHandle, "T0001", "H1", "Novel 2")  # type: ignore
+    itemIndex.addItemHeading(uHandle, "T0001", "H1", "Novel 2", True)  # type: ignore
     assert uHandle in itemIndex
 
     # Structure of all novels

@@ -388,7 +388,7 @@ class Index:
                 continue
 
             if line.startswith("#"):
-                hDepth, hText = processHeading(line)
+                hDepth, hText, hMod = processHeading(line)
                 if hDepth == "H0":
                     continue
 
@@ -396,7 +396,7 @@ class Index:
                     nwItem.setMainHeading(hDepth)
                     canSetHead = False
 
-                cTitle = self._itemIndex.addItemHeading(tHandle, n, hDepth, hText)
+                cTitle = self._itemIndex.addItemHeading(tHandle, n, hDepth, hText, hMod)
                 if cTitle != TT_NONE:  # pragma: no branch
                     if nTitle > 0:
                         # We have a new title, so we need to count the words of the previous one
@@ -443,7 +443,7 @@ class Index:
         """Scan an inactive document for meta data."""
         for line in text.splitlines():
             if line.startswith("#"):
-                hDepth, _ = processHeading(line)
+                hDepth, _, _ = processHeading(line)
                 if hDepth != "H0":
                     nwItem.setMainHeading(hDepth)
                     break
@@ -990,12 +990,12 @@ class ItemIndex:
     #  Setters
     ##
 
-    def addItemHeading(self, tHandle: str, lineNo: int, level: str, text: str) -> str:
+    def addItemHeading(self, tHandle: str, lineNo: int, level: str, text: str, mod: bool) -> str:
         """Add a heading to an item."""
         if tHandle in self._items:
             tItem = self._items[tHandle]
             sTitle = tItem.nextHeading()
-            tItem.addHeading(IndexHeading(self._cache, sTitle, lineNo, level, text))
+            tItem.addHeading(IndexHeading(self._cache, sTitle, lineNo, level, text, mod))
             return sTitle
         return TT_NONE
 
