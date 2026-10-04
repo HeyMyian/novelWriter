@@ -58,7 +58,7 @@ def testOutlineModel_Interface(nwGUI, prjLipsum):
 
     # All levels
     model.buildOutline(index, None, {1, 2, 3, 4})
-    assert model.rowCount(root) == 12
+    assert model.rowCount(root) == 11
     assert model.rowCount(model.index(0, 0)) == 0
     assert model.columnCount(model.index(0, 0)) == 0
 
@@ -162,23 +162,21 @@ def testOutlineModel_Progress(nwGUI, prjLipsum):
 
     # Progress, with partitions and chapters starting on a new page
     model.buildOutline(index, None, {1, 2, 3, 4}, 100)
-    progress = [model.node(model.index(r, 0)).progress for r in range(12)]  # type: ignore
-    assert progress[0] == "Page 1 (0.0\u202f%)"
-    assert progress[1] == "Page 4 (7.3\u202f%)"
-    assert progress[3] == "Page 6 (10.6\u202f%)"
-    assert progress[5] == "Page 8 (18.7\u202f%)"
-    assert progress[8] == "Page 17 (46.3\u202f%)"
-    assert progress[11] == "Page 27 (81.9\u202f%)"
+    progress = [model.node(model.index(r, 0)).progress for r in range(11)]  # type: ignore
+    assert progress[0] == "Page 4 (7.3\u202f%)"
+    assert progress[2] == "Page 6 (10.6\u202f%)"
+    assert progress[4] == "Page 8 (18.7\u202f%)"
+    assert progress[7] == "Page 17 (46.3\u202f%)"
+    assert progress[10] == "Page 27 (81.9\u202f%)"
 
     # Clear double page starts partitions and chapters on odd pages
     model.buildOutline(index, None, {1, 2, 3, 4}, 100, True)
-    progress = [model.node(model.index(r, 0)).progress for r in range(12)]  # type: ignore
-    assert progress[0] == "Page 1 (0.0\u202f%)"
-    assert progress[1] == "Page 5 (7.3\u202f%)"
-    assert progress[3] == "Page 9 (10.6\u202f%)"
-    assert progress[5] == "Page 11 (18.7\u202f%)"
-    assert progress[8] == "Page 21 (46.3\u202f%)"
-    assert progress[11] == "Page 31 (81.9\u202f%)"
+    progress = [model.node(model.index(r, 0)).progress for r in range(11)]  # type: ignore
+    assert progress[0] == "Page 5 (7.3\u202f%)"
+    assert progress[2] == "Page 9 (10.6\u202f%)"
+    assert progress[4] == "Page 11 (18.7\u202f%)"
+    assert progress[7] == "Page 21 (46.3\u202f%)"
+    assert progress[10] == "Page 31 (81.9\u202f%)"
 
     # Without titles and chapters, pages run on and clear double is ignored
     scenes = [e for e in index.iterNovelStructure() if e[2].level == "H3"]

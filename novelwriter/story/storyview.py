@@ -32,8 +32,8 @@ from PyQt6.QtWidgets import QComboBox, QCompleter, QFileDialog, QHBoxLayout, QVB
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import formatFileFilter
-from novelwriter.constants import nwKeyWords, nwLabels, nwStats, trConst, trStats
-from novelwriter.enum import nwItemClass
+from novelwriter.constants import nwKeyWords, nwLabels, nwStats, trConst, trLabel, trStats
+from novelwriter.enum import nwItemClass, nwStdLabel
 from novelwriter.extensions.configlayout import NColorLabel
 from novelwriter.extensions.modified import NComboBox, NIconButton, NPushButton
 from novelwriter.extensions.novelselector import NovelSelector
@@ -487,8 +487,8 @@ class GuiStoryView(QWidget):
         """Dump all novel data into a table."""
         project = SHARED.project
         index = project.index
-        sLabel = project.localLookup("Story Structure")
-        nLabel = project.localLookup("Note")
+        sLabel = trLabel(nwStdLabel.STORY_STRUCTURE)
+        nLabel = trLabel(nwStdLabel.NOTE)
         sKeys = sorted(index.getStoryKeys())
         nKeys = sorted(index.getNoteKeys())
         sMatch = [f"story.{k}" for k in sKeys]
@@ -507,7 +507,7 @@ class GuiStoryView(QWidget):
                 trStats(nwLabels.STATS_NAME[nwStats.WORDS]),
                 trStats(nwLabels.STATS_NAME[nwStats.PARAGRAPHS]),
                 *(trConst(nwLabels.KEY_NAME[k]) for k in nwKeyWords.CAN_LOOKUP),
-                self.tr("Synopsis"),
+                trLabel(nwStdLabel.SYNOPSIS),
                 *sHeaders,
                 *nHeaders,
             ]

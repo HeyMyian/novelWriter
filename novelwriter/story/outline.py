@@ -57,8 +57,8 @@ from PyQt6.QtWidgets import (
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import simplified
-from novelwriter.constants import nwKeyWords, nwLabels, trConst
-from novelwriter.enum import nwComment, nwToolButton
+from novelwriter.constants import nwKeyWords, nwLabels, trConst, trLabel, trUnit
+from novelwriter.enum import nwComment, nwStdLabel, nwStdUnit, nwToolButton
 from novelwriter.extensions.configlayout import NFixedPage
 from novelwriter.extensions.modified import NComboBox, NSpinBox, NTreeView
 from novelwriter.extensions.switch import NSwitch
@@ -182,7 +182,7 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.rowLines.setFixedNumbersWidth(3)
 
         self.form.addRow(settings.getLabel("outline.syntaxColors"), self.syntaxColors)
-        self.form.addRow(settings.getLabel("outline.rowLines"), self.rowLines, unit=self.tr("lines"))
+        self.form.addRow(settings.getLabel("outline.rowLines"), self.rowLines, unit=trUnit(nwStdUnit.LINES))
 
         # Documents
         # =========
@@ -216,7 +216,7 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.useTargetCount = NSwitch(self, height=iPx)
 
         self.form.addRow(settings.getLabel("outline.showProgress"), self.showProgress)
-        unit = self.tr("characters") if SHARED.project.data.targetCountChars else self.tr("words")
+        unit = trUnit(nwStdUnit.CHARS) if SHARED.project.data.targetCountChars else trUnit(nwStdUnit.WORDS)
         self.form.addRow(settings.getLabel("outline.countPerPage"), self.countPerPage, unit=unit)
         self.form.addRow(settings.getLabel("outline.clearDoublePage"), self.clearDoublePage)
         self.form.addRow(settings.getLabel("outline.useTargetCount"), self.useTargetCount)
@@ -288,17 +288,17 @@ class _ColumnsPage(NFixedPage):
         super().__init__(parent=parent)
 
         index = SHARED.project.index
-        self._spelling: dict[str, str] = {}
+        self._userKeys: dict[str, str] = {}
         for key in sorted(index.getStoryKeys()):
-            self._spelling.setdefault(f"story.{key.lower()}", key)
+            self._userKeys.setdefault(f"story.{key.lower()}", key)
         for key in sorted(index.getNoteKeys()):
-            self._spelling.setdefault(f"note.{key.lower()}", key)
+            self._userKeys.setdefault(f"note.{key.lower()}", key)
 
         iSz = SHARED.theme.baseIconSize
 
-        self.trSynopsis = self.tr("Synopsis")
-        self.trStory = self.tr("Story")
-        self.trNote = self.tr("Note")
+        self.trSynopsis = trLabel(nwStdLabel.SYNOPSIS)
+        self.trStory = trLabel(nwStdLabel.STORY)
+        self.trNote = trLabel(nwStdLabel.NOTE)
         self.trColumn = self.tr("Column")
 
         # Column Tree
@@ -449,13 +449,13 @@ class _ColumnsPage(NFixedPage):
 
     def _newColumnItem(self, cid: str, name: str) -> QTreeWidgetItem:
         """Add a new column item to the tree."""
-        section = QTreeWidgetItem(self.columnTree)
-        section.setText(0, name)
-        section.setData(0, self.D_KEY, cid)
-        section.setFont(0, SHARED.theme.guiFontB)
-        section.setFlags(COLUMN_FLAGS)
-        section.setExpanded(True)
-        return section
+        item = QTreeWidgetItem(self.columnTree)
+        item.setText(0, name)
+        item.setData(0, self.D_KEY, cid)
+        item.setFont(0, SHARED.theme.guiFontB)
+        item.setFlags(COLUMN_FLAGS)
+        item.setExpanded(True)
+        return item
 
     def _newEntryItem(self, key: str) -> QTreeWidgetItem:
         """Create a new entry item."""
@@ -464,7 +464,7 @@ class _ColumnsPage(NFixedPage):
         item.setIcon(0, self._keyIcon(key))
         item.setData(0, self.D_KEY, key)
         item.setFlags(ENTRY_FLAGS)
-        if "." in key and key not in self._spelling:
+        if "." in key and key not in self._userKeys:
             item.setForeground(0, SHARED.theme.helpText)
         return item
 
@@ -476,7 +476,7 @@ class _ColumnsPage(NFixedPage):
             return self.trSynopsis
         modifier, _, name = key.partition(".")
         kind = self.trStory if modifier == "story" else self.trNote
-        return f"{kind}: {self._spelling.get(key, name)}"
+        return f"{kind}: {self._userKeys.get(key, name)}"
 
     def _keyIcon(self, key: str) -> QIcon:
         """Return the icon of a column key."""
@@ -489,7 +489,7 @@ class _ColumnsPage(NFixedPage):
         """Populate the column key options that are not already in use."""
         used = {k for c in self.columns() for k in c.keys}
         self.entryValue.clear()
-        for key in [*nwKeyWords.CAN_LOOKUP, COMMENT_SYNOPSIS, *self._spelling]:
+        for key in [*nwKeyWords.CAN_LOOKUP, COMMENT_SYNOPSIS, *self._userKeys]:
             if key not in used:
                 self.entryValue.addItem(self._keyIcon(key), self._keyLabel(key), key)
 

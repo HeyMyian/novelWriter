@@ -67,20 +67,20 @@ def processComment(text: str) -> tuple[nwComment, str, str, int, int]:
     return nwComment.PLAIN, "", check, 0, 0
 
 
-def processHeading(line: str) -> tuple[str, str]:
+def processHeading(line: str) -> tuple[str, str, bool]:
     """Split a heading into its heading level and text value."""
     if line.startswith("# "):
-        return "H1", line[2:].strip()
+        return "H1", line[2:].strip(), False
     elif line.startswith("## "):
-        return "H2", line[3:].strip()
+        return "H2", line[3:].strip(), False
     elif line.startswith("### "):
-        return "H3", line[4:].strip()
+        return "H3", line[4:].strip(), False
     elif line.startswith("#### "):
-        return "H4", line[5:].strip()
+        return "H4", line[5:].strip(), False
     elif line.startswith("#! "):
-        return "H1", line[3:].strip()
+        return "H1", line[3:].strip(), True
     elif line.startswith("##! "):
-        return "H2", line[4:].strip()
+        return "H2", line[4:].strip(), True
     elif line.startswith("###! "):
-        return "H3", line[5:].strip()
-    return "H0", ""
+        return "H3", line[5:].strip(), True
+    return "H0", "", False

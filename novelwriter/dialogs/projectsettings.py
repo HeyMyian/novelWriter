@@ -49,9 +49,9 @@ from PyQt6.QtWidgets import (
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import formatFileFilter, qtAddAction, qtLambda, simplified
-from novelwriter.constants import nwLabels, trConst, trStats
+from novelwriter.constants import nwLabels, trConst, trUnit
 from novelwriter.core.status import CUSTOM_COL, ItemStatus, StatusEntry
-from novelwriter.enum import nwItemClass, nwStandardButton, nwStatusShape, nwToolButton
+from novelwriter.enum import nwItemClass, nwStandardButton, nwStatusShape, nwStdUnit, nwToolButton
 from novelwriter.extensions.configlayout import NColorLabel, NFixedPage, NScrollableForm
 from novelwriter.extensions.modified import NComboBox, NDialog, NIconButton, NSpinBox
 from novelwriter.extensions.pagedsidebar import NPagedSideBar
@@ -425,7 +425,7 @@ class _GoalsPage(NScrollableForm):
     @pyqtSlot(bool)
     def _updateCountMode(self, checked: bool) -> None:
         """Update the unit label when the count mode is changed."""
-        unit = trStats("Characters" if checked else "Words")
+        unit = trUnit(nwStdUnit.CHARS if checked else nwStdUnit.WORDS)
         self.setUnitText("targetCount", unit)
         self.setUnitText("dailyGoal", unit)
 

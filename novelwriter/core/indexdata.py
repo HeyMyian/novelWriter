@@ -198,14 +198,23 @@ class IndexHeading:
     of all references made under the heading.
     """
 
-    __slots__ = ("_cache", "_comments", "_counts", "_key", "_level", "_line", "_refs", "_tag", "_title")
+    __slots__ = ("_cache", "_comments", "_counts", "_key", "_level", "_line", "_mod", "_refs", "_tag", "_title")
 
-    def __init__(self, cache: IndexCache, key: str, line: int = 0, level: str = "H0", title: str = "") -> None:
+    def __init__(
+        self,
+        cache: IndexCache,
+        key: str,
+        line: int = 0,
+        level: str = "H0",
+        title: str = "",
+        mod: bool = False,
+    ) -> None:
         self._cache = cache
         self._key = key
         self._line = line
         self._level = level
         self._title = title
+        self._mod = mod
         self._counts: tuple[int, int, int] = (0, 0, 0)
         self._tag = ""
         self._refs: dict[str, set[str]] = {}
@@ -221,50 +230,67 @@ class IndexHeading:
 
     @property
     def key(self) -> str:
+        """Return the heading key."""
         return self._key
 
     @property
     def line(self) -> int:
+        """Return the heading line number."""
         return self._line
 
     @property
     def level(self) -> str:
+        """Return the heading level key."""
         return self._level
 
     @property
     def title(self) -> str:
+        """Return the heading title text."""
         return self._title
 
     @property
+    def modified(self) -> bool:
+        """Return True if the heading is a modified heading type."""
+        return self._mod
+
+    @property
     def mainCount(self) -> int:
+        """Return the main count stats for the heading."""
         return self._counts[0 if CONFIG.useCharCount else 1]
 
     @property
     def charCount(self) -> int:
+        """Return the heading character count."""
         return self._counts[0]
 
     @property
     def wordCount(self) -> int:
+        """Return the heading word count."""
         return self._counts[1]
 
     @property
     def paraCount(self) -> int:
+        """Return the heading paragraph count."""
         return self._counts[2]
 
     @property
     def synopsis(self) -> str:
+        """Return the heading synopsis."""
         return self._comments.get("summary", "")
 
     @property
     def comments(self) -> dict[str, str]:
+        """Return the heading comments."""
         return self._comments
 
     @property
     def tag(self) -> str:
+        """Return the heading tag."""
         return self._tag
 
     @property
     def references(self) -> dict[str, set[str]]:
+        """Return the heading references."""
         return self._refs
 
     ##
@@ -354,6 +380,7 @@ class IndexHeading:
         data["meta"] = {
             "level": self._level,
             "title": self._title,
+            "mod": self._mod,
             "line": self._line,
             "tag": self._tag,
             "counts": self._counts,
@@ -371,9 +398,12 @@ class IndexHeading:
             if key == "meta":
                 self.setLevel(entry.get("level", "H0"))
                 self._title = str(entry.get("title", ""))
+                self._mod = bool(entry.get("mod", False))
                 self._tag = str(entry.get("tag", ""))
                 self.setLine(entry.get("line", 0))
                 self.setCounts(entry.get("counts", [0, 0, 0]))
+                if not entry.keys() >= {"level", "title", "line", "mod", "tag", "counts"}:
+                    raise KeyError("Heading meta is missing keys")
             elif key == "refs":
                 for tag, value in entry.items():
                     if not isinstance(tag, str):

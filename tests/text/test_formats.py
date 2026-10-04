@@ -115,17 +115,17 @@ def testTextFormats_processComment():
 def testTextFormats_processHeading():
     """Test the heading processing function."""
     # Correct titles
-    assert processHeading("# Title") == ("H1", "Title")
-    assert processHeading("#! Title") == ("H1", "Title")
-    assert processHeading("## Title") == ("H2", "Title")
-    assert processHeading("##! Title") == ("H2", "Title")
-    assert processHeading("### Title") == ("H3", "Title")
-    assert processHeading("###! Title") == ("H3", "Title")
-    assert processHeading("#### Title") == ("H4", "Title")
+    assert processHeading("# Title") == ("H1", "Title", False)
+    assert processHeading("#! Title") == ("H1", "Title", True)
+    assert processHeading("## Title") == ("H2", "Title", False)
+    assert processHeading("##! Title") == ("H2", "Title", True)
+    assert processHeading("### Title") == ("H3", "Title", False)
+    assert processHeading("###! Title") == ("H3", "Title", True)
+    assert processHeading("#### Title") == ("H4", "Title", False)
 
     # Stripped text
-    assert processHeading("# \tTitle\t  ") == ("H1", "Title")
+    assert processHeading("# \tTitle\t  ") == ("H1", "Title", False)
 
     # Incorrect titles
-    assert processHeading("##### Title") == ("H0", "")
-    assert processHeading("#Title") == ("H0", "")
+    assert processHeading("##### Title") == ("H0", "", False)
+    assert processHeading("#Title") == ("H0", "", False)
