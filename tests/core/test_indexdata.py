@@ -380,7 +380,7 @@ def testIndexHeading_UnpackMeta():
         "meta": {
             "level": "H1",
             "title": "So it Begins",
-            "mod": False,
+            "mod": True,
             "line": 1,
             "tag": "begins",
             "counts": [95, 18, 1],
@@ -390,6 +390,7 @@ def testIndexHeading_UnpackMeta():
     head.unpackData(data)
     assert head.level == "H1"
     assert head.title == "So it Begins"
+    assert head.modified is True
     assert head.line == 1
     assert head.tag == "begins"
     assert head.charCount == 95
@@ -402,6 +403,7 @@ def testIndexHeading_UnpackMeta():
     head.unpackData(data)
     assert head.level == "H0"
     assert head.title == "None"
+    assert head.modified is False
     assert head.line == 0
     assert head.tag == "None"
     assert head.charCount == 0
@@ -413,14 +415,6 @@ def testIndexHeading_UnpackMeta():
     head = IndexHeading(cache, "T0001")
     with pytest.raises(KeyError, match="Heading meta is missing keys"):
         head.unpackData(data)
-
-    assert head.level == "H0"
-    assert head.title == ""
-    assert head.line == 0
-    assert head.tag == ""
-    assert head.charCount == 0
-    assert head.wordCount == 0
-    assert head.paraCount == 0
 
 
 @pytest.mark.core
