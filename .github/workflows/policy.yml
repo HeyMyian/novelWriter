@@ -1,4 +1,4 @@
-name: Policy Check
+name: Policy Checks
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ on:
 jobs:
   commitPolicy:
     name: Commit Policy
-    uses: saga-soft/automation/.github/workflows/commit-policy.yml@main
+    uses: saga-soft/automation/.github/workflows/saga-soft-policy.yml@main
     permissions:
       contents: read
       pull-requests: read
