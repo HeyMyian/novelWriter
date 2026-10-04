@@ -11,6 +11,15 @@ on:
       - release
 
 jobs:
+  commitPolicy:
+    name: Commit Policy
+    uses: saga-soft/automation/.github/workflows/commit-policy.yml@main
+    permissions:
+      contents: read
+      pull-requests: read
+    with:
+      policy-url: https://github.com/saga-soft/novelWriter/blob/main/AI_POLICY.md
+
   checkSyntax:
     name: Linting and Type Checking
     runs-on: ubuntu-latest
