@@ -331,6 +331,9 @@ class OutlineModel(QAbstractTableModel):
         start = 0
         for tHandle, sTitle, hItem in index.iterNovelStructure(rHandle=rootHandle):
             level = nwStyles.H_LEVEL.get(hItem.level, 0)
+            if level == 1 and hItem.modified:
+                # Skip novel and note main titles
+                continue
             if countPerPage > 0 and level <= 2:
                 span = math.ceil((count - start) / countPerPage)
                 pages += span + span % 2 if clearDouble else span
