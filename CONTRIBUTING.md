@@ -61,7 +61,7 @@ The translation files needed at runtime can be built with:
 python pkgutils.py qtlrelease
 ```
 
-Default icon themes can be built with:
+Default icon themes can be updated with:
 
 ```bash
 python pkgutils.py icons default

@@ -60,7 +60,7 @@ ICON_EXTRACT = {
 
 # fmt: off
 ICONS = [
-    # Remember to also update tests/files/all_icons.json for test coverage
+    # Remember to also update tests/_files/all_icons.json for test coverage
     "alert_error",
     "alert_info",
     "alert_question",
@@ -387,7 +387,7 @@ def main(args: argparse.Namespace) -> None:
     iconsDir = ROOT_DIR / "novelwriter" / "assets" / "icons"
 
     style = args.style
-    if style in ("all", "default", "material"):
+    if style in ("all", "default", "free", "material"):
         processMaterialIcons(
             workDir,
             iconsDir,
@@ -431,7 +431,7 @@ def main(args: argparse.Namespace) -> None:
             },
         )
 
-    if style in ("all", "optional", "free", "font_awesome"):
+    if style in ("all", "default", "free", "font_awesome"):
         processFontAwesome(
             workDir,
             iconsDir,
@@ -442,7 +442,7 @@ def main(args: argparse.Namespace) -> None:
             },
         )
 
-    if style in ("all", "optional", "free", "lucide"):
+    if style in ("all", "default", "free", "lucide"):
         processLucide(
             workDir,
             iconsDir,
