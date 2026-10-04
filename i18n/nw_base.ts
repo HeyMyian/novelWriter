@@ -2918,21 +2918,6 @@
       <source>General</source>
       <translation type="unfinished"/>
     </message>
-    <message>
-      <location filename="../novelwriter/story/outline.py"/>
-      <source>lines</source>
-      <translation type="unfinished"/>
-    </message>
-    <message>
-      <location filename="../novelwriter/story/outline.py"/>
-      <source>characters</source>
-      <translation type="unfinished"/>
-    </message>
-    <message>
-      <location filename="../novelwriter/story/outline.py"/>
-      <source>words</source>
-      <translation type="unfinished"/>
-    </message>
   </context>
   <context>
     <name>GuiPreferences</name>
@@ -3118,11 +3103,6 @@
     </message>
     <message>
       <location filename="../novelwriter/dialogs/preferences.py"/>
-      <source>seconds</source>
-      <translation type="unfinished"/>
-    </message>
-    <message>
-      <location filename="../novelwriter/dialogs/preferences.py"/>
       <source>Save project interval</source>
       <translation type="unfinished"/>
     </message>
@@ -3228,11 +3208,6 @@
     </message>
     <message>
       <location filename="../novelwriter/dialogs/preferences.py"/>
-      <source>minutes</source>
-      <translation type="unfinished"/>
-    </message>
-    <message>
-      <location filename="../novelwriter/dialogs/preferences.py"/>
       <source>Writing</source>
       <translation type="unfinished"/>
     </message>
@@ -3249,11 +3224,6 @@
     <message>
       <location filename="../novelwriter/dialogs/preferences.py"/>
       <source>Set to 0 to disable this feature.</source>
-      <translation type="unfinished"/>
-    </message>
-    <message>
-      <location filename="../novelwriter/dialogs/preferences.py"/>
-      <source>px</source>
       <translation type="unfinished"/>
     </message>
     <message>
@@ -4713,6 +4683,39 @@
     <message>
       <location filename="../novelwriter/story/storysettings.py"/>
       <source>Comments</source>
+      <translation type="unfinished"/>
+    </message>
+  </context>
+  <context>
+    <name>Units</name>
+    <message>
+      <location filename="../novelwriter/constants.py"/>
+      <source>characters</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../novelwriter/constants.py"/>
+      <source>words</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../novelwriter/constants.py"/>
+      <source>lines</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../novelwriter/constants.py"/>
+      <source>px</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../novelwriter/constants.py"/>
+      <source>seconds</source>
+      <translation type="unfinished"/>
+    </message>
+    <message>
+      <location filename="../novelwriter/constants.py"/>
+      <source>minutes</source>
       <translation type="unfinished"/>
     </message>
   </context>

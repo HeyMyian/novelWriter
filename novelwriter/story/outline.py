@@ -57,8 +57,8 @@ from PyQt6.QtWidgets import (
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import simplified
-from novelwriter.constants import nwKeyWords, nwLabels, trConst, trLabel
-from novelwriter.enum import nwComment, nwStdLabel, nwToolButton
+from novelwriter.constants import nwKeyWords, nwLabels, trConst, trLabel, trUnit
+from novelwriter.enum import nwComment, nwStdLabel, nwStdUnit, nwToolButton
 from novelwriter.extensions.configlayout import NFixedPage
 from novelwriter.extensions.modified import NComboBox, NSpinBox, NTreeView
 from novelwriter.extensions.switch import NSwitch
@@ -182,7 +182,7 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.rowLines.setFixedNumbersWidth(3)
 
         self.form.addRow(settings.getLabel("outline.syntaxColors"), self.syntaxColors)
-        self.form.addRow(settings.getLabel("outline.rowLines"), self.rowLines, unit=self.tr("lines"))
+        self.form.addRow(settings.getLabel("outline.rowLines"), self.rowLines, unit=trUnit(nwStdUnit.LINES))
 
         # Documents
         # =========
@@ -216,7 +216,7 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.useTargetCount = NSwitch(self, height=iPx)
 
         self.form.addRow(settings.getLabel("outline.showProgress"), self.showProgress)
-        unit = self.tr("characters") if SHARED.project.data.targetCountChars else self.tr("words")
+        unit = trUnit(nwStdUnit.CHARS) if SHARED.project.data.targetCountChars else trUnit(nwStdUnit.WORDS)
         self.form.addRow(settings.getLabel("outline.countPerPage"), self.countPerPage, unit=unit)
         self.form.addRow(settings.getLabel("outline.clearDoublePage"), self.clearDoublePage)
         self.form.addRow(settings.getLabel("outline.useTargetCount"), self.useTargetCount)
