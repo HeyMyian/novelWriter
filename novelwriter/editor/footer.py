@@ -31,8 +31,8 @@ from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import qtWeakLambda
-from novelwriter.constants import nwLabels, nwStats, trStats
-from novelwriter.enum import nwVimMode
+from novelwriter.constants import nwLabels, nwStats, trLabel, trStats
+from novelwriter.enum import nwStdLabel, nwVimMode
 from novelwriter.extensions.modified import NFlatIconButton, NFlatIconTextButton
 from novelwriter.types import QtAlignLeftTop, QtBlack
 
@@ -294,7 +294,7 @@ class GuiDocViewFooter(QWidget):
         self.showComments.toggled.connect(self._doToggleComments)
 
         # Show Synopsis
-        self.showSynopsis = NFlatIconTextButton(self, iSz, "toggle-bullet:action", self.tr("Synopsis"))
+        self.showSynopsis = NFlatIconTextButton(self, iSz, "toggle-bullet:action", trLabel(nwStdLabel.SYNOPSIS))
         self.showSynopsis.setToolTip(self.tr("Show Synopsis Comments"))
         self.showSynopsis.setCheckable(True)
         self.showSynopsis.setChecked(CONFIG.viewSynopsis)

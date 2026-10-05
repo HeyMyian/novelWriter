@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 
 
 class DocumentBuilder:
-    """Core: Manuscript Document Build Class.
+    """Manuscript: Manuscript Document Build Class.
 
     This is the core tool that assembles a project and outputs a
     manuscript, based on a build definition object (BuildSettings).
@@ -347,7 +347,7 @@ class DocumentBuilder:
             )
 
         if isinstance(bldObj, ToOdt | ToDocX | ToQTextDocument):
-            scale = nwLabels.UNIT_SCALE.get(self._build.getStr("format.pageUnit"), 1.0)
+            scale = nwLabels.PAGE_UNIT_SCALE.get(self._build.getStr("format.pageUnit"), 1.0)
             pW, pH = nwLabels.PAPER_SIZE.get(self._build.getStr("format.pageSize"), (-1.0, -1.0))
             bldObj.setPageLayout(
                 pW if pW > 0.0 else scale * self._build.getFloat("format.pageWidth"),

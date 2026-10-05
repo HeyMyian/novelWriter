@@ -863,24 +863,10 @@ def testGuiTheme_CheckTheme(theme):
     assert deprecated == [], "Deprecated options in theme file"
 
 
+@pytest.mark.gui
 @pytest.mark.parametrize(
     "icons",
-    [
-        pytest.param(
-            a.stem,
-            marks=(
-                (pytest.mark.gui,)
-                if a.stem.startswith("material")
-                else (
-                    pytest.mark.gui,
-                    pytest.mark.opt_assets,
-                    pytest.mark.xfail(reason="May be stale from another branch", strict=False),
-                )
-            ),
-        )
-        for a in CONFIG.assetPath("icons").iterdir()
-        if a.is_dir and a.suffix == ".icons"
-    ],
+    [a.stem for a in CONFIG.assetPath("icons").iterdir() if a.is_file() and a.suffix == ".icons"],
 )
 def testGuiTheme_CheckIcons(icons, tstPaths):
     """Test loading all icons."""

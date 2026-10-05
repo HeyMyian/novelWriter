@@ -1377,7 +1377,7 @@ class _FormattingTab(NScrollableForm):
 
         # Unit
         self.pageUnit = NComboBox(self)
-        for key, name in nwLabels.UNIT_NAME.items():
+        for key, name in nwLabels.PAGE_UNIT_NAME.items():
             self.pageUnit.addItem(trConst(name), key)
 
         self.addRow(self._build.getLabel("format.pageUnit"), self.pageUnit)
@@ -1616,7 +1616,7 @@ class _FormattingTab(NScrollableForm):
         index = self.pageUnit.findData(pageUnit)
         if index >= 0:
             self.pageUnit.setCurrentIndex(index)
-            self._unitScale = nwLabels.UNIT_SCALE.get(pageUnit, 1.0)
+            self._unitScale = nwLabels.PAGE_UNIT_SCALE.get(pageUnit, 1.0)
             self._changeUnit(index)
 
         self.pageWidth.setValue(self._build.getFloat("format.pageWidth"))
@@ -1746,7 +1746,7 @@ class _FormattingTab(NScrollableForm):
     def _changeUnit(self, index: int) -> None:
         """Process current unit change to recalculate sizes."""
         newUnit = self.pageUnit.itemData(index)
-        newScale = nwLabels.UNIT_SCALE.get(newUnit, 1.0)
+        newScale = nwLabels.PAGE_UNIT_SCALE.get(newUnit, 1.0)
         reScale = self._unitScale / newScale
 
         pageWidth = self.pageWidth.value() * reScale
