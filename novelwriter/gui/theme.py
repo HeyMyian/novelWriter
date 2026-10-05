@@ -934,11 +934,12 @@ class GuiIcons:
             return
 
         # All icons in a theme are assumed to have the same size
-        if svg := next(iter(self._svgData.values()), b""):
+        for svg in self._svgData.values():
             pixmap = QPixmap()
-            pixmap.loadFromData(svg, "svg")
-            self._iconSize = pixmap.size()
-            logger.debug("Theme icon size is %dx%d px", self._iconSize.width(), self._iconSize.height())
+            if pixmap.loadFromData(svg, "svg"):
+                self._iconSize = pixmap.size()
+                logger.debug("Theme icon size is %dx%d px", self._iconSize.width(), self._iconSize.height())
+                break
 
         # Populate generated icons cache
         CONFIG.splashMessage("Generating additional icons ...")
@@ -953,10 +954,9 @@ class GuiIcons:
 
     def getIcon(self, name: str) -> QIcon:
         """Return an icon from the icon buffer, or load it."""
-        color = "default"
-        if ":" in name:
-            name, _, color = name.partition(":")
-        key = f"{name}-{color}" if color else name
+        name, _, color = name.partition(":")
+        color = color or "default"
+        key = f"{name}-{color}"
         if key in self._qIcons:
             return self._qIcons[key]
         else:
@@ -1015,9 +1015,7 @@ class GuiIcons:
         return name
 
     def getPixmap(self, name: str, width: int, height: int) -> QPixmap:
-        """Return an icon from the icon buffer as a QPixmap. If it
-        doesn't exist, return an empty QPixmap.
-        """
+        """Return an icon from the icon buffer as a QPixmap."""
         return self.getIcon(name).pixmap(width, height, QtIconNormal)
 
     def getStandardButton(self, button: nwStandardButton, parent: QWidget) -> NPushButton:
