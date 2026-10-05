@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 import uuid
 
 from pathlib import Path
@@ -98,8 +99,11 @@ SETTINGS_LABELS = {
 
 
 def newColumnID() -> str:
-    """Generate a new short outline column ID."""
-    return uuid.uuid4().hex[:8]
+    """Generate a new outline column ID."""
+    # We assume collisions won't happen since there will be very few
+    # columns, but if it happens the user will get a weird overwritten
+    # column bug, and should probably play the lottery
+    return f"{random.getrandbits(32):08x}"
 
 
 def isColumnKey(key: str) -> bool:

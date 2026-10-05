@@ -341,6 +341,7 @@ class IndexHeading:
         if keyword in nwKeyWords.VALID_KEYS:
             tag = tag.lower()
             if tag not in self._refs:
+                # This is deliberate since using defaultdict for _refs is unsafe
                 self._refs[tag] = set()
             self._refs[tag].add(keyword)
 
