@@ -493,8 +493,7 @@ class _ColumnsPage(NFixedPage):
         """Return the icon of a column key."""
         if not (icon := nwKeyWords.KEY_ICON.get(key)):
             icon = nwLabels.COMMENT_ICON[MODIFIERS.get(key.partition(".")[0], nwComment.PLAIN)]
-        iPx = SHARED.theme.baseIconHeight
-        return SHARED.theme.getIcon(icon, iPx, iPx)
+        return SHARED.theme.getIcon(icon)
 
     def _refreshOptions(self) -> None:
         """Populate the column key options that are not already in use."""
@@ -979,10 +978,9 @@ class _OutlineDelegate(QStyledItemDelegate):
         """Refresh the cached icons, keyed by reference key or comment
         modifier.
         """
-        iPx = SHARED.theme.baseIconHeight
-        icons = {k: SHARED.theme.getIcon(v, iPx, iPx) for k, v in nwKeyWords.KEY_ICON.items()}
+        icons = {k: SHARED.theme.getIcon(v) for k, v in nwKeyWords.KEY_ICON.items()}
         for modifier in ("synopsis", "story", "note"):
-            icons[modifier] = SHARED.theme.getIcon(nwLabels.COMMENT_ICON[MODIFIERS[modifier]], iPx, iPx)
+            icons[modifier] = SHARED.theme.getIcon(nwLabels.COMMENT_ICON[MODIFIERS[modifier]])
         self._icons = icons
 
     def _paintEntries(
