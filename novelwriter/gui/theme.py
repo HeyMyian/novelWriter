@@ -831,6 +831,7 @@ class GuiIcons:
         "_allThemes",
         "_headerDec",
         "_headerDecNarrow",
+        "_iconSize",
         "_meta",
         "_noIcon",
         "_qIcons",
@@ -858,6 +859,7 @@ class GuiIcons:
         self._qIcons: dict[str, QIcon] = {}
         self._headerDec: list[QPixmap] = []
         self._headerDecNarrow: list[QPixmap] = []
+        self._iconSize = QSize()  # The icon size of the theme
 
         # None Icon
         self._noIcon = QIcon(str(CONFIG.assetPath("icons") / "none.svg"))
@@ -868,6 +870,7 @@ class GuiIcons:
         self._qIcons = {}
         self._headerDec = []
         self._headerDecNarrow = []
+        self._iconSize = QSize()
         self._meta = ThemeMeta()
 
     ##
@@ -930,6 +933,13 @@ class GuiIcons:
             logException()
             return
 
+        # All icons in a theme are assumed to have the same size
+        if svg := next(iter(self._svgData.values()), b""):
+            pixmap = QPixmap()
+            pixmap.loadFromData(svg, "svg")
+            self._iconSize = pixmap.size()
+            logger.debug("Theme icon size is %dx%d px", self._iconSize.width(), self._iconSize.height())
+
         # Populate generated icons cache
         CONFIG.splashMessage("Generating additional icons ...")
         self.getHeaderDecoration(0)
@@ -941,12 +951,12 @@ class GuiIcons:
     #  Access Functions
     ##
 
-    def getIcon(self, name: str, width: int = 24, height: int = 24) -> QIcon:
+    def getIcon(self, name: str) -> QIcon:
         """Return an icon from the icon buffer, or load it."""
         color = "default"
         if ":" in name:
             name, _, color = name.partition(":")
-        key =f"{name}-{color}" if color else name
+        key = f"{name}-{color}" if color else name
         if key in self._qIcons:
             return self._qIcons[key]
         else:
@@ -955,15 +965,14 @@ class GuiIcons:
             logger.debug("Icon: %s", key)
             return icon
 
-    def getToggleIcon(self, name: str, width: int, height: int) -> QIcon:
-        """Return a toggle icon from the icon buffer, or load it."""
+    def getToggleIcon(self, name: str) -> QIcon:
+        """Return a toggle icon built from the icon buffer."""
         key, _, color = name.partition(":")
         if key in self.TOGGLE_ICON_KEYS:
-            pix0 = self.getPixmap(f"{self.TOGGLE_ICON_KEYS[key][0]}:{color}", width, height)
-            pix1 = self.getPixmap(f"{self.TOGGLE_ICON_KEYS[key][1]}:{color}", width, height)
+            on, off = self.TOGGLE_ICON_KEYS[key]
             icon = QIcon()
-            icon.addPixmap(pix0, QtIconNormal, QtIconOn)
-            icon.addPixmap(pix1, QtIconNormal, QtIconOff)
+            icon.addPixmap(self.getIcon(f"{on}:{color}").pixmap(self._iconSize, 1.0), QtIconNormal, QtIconOn)
+            icon.addPixmap(self.getIcon(f"{off}:{color}").pixmap(self._iconSize, 1.0), QtIconNormal, QtIconOff)
             return icon
         return self._noIcon
 
@@ -1009,7 +1018,7 @@ class GuiIcons:
         """Return an icon from the icon buffer as a QPixmap. If it
         doesn't exist, return an empty QPixmap.
         """
-        return self.getIcon(name, width, height).pixmap(width, height, QtIconNormal)
+        return self.getIcon(name).pixmap(width, height, QtIconNormal)
 
     def getStandardButton(self, button: nwStandardButton, parent: QWidget) -> NPushButton:
         """Return a standard button with icon and text."""
