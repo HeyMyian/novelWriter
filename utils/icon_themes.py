@@ -39,13 +39,13 @@ ET.register_namespace("", "http://www.w3.org/2000/svg")
 # Repo: https://github.com/google/material-design-icons
 # Website: https://fonts.google.com/icons
 
-# FontAwesome
-# Repo: https://github.com/FortAwesome/Font-Awesome
-# Website: https://fontawesome.com/
-
 # Lucide
 # Repo: https://github.com/lucide-icons/lucide
 # Website: https://lucide.dev/
+
+# FontAwesome
+# Repo: https://github.com/FortAwesome/Font-Awesome
+# Website: https://fontawesome.com/
 
 ICON_SOURCES = {
     "material": "https://github.com/google/material-design-icons.git",
@@ -79,6 +79,8 @@ ICONS = [
     "cls_trash",
     "cls_world",
 
+    "key_pov",
+    "key_focus",
     "key_mention",
 
     "cmn_general",
