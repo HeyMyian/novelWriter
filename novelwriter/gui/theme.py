@@ -946,11 +946,11 @@ class GuiIcons:
         color = "default"
         if ":" in name:
             name, _, color = name.partition(":")
-        variant = f"{name}-{color}" if color else name
-        if (key := f"{variant}-{width}x{height}") in self._qIcons:
+        key =f"{name}-{color}" if color else name
+        if key in self._qIcons:
             return self._qIcons[key]
         else:
-            icon = self._loadIcon(name, color, width, height)
+            icon = self._loadIcon(name, color)
             self._qIcons[key] = icon
             logger.debug("Icon: %s", key)
             return icon
@@ -1092,7 +1092,7 @@ class GuiIcons:
     #  Internal Functions
     ##
 
-    def _loadIcon(self, name: str, color: str | None = None, w: int = 24, h: int = 24) -> QIcon:
+    def _loadIcon(self, name: str, color: str | None = None) -> QIcon:
         """Load an icon from the assets themes folder. This function is
         guaranteed to return a QIcon.
         """
@@ -1105,8 +1105,7 @@ class GuiIcons:
         if svg := self._svgData.get(name, b""):
             if fill := self._theme.getRawBaseColor(color or "default"):  # pragma: no branch
                 svg = svg.replace(b"#000000", fill)
-            pixmap = QPixmap(w, h)
-            pixmap.fill(QtTransparent)
+            pixmap = QPixmap()
             pixmap.loadFromData(svg, "svg")
             return QIcon(pixmap)
 
