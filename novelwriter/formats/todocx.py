@@ -233,7 +233,17 @@ class ToDocX(Tokenizer):
     #  Setters
     ##
 
-    def setPageLayout(self, width: float, height: float, top: float, bottom: float, left: float, right: float) -> None:
+    def setPageLayout(
+        self,
+        width: float,
+        height: float,
+        top: float,
+        bottom: float,
+        left: float,
+        right: float,
+        gutter: float,
+        gutterLayout: int,
+    ) -> None:
         """Set the document page size and margins in millimetres."""
         self._pageSize = QSize(_mmToSz(width), _mmToSz(height))
         self._pageMargins = QMargins(_mmToSz(left), _mmToSz(top), _mmToSz(right), _mmToSz(bottom))

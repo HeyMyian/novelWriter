@@ -161,11 +161,14 @@ class ToOdt(Tokenizer):
         "_headerFormat",
         "_isFlat",
         "_mDocBtm",
+        "_mDocGutter",
         "_mDocHeight",
         "_mDocLeft",
         "_mDocRight",
         "_mDocTop",
         "_mDocWidth",
+        "_mGutterMirror",
+        "_mGutterRight",
         "_mHorLine",
         "_mainPara",
         "_nNote",
@@ -237,6 +240,9 @@ class ToOdt(Tokenizer):
         self._mDocBtm = "2.000cm"
         self._mDocLeft = "2.000cm"
         self._mDocRight = "2.000cm"
+        self._mDocGutter = "0.000cm"
+        self._mGutterMirror = False
+        self._mGutterRight = False
 
         # Horizontal Line Margin
         self._mHorLine = "4.250cm"  # Quarter of the text width
@@ -245,14 +251,31 @@ class ToOdt(Tokenizer):
     #  Setters
     ##
 
-    def setPageLayout(self, width: float, height: float, top: float, bottom: float, left: float, right: float) -> None:
+    def setPageLayout(
+        self,
+        width: float,
+        height: float,
+        top: float,
+        bottom: float,
+        left: float,
+        right: float,
+        gutter: float,
+        gutterLayout: int,
+    ) -> None:
         """Set the document page size and margins in millimetres."""
+        self._mGutterMirror = gutterLayout & 0b10 == 0b10
+        self._mGutterRight = gutterLayout & 0b01 == 0b01
+
+        left += 0.0 if self._mGutterRight else gutter
+        right += gutter if self._mGutterRight else 0.0
+
         self._mDocWidth = f"{width / 10.0:.3f}cm"
         self._mDocHeight = f"{height / 10.0:.3f}cm"
         self._mDocTop = f"{top / 10.0:.3f}cm"
         self._mDocBtm = f"{bottom / 10.0:.3f}cm"
         self._mDocLeft = f"{left / 10.0:.3f}cm"
         self._mDocRight = f"{right / 10.0:.3f}cm"
+        self._mDocGutter = f"{gutter / 10.0:.3f}cm"
         self._mHorLine = f"{(width - left - right) / 40.0:.3f}cm"  # Quarter of the text width
 
     def setHeaderFormat(self, value: str, offset: int) -> None:
@@ -763,7 +786,10 @@ class ToOdt(Tokenizer):
         xPage = ET.SubElement(
             self._xAuto if self._isFlat else self._xAut2,
             _mkTag("style", "page-layout"),
-            attrib={_mkTag("style", "name"): "PM1"},
+            attrib={
+                _mkTag("style", "name"): "PM1",
+                _mkTag("style", "page-usage"): "mirrored" if self._mGutterMirror else "all",
+            },
         )
         ET.SubElement(
             xPage,
@@ -775,6 +801,7 @@ class ToOdt(Tokenizer):
                 _mkTag("fo", "margin-bottom"): self._mDocBtm,
                 _mkTag("fo", "margin-left"): self._mDocLeft,
                 _mkTag("fo", "margin-right"): self._mDocRight,
+                _mkTag("loext", "margin-gutter"): self._mDocGutter,
             },
         )
 
