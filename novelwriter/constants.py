@@ -574,17 +574,6 @@ class nwLabels:
     }
 
 
-class nwBuildLabels:
-    """Build Labels."""
-
-    GUTTER_LABELS: ClassVar[dict[int, str]] = {
-        0b00: QT_TRANSLATE_NOOP("Constant", "Always Left"),
-        0b01: QT_TRANSLATE_NOOP("Constant", "Always Right"),
-        0b10: QT_TRANSLATE_NOOP("Constant", "Mirrored, Left First"),
-        0b11: QT_TRANSLATE_NOOP("Constant", "Mirrored, Right First"),
-    }
-
-
 class nwHeadFmt:
     """Manuscript Header Formats."""
 
