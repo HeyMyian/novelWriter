@@ -74,6 +74,7 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "headings.breakPart":      (bool, True),
     "headings.breakChapter":   (bool, True),
     "headings.breakScene":     (bool, False),
+
     "text.includeBodyText":    (bool, True),
     "text.includeSynopsis":    (bool, False),
     "text.includeComments":    (bool, False),
@@ -82,6 +83,7 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "text.includeKeywords":    (bool, False),
     "text.ignoredKeywords":    (str, ""),
     "text.addNoteHeadings":    (bool, True),
+
     "format.textFont":         (str, CONFIG.textFont.toString()),
     "format.lineHeight":       (float, 1.15),
     "format.justifyText":      (bool, False),
@@ -125,10 +127,12 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "format.leftMargin":       (float, 2.0),
     "format.rightMargin":      (float, 2.0),
     "format.gutterMargin":     (float, 0.0),
-    "format.gutterLayout":     (int, 0b00),
+    "format.mirrorMargins":    (bool, False),
+
     "doc.pageHeader":          (str, nwHeadFmt.DOC_AUTO),
     "doc.pageCountOffset":     (int, 0),
     "doc.metaLanguage":        (str, ""),
+
     "html.addStyles":          (bool, True),
     "html.preserveTabs":       (bool, False),
 }
@@ -189,8 +193,11 @@ SETTINGS_LABELS = {
     "format.grpPage":          QT_TRANSLATE_NOOP("Builds", "Page Layout"),
     "format.pageUnit":         QT_TRANSLATE_NOOP("Builds", "Unit"),
     "format.pageSize":         QT_TRANSLATE_NOOP("Builds", "Page size"),
-    "format.pageMargins":      QT_TRANSLATE_NOOP("Builds", "Page margins"),
+    "format.pageMarginsTB":    QT_TRANSLATE_NOOP("Builds", "Top and bottom margins"),
+    "format.pageMarginsLR":    QT_TRANSLATE_NOOP("Builds", "Left and right margins"),
+    "format.pageMarginsIO":    QT_TRANSLATE_NOOP("Builds", "Inner and outer margins"),
     "format.gutterMargin":     QT_TRANSLATE_NOOP("Builds", "Gutter margin"),
+    "format.mirrorMargins":    QT_TRANSLATE_NOOP("Builds", "Mirror margins"),
 
     "doc":                     QT_TRANSLATE_NOOP("Builds", "Document Style"),
     "doc.pageHeader":          QT_TRANSLATE_NOOP("Builds", "Page header"),

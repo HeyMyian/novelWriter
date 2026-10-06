@@ -91,6 +91,7 @@ class NScrollableForm(QScrollArea):
         self._indent = 12
 
         self._sections: dict[int, QLabel] = {}
+        self._editableLabel: dict[str, QLabel] = {}
         self._editableHelp: dict[str, NColorLabel] = {}
         self._editableUnit: dict[str, QLabel] = {}
         self._index: dict[str, QWidget] = {}
@@ -124,6 +125,11 @@ class NScrollableForm(QScrollArea):
         """Set the text color for the help text."""
         self._helpCol = color
         self._fontScale = scale
+
+    def setLabelText(self, key: str, text: str) -> None:
+        """Set the text for the label."""
+        if qLabel := self._editableLabel.get(key):
+            qLabel.setText(text)
 
     def setHelpText(self, key: str, text: str) -> None:
         """Set the text for the help label."""
@@ -195,11 +201,13 @@ class NScrollableForm(QScrollArea):
             qWidget.setLayout(wBox)
         else:
             qWidget = widget
+        qWidget.setAccessibleName(label)
 
         qLabel = QLabel(label or "", self)
         qLabel.setIndent(self._indent)
         qLabel.setBuddy(qWidget)
-        qWidget.setAccessibleName(label)
+        if editable:
+            self._editableLabel[editable] = qLabel
 
         if helpText:
             qHelp = NColorLabel(

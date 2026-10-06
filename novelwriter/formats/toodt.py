@@ -167,9 +167,8 @@ class ToOdt(Tokenizer):
         "_mDocRight",
         "_mDocTop",
         "_mDocWidth",
-        "_mGutterMirror",
-        "_mGutterRight",
         "_mHorLine",
+        "_mMirrored",
         "_mainPara",
         "_nNote",
         "_pageOffset",
@@ -241,8 +240,7 @@ class ToOdt(Tokenizer):
         self._mDocLeft = "2.000cm"
         self._mDocRight = "2.000cm"
         self._mDocGutter = "0.000cm"
-        self._mGutterMirror = False
-        self._mGutterRight = False
+        self._mMirrored = False
 
         # Horizontal Line Margin
         self._mHorLine = "4.250cm"  # Quarter of the text width
@@ -260,23 +258,18 @@ class ToOdt(Tokenizer):
         left: float,
         right: float,
         gutter: float,
-        gutterLayout: int,
+        mirrored: bool,
     ) -> None:
         """Set the document page size and margins in millimetres."""
-        self._mGutterMirror = gutterLayout & 0b10 == 0b10
-        self._mGutterRight = gutterLayout & 0b01 == 0b01
-
-        left += 0.0 if self._mGutterRight else gutter
-        right += gutter if self._mGutterRight else 0.0
-
         self._mDocWidth = f"{width / 10.0:.3f}cm"
         self._mDocHeight = f"{height / 10.0:.3f}cm"
         self._mDocTop = f"{top / 10.0:.3f}cm"
         self._mDocBtm = f"{bottom / 10.0:.3f}cm"
-        self._mDocLeft = f"{left / 10.0:.3f}cm"
+        self._mDocLeft = f"{(left + gutter) / 10.0:.3f}cm"
         self._mDocRight = f"{right / 10.0:.3f}cm"
         self._mDocGutter = f"{gutter / 10.0:.3f}cm"
-        self._mHorLine = f"{(width - left - right) / 40.0:.3f}cm"  # Quarter of the text width
+        self._mMirrored = mirrored
+        self._mHorLine = f"{(width - left - right - gutter) / 40.0:.3f}cm"  # Quarter of the text width
 
     def setHeaderFormat(self, value: str, offset: int) -> None:
         """Set the document header format."""
@@ -788,7 +781,7 @@ class ToOdt(Tokenizer):
             _mkTag("style", "page-layout"),
             attrib={
                 _mkTag("style", "name"): "PM1",
-                _mkTag("style", "page-usage"): "mirrored" if self._mGutterMirror else "all",
+                _mkTag("style", "page-usage"): "mirrored" if self._mMirrored else "all",
             },
         )
         ET.SubElement(

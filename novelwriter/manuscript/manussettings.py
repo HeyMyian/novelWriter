@@ -49,7 +49,7 @@ from PyQt6.QtWidgets import (
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import describeFont, fontMatcher, languageName, processLangCode, qtAddAction, qtLambda
-from novelwriter.constants import nwBuildLabels, nwHeadFmt, nwKeyWords, nwLabels, nwStyles, nwUnicode, trConst
+from novelwriter.constants import nwHeadFmt, nwKeyWords, nwLabels, nwStyles, nwUnicode, trConst
 from novelwriter.enum import nwStandardButton, nwToolButton
 from novelwriter.extensions.configlayout import NColorLabel, NFixedPage, NScrollableForm, NScrollablePage
 from novelwriter.extensions.modified import NComboBox, NDoubleSpinBox, NIconButton, NSpinBox, NToolDialog
@@ -1422,26 +1422,29 @@ class _FormattingTab(NScrollableForm):
         self.pixPMR = QLabel(self)
 
         self.addRow(
-            self._build.getLabel("format.pageMargins"),
+            self._build.getLabel("format.pageMarginsTB"),
             [self.pixPMT, self.topMargin, iSp, self.pixPMB, self.bottomMargin],
         )
         self.addRow(
             "",
             [self.pixPML, self.leftMargin, iSp, self.pixPMR, self.rightMargin],
+            editable="pageMarginsHorizontal",
         )
 
         # Page Gutter
         self.gutterMargin = NDoubleSpinBox(self)
         self.gutterMargin.setFixedNumbersWidth(5)
 
-        self.gutterLayout = NComboBox(self)
-        for key, name in nwBuildLabels.GUTTER_LABELS.items():
-            self.gutterLayout.addItem(trConst(name), key)
-
         self.addRow(
             self._build.getLabel("format.gutterMargin"),
-            [self.gutterMargin, iSp, self.gutterLayout],
+            self.gutterMargin,
         )
+
+        # Mirror Margins
+        self.mirrorMargins = NSwitch(self, height=iPx)
+        self.mirrorMargins.clicked.connect(self._updateMirrorMarginsState)
+
+        self.addRow(self._build.getLabel("format.mirrorMargins"), self.mirrorMargins)
 
         # Document Style
         # ==============
@@ -1542,8 +1545,7 @@ class _FormattingTab(NScrollableForm):
 
         self.pixPSH.setPixmap(SHARED.theme.getPixmap("fit_height", iPx, iPx))
         self.pixPSW.setPixmap(SHARED.theme.getPixmap("fit_width", iPx, iPx))
-        self.pixPML.setPixmap(SHARED.theme.getPixmap("margin_left", iPx, iPx))
-        self.pixPMR.setPixmap(SHARED.theme.getPixmap("margin_right", iPx, iPx))
+        self._updateMirrorMarginsState()
 
         self.pageSize.updateStyle()
         self.pageUnit.updateStyle()
@@ -1639,7 +1641,9 @@ class _FormattingTab(NScrollableForm):
         self.leftMargin.setValue(self._build.getFloat("format.leftMargin"))
         self.rightMargin.setValue(self._build.getFloat("format.rightMargin"))
         self.gutterMargin.setValue(self._build.getFloat("format.gutterMargin"))
-        self.gutterLayout.setCurrentData(self._build.getInt("format.gutterLayout"), 0b00)
+        self.mirrorMargins.setChecked(self._build.getBool("format.mirrorMargins"))
+
+        self._updateMirrorMarginsState()
 
         pageSize = self._build.getStr("format.pageSize")
         index = self.pageSize.findData(pageSize)
@@ -1731,7 +1735,7 @@ class _FormattingTab(NScrollableForm):
         self._build.setValue("format.leftMargin", self.leftMargin.value())
         self._build.setValue("format.rightMargin", self.rightMargin.value())
         self._build.setValue("format.gutterMargin", self.gutterMargin.value())
-        self._build.setValue("format.gutterLayout", self.gutterLayout.currentData())
+        self._build.setValue("format.mirrorMargins", self.mirrorMargins.isChecked())
 
         # Documents
         metaLanguage = processLangCode(self.metaLanguage.text())
@@ -1844,6 +1848,17 @@ class _FormattingTab(NScrollableForm):
         """
         if (index := self.pageSize.findData("Custom")) >= 0:  # pragma: no branch
             self.pageSize.setCurrentIndex(index)
+
+    @pyqtSlot()
+    def _updateMirrorMarginsState(self) -> None:
+        """Update horizontal margin label and icons."""
+        state = self.mirrorMargins.isChecked()
+        iPx = SHARED.theme.baseIconHeight
+        self.pixPML.setPixmap(SHARED.theme.getPixmap("margin_inner" if state else "margin_left", iPx, iPx))
+        self.pixPMR.setPixmap(SHARED.theme.getPixmap("margin_outer" if state else "margin_right", iPx, iPx))
+        self.setLabelText(
+            "pageMarginsHorizontal", self._build.getLabel("format.pageMarginsIO" if state else "format.pageMarginsLR")
+        )
 
     @pyqtSlot()
     def _resetPageHeader(self) -> None:

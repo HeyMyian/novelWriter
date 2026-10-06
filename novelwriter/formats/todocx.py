@@ -242,7 +242,7 @@ class ToDocX(Tokenizer):
         left: float,
         right: float,
         gutter: float,
-        gutterLayout: int,
+        mirrored: bool,
     ) -> None:
         """Set the document page size and margins in millimetres."""
         self._pageSize = QSize(_mmToSz(width), _mmToSz(height))
