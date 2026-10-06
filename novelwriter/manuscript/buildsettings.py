@@ -124,6 +124,8 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "format.bottomMargin":     (float, 2.0),
     "format.leftMargin":       (float, 2.0),
     "format.rightMargin":      (float, 2.0),
+    "format.gutterMargin":     (float, 0.0),
+    "format.gutterLayout":     (int, 0b00),
     "doc.pageHeader":          (str, nwHeadFmt.DOC_AUTO),
     "doc.pageCountOffset":     (int, 0),
     "doc.metaLanguage":        (str, ""),
@@ -188,6 +190,7 @@ SETTINGS_LABELS = {
     "format.pageUnit":         QT_TRANSLATE_NOOP("Builds", "Unit"),
     "format.pageSize":         QT_TRANSLATE_NOOP("Builds", "Page size"),
     "format.pageMargins":      QT_TRANSLATE_NOOP("Builds", "Page margins"),
+    "format.gutterMargin":     QT_TRANSLATE_NOOP("Builds", "Gutter margin"),
 
     "doc":                     QT_TRANSLATE_NOOP("Builds", "Document Style"),
     "doc.pageHeader":          QT_TRANSLATE_NOOP("Builds", "Page header"),

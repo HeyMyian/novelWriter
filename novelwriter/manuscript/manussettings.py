@@ -49,7 +49,7 @@ from PyQt6.QtWidgets import (
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import describeFont, fontMatcher, languageName, processLangCode, qtAddAction, qtLambda
-from novelwriter.constants import nwHeadFmt, nwKeyWords, nwLabels, nwStyles, nwUnicode, trConst
+from novelwriter.constants import nwBuildLabels, nwHeadFmt, nwKeyWords, nwLabels, nwStyles, nwUnicode, trConst
 from novelwriter.enum import nwStandardButton, nwToolButton
 from novelwriter.extensions.configlayout import NColorLabel, NFixedPage, NScrollableForm, NScrollablePage
 from novelwriter.extensions.modified import NComboBox, NDoubleSpinBox, NIconButton, NSpinBox, NToolDialog
@@ -1430,6 +1430,19 @@ class _FormattingTab(NScrollableForm):
             [self.pixPML, self.leftMargin, iSp, self.pixPMR, self.rightMargin],
         )
 
+        # Page Gutter
+        self.gutterMargin = NDoubleSpinBox(self)
+        self.gutterMargin.setFixedNumbersWidth(5)
+
+        self.gutterLayout = NComboBox(self)
+        for key, name in nwBuildLabels.GUTTER_LABELS.items():
+            self.gutterLayout.addItem(trConst(name), key)
+
+        self.addRow(
+            self._build.getLabel("format.gutterMargin"),
+            [self.gutterMargin, iSp, self.gutterLayout],
+        )
+
         # Document Style
         # ==============
 
@@ -1625,6 +1638,8 @@ class _FormattingTab(NScrollableForm):
         self.bottomMargin.setValue(self._build.getFloat("format.bottomMargin"))
         self.leftMargin.setValue(self._build.getFloat("format.leftMargin"))
         self.rightMargin.setValue(self._build.getFloat("format.rightMargin"))
+        self.gutterMargin.setValue(self._build.getFloat("format.gutterMargin"))
+        self.gutterLayout.setCurrentData(self._build.getInt("format.gutterLayout"), 0b00)
 
         pageSize = self._build.getStr("format.pageSize")
         index = self.pageSize.findData(pageSize)
@@ -1715,6 +1730,8 @@ class _FormattingTab(NScrollableForm):
         self._build.setValue("format.bottomMargin", self.bottomMargin.value())
         self._build.setValue("format.leftMargin", self.leftMargin.value())
         self._build.setValue("format.rightMargin", self.rightMargin.value())
+        self._build.setValue("format.gutterMargin", self.gutterMargin.value())
+        self._build.setValue("format.gutterLayout", self.gutterLayout.currentData())
 
         # Documents
         metaLanguage = processLangCode(self.metaLanguage.text())
@@ -1755,6 +1772,7 @@ class _FormattingTab(NScrollableForm):
         bottomMargin = self.bottomMargin.value() * reScale
         leftMargin = self.leftMargin.value() * reScale
         rightMargin = self.rightMargin.value() * reScale
+        gutterMargin = self.gutterMargin.value() * reScale
 
         isMM = newUnit == "mm"
         nDec = 1 if isMM else 2
@@ -1798,6 +1816,11 @@ class _FormattingTab(NScrollableForm):
         self.rightMargin.setSingleStep(nStep)
         self.rightMargin.setMaximum(mMax)
         self.rightMargin.setValue(rightMargin)
+
+        self.gutterMargin.setDecimals(nDec)
+        self.gutterMargin.setSingleStep(nStep)
+        self.gutterMargin.setMaximum(mMax)
+        self.gutterMargin.setValue(gutterMargin)
 
         self._unitScale = newScale
         self._changePageSize(self.pageSize.currentIndex())
