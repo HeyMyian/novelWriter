@@ -197,6 +197,8 @@ class ToDocX(Tokenizer):
         "_fontSize",
         "_headerFormat",
         "_mHorLine",
+        "_mirrorMargins",
+        "_pageGutter",
         "_pageMargins",
         "_pageOffset",
         "_pageSize",
@@ -219,6 +221,8 @@ class ToDocX(Tokenizer):
         self._fontSize = 12.0
         self._pageSize = QSize(_mmToSz(210.0), _mmToSz(297.0))
         self._pageMargins = QMargins(_mmToSz(20.0), _mmToSz(20.0), _mmToSz(20.0), _mmToSz(20.0))
+        self._pageGutter = 0
+        self._mirrorMargins = False
         self._mHorLine = _mmToSz(42.5 / 20.0)
 
         # Data Variables
@@ -247,7 +251,9 @@ class ToDocX(Tokenizer):
         """Set the document page size and margins in millimetres."""
         self._pageSize = QSize(_mmToSz(width), _mmToSz(height))
         self._pageMargins = QMargins(_mmToSz(left), _mmToSz(top), _mmToSz(right), _mmToSz(bottom))
-        self._mHorLine = _mmToSz((width - left - right) / 80.0)
+        self._pageGutter = _mmToSz(gutter)
+        self._mHorLine = _mmToSz((width - left - right - gutter) / 80.0)
+        self._mirrorMargins = mirrored
 
     def setHeaderFormat(self, value: str, offset: int) -> None:
         """Set the document header format."""
@@ -1034,7 +1040,7 @@ class ToDocX(Tokenizer):
                 _wTag("left"): str(self._pageMargins.left()),
                 _wTag("header"): str(self._pageMargins.top() - int(35.0 * self._fontSize)),
                 _wTag("footer"): "0",
-                _wTag("gutter"): "0",
+                _wTag("gutter"): str(self._pageGutter),
             },
         )
         xmlSubElem(
@@ -1116,6 +1122,9 @@ class ToDocX(Tokenizer):
             path="word",
             contentType=f"{WORD_BASE}.settings+xml",
         )
+
+        if self._mirrorMargins:
+            xSet = xmlSubElem(xRoot, _wTag("mirrorMargins"))
 
         xSet = xmlSubElem(xRoot, _wTag("footnotePr"))
         xmlSubElem(xSet, _wTag("numFmt"), attrib={W_VAL: "decimal"})
