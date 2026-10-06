@@ -75,7 +75,7 @@ activeBase   = "#f1f0ec"
 searchMatch  = "blue:48"
 
 [Syntax]
-background     = "#f1f0ec"
+background     = "#f0efec"
 text           = "default"
 line           = "base"
 link           = "blue"
