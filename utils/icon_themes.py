@@ -44,23 +44,17 @@ ET.register_namespace("", "http://www.w3.org/2000/svg")
 # Repo: https://github.com/lucide-icons/lucide
 # Website: https://lucide.dev/
 
-# FontAwesome
-# Repo: https://github.com/FortAwesome/Font-Awesome
-# Website: https://fontawesome.com/
-
 # Fluent UI
 # Repo: https://github.com/microsoft/fluentui-system-icons
 # Website: https://fluenticon.com/
 
 ICON_SOURCES = {
     "material": "https://github.com/google/material-design-icons.git",
-    "font_awesome": "https://github.com/FortAwesome/Font-Awesome/archive/refs/tags/7.3.1.zip",
     "lucide": "https://github.com/lucide-icons/lucide/archive/refs/tags/1.49.0.zip",
     "fluentui": "https://github.com/microsoft/fluentui-system-icons/archive/refs/tags/1.1.343.zip",
 }
 ICON_EXTRACT = {
     "material": "material-design-icons",
-    "font_awesome": "Font-Awesome-7.3.1",
     "lucide": "lucide-1.49.0",
     "fluentui": "fluentui-system-icons-1.1.343",
 }
@@ -307,51 +301,6 @@ def processMaterialIcons(workDir: Path, iconsDir: Path, jobs: dict) -> None:
         log("")
 
 
-def processFontAwesome(workDir: Path, iconsDir: Path, jobs: dict) -> None:
-    """Process Font Awesome icons of a given spec and write output file."""
-    srcRepo = workDir / ICON_EXTRACT["font_awesome"]
-    if not srcRepo.is_dir():
-        _downloadIconPack(workDir, "font_awesome")
-
-    for file, job in jobs.items():
-        name: str = job["name"]
-        log(f"[b]Processing:[e] {name}")
-
-        icons: dict[str, ET.Element] = {}
-        iconSrc = srcRepo / "svgs"
-        for key, value in _loadMap("font_awesome").items():
-            icon, _, forced = value.partition(":")
-            iconSolid = iconSrc / "solid" / f"{icon}.svg"
-            iconRegular = iconSrc / "regular" / f"{icon}.svg"
-            if forced == "regular":
-                iconFile = iconRegular
-            elif forced == "solid" or iconSolid.is_file():
-                iconFile = iconSolid
-            elif iconRegular.is_file():
-                iconFile = iconRegular
-            else:
-                log(f"[cr]Not Found:[e] {icon}.svg")
-                continue
-
-            if iconFile.is_file():
-                svg = ET.fromstring(iconFile.read_text(encoding="utf-8"))
-                viewbox = [int(x) for x in svg.get("viewBox", "").split()]
-                viewbox = [viewbox[2] // 2 - 304, -48, 608, 608]  # Pad to match Material icons
-                for elem in svg.iter():
-                    elem.attrib.pop("fill", None)
-                svg.set("viewBox", " ".join(str(x) for x in viewbox))
-                svg.set("fill", "#000000")
-                svg.set("height", "128")
-                svg.set("width", "128")
-                icons[key] = svg
-            else:
-                log(f"[cr]Not Found:[e] {icon}.svg")
-
-        target = iconsDir / f"{file}.icons"
-        _writeThemeFile(target, name, "Fonticons Inc", "CC BY 4.0", icons)
-        log("")
-
-
 def processLucide(workDir: Path, iconsDir: Path, jobs: dict) -> None:
     """Process Lucide icons of a given spec and write output file."""
     srcRepo = workDir / ICON_EXTRACT["lucide"]
@@ -520,17 +469,6 @@ def main(args: argparse.Namespace) -> None:
                     "style": "sharp",
                     "filled": False,
                     "weight": 400,
-                },
-            },
-        )
-
-    if style in ("all", "default", "free", "font_awesome"):
-        processFontAwesome(
-            workDir,
-            iconsDir,
-            {
-                "font_awesome": {
-                    "name": "Font Awesome 7",
                 },
             },
         )

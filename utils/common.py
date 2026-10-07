@@ -284,7 +284,7 @@ def copyPackageFiles(dst: Path, oldLicense: bool = False) -> None:
         new = []
         for line in text.splitlines():
             if line.startswith("license = "):
-                line = 'license = {text = "GPL-3.0-or-later AND Apache-2.0 AND CC-BY-4.0"}'
+                line = f"license = {{text = {line.partition('=')[2].strip()}}}"
             if line.startswith("license-files = "):
                 continue
             new.append(line)

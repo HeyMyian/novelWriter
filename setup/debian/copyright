@@ -34,14 +34,6 @@ License: Apache-2.0
  See the License for the specific language governing permissions and
  limitations under the License.
 
-Files: novelwriter/assets/icons/font_awesome.*
-Copyright: Fonticons Inc
-License: CC-BY-4.0
- This work is licensed under Creative Commons Attribution 4.0
- International. To view a copy of this license, visit
- .
- https://creativecommons.org/licenses/by/4.0/
-
 Files: novelwriter/assets/icons/lucide.*
 Copyright: Cole Bemis, Lucide Contributors
 License: ISC
