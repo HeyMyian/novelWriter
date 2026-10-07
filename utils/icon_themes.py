@@ -28,6 +28,7 @@ import urllib.request
 import zipfile
 
 from pathlib import Path
+from urllib.parse import quote
 from xml.etree import ElementTree as ET
 
 from utils.common import ROOT_DIR, log, readEnvFile
@@ -47,20 +48,23 @@ ET.register_namespace("", "http://www.w3.org/2000/svg")
 # Repo: https://github.com/FortAwesome/Font-Awesome
 # Website: https://fontawesome.com/
 
-# Look Into;
-# - Tabler Icons
-# - Phosphor
-# - Fluent UI System Icons
+# Fluent UI
+# Repo: https://github.com/microsoft/fluentui-system-icons
+# Website: https://fluenticon.com/
 
 ICON_SOURCES = {
     "material": "https://github.com/google/material-design-icons.git",
     "font_awesome": "https://github.com/FortAwesome/Font-Awesome/archive/refs/tags/7.3.1.zip",
     "lucide": "https://github.com/lucide-icons/lucide/archive/refs/tags/1.49.0.zip",
+    "tabler": "https://github.com/tabler/tabler-icons/archive/refs/tags/v3.49.0.zip",
+    "fluentui": "https://github.com/microsoft/fluentui-system-icons/archive/refs/tags/1.1.343.zip",
 }
 ICON_EXTRACT = {
     "material": "material-design-icons",
     "font_awesome": "Font-Awesome-7.3.1",
     "lucide": "lucide-1.49.0",
+    "tabler": "tabler-icons-3.49.0",
+    "fluentui": "fluentui-system-icons-1.1.343",
 }
 
 # fmt: off
@@ -235,7 +239,12 @@ def _writeThemeFile(path: Path, name: str, author: str, license_: str, icons: di
         out.write("\n")
         out.write("# Icons\n")
         for key, svg in icons.items():
-            icon = ET.tostring(svg).decode().replace("\n", "")
+            for elem in svg.iter():
+                if elem.text and not elem.text.strip():
+                    elem.text = None
+                if elem.tail and not elem.tail.strip():
+                    elem.tail = None
+            icon = ET.tostring(svg).decode()
             out.write(f"icon:{key:<15s} = {icon}\n")
         log(f"- [cg]Wrote:[e] {len(icons)} icons")
         log(f"- Target: {path.relative_to(UTILS.parent)}")
@@ -376,6 +385,82 @@ def processLucide(workDir: Path, iconsDir: Path, jobs: dict) -> None:
         log("")
 
 
+def processFluentUIIcons(workDir: Path, iconsDir: Path, jobs: dict) -> None:
+    """Process Fluent UI icons of a given spec and write output file."""
+    srcRepo = workDir / ICON_EXTRACT["fluentui"]
+    if not srcRepo.is_dir():
+        _downloadIconPack(workDir, "fluentui")
+
+    listFluentUIIcons(workDir)
+    for file, job in jobs.items():
+        name: str = job["name"]
+        style: str = job["style"]
+
+        log(f"[b]Processing:[e] {name}")
+
+        icons: dict[str, ET.Element] = {}
+        iconSrc = srcRepo / "assets"
+
+        for key, icon in _loadMap("fluentui").items():
+            if ":" in icon:
+                icon, _, select = icon.partition(":")
+            else:
+                select = style
+            uname = icon.lower().replace(" ", "_")
+            iconFile = None
+            for size in (24, 28, 20, 32):
+                if (sized := iconSrc / icon / "SVG" / f"ic_fluent_{uname}_{size}_{select}.svg").is_file():
+                    iconFile = sized
+                    break
+            if iconFile and iconFile.is_file():
+                svg = ET.fromstring(iconFile.read_text(encoding="utf-8"))
+                for elem in svg.iter():
+                    elem.attrib.pop("fill", None)
+                svg.set("fill", "#000000")
+                svg.set("height", "128")
+                svg.set("width", "128")
+                icons[key] = svg
+            else:
+                log(f"[cr]Not Found:[e] {icon} -> {iconFile}")
+
+        target = iconsDir / f"{file}.icons"
+        _writeThemeFile(target, name, "Microsoft", "MIT", icons)
+        log("")
+
+
+def listFluentUIIcons(workDir: Path) -> None:
+    """Write an HTML page listing all Fluent UI icons."""
+    srcRepo = workDir / ICON_EXTRACT["fluentui"]
+    if not srcRepo.is_dir():
+        _downloadIconPack(workDir, "fluentui")
+
+    cells = []
+    for folder in sorted((srcRepo / "assets").iterdir()):
+        uname = folder.name.lower().replace(" ", "_")
+        imgs = ""
+        for style in ("regular", "filled"):
+            iconFile = folder / "SVG" / f"ic_fluent_{uname}_24_{style}.svg"
+            for size in (24, 28, 20, 32, 16, 48, 12, 10):
+                if (sized := folder / "SVG" / f"ic_fluent_{uname}_{size}_{style}.svg").is_file():
+                    iconFile = sized
+                    break
+            if style == "regular" or iconFile.is_file():
+                imgs += f'<img src="{quote(iconFile.relative_to(workDir).as_posix())}">'
+        cells.append(f"<div>{imgs}<br>{folder.name}</div>")
+
+    target = workDir / "fluentui.html"
+    target.write_text(
+        "<!DOCTYPE html>\n<html><head><meta charset='utf-8'><title>Fluent UI Icons</title>\n"
+        "<style>\n"
+        "body {background: #fff; display: grid; grid-template-columns: repeat(auto-fill, 140px); gap: 4px;}\n"
+        "div {border: 1px solid #000; height: 100px; padding: 4px; text-align: center; font-size: 11px;}\n"
+        "img {width: 48px; height: 48px; margin: 8px;}\n"
+        "</style></head><body>\n" + "\n".join(cells) + "\n</body></html>\n",
+        encoding="utf-8",
+    )
+    log(f"[cg]Wrote:[e] {len(cells)} icons to {target}")
+
+
 def main(args: argparse.Namespace) -> None:
     """Build icon themes entry point."""
     log("")
@@ -459,6 +544,22 @@ def main(args: argparse.Namespace) -> None:
             {
                 "lucide": {
                     "name": "Lucide",
+                },
+            },
+        )
+
+    if style in ("all", "default", "free", "fluentui"):
+        processFluentUIIcons(
+            workDir,
+            iconsDir,
+            {
+                "fluentui_regular": {
+                    "name": "Fluent UI - Regular",
+                    "style": "regular",
+                },
+                "fluentui_filled": {
+                    "name": "Fluent UI - Filled",
+                    "style": "filled",
                 },
             },
         )
