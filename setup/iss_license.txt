@@ -52,3 +52,8 @@ Lucide
 Copyright: Cole Bemis, Lucide Contributors
 Website: <https://lucide.dev>
 License: ISC <https://opensource.org/license/isc-license-txt>
+
+Fluent UI System Icons
+Copyright: Microsoft Corporation
+Website: <https://github.com/microsoft/fluentui-system-icons>
+License: MIT <https://opensource.org/license/mit>

@@ -64,9 +64,10 @@ The following libraries are dependencies of novelWriter:
 
 The default icon themes are subsets of icons from:
 
-* **Material Symbols** by Google Inc (Apache 2.0)
+* **Fluent UI** by Microsoft (MIT License)
 * **Font Awesome** by Fonticons Inc (CC BY 4.0)
 * **Lucide** by Cole Bemis and Lucide Contributors (ISC License)
+* **Material Symbols** by Google Inc (Apache 2.0)
 
 ## Colour Themes
 

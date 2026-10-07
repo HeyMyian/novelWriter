@@ -56,14 +56,12 @@ ICON_SOURCES = {
     "material": "https://github.com/google/material-design-icons.git",
     "font_awesome": "https://github.com/FortAwesome/Font-Awesome/archive/refs/tags/7.3.1.zip",
     "lucide": "https://github.com/lucide-icons/lucide/archive/refs/tags/1.49.0.zip",
-    "tabler": "https://github.com/tabler/tabler-icons/archive/refs/tags/v3.49.0.zip",
     "fluentui": "https://github.com/microsoft/fluentui-system-icons/archive/refs/tags/1.1.343.zip",
 }
 ICON_EXTRACT = {
     "material": "material-design-icons",
     "font_awesome": "Font-Awesome-7.3.1",
     "lucide": "lucide-1.49.0",
-    "tabler": "tabler-icons-3.49.0",
     "fluentui": "fluentui-system-icons-1.1.343",
 }
 
