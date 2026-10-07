@@ -60,8 +60,10 @@ def testNScrollableForm_Main(qtbot, mockGUI):
     form.finalise()
 
     # Set help text for a known and an unknown key
+    form.setLabelText("rowA", "Updated Label")
     form.setHelpText("rowA", "Updated Help")
     form.setUnitText("rowA", "Things")
+    form.setLabelText("unknownKey", "Ignored")
     form.setHelpText("unknownKey", "Ignored")
     form.setUnitText("unknownKey", "Ignored")
 

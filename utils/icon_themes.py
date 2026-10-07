@@ -47,6 +47,11 @@ ET.register_namespace("", "http://www.w3.org/2000/svg")
 # Repo: https://github.com/FortAwesome/Font-Awesome
 # Website: https://fontawesome.com/
 
+# Look Into;
+# - Tabler Icons
+# - Phosphor
+# - Fluent UI System Icons
+
 ICON_SOURCES = {
     "material": "https://github.com/google/material-design-icons.git",
     "font_awesome": "https://github.com/FortAwesome/Font-Awesome/archive/refs/tags/7.3.1.zip",
@@ -179,7 +184,9 @@ ICONS = [
     "link",
     "list",
     "margin_bottom",
+    "margin_inner",
     "margin_left",
+    "margin_outer",
     "margin_right",
     "margin_top",
     "maximise",

@@ -356,6 +356,8 @@ class DocumentBuilder:
                 scale * self._build.getFloat("format.bottomMargin"),
                 scale * self._build.getFloat("format.leftMargin"),
                 scale * self._build.getFloat("format.rightMargin"),
+                scale * self._build.getFloat("format.gutterMargin"),
+                self._build.getBool("format.mirrorMargins"),
             )
             bldObj.setLineForMargin(self._build.getBool("format.lineForMargin"))
 
