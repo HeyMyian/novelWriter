@@ -41,7 +41,7 @@ def testGuiSideBar_ViewChange(qtbot, nwGUI):
     for button, view in buttons:
         with qtbot.waitSignal(sidebar.requestViewChange, timeout=1000) as signal:
             button.click()
-        assert signal.args == [view]
+        assert signal.args == [view, True]
 
 
 @pytest.mark.gui
