@@ -17,7 +17,7 @@ purple  = "#e99aa5"
 
 [Project]
 root     = "default"
-folder   = "orange"
+folder   = "red"
 file     = "faded"
 title    = "default"
 chapter  = "yellow"
