@@ -949,6 +949,12 @@ class GuiMain(QMainWindow):
         self.setWindowState(self.windowState() ^ Qt.WindowState.WindowFullScreen)
 
     @pyqtSlot()
+    def toggleTreePane(self) -> None:
+        """Toggle the tree pane visibility."""
+        if self.mainStack.currentWidget() == self.splitMain and not SHARED.focusMode:
+            self.treePane.setVisible(not self.treePane.isVisible())
+
+    @pyqtSlot()
     def closeDocEditor(self) -> None:
         """Close the document editor. This does not hide the editor."""
         self.closeDocument()

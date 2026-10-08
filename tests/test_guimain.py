@@ -1291,6 +1291,28 @@ def testGuiMain_ToggleTreePane(qtbot, nwGUI, projPath, mockRnd):
     assert nwGUI.projStack.currentWidget() == nwGUI.novelView
     assert nwGUI.treePane.isHidden() is False
 
+    # The menu action toggles the pane
+    aToggle = nwGUI.mainMenu.aHideTreePane
+    aToggle.trigger()
+    assert nwGUI.treePane.isHidden() is True
+    aToggle.trigger()
+    assert nwGUI.treePane.isHidden() is False
+
+    # The menu action does nothing in story view
+    sideBar.tbStory.click()
+    aToggle.trigger()
+    assert nwGUI.treePane.isHidden() is False
+    sideBar.tbNovel.click()
+
+    # The menu action does nothing in focus mode
+    nwGUI.toggleFocusMode()
+    assert SHARED.focusMode is True
+    aToggle.trigger()
+    assert nwGUI.treePane.isHidden() is True
+    nwGUI.toggleFocusMode()
+    assert SHARED.focusMode is False
+    assert nwGUI.treePane.isHidden() is False
+
     # The pane size is not saved when hidden
     sideBar.tbNovel.click()
     assert nwGUI.treePane.isHidden() is True
