@@ -34,6 +34,7 @@ Main Window Shortcuts
    ":kbd:`Ctrl+Shift+T`", "Switch focus to the outline view"
    ":kbd:`Ctrl+Shift+W`", "Close the current project"
    ":kbd:`Shift+F1`",     "Open the local user manual (PDF) if it is available"
+   ":kbd:`Shift+F8`",     "Toggle tree pane visibility"
 
 
 Project Tree Shortcuts

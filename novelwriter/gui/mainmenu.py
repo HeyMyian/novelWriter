@@ -360,6 +360,11 @@ class GuiMainMenu(QMenuBar):
         self.aFocusStory.triggered.connect(qtWeakLambda(self._emitFocusChange, nwFocus.STORY))
         self.mainGui.addAction(self.aFocusStory)
 
+        # View > Show/Hide Tree View
+        self.aHideTreePane = qtAddAction(self.viewMenu, self.tr("Show/Hide Tree View"))
+        self.aHideTreePane.setShortcut("Shift+F8")
+        self.aHideTreePane.triggered.connect(self.mainGui.toggleTreePane)
+
         # View > Separator
         self.viewMenu.addSeparator()
 

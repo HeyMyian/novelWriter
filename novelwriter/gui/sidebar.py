@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 class GuiSideBar(QWidget):
     """GUI: Main Window SideBar."""
 
-    requestViewChange = pyqtSignal(nwView)
+    requestViewChange = pyqtSignal(nwView, bool)
 
     def __init__(self, mainGui: GuiMain) -> None:
         super().__init__(parent=mainGui)
@@ -156,7 +156,7 @@ class GuiSideBar(QWidget):
     @pyqtSlot(nwView)
     def _emitViewChange(self, view: nwView) -> None:
         """Forward a view change request."""
-        self.requestViewChange.emit(view)
+        self.requestViewChange.emit(view, True)
 
     ##
     #  Internal Functions
