@@ -715,6 +715,17 @@ def testToDocX_MinimalClose(mockGUI):
 
     xVars = doc._files["settings.xml"].xml.find(_wTag("docVars"))
     assert xVars is None
+    assert doc._files["settings.xml"].xml.find(_wTag("mirrorMargins")) is None
+
+    # Gutter and mirrored margins
+    doc.setPageLayout(210.0, 297.0, 20.0, 20.0, 20.0, 20.0, 10.0, True)
+    doc.closeDocument()
+    assert doc._files["settings.xml"].xml[0].tag == _wTag("mirrorMargins")
+
+    xMar = doc._files["document.xml"].xml.find(f"{_wTag('body')}/{_wTag('sectPr')}/{_wTag('pgMar')}")
+    assert xMar is not None
+    assert xMar.get(_wTag("left")) == "1133"
+    assert xMar.get(_wTag("gutter")) == "566"
 
     # A header format consisting only of the page marker has no
     # leading or trailing text

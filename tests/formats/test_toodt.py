@@ -854,13 +854,15 @@ def testToOdt_SaveFlat(mockGUI, fncPath, tstPaths, ipsumText):
     odt.setHeaderFormat(nwHeadFmt.DOC_AUTO, 1)
     assert odt._headerFormat == nwHeadFmt.DOC_AUTO
 
-    odt.setPageLayout(148, 210, 20, 18, 17, 15)
+    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, False)
     assert odt._mDocWidth == "14.800cm"
     assert odt._mDocHeight == "21.000cm"
     assert odt._mDocTop == "2.000cm"
     assert odt._mDocBtm == "1.800cm"
-    assert odt._mDocLeft == "1.700cm"
+    assert odt._mDocLeft == "2.800cm"
     assert odt._mDocRight == "1.500cm"
+    assert odt._mDocGutter == "1.100cm"
+    assert odt._mMirrored is False
 
     odt._text = (
         "#! My Novel\n\n"
@@ -906,13 +908,15 @@ def testToOdt_SaveFlatWithEmptyLines(mockGUI, fncPath, tstPaths, ipsumText):
     odt.setJustify(True, False)
     assert odt._headerFormat == nwHeadFmt.DOC_AUTO
 
-    odt.setPageLayout(148, 210, 20, 18, 17, 15)
+    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, True)
     assert odt._mDocWidth == "14.800cm"
     assert odt._mDocHeight == "21.000cm"
     assert odt._mDocTop == "2.000cm"
     assert odt._mDocBtm == "1.800cm"
-    assert odt._mDocLeft == "1.700cm"
+    assert odt._mDocLeft == "2.800cm"
     assert odt._mDocRight == "1.500cm"
+    assert odt._mDocGutter == "1.100cm"
+    assert odt._mMirrored is True
 
     odt._text = (
         "#! My Novel\n\n"
