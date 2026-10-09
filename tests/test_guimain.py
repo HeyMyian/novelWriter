@@ -1243,6 +1243,85 @@ def testGuiMain_CloseMain(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
+def testGuiMain_ToggleTreePane(qtbot, nwGUI, projPath, mockRnd):
+    """Test toggling the tree pane from the side bar."""
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+    assert nwGUI.openDocument(C.hSceneDoc)
+    sideBar = nwGUI.sideBar
+    assert nwGUI.projStack.currentWidget() == nwGUI.projView
+    assert nwGUI.treePane.isHidden() is False
+
+    # Clicking the active view toggles the pane
+    sideBar.tbProject.click()
+    assert nwGUI.treePane.isHidden() is True
+    sideBar.tbProject.click()
+    assert nwGUI.treePane.isHidden() is False
+
+    # Switching to another view shows the pane
+    sideBar.tbProject.click()
+    sideBar.tbNovel.click()
+    assert nwGUI.projStack.currentWidget() == nwGUI.novelView
+    assert nwGUI.treePane.isHidden() is False
+
+    # Other sources don't toggle the pane
+    sideBar.tbNovel.click()
+    nwGUI._changeView(nwView.NOVEL)
+    assert nwGUI.treePane.isHidden() is True
+
+    # Opening a document doesn't show the pane
+    assert nwGUI.openDocument(C.hChapterDoc)
+    assert nwGUI.treePane.isHidden() is True
+
+    # Returning from story view shows the pane
+    sideBar.tbStory.click()
+    sideBar.tbNovel.click()
+    assert nwGUI.treePane.isHidden() is False
+
+    # Focus mode restores the hidden state
+    sideBar.tbNovel.click()
+    nwGUI.toggleFocusMode()
+    assert SHARED.focusMode is True
+    nwGUI.toggleFocusMode()
+    assert SHARED.focusMode is False
+    assert nwGUI.treePane.isHidden() is True
+
+    # Focusing the tree shows the pane
+    nwGUI._switchFocus(nwFocus.TREE)
+    assert nwGUI.projStack.currentWidget() == nwGUI.novelView
+    assert nwGUI.treePane.isHidden() is False
+
+    # The menu action toggles the pane
+    aToggle = nwGUI.mainMenu.aHideTreePane
+    aToggle.trigger()
+    assert nwGUI.treePane.isHidden() is True
+    aToggle.trigger()
+    assert nwGUI.treePane.isHidden() is False
+
+    # The menu action does nothing in story view
+    sideBar.tbStory.click()
+    aToggle.trigger()
+    assert nwGUI.treePane.isHidden() is False
+    sideBar.tbNovel.click()
+
+    # The menu action does nothing in focus mode
+    nwGUI.toggleFocusMode()
+    assert SHARED.focusMode is True
+    aToggle.trigger()
+    assert nwGUI.treePane.isHidden() is True
+    nwGUI.toggleFocusMode()
+    assert SHARED.focusMode is False
+    assert nwGUI.treePane.isHidden() is False
+
+    # The pane size is not saved when hidden
+    sideBar.tbNovel.click()
+    assert nwGUI.treePane.isHidden() is True
+    CONFIG.mainPanePos = [123, 456]
+    assert nwGUI.closeMain() is True
+    assert CONFIG.mainPanePos == [123, 456]
+
+
+@pytest.mark.gui
 def testGuiMain_OpenClose(qtbot, monkeypatch, nwGUI: GuiMain, projPath, fncPath, mockRnd):
     """Test opening and closing projects and documents."""
     buildTestProject(NWProject(), projPath)

@@ -104,6 +104,7 @@ class GuiMain(QMainWindow):
         # Internal Variables
         self._lastTotalCount = 0
         self._switchingDocument = False
+        self._treePaneHidden = False
 
         # Initialise UserData Instance
         SHARED.initSharedData(self)
@@ -843,7 +844,8 @@ class GuiMain(QMainWindow):
         logger.info("Exiting novelWriter")
 
         if not SHARED.focusMode:
-            CONFIG.mainPanePos = self.splitMain.sizes()
+            if not self.treePane.isHidden():  # Note: not the same as isVisible()
+                CONFIG.mainPanePos = self.splitMain.sizes()
             CONFIG.searchPanePos = self.projSearch.splitSizes()
             if self.docViewerPanel.isVisible():
                 CONFIG.viewPanePos = self.splitView.sizes()
@@ -947,6 +949,12 @@ class GuiMain(QMainWindow):
         self.setWindowState(self.windowState() ^ Qt.WindowState.WindowFullScreen)
 
     @pyqtSlot()
+    def toggleTreePane(self) -> None:
+        """Toggle the tree pane visibility."""
+        if self.mainStack.currentWidget() == self.splitMain and not SHARED.focusMode:
+            self.treePane.setVisible(not self.treePane.isVisible())
+
+    @pyqtSlot()
     def closeDocEditor(self) -> None:
         """Close the document editor. This does not hide the editor."""
         self.closeDocument()
@@ -988,6 +996,7 @@ class GuiMain(QMainWindow):
         """
         if focusMode:
             logger.debug("Activating Focus Mode")
+            self._treePaneHidden = self.treePane.isHidden()
             self._changeView(nwView.EDITOR)
             self.docEditor.setFocus()
         else:
@@ -995,7 +1004,7 @@ class GuiMain(QMainWindow):
 
         cursorVisible = self.docEditor.cursorIsVisible()
         isVisible = not focusMode
-        self.treePane.setVisible(isVisible)
+        self.treePane.setVisible(isVisible and not self._treePaneHidden)
         self.mainStatus.setVisible(isVisible)
         self.mainMenu.setVisible(isVisible)
         self.sideBar.setVisible(isVisible)
@@ -1037,10 +1046,10 @@ class GuiMain(QMainWindow):
 
             self._changeView(nwView.EDITOR, exitFocus=True)
             if (vM and ((vP and fP) or (vN and not fN))) or (not vM and vN):
-                self._changeView(nwView.NOVEL, exitFocus=True)
+                self._changeView(nwView.NOVEL, exitFocus=True, forceVisible=True)
                 self.novelView.setTreeFocus()
             else:
-                self._changeView(nwView.PROJECT, exitFocus=True)
+                self._changeView(nwView.PROJECT, exitFocus=True, forceVisible=True)
                 self.projView.setTreeFocus()
 
         elif paneNo == nwFocus.DOCUMENT:
@@ -1171,21 +1180,39 @@ class GuiMain(QMainWindow):
         self.docViewer.reloadText()
 
     @pyqtSlot(nwView)
-    def _changeView(self, view: nwView, exitFocus: bool = False) -> None:
-        """Handle the requested change of view from the GuiViewBar."""
+    @pyqtSlot(nwView, bool)
+    def _changeView(
+        self,
+        view: nwView,
+        isSideBar: bool = False,
+        *,
+        exitFocus: bool = False,
+        forceVisible: bool = False,
+    ) -> None:
+        """Handle the requested change of view."""
         if exitFocus:
             SHARED.setFocusMode(False)
+
+        isMain = self.mainStack.currentWidget() == self.splitMain
+        isSame = False
+        canToggle = False
 
         if view == nwView.EDITOR:
             # Only change the main stack, but not the project stack
             self.mainStack.setCurrentWidget(self.splitMain)
         elif view == nwView.PROJECT:
+            isSame = isMain and self.projStack.currentWidget() == self.projView
+            canToggle = True
             self.mainStack.setCurrentWidget(self.splitMain)
             self.projStack.setCurrentWidget(self.projView)
         elif view == nwView.NOVEL:
+            isSame = isMain and self.projStack.currentWidget() == self.novelView
+            canToggle = True
             self.mainStack.setCurrentWidget(self.splitMain)
             self.projStack.setCurrentWidget(self.novelView)
         elif view == nwView.SEARCH:
+            isSame = isMain and self.projStack.currentWidget() == self.projSearch
+            canToggle = True
             self.mainStack.setCurrentWidget(self.splitMain)
             self.projStack.setCurrentWidget(self.projSearch)
             self.projSearch.beginSearch(self.docEditor.getSelectedText() if self.docEditor.anyFocus() else "")
@@ -1194,6 +1221,12 @@ class GuiMain(QMainWindow):
             self.storyView.viewStory()
         else:  # pragma: no cover
             pass
+
+        if canToggle:
+            if forceVisible or not isSame:
+                self.treePane.setVisible(True)
+            elif isSideBar:
+                self.treePane.setVisible(not self.treePane.isVisible())
 
         # Set active status
         isMain = self.mainStack.currentWidget() == self.splitMain
