@@ -142,7 +142,7 @@ class ToHtml(Tokenizer):
             if tType == BlockTyp.TEXT:
                 lines.append(f"<p{hStyle}>{self._formatText(tText, tFmt)}</p>\n")
 
-            elif tType == BlockTyp.LIST:
+            elif tType == BlockTyp.LIST_U:
                 lines.append(f"<li{hStyle}>{self._formatText(tText, tFmt)}</li>\n")
 
             elif tType in (BlockTyp.TITLE, BlockTyp.PART):

@@ -458,7 +458,7 @@ class ToOdt(Tokenizer):
                 # Title must be text:p
                 self._addTextPar(xText, S_TITLE, oStyle, tText, isHead=False)
 
-            elif tType == BlockTyp.LIST:
+            elif tType == BlockTyp.LIST_U:
                 if xList is None or tStyle & BlockFmt.LIST_S:
                     xList = ET.SubElement(xText, TAG_LIST, attrib={TAG_STNM: S_BULL})
                 xItem = ET.SubElement(xList, TAG_ITEM)

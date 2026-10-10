@@ -34,6 +34,7 @@ ESCAPES = {
     r"\_": "_",
     r"\[": "[",
     r"\]": "]",
+    r"\#": "#",
     r"\ ": "",
 }
 RX_ESC = re.compile("|".join([re.escape(k) for k in ESCAPES]), flags=re.DOTALL)
@@ -117,14 +118,15 @@ class BlockTyp(IntEnum):
     HEAD3 = 6  # Heading 3 or Section
     HEAD4 = 7  # Heading 4
     TEXT = 8  # Text line
-    LIST = 9  # List item
-    SEP = 10  # Scene separator
-    HRULE = 11  # Horizontal rule
-    SKIP = 12  # Paragraph break
-    SUMMARY = 13  # Synopsis/short comment
-    NOTE = 14  # Note
-    COMMENT = 15  # Comment
-    KEYWORD = 16  # Tag/reference keywords
+    LIST_U = 9  # List item
+    LIST_O = 10  # Ordered list item
+    SEP = 11  # Scene separator
+    HRULE = 12  # Horizontal rule
+    SKIP = 13  # Paragraph break
+    SUMMARY = 14  # Synopsis/short comment
+    NOTE = 15  # Note
+    COMMENT = 16  # Comment
+    KEYWORD = 17  # Tag/reference keywords
 
 
 class BlockFmt(Flag):

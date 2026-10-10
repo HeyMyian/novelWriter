@@ -329,7 +329,7 @@ class ToDocX(Tokenizer):
             elif tType == BlockTyp.HEAD4:
                 self._processFragments(par, S_HEAD4, tText, tFormat)
 
-            elif tType == BlockTyp.LIST:
+            elif tType == BlockTyp.LIST_U:
                 if tStyle & BlockFmt.LIST_S:
                     self._numLists += 1
                 par.setNumbering(self._numLists, 0)

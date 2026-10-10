@@ -877,7 +877,7 @@ class Tokenizer(ABC):
                 hDialog = isNovel
 
                 if bLine.startswith("* ") and (temp := bLine[2:].lstrip(" ")).strip("* "):
-                    tType = BlockTyp.LIST
+                    tType = BlockTyp.LIST_U
                     bLine = temp
                     hDialog = False
                 elif bLine.startswith(">>"):
@@ -961,7 +961,7 @@ class Tokenizer(ABC):
                     addEmptyLine = False
                 sBlocks.append((cBlock[0], cBlock[1], cBlock[2], cBlock[3], aStyle))
 
-            elif cBlock[0] in (BlockTyp.TEXT, BlockTyp.LIST):
+            elif cBlock[0] in (BlockTyp.TEXT, BlockTyp.LIST_U):
                 # Combine lines from the same paragraph
                 pLines.append(cBlock)
                 addEmptyLine = False
@@ -996,20 +996,20 @@ class Tokenizer(ABC):
                         pass
 
                     pType = pLines[0][0]
-                    if pType == BlockTyp.LIST:
+                    if pType == BlockTyp.LIST_U:
                         cStyle &= ~(BlockFmt.ALIGNED | BlockFmt.IND_L | BlockFmt.IND_R)  # Strip align and indent
-                        if not (sBlocks and sBlocks[-1][0] == BlockTyp.LIST and not sBlocks[-1][4] & BlockFmt.LIST_E):
+                        if not (sBlocks and sBlocks[-1][0] == BlockTyp.LIST_U and not sBlocks[-1][4] & BlockFmt.LIST_E):
                             cStyle |= BlockFmt.LIST_S
                         else:
                             cStyle |= BlockFmt.Z_TOP
-                        if nBlock[0] != BlockTyp.LIST:
+                        if nBlock[0] != BlockTyp.LIST_U:
                             cStyle |= BlockFmt.LIST_E
                         else:
                             cStyle |= BlockFmt.Z_BTM
 
                     if nLines:  # pragma: no branch
                         isAligned = cStyle & BlockFmt.ALIGNED
-                        if firstIndent and pType != BlockTyp.LIST and not (self._noIndent or isAligned):
+                        if firstIndent and pType != BlockTyp.LIST_U and not (self._noIndent or isAligned):
                             # If paragraph indentation is enabled, not a list,
                             # not temporarily turned off, and the block is not
                             # aligned, we add the text indentation flag
@@ -1019,7 +1019,7 @@ class Tokenizer(ABC):
                             cStyle |= BlockFmt.JUSTIFY
 
                         sBlocks.append((pType, pLines[0][1], pTxt, tFmt, cStyle))
-                        addEmptyLine = lineMargins and (pType != BlockTyp.LIST or bool(cStyle & BlockFmt.LIST_E))
+                        addEmptyLine = lineMargins and (pType != BlockTyp.LIST_U or bool(cStyle & BlockFmt.LIST_E))
 
                     # Reset buffer and make sure text indent is on for next pass
                     pLines = []
@@ -1092,7 +1092,7 @@ class Tokenizer(ABC):
             nChars = len(tText)
             nWChars = len("".join(tWords))
 
-            if tType in (BlockTyp.TEXT, BlockTyp.LIST):
+            if tType in (BlockTyp.TEXT, BlockTyp.LIST_U):
                 tPWords = tText.split()
                 nPWords = len(tPWords)
                 nPChars = len(tText)

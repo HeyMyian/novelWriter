@@ -350,7 +350,7 @@ class ToQTextDocument(Tokenizer):
                 newBlock(cursor, bFmt)
                 self._insertFragments(tText, tFormat, cursor, self._charFmt)
 
-            elif tType == BlockTyp.LIST:
+            elif tType == BlockTyp.LIST_U:
                 newBlock(cursor, bFmt)
                 cursor.setBlockCharFormat(self._charFmt)
                 if qList is None or tStyle & BlockFmt.LIST_S:

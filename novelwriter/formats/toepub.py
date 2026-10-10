@@ -126,7 +126,7 @@ class ToEPub(ToHtml):
             if tType == BlockTyp.TEXT:
                 self._section.text.append(f"<p{hStyle}>{self._formatText(tText, tFmt)}</p>")
 
-            elif tType == BlockTyp.LIST:
+            elif tType == BlockTyp.LIST_U:
                 self._section.text.append(f"<li{hStyle}>{self._formatText(tText, tFmt)}</li>")
 
             elif tType == BlockTyp.TITLE and self._isFront:

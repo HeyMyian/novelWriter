@@ -1488,9 +1488,9 @@ def testTokenizer_Lists(mockGUI):
     tokens.tokenizeText()
     assert tokens._blocks == [
         (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
-        (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
-        (BlockTyp.LIST, "", "Two", [], BlockFmt.Z_TOP | BlockFmt.Z_BTM),
-        (BlockTyp.LIST, "", "Three", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Two", [], BlockFmt.Z_TOP | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Three", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
         (BlockTyp.TEXT, "", "More text", [], BlockFmt.NONE),
     ]
 
@@ -1498,8 +1498,8 @@ def testTokenizer_Lists(mockGUI):
     tokens._text = "* One\n\n\n* Two\n"
     tokens.tokenizeText()
     assert tokens._blocks == [
-        (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
-        (BlockTyp.LIST, "", "Two", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.LIST_U, "", "Two", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
     ]
 
     # A list item ends a paragraph
@@ -1507,34 +1507,34 @@ def testTokenizer_Lists(mockGUI):
     tokens.tokenizeText()
     assert tokens._blocks == [
         (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
-        (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
     ]
 
     # Other blocks end the list
     tokens._text = "* One\n### Scene\n* Two\n[vspace]\n* Three\n"
     tokens.tokenizeText()
     assert tokens._blocks == [
-        (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
         (BlockTyp.HEAD3, TM1, "Scene", [], BlockFmt.NONE),
-        (BlockTyp.LIST, "", "Two", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.LIST_U, "", "Two", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
         (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
-        (BlockTyp.LIST, "", "Three", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.LIST_U, "", "Three", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
     ]
 
     # A page break doesn't end the list
     tokens._text = "* One\n[newpage]\n* Two\n"
     tokens.tokenizeText()
     assert tokens._blocks == [
-        (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
-        (BlockTyp.LIST, "", "Two", [], BlockFmt.LIST_E | BlockFmt.Z_TOP | BlockFmt.PBB),
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Two", [], BlockFmt.LIST_E | BlockFmt.Z_TOP | BlockFmt.PBB),
     ]
 
     # Ignored lines don't end the list
     tokens._text = "* One\n%~ * Two\n* Three\n"
     tokens.tokenizeText()
     assert tokens._blocks == [
-        (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
-        (BlockTyp.LIST, "", "Three", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Three", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
     ]
 
     # Continuation lines, keep breaks
@@ -1542,16 +1542,16 @@ def testTokenizer_Lists(mockGUI):
     tokens.setKeepLineBreaks(True)
     tokens.tokenizeText()
     assert tokens._blocks == [
-        (BlockTyp.LIST, "", "One\nmore", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
-        (BlockTyp.LIST, "", "Two\nmore", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+        (BlockTyp.LIST_U, "", "One\nmore", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Two\nmore", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
     ]
 
     # Continuation lines, remove breaks
     tokens.setKeepLineBreaks(False)
     tokens.tokenizeText()
     assert tokens._blocks == [
-        (BlockTyp.LIST, "", "One more", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
-        (BlockTyp.LIST, "", "Two more", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+        (BlockTyp.LIST_U, "", "One more", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Two more", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
     ]
     tokens.setKeepLineBreaks(True)
 
@@ -1572,9 +1572,9 @@ def testTokenizer_Lists(mockGUI):
     tokens._text = "* One <<\n* Two <\n* Three\nmore <<\n"
     tokens.tokenizeText()
     assert tokens._blocks == [
-        (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
-        (BlockTyp.LIST, "", "Two", [], BlockFmt.Z_TOP | BlockFmt.Z_BTM),
-        (BlockTyp.LIST, "", "Three\nmore", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Two", [], BlockFmt.Z_TOP | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Three\nmore", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
     ]
 
     # Text formats
@@ -1582,7 +1582,7 @@ def testTokenizer_Lists(mockGUI):
     tokens.tokenizeText()
     assert tokens._blocks == [
         (
-            BlockTyp.LIST,
+            BlockTyp.LIST_U,
             "",
             "Some bold text",
             [(5, TextFmt.B_B, ""), (9, TextFmt.B_E, "")],
@@ -1597,7 +1597,7 @@ def testTokenizer_Lists(mockGUI):
     tokens.tokenizeText()
     assert tokens._blocks == [
         (BlockTyp.TEXT, "", "Text", [], BlockFmt.IND_T | BlockFmt.JUSTIFY),
-        (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E | BlockFmt.JUSTIFY),
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E | BlockFmt.JUSTIFY),
         (BlockTyp.TEXT, "", "Text", [], BlockFmt.IND_T | BlockFmt.JUSTIFY),
     ]
     tokens.setFirstLineIndent(False, 1.0, False)
@@ -1610,8 +1610,8 @@ def testTokenizer_Lists(mockGUI):
     assert tokens._blocks == [
         (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
         (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
-        (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
-        (BlockTyp.LIST, "", "Two", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Two", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
         (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
         (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
         (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
@@ -1624,8 +1624,8 @@ def testTokenizer_Lists(mockGUI):
     tokens._text = "* One\n### Scene\n* Two\n"
     tokens.tokenizeText()
     assert tokens._blocks == [
-        (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
-        (BlockTyp.LIST, "", "Two", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.LIST_U, "", "Two", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
     ]
     tokens.setSceneFormat(nwHeadFmt.TITLE, False)
 
@@ -1642,7 +1642,7 @@ def testTokenizer_Lists(mockGUI):
             [(0, TextFmt.COL_B, "dialog"), (5, TextFmt.COL_E, "enddialog")],
             BlockFmt.NONE,
         ),
-        (BlockTyp.LIST, "", "“Hi,” she said.", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.LIST_U, "", "“Hi,” she said.", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
     ]
 
 
