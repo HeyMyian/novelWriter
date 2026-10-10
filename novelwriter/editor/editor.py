@@ -2990,25 +2990,36 @@ class GuiDocEditor(QTextEdit):
     ##
 
     def _dispatchKeyPress(self, event: QKeyEvent) -> None:
-        """Send a key event on to the base class for regular handling,
-        except for a plain Return/Enter press, which is handled
-        directly instead.
+        """Send a key event to the base class, except plain Return.
 
-        Qt's own Return handling (QWidgetTextControlPrivate::
-        insertParagraphSeparator) resets the current block's format to
-        a bare default and swallows the keypress whenever the cursor
-        is on an empty block whose format isn't already default. That
-        heuristic exists so rich-text users can hit Enter twice to
-        escape a list/heading/quote, but every block here always
-        carries a non-default line height, so it fires on every
-        ordinary blank-line paragraph break and silently eats every
-        second Return. novelWriter never uses Qt's native list/heading
-        block formatting, so the heuristic serves no purpose here, and
-        can be bypassed entirely by inserting the new block directly.
+        Qt's Return handling swallows the keypress on empty blocks with
+        a non-default format, which all blocks have here due to line
+        height, so new blocks are inserted directly. List markers are
+        carried over to the new block.
         """
         if event.key() in ENTER_KEYS and event.modifiers() == QtModNone:
             cursor = self.textCursor()
-            cursor.insertBlock()
+            block = self._qDocument.findBlock(cursor.selectionStart())
+            text = block.text()
+            marker = ""
+            if text.startswith("* ") and text[2:].strip("* "):
+                marker = "* "
+            elif text.startswith("#. ") and text[3:].strip():
+                marker = "#. "
+
+            cursor.beginEditBlock()
+            if text.startswith(("* ", "#. ")) and text.rstrip() in ("*", "#.") and not cursor.hasSelection():
+                # Enter on an empty item clears the marker and ends the list (see #1460)
+                cursor.setPosition(block.position())
+                cursor.setPosition(block.position() + block.length() - 1, QtKeepAnchor)
+                cursor.removeSelectedText()
+            else:
+                inMarker = cursor.selectionStart() - block.position() < len(marker)
+                cursor.insertBlock()
+                if marker and not inMarker:
+                    cursor.insertText(marker)
+            cursor.endEditBlock()
+
             self.setTextCursor(cursor)
             self.ensureCursorVisible(centre=False)
             event.accept()

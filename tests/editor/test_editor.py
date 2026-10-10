@@ -3246,6 +3246,89 @@ def testGuiDocEditor_LineHeightDoubleReturn(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
+def testGuiDocEditor_ListMarkerOnReturn(qtbot, nwGUI, projPath, mockRnd):
+    """Test that list markers are carried over to new lines."""
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+    docEditor = nwGUI.docEditor
+    assert docEditor.loadText(C.hSceneDoc) is True
+
+    # Unordered item, then ordered item, at end of line
+    docEditor.setPlainText("* One")
+    docEditor.setCursorPosition(5)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    qtbot.keyClicks(docEditor, "Two")
+    assert docEditor.getText() == "* One\n* Two"
+
+    docEditor.setPlainText("#. One")
+    docEditor.setCursorPosition(6)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    qtbot.keyClicks(docEditor, "Two")
+    assert docEditor.getText() == "#. One\n#. Two"
+
+    # Splitting an item carries the marker
+    docEditor.setPlainText("* OneTwo")
+    docEditor.setCursorPosition(5)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "* One\n* Two"
+
+    # Return inside the marker inserts a plain line
+    docEditor.setPlainText("#. One")
+    docEditor.setCursorPosition(1)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "#\n. One"
+
+    # Return on an empty item clears the marker
+    docEditor.setPlainText("* One\n* ")
+    docEditor.setCursorPosition(8)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "* One\n"
+    assert docEditor.getCursorPosition() == 6
+
+    docEditor.setPlainText("#.  ")
+    docEditor.setCursorPosition(4)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == ""
+
+    # Not list items
+    docEditor.setPlainText("* * *")
+    docEditor.setCursorPosition(5)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "* * *\n"
+
+    docEditor.setPlainText("*")
+    docEditor.setCursorPosition(1)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "*\n"
+
+    # A selection is replaced, and the marker is from its first line
+    docEditor.setPlainText("* One\nText")
+    cursor = docEditor.textCursor()
+    cursor.setPosition(3)
+    cursor.setPosition(8, QtKeepAnchor)
+    docEditor.setTextCursor(cursor)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "* O\n* xt"
+
+    # A selection on an empty item is not cleared as an empty item
+    docEditor.setPlainText("* ")
+    cursor = docEditor.textCursor()
+    cursor.setPosition(1)
+    cursor.setPosition(2, QtKeepAnchor)
+    docEditor.setTextCursor(cursor)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "*\n"
+
+    # The marker is undone with the new line
+    docEditor.setPlainText("* One")
+    docEditor.setCursorPosition(5)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "* One\n* "
+    docEditor.docAction(nwDocAction.UNDO)
+    assert docEditor.getText() == "* One"
+
+
+@pytest.mark.gui
 def testGuiDocEditor_CursorVisibility(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test the custom ensure cursor visible feature."""
     buildTestProject(NWProject(), projPath)
