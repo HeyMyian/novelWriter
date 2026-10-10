@@ -128,6 +128,7 @@ def testToOdt_TextFormatting(mockGUI):
         "First_20_line_20_indent",
         "Text_20_Meta",
         "Title",
+        "List",
         "Separator",
         "Horizontal_20_Line",
         "Heading_20_1",
@@ -684,24 +685,23 @@ def testToOdt_ConvertParagraphs(mockGUI):
         '<text:h text:style-name="Heading_20_2" text:outline-level="2">Scene</text:h>'
         '<text:p text:style-name="P1"><text:span text:style-name="T10">'
         'Point of View:</text:span> <text:span text:style-name="T11">Jane</text:span></text:p>'
-        '<text:p text:style-name="P2"><text:span text:style-name="T10">'
+        '<text:p text:style-name="P1"><text:span text:style-name="T10">'
         'Characters:</text:span> <text:span text:style-name="T11">John</text:span></text:p>'
         '<text:p text:style-name="Text_20_Meta"><text:span text:style-name="T10">'
         'Plot:</text:span> <text:span text:style-name="T11">Main</text:span></text:p>'
-        '<text:p text:style-name="P3">Right align</text:p>'
+        '<text:p text:style-name="P2">Right align</text:p>'
         '<text:p text:style-name="Text_20_body">Left Align</text:p>'
-        '<text:p text:style-name="P4">Centered</text:p>'
-        '<text:p text:style-name="P5">Left indent</text:p>'
-        '<text:p text:style-name="P6">Right indent</text:p>'
+        '<text:p text:style-name="P3">Centered</text:p>'
+        '<text:p text:style-name="P4">Left indent</text:p>'
+        '<text:p text:style-name="P5">Right indent</text:p>'
         "</office:text>"
     )
+    assert getStyle("P1")._pAttr["margin-top"] == ["fo", "0.000cm"]  # type: ignore
     assert getStyle("P1")._pAttr["margin-bottom"] == ["fo", "0.000cm"]  # type: ignore
-    assert getStyle("P2")._pAttr["margin-bottom"] == ["fo", "0.000cm"]  # type: ignore
-    assert getStyle("P2")._pAttr["margin-top"] == ["fo", "0.000cm"]  # type: ignore
-    assert getStyle("P3")._pAttr["text-align"] == ["fo", "right"]  # type: ignore
-    assert getStyle("P4")._pAttr["text-align"] == ["fo", "center"]  # type: ignore
-    assert getStyle("P5")._pAttr["margin-left"] == ["fo", "1.693cm"]  # type: ignore
-    assert getStyle("P6")._pAttr["margin-right"] == ["fo", "1.693cm"]  # type: ignore
+    assert getStyle("P2")._pAttr["text-align"] == ["fo", "right"]  # type: ignore
+    assert getStyle("P3")._pAttr["text-align"] == ["fo", "center"]  # type: ignore
+    assert getStyle("P4")._pAttr["margin-left"] == ["fo", "1.693cm"]  # type: ignore
+    assert getStyle("P5")._pAttr["margin-right"] == ["fo", "1.693cm"]  # type: ignore
 
     # Justified
     odt._text = "### Scene\n\nRegular paragraph\n\nwith\nbreak\n\nLeft Align <<\n\n"
@@ -715,12 +715,12 @@ def testToOdt_ConvertParagraphs(mockGUI):
     assert xmlToText(odt._xText) == (
         "<office:text>"
         '<text:h text:style-name="Heading_20_2" text:outline-level="2">Scene</text:h>'
-        '<text:p text:style-name="P7">Regular paragraph</text:p>'
-        '<text:p text:style-name="P7">with<text:line-break />break</text:p>'
+        '<text:p text:style-name="P6">Regular paragraph</text:p>'
+        '<text:p text:style-name="P6">with<text:line-break />break</text:p>'
         '<text:p text:style-name="Text_20_body">Left Align</text:p>'
         "</office:text>"
     )
-    assert getStyle("P7")._pAttr["text-align"] == ["fo", "justify"]  # type: ignore
+    assert getStyle("P6")._pAttr["text-align"] == ["fo", "justify"]  # type: ignore
 
     # Page Breaks
     odt._text = "## Chapter One\n\nText\n\n## Chapter Two\n\nText\n\n"
@@ -731,12 +731,44 @@ def testToOdt_ConvertParagraphs(mockGUI):
     assert odt.errData == []
     assert xmlToText(odt._xText) == (
         "<office:text>"
-        '<text:h text:style-name="P8" text:outline-level="1">Chapter One</text:h>'
+        '<text:h text:style-name="P7" text:outline-level="1">Chapter One</text:h>'
         '<text:p text:style-name="Text_20_body">Text</text:p>'
-        '<text:h text:style-name="P8" text:outline-level="1">Chapter Two</text:h>'
+        '<text:h text:style-name="P7" text:outline-level="1">Chapter Two</text:h>'
         '<text:p text:style-name="Text_20_body">Text</text:p>'
         "</office:text>"
     )
+
+    # Lists
+    odt._text = "* One\n* Two\nmore\n* Three\n\n* Four\n\nText\n\n#. Five\n#. Six\n* Seven\n\n"
+    odt.tokenizeText()
+    odt.initDocument()
+    odt.doConvert()
+    odt.closeDocument()
+    assert odt.errData == []
+    assert xmlToText(odt._xText) == (
+        "<office:text>"
+        '<text:list text:style-name="List_20_Bullet">'
+        '<text:list-item><text:p text:style-name="P8">One</text:p></text:list-item>'
+        '<text:list-item><text:p text:style-name="P8">Two<text:line-break />more</text:p></text:list-item>'
+        '<text:list-item><text:p text:style-name="P9">Three</text:p></text:list-item>'
+        "</text:list>"
+        '<text:list text:style-name="List_20_Bullet">'
+        '<text:list-item><text:p text:style-name="List">Four</text:p></text:list-item>'
+        "</text:list>"
+        '<text:p text:style-name="Text_20_body">Text</text:p>'
+        '<text:list text:style-name="Numbering_20_123">'
+        '<text:list-item><text:p text:style-name="P8">Five</text:p></text:list-item>'
+        '<text:list-item><text:p text:style-name="P9">Six</text:p></text:list-item>'
+        "</text:list>"
+        '<text:list text:style-name="List_20_Bullet">'
+        '<text:list-item><text:p text:style-name="List">Seven</text:p></text:list-item>'
+        "</text:list>"
+        "</office:text>"
+    )
+    assert getStyle("P8")._pAttr["margin-top"] == ["fo", "0.000cm"]  # type: ignore
+    assert getStyle("P8")._pAttr["margin-bottom"] == ["fo", "0.000cm"]  # type: ignore
+    assert getStyle("P9")._pAttr["margin-top"] == ["fo", "0.000cm"]  # type: ignore
+    assert getStyle("P9")._pAttr["margin-bottom"] == ["fo", odt._emToCm(odt._marginText[1])]  # type: ignore
 
     # Footnotes
     odt._text = (
@@ -854,13 +886,15 @@ def testToOdt_SaveFlat(mockGUI, fncPath, tstPaths, ipsumText):
     odt.setHeaderFormat(nwHeadFmt.DOC_AUTO, 1)
     assert odt._headerFormat == nwHeadFmt.DOC_AUTO
 
-    odt.setPageLayout(148, 210, 20, 18, 17, 15)
+    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, False)
     assert odt._mDocWidth == "14.800cm"
     assert odt._mDocHeight == "21.000cm"
     assert odt._mDocTop == "2.000cm"
     assert odt._mDocBtm == "1.800cm"
-    assert odt._mDocLeft == "1.700cm"
+    assert odt._mDocLeft == "2.800cm"
     assert odt._mDocRight == "1.500cm"
+    assert odt._mDocGutter == "1.100cm"
+    assert odt._mMirrored is False
 
     odt._text = (
         "#! My Novel\n\n"
@@ -906,13 +940,15 @@ def testToOdt_SaveFlatWithEmptyLines(mockGUI, fncPath, tstPaths, ipsumText):
     odt.setJustify(True, False)
     assert odt._headerFormat == nwHeadFmt.DOC_AUTO
 
-    odt.setPageLayout(148, 210, 20, 18, 17, 15)
+    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, True)
     assert odt._mDocWidth == "14.800cm"
     assert odt._mDocHeight == "21.000cm"
     assert odt._mDocTop == "2.000cm"
     assert odt._mDocBtm == "1.800cm"
-    assert odt._mDocLeft == "1.700cm"
+    assert odt._mDocLeft == "2.800cm"
     assert odt._mDocRight == "1.500cm"
+    assert odt._mDocGutter == "1.100cm"
+    assert odt._mMirrored is True
 
     odt._text = (
         "#! My Novel\n\n"

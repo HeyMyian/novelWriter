@@ -419,6 +419,20 @@ class GuiDocHighlighter(QSyntaxHighlighter):
                 self.setFormat(pos, length, self._hStyles["note"])
                 #return # My: Don't put stuff like emphasis
 
+        elif text.startswith("* ") and text[2:].strip("* "):  # Unordered Lists
+            self.setCurrentBlockState(BLOCK_TEXT)
+            rules = self._cmnRules
+
+            self.setFormat(0, 2, self._hStyles["code"])
+            offset = 2
+
+        elif text.startswith("#. ") and text[3:].strip():  # Ordered Lists
+            self.setCurrentBlockState(BLOCK_TEXT)
+            rules = self._cmnRules
+
+            self.setFormat(0, 3, self._hStyles["code"])
+            offset = 3
+
         elif text.startswith("["):  # Special Command
             self.setCurrentBlockState(BLOCK_TEXT)
             rules = self._txtRules if self._isNovel else self._minRules

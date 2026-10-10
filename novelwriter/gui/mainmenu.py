@@ -360,6 +360,11 @@ class GuiMainMenu(QMenuBar):
         self.aFocusStory.triggered.connect(qtWeakLambda(self._emitFocusChange, nwFocus.STORY))
         self.mainGui.addAction(self.aFocusStory)
 
+        # View > Show/Hide Tree View
+        self.aHideTreePane = qtAddAction(self.viewMenu, self.tr("Show/Hide Tree View"))
+        self.aHideTreePane.setShortcut("Shift+F8")
+        self.aHideTreePane.triggered.connect(self.mainGui.toggleTreePane)
+
         # View > Separator
         self.viewMenu.addSeparator()
 
@@ -788,6 +793,17 @@ class GuiMainMenu(QMenuBar):
         self.aFmtIndentRight.setShortcut("Ctrl+9")
         self.aFmtIndentRight.triggered.connect(qtWeakLambda(self._emitDocAction, nwDocAction.INDENT_R))
         self.mainGui.addAction(self.aFmtIndentRight)
+
+        # Format > Separator
+        self.fmtMenu.addSeparator()
+
+        # Format > Bullet List
+        self.aFmtListU = qtAddAction(self.fmtMenu, self.tr("Bullet List"))
+        self.aFmtListU.triggered.connect(qtWeakLambda(self._emitDocAction, nwDocAction.BLOCK_LST_U))
+
+        # Format > Numbered List
+        self.aFmtListO = qtAddAction(self.fmtMenu, self.tr("Numbered List"))
+        self.aFmtListO.triggered.connect(qtWeakLambda(self._emitDocAction, nwDocAction.BLOCK_LST_O))
 
         # Format > Separator
         self.fmtMenu.addSeparator()

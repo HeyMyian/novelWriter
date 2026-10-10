@@ -638,6 +638,67 @@ def testGuiDocHighlighter_Text(monkeypatch, syntax):
 
 
 @pytest.mark.gui
+def testGuiDocHighlighter_Lists(monkeypatch, syntax):
+    """Test highlighting of list items."""
+    theme = SHARED.theme
+    doc = syntax.document()
+    assert doc is not None
+
+    # Settings
+    syntax._tHandle = T_HANDLE
+    syntax._isNovel = True
+    monkeypatch.setattr(SpellEnchant, "checkWord", lambda *a: False)
+
+    colHidden = theme.syntaxTheme.hidden.getRgb()
+    colEmph = theme.syntaxTheme.emph.getRgb()
+    colCode = theme.syntaxTheme.code.getRgb()
+    colDialogue = theme.syntaxTheme.dialN.getRgb()
+
+    doc.setPlainText("* Some **bold** text\n* * *\n> * Not an item\n* “Hi,” she said.\n“Hi,” she said.\n")
+    syntax.rehighlight()
+
+    pieces, formats = getFragments(syntax)
+    assert pieces == [
+        (0, 0, 2, "* "),
+        (0, 7, 2, "**"),
+        (0, 9, 4, "bold"),
+        (0, 13, 2, "**"),
+        (2, 0, 1, ">"),
+        (3, 0, 2, "* "),
+        (4, 0, 5, "“Hi,”"),
+    ]
+    assert formats[0].foreground().color().getRgb() == colCode  # *
+    assert formats[1].foreground().color().getRgb() == colHidden  # **
+    assert formats[2].foreground().color().getRgb() == colEmph  # bold
+    assert formats[3].foreground().color().getRgb() == colHidden  # **
+    assert formats[5].foreground().color().getRgb() == colCode  # *
+    assert formats[6].foreground().color().getRgb() == colDialogue  # Dialogue
+
+    # Spell Check
+    data = doc.findBlockByNumber(0).userData()
+    assert isinstance(data, TextBlockData)
+    assert data.spellCheck() == [
+        (2, 6, "Some"),
+        (9, 13, "bold"),
+        (16, 20, "text"),
+    ]
+
+    # Ordered Lists
+    doc.setPlainText("#. Some **bold** text\n#.   \n#.Not an item\n")
+    syntax.rehighlight()
+
+    pieces, formats = getFragments(syntax)
+    assert pieces == [
+        (0, 0, 3, "#. "),
+        (0, 8, 2, "**"),
+        (0, 10, 4, "bold"),
+        (0, 14, 2, "**"),
+    ]
+    assert formats[0].foreground().color().getRgb() == colCode  # #.
+    assert formats[2].foreground().color().getRgb() == colEmph  # bold
+
+
+@pytest.mark.gui
 def testGuiDocHighlighter_MaxBlockLength(monkeypatch, syntax):
     """Content beyond the max block length cap must be ignored
     entirely: no syntax highlighting, and no spell/format checking.

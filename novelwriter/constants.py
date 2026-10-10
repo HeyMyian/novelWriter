@@ -138,6 +138,7 @@ class nwStyles:
     H_VALID = ("H0", "H1", "H2", "H3", "H4")
     H_LEVEL: ClassVar[dict[str, int]] = {"H0": 0, "H1": 1, "H2": 2, "H3": 3, "H4": 4}
     H_SIZES: ClassVar[dict[int, float]] = {0: 2.50, 1: 2.00, 2: 1.75, 3: 1.50, 4: 1.25}
+    H_MARKERS = ("# ", "## ", "### ", "#### ", "#! ", "##! ", "###! ")
 
     T_NORMAL = 1.0
     T_SMALL = 0.8
@@ -262,8 +263,8 @@ class nwKeyWords:
 
     # Map to Class Icons
     KEY_ICON: ClassVar[dict[str, str]] = {
-        POV_KEY: "cls_character:root",
-        FOCUS_KEY: "cls_character:root",
+        POV_KEY: "key_pov:root",
+        FOCUS_KEY: "key_focus:root",
         CHAR_KEY: "cls_character:root",
         PLOT_KEY: "cls_plot:root",
         TIME_KEY: "cls_timeline:root",

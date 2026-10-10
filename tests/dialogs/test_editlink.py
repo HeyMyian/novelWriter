@@ -53,3 +53,10 @@ def testGuiEditLink_Main(qtbot, monkeypatch, mockGUI):
         assert dlgOk is True
         assert text == ""
         assert url == ""
+
+    # Spaces and parentheses in the URL are encoded
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiEditLink, "result", lambda *a: QtAccepted)
+        text, url, dlgOk = GuiEditLink.getLink(None, text="A File", url=" file:///My File (1).pdf ")  # type: ignore
+        assert dlgOk is True
+        assert url == "file:///My%20File%20%281%29.pdf"

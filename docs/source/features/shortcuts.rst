@@ -34,6 +34,7 @@ Main Window Shortcuts
    ":kbd:`Ctrl+Shift+T`", "Switch focus to the outline view"
    ":kbd:`Ctrl+Shift+W`", "Close the current project"
    ":kbd:`Shift+F1`",     "Open the local user manual (PDF) if it is available"
+   ":kbd:`Shift+F8`",     "Toggle tree pane visibility"
 
 
 Project Tree Shortcuts
@@ -156,7 +157,7 @@ a key or key combination for the inserted content.
    ":kbd:`Ctrl+K`, :kbd:`_`",           "Insert a long dash (em dash)"
    ":kbd:`Ctrl+K`, :kbd:`.`",           "Insert an ellipsis"
    ":kbd:`Ctrl+K`, :kbd:`'`",           "Insert a modifier apostrophe"
-   ":kbd:`Ctrl+K`, :kbd:`*`",           "Insert a list bullet"
+   ":kbd:`Ctrl+K`, :kbd:`*`",           "Insert a bullet symbol"
    ":kbd:`Ctrl+K`, :kbd:`%`",           "Insert a per mille symbol"
    ":kbd:`Ctrl+K`, :kbd:`~`",           "Insert a figure dash (same width as a number)"
    ":kbd:`Ctrl+K`, :kbd:`−`",           "Insert a short dash (en dash)"
