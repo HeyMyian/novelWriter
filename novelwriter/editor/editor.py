@@ -1058,6 +1058,10 @@ class GuiDocEditor(QTextEdit):
             self._iterFormatBlocks(nwDocAction.BLOCK_IGN)
         elif action == nwDocAction.BLOCK_TXT:
             self._iterFormatBlocks(nwDocAction.BLOCK_TXT)
+        elif action == nwDocAction.BLOCK_LST_U:
+            self._iterFormatBlocks(nwDocAction.BLOCK_LST_U)
+        elif action == nwDocAction.BLOCK_LST_O:
+            self._iterFormatBlocks(nwDocAction.BLOCK_LST_O)
         elif action == nwDocAction.BLOCK_TTL:
             self._formatBlock(nwDocAction.BLOCK_TTL)
         elif action == nwDocAction.BLOCK_UNN:
@@ -2392,30 +2396,18 @@ class GuiDocEditor(QTextEdit):
             offset = len(text) - len(temp)
             if toggle and action == nwDocAction.BLOCK_COM:
                 action = nwDocAction.BLOCK_TXT
-        elif text.startswith("# "):
+        elif text.startswith(("# ", "* ")):
             temp = text[2:]
             offset = 2
-        elif text.startswith("## "):
+        elif text.startswith(("## ", "#! ", "#. ", ">> ")):
             temp = text[3:]
             offset = 3
-        elif text.startswith("### "):
+        elif text.startswith(("### ", "##! ")):
             temp = text[4:]
             offset = 4
-        elif text.startswith("#### "):
+        elif text.startswith(("#### ", "###! ")):
             temp = text[5:]
             offset = 5
-        elif text.startswith("#! "):
-            temp = text[3:]
-            offset = 3
-        elif text.startswith("##! "):
-            temp = text[4:]
-            offset = 4
-        elif text.startswith("###! "):
-            temp = text[5:]
-            offset = 5
-        elif text.startswith(">> "):
-            temp = text[3:]
-            offset = 3
         elif (text.startswith("> ") and action != nwDocAction.INDENT_R) or text.startswith(">>"):
             temp = text[2:]
             offset = 2
@@ -2462,6 +2454,12 @@ class GuiDocEditor(QTextEdit):
         elif action == nwDocAction.BLOCK_HSC:
             text = f"###! {temp}"
             offset -= 5
+        elif action == nwDocAction.BLOCK_LST_U:
+            text = f"* {temp}"
+            offset -= 2
+        elif action == nwDocAction.BLOCK_LST_O:
+            text = f"#. {temp}"
+            offset -= 3
         elif action == nwDocAction.ALIGN_L:
             text = f"{temp} <<"
         elif action == nwDocAction.ALIGN_C:

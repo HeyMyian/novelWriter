@@ -1657,6 +1657,21 @@ def testGuiDocEditor_ToolBar(qtbot, nwGUI, projPath, mockRnd):
         "Text [sub]subscript[/sub] one\n\n"
     )
 
+    # Lists
+    # =====
+
+    docEditor.replaceText("One\n\nTwo\n\n")
+
+    # Click Unordered List
+    docEditor.setCursorPosition(1)
+    docToolBar.tbListU.click()
+    assert docEditor.getText() == "* One\n\nTwo\n\n"
+
+    # Click Ordered List
+    docEditor.setCursorPosition(9)
+    docToolBar.tbListO.click()
+    assert docEditor.getText() == "* One\n\n#. Two\n\n"
+
     # qtbot.stop()
 
 
@@ -2265,6 +2280,37 @@ def testGuiDocEditor_BlockFormatting(qtbot, monkeypatch, nwGUI, projPath, ipsumT
     assert docEditor._formatBlock(nwDocAction.BLOCK_HSC) is True
     assert docEditor.getText() == "###! Some text\n\n"
     assert docEditor.getCursorPosition() == 10
+
+    # Unordered List
+    docEditor.replaceText("Some text\n\n")
+    docEditor.setCursorPosition(5)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_U) is True
+    assert docEditor.getText() == "* Some text\n\n"
+    assert docEditor.getCursorPosition() == 7
+
+    # Ordered List
+    docEditor.replaceText("Some text\n\n")
+    docEditor.setCursorPosition(5)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_O) is True
+    assert docEditor.getText() == "#. Some text\n\n"
+    assert docEditor.getCursorPosition() == 8
+
+    # Unordered to Ordered List, and back
+    docEditor.replaceText("* Some text\n\n")
+    docEditor.setCursorPosition(7)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_O) is True
+    assert docEditor.getText() == "#. Some text\n\n"
+    assert docEditor.getCursorPosition() == 8
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_U) is True
+    assert docEditor.getText() == "* Some text\n\n"
+    assert docEditor.getCursorPosition() == 7
+
+    # List to Plain Text
+    docEditor.replaceText("#. Some text\n\n")
+    docEditor.setCursorPosition(8)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_TXT) is True
+    assert docEditor.getText() == "Some text\n\n"
+    assert docEditor.getCursorPosition() == 5
 
     # Left Indent
     docEditor.replaceText("Some text\n\n")
