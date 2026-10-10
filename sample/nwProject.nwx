@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<novelWriterXML appVersion="26.3a0" hexVersion="0x260300a0" fileVersion="1.6" fileRevision="0" timeStamp="2026-10-10 18:28:32">
-  <project id="e2be99af-f9bf-4403-857a-c3d1ac25abea" saveCount="2422" autoCount="437" editTime="112573" indexRevision="514">
+<novelWriterXML appVersion="26.3a0" hexVersion="0x260300a0" fileVersion="1.6" fileRevision="0" timeStamp="2026-10-10 19:31:35">
+  <project id="e2be99af-f9bf-4403-857a-c3d1ac25abea" saveCount="2426" autoCount="437" editTime="112643" indexRevision="554">
     <name>Sample Project</name>
     <author>Jane Smith</author>
   </project>
@@ -8,8 +8,8 @@
     <doBackup>no</doBackup>
     <language>en_GB</language>
     <spellChecking auto="yes">None</spellChecking>
-    <projectTarget date="None" last="1168" mode="words">15000</projectTarget>
-    <dailyTarget auto="no" last="31" date="2026-10-10">1000</dailyTarget>
+    <projectTarget date="None" last="1183" mode="words">15000</projectTarget>
+    <dailyTarget auto="no" last="46" date="2026-10-10">1000</dailyTarget>
     <targetSkipRoots>
       <entry>d2d81f4831814</entry>
     </targetSkipRoots>
@@ -42,7 +42,7 @@
       <entry key="i56be10" count="1" color="purple" shape="BLOCK_4">Main</entry>
     </importance>
   </settings>
-  <content items="38" novelWords="5592" notesWords="601" novelChars="29564" notesChars="3295">
+  <content items="38" novelWords="5607" notesWords="601" novelChars="29631" notesChars="3295">
     <item handle="7031beac91f75" parent="None" root="7031beac91f75" order="0" type="ROOT" class="NOVEL">
       <meta expanded="yes" />
       <name status="sc24b8f" import="ia857f0">Novel</name>
@@ -64,7 +64,7 @@
       <name status="sf24ce6" import="ia857f0" active="yes">Basic Formatting</name>
     </item>
     <item handle="636b6aa9b697b" parent="6a2d6d5f4f401" root="7031beac91f75" order="0" type="FILE" class="NOVEL" layout="DOCUMENT">
-      <meta expanded="no" heading="H3" charCount="3148" wordCount="561" paraCount="17" cursorPos="19" />
+      <meta expanded="no" heading="H3" charCount="3215" wordCount="576" paraCount="19" cursorPos="19" />
       <name status="s90e6c9" import="ia857f0" active="yes">Making a Scene</name>
     </item>
     <item handle="bc0cbd2a407f3" parent="6a2d6d5f4f401" root="7031beac91f75" order="1" type="FILE" class="NOVEL" layout="DOCUMENT">
