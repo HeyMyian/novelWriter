@@ -683,6 +683,20 @@ def testGuiDocHighlighter_Lists(monkeypatch, syntax):
         (16, 20, "text"),
     ]
 
+    # Ordered Lists
+    doc.setPlainText("#. Some **bold** text\n#.   \n#.Not an item\n")
+    syntax.rehighlight()
+
+    pieces, formats = getFragments(syntax)
+    assert pieces == [
+        (0, 0, 3, "#. "),
+        (0, 8, 2, "**"),
+        (0, 10, 4, "bold"),
+        (0, 14, 2, "**"),
+    ]
+    assert formats[0].foreground().color().getRgb() == colCode  # #.
+    assert formats[2].foreground().color().getRgb() == colEmph  # bold
+
 
 @pytest.mark.gui
 def testGuiDocHighlighter_MaxBlockLength(monkeypatch, syntax):

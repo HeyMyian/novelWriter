@@ -182,11 +182,23 @@ def testToMarkdown_ConvertParagraphs(mockGUI):
     md.doConvert()
     assert md._pages[-1] == ("Some **bold**, _italic_, strike, underline, mark, superscript, subscript here\n\n")
 
-    # Lists
+    # Unordered Lists
     md._text = "Text\n\n* One\n* Two\nmore\n\n* Three\n\nText\n"
     md.tokenizeText()
     md.doConvert()
     assert md._pages[-1] == "Text\n\n* One\n* Two  \n  more\n\n* Three\n\nText\n\n"
+
+    # Ordered Lists
+    md._text = "#. One\n#. Two\nmore\n" + 8 * "#. Item\n" + "#. Eleven\nmore\n* Bullet\n\n#. One\n"
+    md.tokenizeText()
+    md.doConvert()
+    assert md._pages[-1] == (
+        "1. One\n2. Two  \n   more\n"
+        "3. Item\n4. Item\n5. Item\n6. Item\n7. Item\n8. Item\n9. Item\n10. Item\n"
+        "11. Eleven  \n    more\n\n"
+        "* Bullet\n\n"
+        "1. One\n\n"
+    )
 
     # Text w/Hard Break
     md._text = "Line one\nLine two\nLine three\n"

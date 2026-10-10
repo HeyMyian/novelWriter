@@ -209,6 +209,20 @@ def testToEPub_ConvertParagraphs(mockGUI):
         "</ul>",
     ]
 
+    # Ordered Lists
+    epub._text = "#. One\n#. Two\n* Three\n"
+    epub.tokenizeText()
+    epub.doConvert()
+    assert epub._sections[-1].text[-7:] == [
+        "<ol>",
+        "<li style='margin-bottom: 0;'>One</li>",
+        "<li style='margin-top: 0;'>Two</li>",
+        "</ol>",
+        "<ul>",
+        "<li>Three</li>",
+        "</ul>",
+    ]
+
     # Synopsis, Short, and plain comments
     nText = len(epub._sections[-1].text)
 

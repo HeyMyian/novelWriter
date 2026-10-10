@@ -739,7 +739,7 @@ def testToOdt_ConvertParagraphs(mockGUI):
     )
 
     # Lists
-    odt._text = "* One\n* Two\nmore\n* Three\n\n* Four\n\nText\n\n"
+    odt._text = "* One\n* Two\nmore\n* Three\n\n* Four\n\nText\n\n#. Five\n#. Six\n* Seven\n\n"
     odt.tokenizeText()
     odt.initDocument()
     odt.doConvert()
@@ -756,6 +756,13 @@ def testToOdt_ConvertParagraphs(mockGUI):
         '<text:list-item><text:p text:style-name="List">Four</text:p></text:list-item>'
         "</text:list>"
         '<text:p text:style-name="Text_20_body">Text</text:p>'
+        '<text:list text:style-name="Numbering_20_123">'
+        '<text:list-item><text:p text:style-name="P8">Five</text:p></text:list-item>'
+        '<text:list-item><text:p text:style-name="P9">Six</text:p></text:list-item>'
+        "</text:list>"
+        '<text:list text:style-name="List_20_Bullet">'
+        '<text:list-item><text:p text:style-name="List">Seven</text:p></text:list-item>'
+        "</text:list>"
         "</office:text>"
     )
     assert getStyle("P8")._pAttr["margin-top"] == ["fo", "0.000cm"]  # type: ignore

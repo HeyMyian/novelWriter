@@ -693,30 +693,51 @@ def testToDocX_Lists(mockGUI):
         "<w:r><w:rPr /><w:t>Text</w:t></w:r></w:p></w:body>"
     )
 
+    # Ordered List
+    xTest = ET.Element(_wTag("body"))
+    doc._text = "#. Five\n#. Six\n"
+    doc.tokenizeText()
+    doc.doConvert()
+    for par in doc._pars[-2:]:
+        par.toXml(xTest)
+    assert [x.get(_wTag("val")) for x in xTest.iter(_wTag("numId"))] == ["3", "3"]
+    assert doc._numLists == [False, False, True]
+
     # Numbering
     doc.closeDocument()
     xRoot = doc._files["numbering.xml"].xml
     assert doc._rels["numbering.xml"].relType.endswith("/numbering")
 
     xAbst = xRoot.findall(_wTag("abstractNum"))
-    assert len(xAbst) == 1
-    xLvls = xAbst[0].findall(_wTag("lvl"))
-    assert len(xLvls) == 9
-    for xLvl, left in [(xLvls[0], "440"), (xLvls[8], "3960")]:
-        assert [(x.tag, x.get(_wTag("val"))) for x in xLvl[:4]] == [
-            (_wTag("start"), "1"),
-            (_wTag("numFmt"), "bullet"),
-            (_wTag("lvlText"), nwUnicode.U_BULL),
-            (_wTag("lvlJc"), "left"),
-        ]
-        xInd = xLvl.find(f"{_wTag('pPr')}/{_wTag('ind')}")
-        assert xInd is not None
-        assert xInd.get(_wTag("left")) == left
-        assert xInd.get(_wTag("hanging")) == "220"
+    assert [x.get(_wTag("abstractNumId")) for x in xAbst] == ["0", "1"]
+    for xA, numFmt, lvlText, hanging in [
+        (xAbst[0], "bullet", [nwUnicode.U_BULL, nwUnicode.U_BULL], "220"),
+        (xAbst[1], "decimal", ["%1.", "%9."], "330"),
+    ]:
+        xLvls = xA.findall(_wTag("lvl"))
+        assert len(xLvls) == 9
+        for xLvl, left, text in [(xLvls[0], "440", lvlText[0]), (xLvls[8], "3960", lvlText[1])]:
+            assert [(x.tag, x.get(_wTag("val"))) for x in xLvl[:4]] == [
+                (_wTag("start"), "1"),
+                (_wTag("numFmt"), numFmt),
+                (_wTag("lvlText"), text),
+                (_wTag("lvlJc"), "left"),
+            ]
+            xInd = xLvl.find(f"{_wTag('pPr')}/{_wTag('ind')}")
+            assert xInd is not None
+            assert xInd.get(_wTag("left")) == left
+            assert xInd.get(_wTag("hanging")) == hanging
 
+    # Ordered lists restart their numbering
     xNums = xRoot.findall(_wTag("num"))
-    assert [x.get(_wTag("numId")) for x in xNums] == ["1", "2"]
-    assert [x[0].get(_wTag("val")) for x in xNums] == ["0", "0"]
+    assert [x.get(_wTag("numId")) for x in xNums] == ["1", "2", "3"]
+    assert [x[0].get(_wTag("val")) for x in xNums] == ["0", "0", "1"]
+    assert [len(x) for x in xNums] == [1, 1, 2]
+    xOvr = xNums[2][1]
+    assert xOvr.tag == _wTag("lvlOverride")
+    assert xOvr.get(_wTag("ilvl")) == "0"
+    assert xOvr[0].tag == _wTag("startOverride")
+    assert xOvr[0].get(_wTag("val")) == "1"
 
 
 @pytest.mark.core

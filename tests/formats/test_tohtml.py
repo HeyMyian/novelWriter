@@ -184,7 +184,7 @@ def testToHtml_ConvertParagraphs(mockGUI):
     html.doConvert()
     assert html._pages[-1] == ("<p>Line one<br>Line two<br>Line three</p>\n")
 
-    # Lists
+    # Unordered Lists
     html._text = "Text\n\n* One\n* Two\nmore\n\n* Three\n"
     html.tokenizeText()
     html.doConvert()
@@ -194,6 +194,20 @@ def testToHtml_ConvertParagraphs(mockGUI):
         "<li style='margin-bottom: 0;'>One</li>\n"
         "<li style='margin-top: 0;'>Two<br>more</li>\n"
         "</ul>\n"
+        "<ul>\n"
+        "<li>Three</li>\n"
+        "</ul>\n"
+    )
+
+    # Ordered Lists
+    html._text = "#. One\n#. Two\n* Three\n"
+    html.tokenizeText()
+    html.doConvert()
+    assert html._pages[-1] == (
+        "<ol>\n"
+        "<li style='margin-bottom: 0;'>One</li>\n"
+        "<li style='margin-top: 0;'>Two</li>\n"
+        "</ol>\n"
         "<ul>\n"
         "<li>Three</li>\n"
         "</ul>\n"

@@ -1644,6 +1644,47 @@ def testTokenizer_Lists(mockGUI):
         ),
         (BlockTyp.LIST_U, "", "“Hi,” she said.", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
     ]
+    tokens._isNovel = False
+
+    # Ordered list with continuation line
+    tokens._text = "Text\n\n#. One\n#. Two\nmore\n\nText\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
+        (BlockTyp.LIST_O, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_O, "", "Two\nmore", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
+    ]
+
+    # Changing list type ends the list
+    tokens._text = "* One\n#. Two\n#. Three\n* Four\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.LIST_O, "", "Two", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_O, "", "Three", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+        (BlockTyp.LIST_U, "", "Four", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+    ]
+
+    # Not ordered list items
+    tokens._text = "#.One\n\n#.   \n\n\\#. Three\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.TEXT, "", "#.One", [], BlockFmt.NONE),
+        (BlockTyp.TEXT, "", "#.   ", [], BlockFmt.NONE),
+        (BlockTyp.TEXT, "", "\\#. Three", [], BlockFmt.NONE),
+    ]
+
+    # No first line indent on ordered items
+    tokens.setFirstLineIndent(True, 1.0, False)
+    tokens._text = "Text\n\n#. One\n\nText\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.IND_T),
+        (BlockTyp.LIST_O, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.IND_T),
+    ]
+    tokens.setFirstLineIndent(False, 1.0, False)
 
 
 @pytest.mark.core
@@ -2683,7 +2724,7 @@ def testTokenizer_CountStats(mockGUI, ipsumText):
 
     # List Items
     # Each item is a paragraph, and the markers are not counted
-    tokens._text = "* One item\n* Two\nlines\n\nText\n\n"
+    tokens._text = "* One item\n#. Two\nlines\n\nText\n\n"
     tokens._counts = {}
     tokens.tokenizeText()
     tokens.countStats()

@@ -480,7 +480,9 @@ def testToQTextDocument_Lists(mockGUI):
     doc._isNovel = True
     doc._isFirst = True
 
-    doc._text = "### Scene\n* One\n* Two\n\n* Three\n\nText\n\n* Four\n[newpage]\n* Five\n\n"
+    doc._text = (
+        "### Scene\n* One\n* Two\n\n* Three\n\nText\n\n* Four\n[newpage]\n* Five\n\n#. Six\n#. Seven\n* Eight\n\n"
+    )
     doc.tokenizeText()
     doc.doConvert()
     blocks = {}
@@ -526,6 +528,20 @@ def testToQTextDocument_Lists(mockGUI):
     assert lFour.count() == 2
     assert lFour.itemNumber(bFive) == 1
     assert bFive.blockFormat().pageBreakPolicy() == QtPageBreakBefore
+
+    # Ordered list, ended by a bullet item
+    bSix = blocks["Six"]
+    bSeven = blocks["Seven"]
+    assert (lSix := bSix.textList()) is not None
+    assert lSix.format().style() == QTextListFormat.Style.ListDecimal
+    assert lSix.format().indent() == 1
+    assert lSix.count() == 2
+    assert lSix.itemNumber(bSeven) == 1
+    assert lSix.itemText(bSeven) == "2."
+
+    assert (lEight := blocks["Eight"].textList()) is not None
+    assert lEight.format().style() == QTextListFormat.Style.ListDisc
+    assert lEight.count() == 1
 
 
 @pytest.mark.core

@@ -1,13 +1,13 @@
 <?xml version='1.0' encoding='utf-8'?>
 <office:document xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:loext="urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0" xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:ooo="http://openoffice.org/2004/office" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:xlink="http://www.w3.org/1999/xlink" office:version="1.3" office:mimetype="application/vnd.oasis.opendocument.text">
   <office:meta>
-    <meta:creation-date>2026-10-10T18:58:12</meta:creation-date>
+    <meta:creation-date>2026-10-10T19:41:33</meta:creation-date>
     <meta:generator>novelWriter/26.3a0</meta:generator>
     <meta:initial-creator>Jane Smith</meta:initial-creator>
     <meta:editing-cycles>1234</meta:editing-cycles>
     <meta:editing-duration>P42DT12H34M56S</meta:editing-duration>
     <dc:title>Test Project</dc:title>
-    <dc:date>2026-10-10T18:58:12</dc:date>
+    <dc:date>2026-10-10T19:41:33</dc:date>
     <dc:creator>Jane Smith</dc:creator>
   </office:meta>
   <office:settings>
@@ -132,6 +132,58 @@
           <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="8.467cm" fo:text-indent="-0.423cm" fo:margin-left="8.467cm" />
         </style:list-level-properties>
       </text:list-level-style-bullet>
+    </text:list-style>
+    <text:list-style style:name="Numbering_20_123" style:display-name="Numbering 123">
+      <text:list-level-style-number text:level="1" style:num-suffix="." style:num-format="1">
+        <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+          <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="0.847cm" fo:text-indent="-0.635cm" fo:margin-left="0.847cm" />
+        </style:list-level-properties>
+      </text:list-level-style-number>
+      <text:list-level-style-number text:level="2" style:num-suffix="." style:num-format="1">
+        <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+          <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="1.693cm" fo:text-indent="-0.635cm" fo:margin-left="1.693cm" />
+        </style:list-level-properties>
+      </text:list-level-style-number>
+      <text:list-level-style-number text:level="3" style:num-suffix="." style:num-format="1">
+        <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+          <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="2.540cm" fo:text-indent="-0.635cm" fo:margin-left="2.540cm" />
+        </style:list-level-properties>
+      </text:list-level-style-number>
+      <text:list-level-style-number text:level="4" style:num-suffix="." style:num-format="1">
+        <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+          <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="3.387cm" fo:text-indent="-0.635cm" fo:margin-left="3.387cm" />
+        </style:list-level-properties>
+      </text:list-level-style-number>
+      <text:list-level-style-number text:level="5" style:num-suffix="." style:num-format="1">
+        <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+          <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="4.233cm" fo:text-indent="-0.635cm" fo:margin-left="4.233cm" />
+        </style:list-level-properties>
+      </text:list-level-style-number>
+      <text:list-level-style-number text:level="6" style:num-suffix="." style:num-format="1">
+        <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+          <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="5.080cm" fo:text-indent="-0.635cm" fo:margin-left="5.080cm" />
+        </style:list-level-properties>
+      </text:list-level-style-number>
+      <text:list-level-style-number text:level="7" style:num-suffix="." style:num-format="1">
+        <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+          <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="5.927cm" fo:text-indent="-0.635cm" fo:margin-left="5.927cm" />
+        </style:list-level-properties>
+      </text:list-level-style-number>
+      <text:list-level-style-number text:level="8" style:num-suffix="." style:num-format="1">
+        <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+          <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="6.773cm" fo:text-indent="-0.635cm" fo:margin-left="6.773cm" />
+        </style:list-level-properties>
+      </text:list-level-style-number>
+      <text:list-level-style-number text:level="9" style:num-suffix="." style:num-format="1">
+        <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+          <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="7.620cm" fo:text-indent="-0.635cm" fo:margin-left="7.620cm" />
+        </style:list-level-properties>
+      </text:list-level-style-number>
+      <text:list-level-style-number text:level="10" style:num-suffix="." style:num-format="1">
+        <style:list-level-properties text:list-level-position-and-space-mode="label-alignment">
+          <style:list-level-label-alignment text:label-followed-by="listtab" text:list-tab-stop-position="8.467cm" fo:text-indent="-0.635cm" fo:margin-left="8.467cm" />
+        </style:list-level-properties>
+      </text:list-level-style-number>
     </text:list-style>
   </office:styles>
   <office:automatic-styles>
