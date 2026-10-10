@@ -22,6 +22,11 @@ See the website for complete [Release Notes](https://novelwriter.io/releases/rel
 * Fixed a bug where the paragraph following a horizontal ruler in the manuscript was indented. It
   now behaves like it does for other separators. By @vkbo. Issue #3074. PR #3076.
 
+**Improvements**
+
+* Titles with line breaks in The Manuscript tool's outline tab no longer shows as multiple lines,
+  but shows a line break symbol instead. PR #3078.
+
 **Other Changes**
 
 * Downgraded the bundled Remix Icons to version 4.8, the last version released under the Apache
