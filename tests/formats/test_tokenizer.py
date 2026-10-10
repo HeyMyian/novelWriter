@@ -1494,12 +1494,12 @@ def testTokenizer_Lists(mockGUI):
         (BlockTyp.TEXT, "", "More text", [], BlockFmt.NONE),
     ]
 
-    # Blank lines between items don't end the list
+    # Blank lines end the list
     tokens._text = "* One\n\n\n* Two\n"
     tokens.tokenizeText()
     assert tokens._blocks == [
-        (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S),
-        (BlockTyp.LIST, "", "Two", [], BlockFmt.LIST_E),
+        (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.LIST, "", "Two", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
     ]
 
     # A list item ends a paragraph
@@ -1511,12 +1511,30 @@ def testTokenizer_Lists(mockGUI):
     ]
 
     # Other blocks end the list
-    tokens._text = "* One\n\n### Scene\n\n* Two\n"
+    tokens._text = "* One\n### Scene\n* Two\n[vspace]\n* Three\n"
     tokens.tokenizeText()
     assert tokens._blocks == [
         (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
         (BlockTyp.HEAD3, TM1, "Scene", [], BlockFmt.NONE),
         (BlockTyp.LIST, "", "Two", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
+        (BlockTyp.LIST, "", "Three", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+    ]
+
+    # A page break doesn't end the list
+    tokens._text = "* One\n[newpage]\n* Two\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S),
+        (BlockTyp.LIST, "", "Two", [], BlockFmt.LIST_E | BlockFmt.PBB),
+    ]
+
+    # Ignored lines don't end the list
+    tokens._text = "* One\n%~ * Two\n* Three\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S),
+        (BlockTyp.LIST, "", "Three", [], BlockFmt.LIST_E),
     ]
 
     # Continuation lines, keep breaks
@@ -1587,7 +1605,7 @@ def testTokenizer_Lists(mockGUI):
 
     # Line for margin is only added after the list
     tokens.setLineForMargin(True)
-    tokens._text = "Text\n\n* One\n\n* Two\n\nText\n"
+    tokens._text = "Text\n\n* One\n* Two\n\nText\n"
     tokens.tokenizeText()
     assert tokens._blocks == [
         (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
@@ -1599,6 +1617,17 @@ def testTokenizer_Lists(mockGUI):
         (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
     ]
     tokens.setLineForMargin(False)
+
+    # Hidden headings end the list
+    tokens._isNovel = True
+    tokens.setSceneFormat(nwHeadFmt.TITLE, True)
+    tokens._text = "* One\n### Scene\n* Two\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.LIST, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.LIST, "", "Two", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+    ]
+    tokens.setSceneFormat(nwHeadFmt.TITLE, False)
 
     # No dialogue highlighting in items
     tokens._isNovel = True

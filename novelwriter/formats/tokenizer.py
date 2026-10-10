@@ -997,13 +997,10 @@ class Tokenizer(ABC):
 
                     pType = pLines[0][0]
                     if pType == BlockTyp.LIST:
-                        cStyle &= ~(BlockFmt.ALIGNED | BlockFmt.IND_L | BlockFmt.IND_R)
-                        if not (sBlocks and sBlocks[-1][0] == BlockTyp.LIST):
+                        cStyle &= ~(BlockFmt.ALIGNED | BlockFmt.IND_L | BlockFmt.IND_R)  # Strip align and indent
+                        if not (sBlocks and sBlocks[-1][0] == BlockTyp.LIST and not sBlocks[-1][4] & BlockFmt.LIST_E):
                             cStyle |= BlockFmt.LIST_S
-                        k = n + 1
-                        while tBlocks[k][0] == BlockTyp.EMPTY and k < len(tBlocks) - 1:
-                            k += 1
-                        if tBlocks[k][0] != BlockTyp.LIST:
+                        if nBlock[0] != BlockTyp.LIST:
                             cStyle |= BlockFmt.LIST_E
 
                     if nLines:  # pragma: no branch
