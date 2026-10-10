@@ -1,5 +1,38 @@
 # novelWriter Changelog
 
+## Version 2026.2.2 [2026-10-11]
+
+### Release Notes
+
+This is a patch release that fixes control characters in the text breaking manuscript exports, and
+paragraphs following a horizontal ruler in the manuscript being indented. The bundled Remix Icons
+have also been downgraded to the last version available under the Apache 2.0 licence. The French
+translation has been updated.
+
+See the website for complete [Release Notes](https://novelwriter.io/releases/release_26_2.html).
+
+### Detailed Changelog
+
+**Bugfixes**
+
+* Fixed a bug where control characters, like null characters, could enter the text and break the
+  DOCX and ODT manuscript formats. Such characters are now stripped when documents are loaded,
+  pasted, dropped or imported into the editor, and when text is extracted from it. By @vkbo.
+  Issue #3038. PR #3039.
+* Fixed a bug where the paragraph following a horizontal ruler in the manuscript was indented. It
+  now behaves like it does for other separators. By @vkbo. Issue #3074. PR #3076.
+
+**Other Changes**
+
+* Downgraded the bundled Remix Icons to version 4.8, the last version released under the Apache
+  2.0 licence. By @vkbo. Issue #3052. PR #3054.
+
+**Internationalisation**
+
+* French translation updated by aaribaud. PR #3077.
+
+----
+
 ## Version 2026.2.1 [2026-09-26]
 
 ### Release Notes
