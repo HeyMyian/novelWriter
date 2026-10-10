@@ -184,6 +184,21 @@ def testToHtml_ConvertParagraphs(mockGUI):
     html.doConvert()
     assert html._pages[-1] == ("<p>Line one<br>Line two<br>Line three</p>\n")
 
+    # Lists
+    html._text = "Text\n\n* One\n* Two\nmore\n\n* Three\n"
+    html.tokenizeText()
+    html.doConvert()
+    assert html._pages[-1] == (
+        "<p>Text</p>\n"
+        "<ul>\n"
+        "<li style='margin-bottom: 0;'>One</li>\n"
+        "<li style='margin-top: 0;'>Two<br>more</li>\n"
+        "</ul>\n"
+        "<ul>\n"
+        "<li>Three</li>\n"
+        "</ul>\n"
+    )
+
     # Synopsis, Short
     html._text = "%synopsis: The synopsis ...\n"
     html.tokenizeText()

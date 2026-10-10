@@ -182,6 +182,12 @@ def testToMarkdown_ConvertParagraphs(mockGUI):
     md.doConvert()
     assert md._pages[-1] == ("Some **bold**, _italic_, strike, underline, mark, superscript, subscript here\n\n")
 
+    # Lists
+    md._text = "Text\n\n* One\n* Two\nmore\n\n* Three\n\nText\n"
+    md.tokenizeText()
+    md.doConvert()
+    assert md._pages[-1] == "Text\n\n* One\n* Two  \n  more\n\n* Three\n\nText\n\n"
+
     # Text w/Hard Break
     md._text = "Line one\nLine two\nLine three\n"
     md.tokenizeText()
