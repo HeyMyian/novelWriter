@@ -734,7 +734,7 @@ class _OutlineWidget(QWidget):
                 for anchor, entry in data.items():
                     prefix, _, text = entry.partition("|")
                     if prefix in ("TT", "PT", "CH", "SC", "H1", "H2"):
-                        item = QTreeWidgetItem([text])
+                        item = QTreeWidgetItem([text.replace("\n", nwUnicode.U_LBREAK)])
                         item.setData(0, self.D_LINE, anchor)
                         if prefix == "TT":
                             item.setFont(0, tFont)
