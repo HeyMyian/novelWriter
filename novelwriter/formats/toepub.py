@@ -31,7 +31,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 from novelwriter.common import xmlElement, xmlIndent, xmlSubElem
 from novelwriter.constants import nwUnicode
-from novelwriter.formats.shared import BlockTyp
+from novelwriter.formats.shared import BlockFmt, BlockTyp
 from novelwriter.formats.tohtml import ToHtml
 from novelwriter.formats.tokenizer import COMMENT_BLOCKS
 
@@ -119,9 +119,15 @@ class ToEPub(ToHtml):
             tText, tFmt = self._processHtmlEntities(tText, tFmt)
             hStyle = self._genInlineStyles(tStyle)
 
+            if tStyle & BlockFmt.LIST_S:
+                self._section.text.append("<ul>")
+
             # Process Text Type
             if tType == BlockTyp.TEXT:
                 self._section.text.append(f"<p{hStyle}>{self._formatText(tText, tFmt)}</p>")
+
+            elif tType == BlockTyp.LIST:
+                self._section.text.append(f"<li{hStyle}>{self._formatText(tText, tFmt)}</li>")
 
             elif tType == BlockTyp.TITLE and self._isFront:
                 tHead = tText.replace("\n", self._brTag)
@@ -175,6 +181,9 @@ class ToEPub(ToHtml):
 
             else:  # pragma: no cover
                 pass
+
+            if tStyle & BlockFmt.LIST_E:
+                self._section.text.append("</ul>")
 
     def closeDocument(self) -> None:
         """Run close document tasks."""

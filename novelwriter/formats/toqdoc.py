@@ -38,6 +38,7 @@ from PyQt6.QtGui import (
     QTextDocument,
     QTextFrameFormat,
     QTextLength,
+    QTextListFormat,
     QTextTableCellFormat,
     QTextTableFormat,
 )
@@ -106,6 +107,7 @@ class ToQTextDocument(Tokenizer):
         "_hWeight",
         "_iHead",
         "_init",
+        "_listFmt",
         "_mHead",
         "_mIndent",
         "_mMeta",
@@ -161,6 +163,7 @@ class ToQTextDocument(Tokenizer):
         self._tIndent = 1.0
         self._blockFmt = QTextBlockFormat()
         self._charFmt = QTextCharFormat()
+        self._listFmt = QTextListFormat()
 
     ##
     #  Properties
@@ -281,6 +284,8 @@ class ToQTextDocument(Tokenizer):
         self._mIndent = mPx * 2.0
         self._tIndent = mPx * self._firstWidth
 
+        self._document.setIndentWidth(self._mIndent)
+
         # Text Formats
         self._blockFmt.setTopMargin(self._mText[0])
         self._blockFmt.setBottomMargin(self._mText[1])
@@ -289,6 +294,9 @@ class ToQTextDocument(Tokenizer):
 
         self._charFmt.setBackground(QtTransparent)
         self._charFmt.setForeground(self._theme.text)
+
+        self._listFmt.setStyle(QTextListFormat.Style.ListDisc)
+        self._listFmt.setIndent(1)
 
         self._init = True
 
@@ -301,6 +309,7 @@ class ToQTextDocument(Tokenizer):
         cursor = QTextCursor(self._document)
         cursor.movePosition(QtMoveEnd)
 
+        qList = None
         for tType, tMeta, tText, tFormat, tStyle in self._blocks:
             bFmt = QTextBlockFormat(self._blockFmt)
             if tType in META_BLOCKS:
@@ -339,6 +348,15 @@ class ToQTextDocument(Tokenizer):
 
             if tType == BlockTyp.TEXT:
                 newBlock(cursor, bFmt)
+                self._insertFragments(tText, tFormat, cursor, self._charFmt)
+
+            elif tType == BlockTyp.LIST:
+                newBlock(cursor, bFmt)
+                cursor.setBlockCharFormat(self._charFmt)
+                if qList is None or tStyle & BlockFmt.LIST_S:
+                    qList = cursor.createList(self._listFmt)
+                else:
+                    qList.add(cursor.block())
                 self._insertFragments(tText, tFormat, cursor, self._charFmt)
 
             elif tType in HEADING_BLOCKS:

@@ -131,6 +131,9 @@ class ToHtml(Tokenizer):
             tText, tFmt = self._processHtmlEntities(tText, tFmt)
             hStyle = self._genInlineStyles(tStyle)
 
+            if tStyle & BlockFmt.LIST_S:
+                lines.append("<ul>\n")
+
             aNm = ""
             if self._linkHeadings and tMeta:
                 aNm = f"<a name='{tMeta}'></a>"
@@ -138,6 +141,9 @@ class ToHtml(Tokenizer):
             # Process Text Type
             if tType == BlockTyp.TEXT:
                 lines.append(f"<p{hStyle}>{self._formatText(tText, tFmt)}</p>\n")
+
+            elif tType == BlockTyp.LIST:
+                lines.append(f"<li{hStyle}>{self._formatText(tText, tFmt)}</li>\n")
 
             elif tType in (BlockTyp.TITLE, BlockTyp.PART):
                 tHead = tText.replace("\n", self._brTag)
@@ -177,6 +183,9 @@ class ToHtml(Tokenizer):
 
             else:  # pragma: no cover
                 pass
+
+            if tStyle & BlockFmt.LIST_E:
+                lines.append("</ul>\n")
 
         self._pages.append("".join(lines))
 
@@ -349,6 +358,14 @@ class ToHtml(Tokenizer):
                 "font-weight": f"{hW}",
                 "margin-top": f"{mtH4:.2f}em",
                 "margin-bottom": f"{mbH4:.2f}em",
+            },
+            "ul": {
+                "margin-top": f"{mtTT:.2f}em",
+                "margin-bottom": f"{mbTT:.2f}em",
+            },
+            "li": {
+                "text-align": self._defaultAlign,
+                "line-height": f"{lHeight}%",
             },
             ".title": {
                 "font-size": f"{fSz0:.2f}em",

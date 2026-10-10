@@ -1000,8 +1000,12 @@ class Tokenizer(ABC):
                         cStyle &= ~(BlockFmt.ALIGNED | BlockFmt.IND_L | BlockFmt.IND_R)  # Strip align and indent
                         if not (sBlocks and sBlocks[-1][0] == BlockTyp.LIST and not sBlocks[-1][4] & BlockFmt.LIST_E):
                             cStyle |= BlockFmt.LIST_S
+                        else:
+                            cStyle |= BlockFmt.Z_TOP
                         if nBlock[0] != BlockTyp.LIST:
                             cStyle |= BlockFmt.LIST_E
+                        else:
+                            cStyle |= BlockFmt.Z_BTM
 
                     if nLines:  # pragma: no branch
                         isAligned = cStyle & BlockFmt.ALIGNED
