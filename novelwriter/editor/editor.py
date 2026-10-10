@@ -157,6 +157,13 @@ T_SelCache = dict[int, tuple[T_TextCheckList, T_Selections]]
 
 MOVE_KEYS = (QtKeyLeft, QtKeyRight, QtKeyUp, QtKeyDown, QtKeyPageUp, QtKeyPageDown)
 ENTER_KEYS = (QtKeyReturn, QtKeyEnter)
+BLOCK_TEXT_ONLY = (
+    nwDocAction.ALIGN_L,
+    nwDocAction.ALIGN_C,
+    nwDocAction.ALIGN_R,
+    nwDocAction.INDENT_L,
+    nwDocAction.INDENT_R,
+)
 
 
 class _SelectAction(Enum):
@@ -1074,16 +1081,8 @@ class GuiDocEditor(QTextEdit):
             self._replaceQuotes('"', CONFIG.fmtDQuoteOpen, CONFIG.fmtDQuoteClose)
         elif action == nwDocAction.RM_BREAKS:
             self._removeInParLineBreaks()
-        elif action == nwDocAction.ALIGN_L and not noFormat:
-            self._formatBlock(nwDocAction.ALIGN_L)
-        elif action == nwDocAction.ALIGN_C and not noFormat:
-            self._formatBlock(nwDocAction.ALIGN_C)
-        elif action == nwDocAction.ALIGN_R and not noFormat:
-            self._formatBlock(nwDocAction.ALIGN_R)
-        elif action == nwDocAction.INDENT_L and not noFormat:
-            self._formatBlock(nwDocAction.INDENT_L)
-        elif action == nwDocAction.INDENT_R and not noFormat:
-            self._formatBlock(nwDocAction.INDENT_R)
+        elif action in BLOCK_TEXT_ONLY and not (noFormat and len(self._selectedBlocks(cursor)) < 2):
+            self._iterFormatBlocks(action)
         elif action == nwDocAction.SC_ITALIC and not noFormat:
             self._wrapSelection(nwShortcode.ITALIC_O, nwShortcode.ITALIC_C)
         elif action == nwDocAction.SC_BOLD and not noFormat:
@@ -2384,7 +2383,10 @@ class GuiDocEditor(QTextEdit):
         """Process the formatting of a single text block."""
         # Remove existing format first, if any
         if text.startswith("@"):
-            logger.error("Cannot apply block format to keyword/value line")
+            logger.debug("Cannot apply block format to keyword/value line")
+            return nwDocAction.NO_ACTION, "", 0
+        elif action in BLOCK_TEXT_ONLY and text.startswith(nwStyles.H_MARKERS):
+            logger.debug("Cannot apply text block format to heading")
             return nwDocAction.NO_ACTION, "", 0
         elif text.startswith("%~"):
             temp = text[2:].lstrip()
@@ -2396,10 +2398,10 @@ class GuiDocEditor(QTextEdit):
             offset = len(text) - len(temp)
             if toggle and action == nwDocAction.BLOCK_COM:
                 action = nwDocAction.BLOCK_TXT
-        elif text.startswith(("# ", "* ")):
+        elif text.startswith("# "):
             temp = text[2:]
             offset = 2
-        elif text.startswith(("## ", "#! ", "#. ", ">> ")):
+        elif text.startswith(("## ", "#! ", ">> ")):
             temp = text[3:]
             offset = 3
         elif text.startswith(("### ", "##! ")):
@@ -2408,6 +2410,16 @@ class GuiDocEditor(QTextEdit):
         elif text.startswith(("#### ", "###! ")):
             temp = text[5:]
             offset = 5
+        elif text.startswith("* ") and text[2:].strip("* "):
+            temp = text[2:]
+            offset = 2
+            if toggle and action == nwDocAction.BLOCK_LST_U:
+                action = nwDocAction.BLOCK_TXT
+        elif text.startswith("#. "):
+            temp = text[3:]
+            offset = 3
+            if toggle and action == nwDocAction.BLOCK_LST_O:
+                action = nwDocAction.BLOCK_TXT
         elif (text.startswith("> ") and action != nwDocAction.INDENT_R) or text.startswith(">>"):
             temp = text[2:]
             offset = 2
@@ -2427,6 +2439,16 @@ class GuiDocEditor(QTextEdit):
             temp = temp[:-1]
 
         # Apply new format
+        if toggle and action in (nwDocAction.ALIGN_L, nwDocAction.ALIGN_C, nwDocAction.ALIGN_R):
+            isRight = text.startswith(">>")
+            isLeft = text.endswith("<<")
+            if (
+                (action == nwDocAction.ALIGN_L and isLeft and not isRight)
+                or (action == nwDocAction.ALIGN_C and isLeft and isRight)
+                or (action == nwDocAction.ALIGN_R and isRight and not isLeft)
+            ):
+                action = nwDocAction.BLOCK_TXT
+
         if action == nwDocAction.BLOCK_COM:
             text = f"% {temp}"
             offset -= 2
@@ -2574,6 +2596,11 @@ class GuiDocEditor(QTextEdit):
                 toggle = False
 
         cursor.endEditBlock()
+
+        # Reselect the affected blocks so the action can be repeated
+        cursor.setPosition(blocks[0].position())
+        cursor.setPosition(blocks[-1].position() + blocks[-1].length() - 1, QtKeepAnchor)
+        self.setTextCursor(cursor)
 
         return True
 

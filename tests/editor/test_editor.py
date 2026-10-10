@@ -2312,6 +2312,25 @@ def testGuiDocEditor_BlockFormatting(qtbot, monkeypatch, nwGUI, projPath, ipsumT
     assert docEditor.getText() == "Some text\n\n"
     assert docEditor.getCursorPosition() == 5
 
+    # Toggle Lists Off
+    docEditor.replaceText("* Some text\n\n")
+    docEditor.setCursorPosition(7)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_U) is True
+    assert docEditor.getText() == "Some text\n\n"
+    assert docEditor.getCursorPosition() == 5
+
+    docEditor.replaceText("#. Some text\n\n")
+    docEditor.setCursorPosition(8)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_O) is True
+    assert docEditor.getText() == "Some text\n\n"
+    assert docEditor.getCursorPosition() == 5
+
+    # A separator is not a list item
+    docEditor.replaceText("* * *\n\n")
+    docEditor.setCursorPosition(5)
+    assert docEditor._formatBlock(nwDocAction.ALIGN_C) is True
+    assert docEditor.getText() == ">> * * * <<\n\n"
+
     # Left Indent
     docEditor.replaceText("Some text\n\n")
     docEditor.setCursorPosition(5)
@@ -2528,6 +2547,121 @@ def testGuiDocEditor_MultiBlockFormatting(qtbot, nwGUI, projPath, ipsumText, moc
         "Integ",
         "",
     ]
+
+    # Toggle List
+    cursor = docEditor.textCursor()
+    cursor.setPosition(50)
+    cursor.movePosition(QtMoveRight, QtKeepAnchor, 2000)
+    docEditor.setTextCursor(cursor)
+
+    docEditor._iterFormatBlocks(nwDocAction.BLOCK_LST_U)
+    assert [x[:5] for x in docEditor.getText().splitlines()] == [
+        "### A",
+        "",
+        "@char",
+        "",
+        "* Lor",
+        "",
+        "* Nul",
+        "",
+        "* Nul",
+        "",
+        "* Pel",
+        "",
+        "Integ",
+        "",
+    ]
+
+    # Un-toggle all, the first item decides
+    cursor = docEditor.textCursor()
+    cursor.setPosition(50)
+    cursor.movePosition(QtMoveRight, QtKeepAnchor, 3000)
+    docEditor.setTextCursor(cursor)
+
+    docEditor._iterFormatBlocks(nwDocAction.BLOCK_LST_U)
+    assert [x[:5] for x in docEditor.getText().splitlines()] == [
+        "### A",
+        "",
+        "@char",
+        "",
+        "Lorem",
+        "",
+        "Nulla",
+        "",
+        "Nulla",
+        "",
+        "Pelle",
+        "",
+        "Integ",
+        "",
+    ]
+
+    # Align across a heading and a keyword, which are skipped
+    cursor = docEditor.textCursor()
+    cursor.setPosition(0)
+    cursor.movePosition(QtMoveRight, QtKeepAnchor, 2000)
+    docEditor.setTextCursor(cursor)
+
+    docEditor.docAction(nwDocAction.ALIGN_C)
+    assert [x[:5] for x in docEditor.getText().splitlines()] == [
+        "### A",
+        "",
+        "@char",
+        "",
+        ">> Lo",
+        "",
+        ">> Nu",
+        "",
+        ">> Nu",
+        "",
+        ">> Pe",
+        "",
+        "Integ",
+        "",
+    ]
+
+    # The affected blocks are reselected
+    lastBlock = docEditor.document().findBlockByNumber(10)
+    assert lastBlock.text().startswith(">> Pe")
+    cursor = docEditor.textCursor()
+    assert cursor.selectionStart() == 0
+    assert cursor.selectionEnd() == lastBlock.position() + lastBlock.length() - 1
+
+    # Toggle back off, the first formattable block decides
+    docEditor.docAction(nwDocAction.ALIGN_C)
+    assert [x[:5] for x in docEditor.getText().splitlines()] == [
+        "### A",
+        "",
+        "@char",
+        "",
+        "Lorem",
+        "",
+        "Nulla",
+        "",
+        "Nulla",
+        "",
+        "Pelle",
+        "",
+        "Integ",
+        "",
+    ]
+
+    # Indent the same selection
+    docEditor.docAction(nwDocAction.INDENT_L)
+    docEditor.docAction(nwDocAction.INDENT_R)
+    assert docEditor.getText().splitlines()[4].startswith("> Lorem")
+    assert docEditor.getText().splitlines()[4].endswith(" <")
+    assert docEditor.getText().splitlines()[0] == "### A Scene"
+    cursor = docEditor.textCursor()
+    cursor.setPosition(50)
+    cursor.movePosition(QtMoveRight, QtKeepAnchor, 2000)
+    docEditor.setTextCursor(cursor)
+    docEditor.docAction(nwDocAction.BLOCK_TXT)
+
+    # A single heading is not aligned
+    docEditor.setCursorPosition(3)
+    assert docEditor._formatBlock(nwDocAction.ALIGN_C) is False
+    assert docEditor.getText().splitlines()[0] == "### A Scene"
 
     # Final text should be identical to initial text
     assert docEditor.getText() == text
