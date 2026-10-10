@@ -79,7 +79,7 @@ searchMatch  = "#385f38"
 [Syntax]
 background     = "#3f3f3f"
 text           = "default"
-line           = "base"
+line           = "#4e4e4e"
 link           = "#dca3a3"
 headerText     = "#efdcbc"
 headerTag      = "faded"
