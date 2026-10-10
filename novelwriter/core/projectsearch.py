@@ -27,7 +27,7 @@ import re
 from typing import TYPE_CHECKING
 
 from novelwriter import SHARED
-from novelwriter.constants import nwConst
+from novelwriter.constants import nwConst, nwStyles
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -147,7 +147,7 @@ class DocSearch:
                 if line.strip():
                     overwrite = 0
                     temp = line.rstrip("\n")
-                    if line[0] == "#":
+                    if line.startswith(nwStyles.H_MARKERS):
                         overwrite = 0 if self._textHeadings else len(temp)
                     elif line[0] == "@":
                         overwrite = 0 if self._textMeta else len(temp)

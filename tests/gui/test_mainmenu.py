@@ -286,6 +286,20 @@ def testGuiMainMenu_EditFormat(qtbot, monkeypatch, nwGUI, prjLipsum):
     mainMenu.aFmtNoFormat.activate(QAction.ActionEvent.Trigger)
     assert docEditor.getText()[:30] == cleanText
 
+    # Lists
+    # =====
+
+    # Unordered List
+    mainMenu.aFmtListU.activate(QAction.ActionEvent.Trigger)
+    assert docEditor.getText()[:28] == "* A single, short paragraph."
+
+    # Ordered List
+    mainMenu.aFmtListO.activate(QAction.ActionEvent.Trigger)
+    assert docEditor.getText()[:29] == "#. A single, short paragraph."
+
+    mainMenu.aFmtNoFormat.activate(QAction.ActionEvent.Trigger)
+    assert docEditor.getText()[:30] == cleanText
+
     # Other Checks
 
     # Replace Quotes

@@ -797,6 +797,17 @@ class GuiMainMenu(QMenuBar):
         # Format > Separator
         self.fmtMenu.addSeparator()
 
+        # Format > Bullet List
+        self.aFmtListU = qtAddAction(self.fmtMenu, self.tr("Bullet List"))
+        self.aFmtListU.triggered.connect(qtWeakLambda(self._emitDocAction, nwDocAction.BLOCK_LST_U))
+
+        # Format > Numbered List
+        self.aFmtListO = qtAddAction(self.fmtMenu, self.tr("Numbered List"))
+        self.aFmtListO.triggered.connect(qtWeakLambda(self._emitDocAction, nwDocAction.BLOCK_LST_O))
+
+        # Format > Separator
+        self.fmtMenu.addSeparator()
+
         # Format > Comment
         self.aFmtComment = qtAddAction(self.fmtMenu, self.tr("Toggle Comment"))
         self.aFmtComment.setShortcut("Ctrl+/")

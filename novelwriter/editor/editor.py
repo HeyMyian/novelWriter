@@ -157,6 +157,13 @@ T_SelCache = dict[int, tuple[T_TextCheckList, T_Selections]]
 
 MOVE_KEYS = (QtKeyLeft, QtKeyRight, QtKeyUp, QtKeyDown, QtKeyPageUp, QtKeyPageDown)
 ENTER_KEYS = (QtKeyReturn, QtKeyEnter)
+BLOCK_TEXT_ONLY = (
+    nwDocAction.ALIGN_L,
+    nwDocAction.ALIGN_C,
+    nwDocAction.ALIGN_R,
+    nwDocAction.INDENT_L,
+    nwDocAction.INDENT_R,
+)
 
 
 class _SelectAction(Enum):
@@ -1058,6 +1065,10 @@ class GuiDocEditor(QTextEdit):
             self._iterFormatBlocks(nwDocAction.BLOCK_IGN)
         elif action == nwDocAction.BLOCK_TXT:
             self._iterFormatBlocks(nwDocAction.BLOCK_TXT)
+        elif action == nwDocAction.BLOCK_LST_U:
+            self._iterFormatBlocks(nwDocAction.BLOCK_LST_U)
+        elif action == nwDocAction.BLOCK_LST_O:
+            self._iterFormatBlocks(nwDocAction.BLOCK_LST_O)
         elif action == nwDocAction.BLOCK_TTL:
             self._formatBlock(nwDocAction.BLOCK_TTL)
         elif action == nwDocAction.BLOCK_UNN:
@@ -1070,16 +1081,8 @@ class GuiDocEditor(QTextEdit):
             self._replaceQuotes('"', CONFIG.fmtDQuoteOpen, CONFIG.fmtDQuoteClose)
         elif action == nwDocAction.RM_BREAKS:
             self._removeInParLineBreaks()
-        elif action == nwDocAction.ALIGN_L and not noFormat:
-            self._formatBlock(nwDocAction.ALIGN_L)
-        elif action == nwDocAction.ALIGN_C and not noFormat:
-            self._formatBlock(nwDocAction.ALIGN_C)
-        elif action == nwDocAction.ALIGN_R and not noFormat:
-            self._formatBlock(nwDocAction.ALIGN_R)
-        elif action == nwDocAction.INDENT_L and not noFormat:
-            self._formatBlock(nwDocAction.INDENT_L)
-        elif action == nwDocAction.INDENT_R and not noFormat:
-            self._formatBlock(nwDocAction.INDENT_R)
+        elif action in BLOCK_TEXT_ONLY and not (noFormat and len(self._selectedBlocks(cursor)) < 2):
+            self._iterFormatBlocks(action)
         elif action == nwDocAction.SC_ITALIC and not noFormat:
             self._wrapSelection(nwShortcode.ITALIC_O, nwShortcode.ITALIC_C)
         elif action == nwDocAction.SC_BOLD and not noFormat:
@@ -2380,7 +2383,10 @@ class GuiDocEditor(QTextEdit):
         """Process the formatting of a single text block."""
         # Remove existing format first, if any
         if text.startswith("@"):
-            logger.error("Cannot apply block format to keyword/value line")
+            logger.debug("Cannot apply block format to keyword/value line")
+            return nwDocAction.NO_ACTION, "", 0
+        elif action in BLOCK_TEXT_ONLY and text.startswith(nwStyles.H_MARKERS):
+            logger.debug("Cannot apply text block format to heading")
             return nwDocAction.NO_ACTION, "", 0
         elif text.startswith("%~"):
             temp = text[2:].lstrip()
@@ -2395,27 +2401,25 @@ class GuiDocEditor(QTextEdit):
         elif text.startswith("# "):
             temp = text[2:]
             offset = 2
-        elif text.startswith("## "):
+        elif text.startswith(("## ", "#! ", ">> ")):
             temp = text[3:]
             offset = 3
-        elif text.startswith("### "):
+        elif text.startswith(("### ", "##! ")):
             temp = text[4:]
             offset = 4
-        elif text.startswith("#### "):
+        elif text.startswith(("#### ", "###! ")):
             temp = text[5:]
             offset = 5
-        elif text.startswith("#! "):
+        elif text.startswith("* ") and text[2:].strip("* "):
+            temp = text[2:]
+            offset = 2
+            if toggle and action == nwDocAction.BLOCK_LST_U:
+                action = nwDocAction.BLOCK_TXT
+        elif text.startswith("#. "):
             temp = text[3:]
             offset = 3
-        elif text.startswith("##! "):
-            temp = text[4:]
-            offset = 4
-        elif text.startswith("###! "):
-            temp = text[5:]
-            offset = 5
-        elif text.startswith(">> "):
-            temp = text[3:]
-            offset = 3
+            if toggle and action == nwDocAction.BLOCK_LST_O:
+                action = nwDocAction.BLOCK_TXT
         elif (text.startswith("> ") and action != nwDocAction.INDENT_R) or text.startswith(">>"):
             temp = text[2:]
             offset = 2
@@ -2435,6 +2439,16 @@ class GuiDocEditor(QTextEdit):
             temp = temp[:-1]
 
         # Apply new format
+        if toggle and action in (nwDocAction.ALIGN_L, nwDocAction.ALIGN_C, nwDocAction.ALIGN_R):
+            isRight = text.startswith(">>")
+            isLeft = text.endswith("<<")
+            if (
+                (action == nwDocAction.ALIGN_L and isLeft and not isRight)
+                or (action == nwDocAction.ALIGN_C and isLeft and isRight)
+                or (action == nwDocAction.ALIGN_R and isRight and not isLeft)
+            ):
+                action = nwDocAction.BLOCK_TXT
+
         if action == nwDocAction.BLOCK_COM:
             text = f"% {temp}"
             offset -= 2
@@ -2462,6 +2476,12 @@ class GuiDocEditor(QTextEdit):
         elif action == nwDocAction.BLOCK_HSC:
             text = f"###! {temp}"
             offset -= 5
+        elif action == nwDocAction.BLOCK_LST_U:
+            text = f"* {temp}"
+            offset -= 2
+        elif action == nwDocAction.BLOCK_LST_O:
+            text = f"#. {temp}"
+            offset -= 3
         elif action == nwDocAction.ALIGN_L:
             text = f"{temp} <<"
         elif action == nwDocAction.ALIGN_C:
@@ -2576,6 +2596,11 @@ class GuiDocEditor(QTextEdit):
                 toggle = False
 
         cursor.endEditBlock()
+
+        # Reselect the affected blocks so the action can be repeated
+        cursor.setPosition(blocks[0].position())
+        cursor.setPosition(blocks[-1].position() + blocks[-1].length() - 1, QtKeepAnchor)
+        self.setTextCursor(cursor)
 
         return True
 
@@ -2990,25 +3015,36 @@ class GuiDocEditor(QTextEdit):
     ##
 
     def _dispatchKeyPress(self, event: QKeyEvent) -> None:
-        """Send a key event on to the base class for regular handling,
-        except for a plain Return/Enter press, which is handled
-        directly instead.
+        """Send a key event to the base class, except plain Return.
 
-        Qt's own Return handling (QWidgetTextControlPrivate::
-        insertParagraphSeparator) resets the current block's format to
-        a bare default and swallows the keypress whenever the cursor
-        is on an empty block whose format isn't already default. That
-        heuristic exists so rich-text users can hit Enter twice to
-        escape a list/heading/quote, but every block here always
-        carries a non-default line height, so it fires on every
-        ordinary blank-line paragraph break and silently eats every
-        second Return. novelWriter never uses Qt's native list/heading
-        block formatting, so the heuristic serves no purpose here, and
-        can be bypassed entirely by inserting the new block directly.
+        Qt's Return handling swallows the keypress on empty blocks with
+        a non-default format, which all blocks have here due to line
+        height, so new blocks are inserted directly. List markers are
+        carried over to the new block.
         """
         if event.key() in ENTER_KEYS and event.modifiers() == QtModNone:
             cursor = self.textCursor()
-            cursor.insertBlock()
+            block = self._qDocument.findBlock(cursor.selectionStart())
+            text = block.text()
+            marker = ""
+            if text.startswith("* ") and text[2:].strip("* "):
+                marker = "* "
+            elif text.startswith("#. ") and text[3:].strip():
+                marker = "#. "
+
+            cursor.beginEditBlock()
+            if text.startswith(("* ", "#. ")) and text.rstrip() in ("*", "#.") and not cursor.hasSelection():
+                # Enter on an empty item clears the marker and ends the list (see #1460)
+                cursor.setPosition(block.position())
+                cursor.setPosition(block.position() + block.length() - 1, QtKeepAnchor)
+                cursor.removeSelectedText()
+            else:
+                inMarker = cursor.selectionStart() - block.position() < len(marker)
+                cursor.insertBlock()
+                if marker and not inMarker:
+                    cursor.insertText(marker)
+            cursor.endEditBlock()
+
             self.setTextCursor(cursor)
             self.ensureCursorVisible(centre=False)
             event.accept()
