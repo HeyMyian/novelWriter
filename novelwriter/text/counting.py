@@ -54,6 +54,8 @@ def preProcessText(text: str, keepHeaders: bool = True) -> list[str]:
                 continue
             if line[0] == ">":
                 line = line.lstrip(">").lstrip(" ")
+            elif line[:2] == "* ":
+                line = line[2:]
         if line:  # Above block can return empty line (Issue #1816)
             if line[-1] == "<":
                 line = line.rstrip("<").rstrip(" ")

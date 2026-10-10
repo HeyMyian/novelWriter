@@ -417,6 +417,13 @@ class GuiDocHighlighter(QSyntaxHighlighter):
                 self.setFormat(0, pos, self._hStyles["modifier"])
                 self.setFormat(pos, length, self._hStyles["note"])
 
+        elif text.startswith("* ") and text[2:].strip("* "):  # Lists
+            self.setCurrentBlockState(BLOCK_TEXT)
+            rules = self._cmnRules
+
+            self.setFormat(0, 2, self._hStyles["code"])
+            offset = 2
+
         elif text.startswith("["):  # Special Command
             self.setCurrentBlockState(BLOCK_TEXT)
             rules = self._txtRules if self._isNovel else self._minRules

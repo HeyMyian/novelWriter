@@ -117,13 +117,14 @@ class BlockTyp(IntEnum):
     HEAD3 = 6  # Heading 3 or Section
     HEAD4 = 7  # Heading 4
     TEXT = 8  # Text line
-    SEP = 9  # Scene separator
-    HRULE = 10  # Horizontal rule
-    SKIP = 11  # Paragraph break
-    SUMMARY = 12  # Synopsis/short comment
-    NOTE = 13  # Note
-    COMMENT = 14  # Comment
-    KEYWORD = 15  # Tag/reference keywords
+    LIST = 9  # List item
+    SEP = 10  # Scene separator
+    HRULE = 11  # Horizontal rule
+    SKIP = 12  # Paragraph break
+    SUMMARY = 13  # Synopsis/short comment
+    NOTE = 14  # Note
+    COMMENT = 15  # Comment
+    KEYWORD = 16  # Tag/reference keywords
 
 
 class BlockFmt(Flag):
@@ -144,6 +145,8 @@ class BlockFmt(Flag):
     IND_L = 0x0100  # Left indentation
     IND_R = 0x0200  # Right indentation
     IND_T = 0x0400  # Text indentation
+    LIST_S = 0x0800  # List start
+    LIST_E = 0x1000  # List end
 
     # Masks
     ALIGNED = LEFT | RIGHT | CENTRE | JUSTIFY
