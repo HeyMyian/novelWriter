@@ -33,7 +33,7 @@ from PyQt6.QtCore import QMargins, QSize
 
 from novelwriter import __version__
 from novelwriter.common import firstFloat, xmlElement, xmlSubElem
-from novelwriter.constants import nwHeadFmt, nwStyles
+from novelwriter.constants import nwHeadFmt, nwStyles, nwUnicode
 from novelwriter.formats.shared import BlockFmt, BlockTyp, T_Formats, TextFmt, stripEscape
 from novelwriter.formats.tokenizer import COMMENT_BLOCKS, Tokenizer
 from novelwriter.types import QtBlack, QtHexRgb
@@ -137,6 +137,7 @@ S_SEP = "Separator"
 S_META = "MetaText"
 S_HEAD = "Header"
 S_FNOTE = "FootnoteText"
+S_LIST = "ListParagraph"
 
 
 class DocXXmlRel(NamedTuple):
@@ -198,6 +199,7 @@ class ToDocX(Tokenizer):
         "_headerFormat",
         "_mHorLine",
         "_mirrorMargins",
+        "_numLists",
         "_pageGutter",
         "_pageMargins",
         "_pageOffset",
@@ -224,6 +226,7 @@ class ToDocX(Tokenizer):
         self._pageGutter = 0
         self._mirrorMargins = False
         self._mHorLine = _mmToSz(42.5 / 20.0)
+        self._numLists = 0
 
         # Data Variables
         self._pars: list[DocXParagraph] = []
@@ -326,6 +329,12 @@ class ToDocX(Tokenizer):
             elif tType == BlockTyp.HEAD4:
                 self._processFragments(par, S_HEAD4, tText, tFormat)
 
+            elif tType == BlockTyp.LIST:
+                if tStyle & BlockFmt.LIST_S:
+                    self._numLists += 1
+                par.setNumbering(self._numLists, 0)
+                self._processFragments(par, S_LIST, tText, tFormat)
+
             elif tType == BlockTyp.SEP:
                 self._processFragments(par, S_SEP, tText)
 
@@ -361,6 +370,8 @@ class ToDocX(Tokenizer):
         self._settingsXml()
         if self._usedNotes:
             self._footnotesXml()
+        if self._numLists:
+            self._numberingXml()
 
     def saveDocument(self, path: Path) -> None:
         """Save the data to a .docx file."""
@@ -659,6 +670,19 @@ class ToDocX(Tokenizer):
                 level=1,
                 color=hColor,
                 bold=self._boldHeads,
+            )
+        )
+
+        # Add List Paragraph
+        styles.append(
+            DocXParStyle(
+                name="List Paragraph",
+                styleId=S_LIST,
+                size=fSz,
+                basedOn=S_NORM,
+                before=fSz * self._marginText[0],
+                after=fSz * self._marginText[1],
+                line=fSz * self._lineHeight,
             )
         )
 
@@ -1078,6 +1102,46 @@ class ToDocX(Tokenizer):
 
         return rId
 
+    def _numberingXml(self) -> str:
+        """Populate numbering.xml."""
+        rId = self._nextRelId()
+        xRoot = xmlElement(_wTag("numbering"))
+        self._rels["numbering.xml"] = DocXXmlRel(
+            rId=rId,
+            relType=f"{RELS_BASE}/numbering",
+        )
+        self._files["numbering.xml"] = DocXXmlFile(
+            xml=xRoot,
+            path="word",
+            contentType=f"{WORD_BASE}.numbering+xml",
+        )
+
+        fSz = 20.0 * self._fontSize
+        xAbst = xmlSubElem(xRoot, _wTag("abstractNum"), attrib={_wTag("abstractNumId"): "0"})
+        xmlSubElem(xAbst, _wTag("multiLevelType"), attrib={W_VAL: "hybridMultilevel"})
+        for level in range(9):
+            xLvl = xmlSubElem(xAbst, _wTag("lvl"), attrib={_wTag("ilvl"): str(level)})
+            xmlSubElem(xLvl, _wTag("start"), attrib={W_VAL: "1"})
+            xmlSubElem(xLvl, _wTag("numFmt"), attrib={W_VAL: "bullet"})
+            xmlSubElem(xLvl, _wTag("lvlText"), attrib={W_VAL: nwUnicode.U_BULL})
+            xmlSubElem(xLvl, _wTag("lvlJc"), attrib={W_VAL: "left"})
+            pPr = xmlSubElem(xLvl, _wTag("pPr"))
+            xmlSubElem(
+                pPr,
+                _wTag("ind"),
+                attrib={
+                    _wTag("left"): str(int(2.0 * fSz * (level + 1))),
+                    _wTag("hanging"): str(int(fSz)),
+                },
+            )
+
+        # Each list gets its own instance so numbered lists can restart
+        for numId in range(1, self._numLists + 1):
+            xNum = xmlSubElem(xRoot, _wTag("num"), attrib={_wTag("numId"): str(numId)})
+            xmlSubElem(xNum, _wTag("abstractNumId"), attrib={W_VAL: "0"})
+
+        return rId
+
     def _fontTableXml(self) -> str:
         """Populate fontTable.xml."""
         rId = self._nextRelId()
@@ -1172,6 +1236,7 @@ class DocXParagraph:
         "_footnoteRef",
         "_indentFirst",
         "_leftMargin",
+        "_numbering",
         "_rightMargin",
         "_style",
         "_textAlign",
@@ -1190,6 +1255,7 @@ class DocXParagraph:
         self._breakBefore = False
         self._breakAfter = False
         self._footnoteRef = False
+        self._numbering: tuple[int, int] | None = None
         self._borders: dict[str, DocXBorder] = {}
 
     ##
@@ -1246,6 +1312,10 @@ class DocXParagraph:
         """Set page break after flag."""
         self._breakAfter = state
 
+    def setNumbering(self, numId: int, level: int) -> None:
+        """Set list numbering instance and level."""
+        self._numbering = (numId, level)
+
     def setIsFootnote(self, state: bool) -> None:
         """Set is footnote flag."""
         self._footnoteRef = state
@@ -1275,6 +1345,10 @@ class DocXParagraph:
             # Paragraph
             pPr = xmlSubElem(xP, _wTag("pPr"))
             xmlSubElem(pPr, _wTag("pStyle"), attrib={W_VAL: style.styleId})
+            if numbering := self._numbering:
+                xNum = xmlSubElem(pPr, _wTag("numPr"))
+                xmlSubElem(xNum, _wTag("ilvl"), attrib={W_VAL: str(numbering[1])})
+                xmlSubElem(xNum, _wTag("numId"), attrib={W_VAL: str(numbering[0])})
             if self._topMargin is not None or self._bottomMargin is not None:
                 xmlSubElem(
                     pPr,

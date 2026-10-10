@@ -26,7 +26,7 @@ import xml.etree.ElementTree as ET
 
 from datetime import datetime
 from hashlib import sha256
-from typing import TYPE_CHECKING, Final, Literal, NamedTuple
+from typing import TYPE_CHECKING, ClassVar, Literal, NamedTuple
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from PyQt6.QtGui import QColor, QFont
@@ -1222,11 +1222,11 @@ class ODTParagraphStyle:
 
     __slots__ = ("_mAttr", "_name", "_pAttr", "_tAttr")
 
-    VALID_ALIGN: Final[list[str]] = ["start", "center", "end", "justify", "left", "right"]
-    VALID_BREAK: Final[list[str]] = ["auto", "page", "even-page", "odd-page", "inherit"]
-    VALID_LEVEL: Final[list[str]] = ["1", "2", "3", "4"]
-    VALID_CLASS: Final[list[str]] = ["text", "chapter", "extra", "html", "list"]
-    VALID_WEIGHT: Final[list[str]] = ["normal", "bold", *FONT_WEIGHT_NUM]
+    VALID_ALIGN: ClassVar[list[str]] = ["start", "center", "end", "justify", "left", "right"]
+    VALID_BREAK: ClassVar[list[str]] = ["auto", "page", "even-page", "odd-page", "inherit"]
+    VALID_LEVEL: ClassVar[list[str]] = ["1", "2", "3", "4"]
+    VALID_CLASS: ClassVar[list[str]] = ["text", "chapter", "extra", "html", "list"]
+    VALID_WEIGHT: ClassVar[list[str]] = ["normal", "bold", *FONT_WEIGHT_NUM]
 
     def __init__(self, name: str) -> None:
 
@@ -1469,13 +1469,13 @@ class ODTTextStyle:
 
     __slots__ = ("_name", "_tAttr")
 
-    VALID_WEIGHT: Final[list[str]] = ["normal", "bold", *FONT_WEIGHT_NUM]
-    VALID_STYLE: Final[list[str]] = ["normal", "italic", "oblique"]
-    VALID_POS: Final[list[str]] = ["super", "sub"]
-    VALID_LSTYLE: Final[list[str]] = ["none", "solid"]
-    VALID_LTYPE: Final[list[str]] = ["single", "double"]
-    VALID_LWIDTH: Final[list[str]] = ["auto"]
-    VALID_LCOL: Final[list[str]] = ["font-color"]
+    VALID_WEIGHT: ClassVar[list[str]] = ["normal", "bold", *FONT_WEIGHT_NUM]
+    VALID_STYLE: ClassVar[list[str]] = ["normal", "italic", "oblique"]
+    VALID_POS: ClassVar[list[str]] = ["super", "sub"]
+    VALID_LSTYLE: ClassVar[list[str]] = ["none", "solid"]
+    VALID_LTYPE: ClassVar[list[str]] = ["single", "double"]
+    VALID_LWIDTH: ClassVar[list[str]] = ["auto"]
+    VALID_LCOL: ClassVar[list[str]] = ["font-color"]
 
     def __init__(self, name: str) -> None:
         self._name = name
