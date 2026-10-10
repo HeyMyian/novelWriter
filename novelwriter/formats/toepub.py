@@ -33,7 +33,7 @@ from novelwriter.common import xmlElement, xmlIndent, xmlSubElem
 from novelwriter.constants import nwUnicode
 from novelwriter.formats.shared import BlockFmt, BlockTyp
 from novelwriter.formats.tohtml import ToHtml
-from novelwriter.formats.tokenizer import COMMENT_BLOCKS
+from novelwriter.formats.tokenizer import COMMENT_BLOCKS, LIST_BLOCKS
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -120,13 +120,13 @@ class ToEPub(ToHtml):
             hStyle = self._genInlineStyles(tStyle)
 
             if tStyle & BlockFmt.LIST_S:
-                self._section.text.append("<ul>")
+                self._section.text.append("<ol>" if tType == BlockTyp.LIST_O else "<ul>")
 
             # Process Text Type
             if tType == BlockTyp.TEXT:
                 self._section.text.append(f"<p{hStyle}>{self._formatText(tText, tFmt)}</p>")
 
-            elif tType == BlockTyp.LIST_U:
+            elif tType in LIST_BLOCKS:
                 self._section.text.append(f"<li{hStyle}>{self._formatText(tText, tFmt)}</li>")
 
             elif tType == BlockTyp.TITLE and self._isFront:
@@ -183,7 +183,7 @@ class ToEPub(ToHtml):
                 pass
 
             if tStyle & BlockFmt.LIST_E:
-                self._section.text.append("</ul>")
+                self._section.text.append("</ol>" if tType == BlockTyp.LIST_O else "</ul>")
 
     def closeDocument(self) -> None:
         """Run close document tasks."""

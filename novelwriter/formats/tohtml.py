@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING
 from novelwriter.common import formatTimeStamp
 from novelwriter.constants import nwHtmlUnicode
 from novelwriter.formats.shared import BlockFmt, BlockTyp, T_Formats, TextFmt, stripEscape
-from novelwriter.formats.tokenizer import COMMENT_BLOCKS, Tokenizer
+from novelwriter.formats.tokenizer import COMMENT_BLOCKS, LIST_BLOCKS, Tokenizer
 from novelwriter.types import FONT_STYLE, FONT_WEIGHTS, QtHexRgb
 
 if TYPE_CHECKING:
@@ -132,7 +132,7 @@ class ToHtml(Tokenizer):
             hStyle = self._genInlineStyles(tStyle)
 
             if tStyle & BlockFmt.LIST_S:
-                lines.append("<ul>\n")
+                lines.append("<ol>\n" if tType == BlockTyp.LIST_O else "<ul>\n")
 
             aNm = ""
             if self._linkHeadings and tMeta:
@@ -142,7 +142,7 @@ class ToHtml(Tokenizer):
             if tType == BlockTyp.TEXT:
                 lines.append(f"<p{hStyle}>{self._formatText(tText, tFmt)}</p>\n")
 
-            elif tType == BlockTyp.LIST_U:
+            elif tType in LIST_BLOCKS:
                 lines.append(f"<li{hStyle}>{self._formatText(tText, tFmt)}</li>\n")
 
             elif tType in (BlockTyp.TITLE, BlockTyp.PART):
@@ -185,7 +185,7 @@ class ToHtml(Tokenizer):
                 pass
 
             if tStyle & BlockFmt.LIST_E:
-                lines.append("</ul>\n")
+                lines.append("</ol>\n" if tType == BlockTyp.LIST_O else "</ul>\n")
 
         self._pages.append("".join(lines))
 
@@ -359,7 +359,7 @@ class ToHtml(Tokenizer):
                 "margin-top": f"{mtH4:.2f}em",
                 "margin-bottom": f"{mbH4:.2f}em",
             },
-            "ul": {
+            "ul, ol": {
                 "margin-top": f"{mtTT:.2f}em",
                 "margin-bottom": f"{mbTT:.2f}em",
             },

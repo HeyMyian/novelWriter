@@ -35,7 +35,7 @@ from novelwriter import __version__
 from novelwriter.common import firstFloat, xmlElement, xmlSubElem
 from novelwriter.constants import nwHeadFmt, nwStyles, nwUnicode
 from novelwriter.formats.shared import BlockFmt, BlockTyp, T_Formats, TextFmt, stripEscape
-from novelwriter.formats.tokenizer import COMMENT_BLOCKS, Tokenizer
+from novelwriter.formats.tokenizer import COMMENT_BLOCKS, LIST_BLOCKS, Tokenizer
 from novelwriter.types import QtBlack, QtHexRgb
 
 if TYPE_CHECKING:
@@ -226,7 +226,7 @@ class ToDocX(Tokenizer):
         self._pageGutter = 0
         self._mirrorMargins = False
         self._mHorLine = _mmToSz(42.5 / 20.0)
-        self._numLists = 0
+        self._numLists: list[bool] = []
 
         # Data Variables
         self._pars: list[DocXParagraph] = []
@@ -329,10 +329,10 @@ class ToDocX(Tokenizer):
             elif tType == BlockTyp.HEAD4:
                 self._processFragments(par, S_HEAD4, tText, tFormat)
 
-            elif tType == BlockTyp.LIST_U:
+            elif tType in LIST_BLOCKS:
                 if tStyle & BlockFmt.LIST_S:
-                    self._numLists += 1
-                par.setNumbering(self._numLists, 0)
+                    self._numLists.append(tType == BlockTyp.LIST_O)
+                par.setNumbering(len(self._numLists), 0)
                 self._processFragments(par, S_LIST, tText, tFormat)
 
             elif tType == BlockTyp.SEP:
@@ -1117,28 +1117,33 @@ class ToDocX(Tokenizer):
         )
 
         fSz = 20.0 * self._fontSize
-        xAbst = xmlSubElem(xRoot, _wTag("abstractNum"), attrib={_wTag("abstractNumId"): "0"})
-        xmlSubElem(xAbst, _wTag("multiLevelType"), attrib={W_VAL: "hybridMultilevel"})
-        for level in range(9):
-            xLvl = xmlSubElem(xAbst, _wTag("lvl"), attrib={_wTag("ilvl"): str(level)})
-            xmlSubElem(xLvl, _wTag("start"), attrib={W_VAL: "1"})
-            xmlSubElem(xLvl, _wTag("numFmt"), attrib={W_VAL: "bullet"})
-            xmlSubElem(xLvl, _wTag("lvlText"), attrib={W_VAL: nwUnicode.U_BULL})
-            xmlSubElem(xLvl, _wTag("lvlJc"), attrib={W_VAL: "left"})
-            pPr = xmlSubElem(xLvl, _wTag("pPr"))
-            xmlSubElem(
-                pPr,
-                _wTag("ind"),
-                attrib={
-                    _wTag("left"): str(int(2.0 * fSz * (level + 1))),
-                    _wTag("hanging"): str(int(fSz)),
-                },
-            )
+        for aId, (numFmt, hang) in enumerate((("bullet", 1.0), ("decimal", 1.5))):
+            xAbst = xmlSubElem(xRoot, _wTag("abstractNum"), attrib={_wTag("abstractNumId"): str(aId)})
+            xmlSubElem(xAbst, _wTag("multiLevelType"), attrib={W_VAL: "hybridMultilevel"})
+            for level in range(9):
+                lvlText = nwUnicode.U_BULL if aId == 0 else f"%{level + 1}."
+                xLvl = xmlSubElem(xAbst, _wTag("lvl"), attrib={_wTag("ilvl"): str(level)})
+                xmlSubElem(xLvl, _wTag("start"), attrib={W_VAL: "1"})
+                xmlSubElem(xLvl, _wTag("numFmt"), attrib={W_VAL: numFmt})
+                xmlSubElem(xLvl, _wTag("lvlText"), attrib={W_VAL: lvlText})
+                xmlSubElem(xLvl, _wTag("lvlJc"), attrib={W_VAL: "left"})
+                pPr = xmlSubElem(xLvl, _wTag("pPr"))
+                xmlSubElem(
+                    pPr,
+                    _wTag("ind"),
+                    attrib={
+                        _wTag("left"): str(int(2.0 * fSz * (level + 1))),
+                        _wTag("hanging"): str(int(hang * fSz)),
+                    },
+                )
 
-        # Each list gets its own instance so numbered lists can restart
-        for numId in range(1, self._numLists + 1):
+        # Word continues numbering across instances unless restarted
+        for numId, ordered in enumerate(self._numLists, start=1):
             xNum = xmlSubElem(xRoot, _wTag("num"), attrib={_wTag("numId"): str(numId)})
-            xmlSubElem(xNum, _wTag("abstractNumId"), attrib={W_VAL: "0"})
+            xmlSubElem(xNum, _wTag("abstractNumId"), attrib={W_VAL: "1" if ordered else "0"})
+            if ordered:
+                xOvr = xmlSubElem(xNum, _wTag("lvlOverride"), attrib={_wTag("ilvl"): "0"})
+                xmlSubElem(xOvr, _wTag("startOverride"), attrib={W_VAL: "1"})
 
         return rId
 

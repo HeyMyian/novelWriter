@@ -35,7 +35,7 @@ from novelwriter import __version__
 from novelwriter.common import xmlElement, xmlIndent, xmlSubElem
 from novelwriter.constants import nwHeadFmt, nwStyles, nwUnicode
 from novelwriter.formats.shared import BlockFmt, BlockTyp, TextFmt, stripEscape
-from novelwriter.formats.tokenizer import COMMENT_BLOCKS, META_BLOCKS, Tokenizer
+from novelwriter.formats.tokenizer import COMMENT_BLOCKS, LIST_BLOCKS, META_BLOCKS, Tokenizer
 from novelwriter.types import FONT_STYLE, QtHexRgb
 
 if TYPE_CHECKING:
@@ -129,6 +129,7 @@ S_HNF = "Header_20_and_20_Footer"
 S_NUM = "N0"
 S_LIST = "List"
 S_BULL = "List_20_Bullet"
+S_NUMB = "Numbering_20_123"
 
 # Font Data
 FONT_WEIGHT_NUM = ["100", "200", "300", "400", "500", "600", "700", "800", "900"]
@@ -458,9 +459,10 @@ class ToOdt(Tokenizer):
                 # Title must be text:p
                 self._addTextPar(xText, S_TITLE, oStyle, tText, isHead=False)
 
-            elif tType == BlockTyp.LIST_U:
+            elif tType in LIST_BLOCKS:
                 if xList is None or tStyle & BlockFmt.LIST_S:
-                    xList = ET.SubElement(xText, TAG_LIST, attrib={TAG_STNM: S_BULL})
+                    sList = S_NUMB if tType == BlockTyp.LIST_O else S_BULL
+                    xList = ET.SubElement(xText, TAG_LIST, attrib={TAG_STNM: sList})
                 xItem = ET.SubElement(xList, TAG_ITEM)
                 self._addTextPar(xItem, S_LIST, oStyle, tText, tFmt=tFormat)
 
@@ -1174,40 +1176,52 @@ class ToOdt(Tokenizer):
 
     def _writeListStyle(self) -> None:
         """Write the list styles."""
-        xList = ET.SubElement(
-            self._xStyl,
-            _mkTag("text", "list-style"),
-            attrib={
-                _mkTag("style", "name"): S_BULL,
-                _mkTag("style", "display-name"): "List Bullet",
-            },
-        )
-        bIndent = self._emToCm(1.0)
-        for level in range(1, 11):
-            xLevel = ET.SubElement(
-                xList,
-                _mkTag("text", "list-level-style-bullet"),
+        for sName, sDisplay, sHang in ((S_BULL, "List Bullet", 1.0), (S_NUMB, "Numbering 123", 1.5)):
+            xList = ET.SubElement(
+                self._xStyl,
+                _mkTag("text", "list-style"),
                 attrib={
-                    _mkTag("text", "level"): str(level),
-                    _mkTag("text", "bullet-char"): nwUnicode.U_BULL,
+                    _mkTag("style", "name"): sName,
+                    _mkTag("style", "display-name"): sDisplay,
                 },
             )
-            xProp = ET.SubElement(
-                xLevel,
-                _mkTag("style", "list-level-properties"),
-                attrib={_mkTag("text", "list-level-position-and-space-mode"): "label-alignment"},
-            )
-            tIndent = self._emToCm(2.0 * level)
-            ET.SubElement(
-                xProp,
-                _mkTag("style", "list-level-label-alignment"),
-                attrib={
-                    _mkTag("text", "label-followed-by"): "listtab",
-                    _mkTag("text", "list-tab-stop-position"): tIndent,
-                    _mkTag("fo", "text-indent"): f"-{bIndent}",
-                    _mkTag("fo", "margin-left"): tIndent,
-                },
-            )
+            bIndent = self._emToCm(sHang)
+            for level in range(1, 11):
+                if sName == S_BULL:
+                    xLevel = ET.SubElement(
+                        xList,
+                        _mkTag("text", "list-level-style-bullet"),
+                        attrib={
+                            _mkTag("text", "level"): str(level),
+                            _mkTag("text", "bullet-char"): nwUnicode.U_BULL,
+                        },
+                    )
+                else:
+                    xLevel = ET.SubElement(
+                        xList,
+                        _mkTag("text", "list-level-style-number"),
+                        attrib={
+                            _mkTag("text", "level"): str(level),
+                            _mkTag("style", "num-suffix"): ".",
+                            _mkTag("style", "num-format"): "1",
+                        },
+                    )
+                xProp = ET.SubElement(
+                    xLevel,
+                    _mkTag("style", "list-level-properties"),
+                    attrib={_mkTag("text", "list-level-position-and-space-mode"): "label-alignment"},
+                )
+                tIndent = self._emToCm(2.0 * level)
+                ET.SubElement(
+                    xProp,
+                    _mkTag("style", "list-level-label-alignment"),
+                    attrib={
+                        _mkTag("text", "label-followed-by"): "listtab",
+                        _mkTag("text", "list-tab-stop-position"): tIndent,
+                        _mkTag("fo", "text-indent"): f"-{bIndent}",
+                        _mkTag("fo", "margin-left"): tIndent,
+                    },
+                )
 
 
 # Auto-Style Classes

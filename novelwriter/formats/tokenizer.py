@@ -1016,7 +1016,7 @@ class Tokenizer(ABC):
 
                     if nLines:  # pragma: no branch
                         isAligned = cStyle & BlockFmt.ALIGNED
-                        if firstIndent and pType != BlockTyp.LIST_U and not (self._noIndent or isAligned):
+                        if firstIndent and pType not in LIST_BLOCKS and not (self._noIndent or isAligned):
                             # If paragraph indentation is enabled, not a list,
                             # not temporarily turned off, and the block is not
                             # aligned, we add the text indentation flag
