@@ -22,6 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -31,7 +32,8 @@ from novelwriter.core.project import NWProject
 from novelwriter.core.projectdata import ProjectData
 from novelwriter.enum import nwItemClass
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, MockRnd, buildTestProject
+from tests.mocked import MockGuiMain
 
 
 class MockProject:
@@ -62,7 +64,7 @@ class _FakeDate(date):
 
 
 @pytest.mark.core
-def testProjectData_Uuid(mockGUI):
+def testProjectData_Uuid(mockGUI: MockGuiMain):
     """Test the setUuid setter."""
     project = MockProject()
     data = ProjectData(project)  # type: ignore
@@ -85,7 +87,7 @@ def testProjectData_Uuid(mockGUI):
 
 
 @pytest.mark.core
-def testProjectData_Language(mockGUI):
+def testProjectData_Language(mockGUI: MockGuiMain):
     """Test the setLanguage setter."""
     project = MockProject()
     data = ProjectData(project)  # type: ignore
@@ -101,7 +103,7 @@ def testProjectData_Language(mockGUI):
 
 
 @pytest.mark.core
-def testProjectData_LastHandle(mockGUI):
+def testProjectData_LastHandle(mockGUI: MockGuiMain):
     """Test the setLastHandle and setInitLastHandles setters."""
     project = MockProject()
     data = ProjectData(project)  # type: ignore
@@ -126,7 +128,7 @@ def testProjectData_LastHandle(mockGUI):
 
 
 @pytest.mark.core
-def testProjectData_CurrCounts(mockGUI):
+def testProjectData_CurrCounts(mockGUI: MockGuiMain):
     """Test the setCurrCounts setter."""
     project = MockProject()
     data = ProjectData(project)  # type: ignore
@@ -140,7 +142,7 @@ def testProjectData_CurrCounts(mockGUI):
 
 
 @pytest.mark.core
-def testProjectData_AutoReplace(mockGUI):
+def testProjectData_AutoReplace(mockGUI: MockGuiMain):
     """Test the setAutoReplace setter."""
     project = MockProject()
     data = ProjectData(project)  # type: ignore
@@ -162,7 +164,7 @@ def testProjectData_AutoReplace(mockGUI):
 
 
 @pytest.mark.core
-def testProjectData_ProjectTarget(mockGUI):
+def testProjectData_ProjectTarget(mockGUI: MockGuiMain):
     """Test the setProjectTarget setter, including the count mode flag
     that decides whether the project goal is tracked in words or
     characters.
@@ -197,7 +199,7 @@ def testProjectData_ProjectTarget(mockGUI):
 
 
 @pytest.mark.core
-def testProjectData_TargetSkipRoots(mockGUI, mockRnd, fncPath, ipsumText):
+def testProjectData_TargetSkipRoots(mockGUI: MockGuiMain, mockRnd: MockRnd, fncPath: Path, ipsumText: list[str]):
     """Test the setTargetSkipRoots setter against a real project tree.
     The daily progress is tracked per item from the session baseline,
     so excluding or including a root only changes today's progress by
@@ -285,7 +287,7 @@ def testProjectData_TargetSkipRoots(mockGUI, mockRnd, fncPath, ipsumText):
 
 
 @pytest.mark.core
-def testProjectData_DailyTargetCurrent(monkeypatch, mockGUI):
+def testProjectData_DailyTargetCurrent(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain):
     """Test the setInitDailyTarget setter. A stored reference count
     must only be restored when it was recorded on the same day; a count
     from any other day is stale and must be discarded so it cannot leak
@@ -322,7 +324,7 @@ def testProjectData_DailyTargetCurrent(monkeypatch, mockGUI):
 
 
 @pytest.mark.core
-def testProjectData_DailyProgress(monkeypatch, mockGUI):
+def testProjectData_DailyProgress(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain):
     """Test the setDailyProgress setter. The daily word count passed in
     is the cumulative session change since the project was last loaded,
     not the change since the previous call, so it must be combined with
@@ -388,7 +390,7 @@ def testProjectData_DailyProgress(monkeypatch, mockGUI):
 
 
 @pytest.mark.core
-def testProjectData_EffectiveDailyGoal(monkeypatch, mockGUI):
+def testProjectData_EffectiveDailyGoal(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain):
     """Test the getEffectiveDailyGoal getter. It must return the fixed
     daily goal unless automatic calculation is enabled, a deadline is
     set in the future, and there is a positive word count remaining.

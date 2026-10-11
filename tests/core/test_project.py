@@ -22,6 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 from shutil import copyfile
 from zipfile import ZipFile
 
@@ -34,12 +35,12 @@ from novelwriter.core.projectxml import ProjectXMLReader, ProjectXMLWriter, XMLR
 from novelwriter.enum import nwItemClass
 from novelwriter.shared import _GuiAlert
 
-from tests.helpers import XML_IGNORE, C, buildTestProject, cmpFiles
-from tests.mocked import causeOSError
+from tests.helpers import XML_IGNORE, C, MockRnd, TstPaths, buildTestProject, cmpFiles
+from tests.mocked import MockGuiMain, causeOSError
 
 
 @pytest.mark.core
-def testNWProject_NewRoot(fncPath, tstPaths, mockGUI, mockRnd):
+def testNWProject_NewRoot(fncPath: Path, tstPaths: TstPaths, mockGUI: MockGuiMain, mockRnd: MockRnd):
     """Check that new root folders can be added to the project."""
     projFile = fncPath / "nwProject.nwx"
     testFile = tstPaths.outDir / "coreProject_NewRoot_nwProject.nwx"
@@ -87,7 +88,13 @@ def testNWProject_NewRoot(fncPath, tstPaths, mockGUI, mockRnd):
 
 
 @pytest.mark.core
-def testNWProject_NewFileFolder(monkeypatch, fncPath, tstPaths, mockGUI, mockRnd):
+def testNWProject_NewFileFolder(
+    monkeypatch: pytest.MonkeyPatch,
+    fncPath: Path,
+    tstPaths: TstPaths,
+    mockGUI: MockGuiMain,
+    mockRnd: MockRnd,
+):
     """Check that new files can be added to the project."""
     projFile = fncPath / "nwProject.nwx"
     testFile = tstPaths.outDir / "coreProject_NewFileFolder_nwProject.nwx"
@@ -194,7 +201,7 @@ def testNWProject_NewFileFolder(monkeypatch, fncPath, tstPaths, mockGUI, mockRnd
 
 
 @pytest.mark.core
-def testNWProject_CreateNewNote(monkeypatch, fncPath, mockGUI, mockRnd):
+def testNWProject_CreateNewNote(monkeypatch: pytest.MonkeyPatch, fncPath: Path, mockGUI: MockGuiMain, mockRnd: MockRnd):
     """Check that new notes can be created for a given tag."""
     project = NWProject()
     mockRnd.reset()
@@ -229,7 +236,13 @@ def testNWProject_CreateNewNote(monkeypatch, fncPath, mockGUI, mockRnd):
 
 
 @pytest.mark.core
-def testNWProject_Open(monkeypatch, caplog, mockGUI, fncPath, mockRnd):
+def testNWProject_Open(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
     """Test opening a project."""
     project = NWProject()
     mockRnd.reset()
@@ -354,7 +367,12 @@ def testNWProject_Open(monkeypatch, caplog, mockGUI, fncPath, mockRnd):
 
 
 @pytest.mark.core
-def testNWProject_OpenConvertsOldDocuments(monkeypatch, mockGUI, fncPath, mockRnd):
+def testNWProject_OpenConvertsOldDocuments(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
     """Test that an old .nwd document file is only converted to .md
     once the user accepts the upgrade prompt.
     """
@@ -388,7 +406,7 @@ def testNWProject_OpenConvertsOldDocuments(monkeypatch, mockGUI, fncPath, mockRn
 
 
 @pytest.mark.core
-def testNWProject_Save(monkeypatch, mockGUI, mockRnd, fncPath):
+def testNWProject_Save(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, mockRnd: MockRnd, fncPath: Path):
     """Test saving a project."""
     project = NWProject()
 
@@ -421,7 +439,7 @@ def testNWProject_Save(monkeypatch, mockGUI, mockRnd, fncPath):
 
 
 @pytest.mark.core
-def testNWProject_AutoSaveIndexRevision(mockGUI, mockRnd, fncPath):
+def testNWProject_AutoSaveIndexRevision(mockGUI: MockGuiMain, mockRnd: MockRnd, fncPath: Path):
     """Test that the index revision is kept current in the project file
     on every save, including autosave.
     """
@@ -457,7 +475,7 @@ def testNWProject_AutoSaveIndexRevision(mockGUI, mockRnd, fncPath):
 
 
 @pytest.mark.core
-def testNWProject_Methods(monkeypatch, mockGUI, fncPath, mockRnd):
+def testNWProject_Methods(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, fncPath: Path, mockRnd: MockRnd):
     """Test other project class methods and functions."""
     project = NWProject()
     buildTestProject(project, fncPath)
@@ -548,7 +566,7 @@ def testNWProject_Methods(monkeypatch, mockGUI, fncPath, mockRnd):
 
 
 @pytest.mark.core
-def testNWProject_Backup(monkeypatch, mockGUI, fncPath, tstPaths):
+def testNWProject_Backup(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, fncPath: Path, tstPaths: TstPaths):
     """Test the automated backup feature of the project class. The test
     creates a backup of the Minimal test project, and then unzips the
     backup file and checks that the project XML file is identical to

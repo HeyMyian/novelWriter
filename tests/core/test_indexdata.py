@@ -30,9 +30,11 @@ from novelwriter.core.item import ProjectItem
 from novelwriter.core.project import NWProject
 from novelwriter.enum import nwComment
 
+from tests.mocked import MockGuiMain
+
 
 @pytest.mark.core
-def testIndexData_IndexNode(mockGUI):
+def testIndexData_IndexNode(mockGUI: MockGuiMain):
     """Test the IndexNode class."""
     handle = "0123456789abc"
     project = NWProject()
@@ -111,7 +113,7 @@ def testIndexData_IndexNode(mockGUI):
 
 
 @pytest.mark.core
-def testIndexData_IndexNodePackUnpack(mockGUI):
+def testIndexData_IndexNodePackUnpack(mockGUI: MockGuiMain):
     """Test the pack and unpack methods of the IndexNode class."""
     handle = "0123456789abc"
     project = NWProject()

@@ -23,17 +23,26 @@ from __future__ import annotations
 
 import re
 
+from pathlib import Path
+
 import pytest
 
 from novelwriter.constants import nwConst
 from novelwriter.core.project import NWProject
 from novelwriter.core.projectsearch import DocSearch
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, MockRnd, buildTestProject
+from tests.mocked import MockGuiMain
 
 
 @pytest.mark.core
-def testProjectSearch_Search(monkeypatch, mockGUI, fncPath, mockRnd, ipsumText):
+def testProjectSearch_Search(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+    ipsumText: list[str],
+):
     """Test the DocSearch utility."""
     project = NWProject()
     mockRnd.reset()
@@ -209,7 +218,7 @@ def testProjectSearch_SearchContext():
 
 
 @pytest.mark.core
-def testProjectSearch_DocumentFilters(mockGUI, fncPath, mockRnd):
+def testProjectSearch_DocumentFilters(mockGUI: MockGuiMain, fncPath: Path, mockRnd: MockRnd):
     """Test that the document type and root folder filters exclude the
     expected documents from the project-wide search.
     """

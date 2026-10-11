@@ -43,8 +43,8 @@ from novelwriter.core.storage import (
 )
 from novelwriter.enum import nwItemClass, nwItemLayout
 
-from tests.helpers import C, buildTestProject
-from tests.mocked import causeOSError
+from tests.helpers import C, MockRnd, TstPaths, buildTestProject
+from tests.mocked import MockGuiMain, causeOSError
 
 
 class MockProject:
@@ -52,7 +52,7 @@ class MockProject:
 
 
 @pytest.mark.core
-def testProjectStorage_CreateNewProject(mockGUI, fncPath):
+def testProjectStorage_CreateNewProject(mockGUI: MockGuiMain, fncPath: Path):
     """Test creating a project in a folder."""
     project = NWProject()
 
@@ -93,7 +93,12 @@ def testProjectStorage_CreateNewProject(mockGUI, fncPath):
 
 
 @pytest.mark.core
-def testProjectStorage_InitProjectStorage(monkeypatch, mockGUI, fncPath, mockRnd):
+def testProjectStorage_InitProjectStorage(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
     """Test initialising a project in a folder."""
     project = NWProject()
 
@@ -178,7 +183,7 @@ def testProjectStorage_InitProjectStorage(monkeypatch, mockGUI, fncPath, mockRnd
 
 
 @pytest.mark.core
-def testProjectStorage_InitProjectStorage_Invalid(monkeypatch, mockGUI, fncPath):
+def testProjectStorage_InitProjectStorage_Invalid(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, fncPath: Path):
     """Test initialising a project in an invalid folder."""
     project = NWProject()
 
@@ -222,7 +227,7 @@ def testProjectStorage_InitProjectStorage_Invalid(monkeypatch, mockGUI, fncPath)
 
 
 @pytest.mark.core
-def testProjectStorage_LockFile(monkeypatch, fncPath):
+def testProjectStorage_LockFile(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Test the project lock file."""
     monkeypatch.setattr("novelwriter.core.storage.time", lambda: 1000.0)
 
@@ -286,7 +291,13 @@ def testProjectStorage_LockFile(monkeypatch, fncPath):
 
 
 @pytest.mark.core
-def testProjectStorage_ZipIt(monkeypatch, mockGUI, fncPath, tstPaths, mockRnd):
+def testProjectStorage_ZipIt(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    tstPaths: TstPaths,
+    mockRnd: MockRnd,
+):
     """Test making a zip archive of a project."""
     zipFile = tstPaths.tmpDir / "project.zip"
 
@@ -325,7 +336,7 @@ def testProjectStorage_ZipIt(monkeypatch, mockGUI, fncPath, tstPaths, mockRnd):
 
 
 @pytest.mark.core
-def testProjectStorage_LegacyDataFolder(monkeypatch, fncPath):
+def testProjectStorage_LegacyDataFolder(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Test project file format 1.0 folder structure conversion."""
     project = MockProject()
     storage = ProjectStorage(project)  # type: ignore
@@ -393,7 +404,7 @@ def testProjectStorage_LegacyDataFolder(monkeypatch, fncPath):
 
 
 @pytest.mark.core
-def testProjectStorage_FindOldDocuments(fncPath):
+def testProjectStorage_FindOldDocuments(fncPath: Path):
     """Test scanning the content folder for old .nwd document files."""
     project = MockProject()
     storage = ProjectStorage(project)  # type: ignore
@@ -412,7 +423,7 @@ def testProjectStorage_FindOldDocuments(fncPath):
 
 
 @pytest.mark.core
-def testProjectStorage_RunPostXMLTasks(monkeypatch, fncPath):
+def testProjectStorage_RunPostXMLTasks(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Test running the post-XML-load document conversion tasks."""
     project = MockProject()
     storage = ProjectStorage(project)  # type: ignore
@@ -445,7 +456,7 @@ def testProjectStorage_RunPostXMLTasks(monkeypatch, fncPath):
 
 
 @pytest.mark.core
-def testLegacyDocuments_ConvertDocuments(monkeypatch, fncPath):
+def testLegacyDocuments_ConvertDocuments(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Test conversion of old .nwd document files to .md with a TOML header."""
     project = MockProject()
     storage = ProjectStorage(project)  # type: ignore
@@ -541,7 +552,7 @@ def testLegacyDocuments_ConvertDocuments(monkeypatch, fncPath):
 
 
 @pytest.mark.core
-def testLegacyDocuments_ParseOldDocumentMeta(caplog):
+def testLegacyDocuments_ParseOldDocumentMeta(caplog: pytest.LogCaptureFixture):
     """Test parsing of individual old-format meta data lines."""
     caplog.set_level(logging.DEBUG, logger="novelwriter")
     legacy = _LegacyDocuments(MockProject())  # type: ignore
@@ -589,7 +600,7 @@ def testLegacyDocuments_ParseOldDocumentMeta(caplog):
 
 
 @pytest.mark.core
-def testProjectStorage_DeprecatedFiles(monkeypatch, fncPath):
+def testProjectStorage_DeprecatedFiles(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Test cleanup of deprecated files."""
     project = MockProject()
     storage = ProjectStorage(project)  # type: ignore
@@ -630,7 +641,7 @@ def testProjectStorage_DeprecatedFiles(monkeypatch, fncPath):
 
 
 @pytest.mark.core
-def testProjectStorage_OldFormatConvert(monkeypatch, mockGUI, fncPath):
+def testProjectStorage_OldFormatConvert(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, fncPath: Path):
     """Test cleanup of deprecated files that needs to be converted."""
     project = NWProject()
     buildTestProject(project, fncPath)

@@ -31,11 +31,11 @@ from novelwriter.core.project import NWProject
 from novelwriter.core.sessions import SessionLog
 
 from tests.helpers import buildTestProject
-from tests.mocked import causeOSError
+from tests.mocked import MockGuiMain, causeOSError
 
 
 @pytest.mark.core
-def testNWSessionLog_Main(monkeypatch, mockGUI, fncPath):
+def testNWSessionLog_Main(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, fncPath: Path):
     """Test log file handling of the SessionLog class."""
     project = NWProject()
     buildTestProject(project, fncPath)
