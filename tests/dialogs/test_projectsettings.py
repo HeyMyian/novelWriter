@@ -22,12 +22,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 import pytest
 
 from PyQt6.QtCore import QDate
 from PyQt6.QtGui import QAction, QColor
 from PyQt6.QtWidgets import QColorDialog, QFileDialog, QToolButton
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.core.project import NWProject
@@ -35,16 +37,17 @@ from novelwriter.core.spellcheck import SpellEnchant
 from novelwriter.dialogs.editlabel import GuiEditLabel
 from novelwriter.dialogs.projectsettings import GuiProjectSettings
 from novelwriter.enum import nwItemType, nwStatusShape
+from novelwriter.guimain import GuiMain
 from novelwriter.types import QtAccepted, QtMouseLeft
 
-from tests.helpers import C, buildTestProject, checkDialogFreedOnClose
+from tests.helpers import C, MockRnd, buildTestProject, checkDialogFreedOnClose
 from tests.mocked import causeOSError
 
 KEY_DELAY = 1
 
 
 @pytest.mark.gui
-def testGuiProjectSettings_Dialog(qtbot, monkeypatch, nwGUI):
+def testGuiProjectSettings_Dialog(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain):
     """Test the main dialog class. Saving settings is not tested in this
     test, but are instead tested in the individual tab tests.
     """
@@ -99,7 +102,14 @@ def testGuiProjectSettings_Dialog(qtbot, monkeypatch, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiProjectSettings_SettingsPage(qtbot, monkeypatch, nwGUI, fncPath, projPath, mockRnd):
+def testGuiProjectSettings_SettingsPage(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the settings page of the dialog."""
     languages = [("en", "English"), ("de", "German")]
     monkeypatch.setattr(SpellEnchant, "listDictionaries", lambda *a: languages)
@@ -164,7 +174,7 @@ def testGuiProjectSettings_SettingsPage(qtbot, monkeypatch, nwGUI, fncPath, proj
 
 
 @pytest.mark.gui
-def testGuiProjectSettings_GoalsPage(qtbot, nwGUI, projPath, mockRnd):
+def testGuiProjectSettings_GoalsPage(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd: MockRnd):
     """Test the goals page of the dialog."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
@@ -226,7 +236,13 @@ def testGuiProjectSettings_GoalsPage(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiProjectSettings_StatusImport(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectSettings_StatusImport(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the status and importance pages of the dialog."""
     monkeypatch.setattr(GuiEditLabel, "getLabel", lambda *a, text: (text, True))
     buildTestProject(NWProject(), projPath)
@@ -427,7 +443,13 @@ def testGuiProjectSettings_StatusImport(qtbot, monkeypatch, nwGUI, projPath, moc
 
 
 @pytest.mark.gui
-def testGuiProjectSettings_StatusImportExport(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectSettings_StatusImportExport(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the status and importance import/export."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
@@ -519,7 +541,13 @@ def testGuiProjectSettings_StatusImportExport(qtbot, monkeypatch, nwGUI, projPat
 
 
 @pytest.mark.gui
-def testGuiProjectSettings_Replace(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectSettings_Replace(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the auto-replace page of the dialog."""
     monkeypatch.setattr(GuiEditLabel, "getLabel", lambda *a, text: (text, True))
     buildTestProject(NWProject(), projPath)
@@ -606,7 +634,7 @@ def testGuiProjectSettings_Replace(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
 
 
 @pytest.mark.gui
-def testGuiProjectSettings_MemoryLeakRegression(qtbot, nwGUI, projPath, mockRnd):
+def testGuiProjectSettings_MemoryLeakRegression(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd: MockRnd):
     """Test that the dialog is freed when it is closed."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)

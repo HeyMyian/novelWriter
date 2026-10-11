@@ -23,12 +23,16 @@ from __future__ import annotations
 
 import pytest
 
+from pytestqt.qtbot import QtBot
+
 from novelwriter.dialogs.editlink import GuiEditLink
 from novelwriter.types import QtAccepted, QtRejected
 
+from tests.mocked import MockGuiMain
+
 
 @pytest.mark.gui
-def testGuiEditLink_Main(qtbot, monkeypatch, mockGUI):
+def testGuiEditLink_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain):
     """Test the link editor dialog."""
     monkeypatch.setattr(GuiEditLink, "exec", lambda *a: None)
 
