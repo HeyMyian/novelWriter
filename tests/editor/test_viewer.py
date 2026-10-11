@@ -53,7 +53,7 @@ def testGuiDocViewer_OpenAndNavigate(qtbot, nwGUI, projPath, mockRnd):
 
     # Select a document in the project tree
     nwGUI.projView.setSelectedHandle(C.hSceneDoc)
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
 
     # Can only open a document
     assert docViewer.loadText(C.hNovelRoot) is False
@@ -84,13 +84,13 @@ def testGuiDocViewer_OpenAndNavigate(qtbot, nwGUI, projPath, mockRnd):
     assert docViewer.toPlainText() == origText
 
     # Open in editor
-    nwGUI.closeDocument()
+    nwGUI.docPanes.closeDocument()
     assert docEditor.docHandle is None
     docViewer.docHeader._editDocument()
     assert docEditor.docHandle == docViewer.docHandle
 
     # With no document handle, editing does nothing
-    nwGUI.closeDocument()
+    nwGUI.docPanes.closeDocument()
     assert docEditor.docHandle is None
     docViewer.docHeader._docHandle = None
     docViewer.docHeader._editDocument()
@@ -107,10 +107,10 @@ def testGuiDocViewer_Selection(qtbot, monkeypatch, nwGUI, projPath, mockRnd, ips
     docEditor = nwGUI.docEditor
     docViewer = nwGUI.docViewer
 
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor.setPlainText(f"### Scene\n\n{ipsumText[0]}\n\n{ipsumText[1]}\n\n")
-    nwGUI.saveDocument()
-    nwGUI.viewDocument(C.hSceneDoc)
+    nwGUI.docPanes.saveDocument()
+    nwGUI.docPanes.viewDocument(C.hSceneDoc)
 
     text = docViewer.toPlainText()
     wordPos = text.index("laoreet")
@@ -211,10 +211,10 @@ def testGuiDocViewer_Zoom(qtbot, nwGUI, projPath, mockRnd, ipsumText):
     docEditor = nwGUI.docEditor
     docViewer = nwGUI.docViewer
 
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor.setPlainText(f"### Scene\n\n{ipsumText[0]}\n\n")
-    nwGUI.saveDocument()
-    nwGUI.viewDocument(C.hSceneDoc)
+    nwGUI.docPanes.saveDocument()
+    nwGUI.docPanes.viewDocument(C.hSceneDoc)
 
     basePt = docViewer.font().pointSizeF()
 
@@ -243,14 +243,14 @@ def testGuiDocViewer_Links(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     # Create a tagged character to link to
     hBob = "0000000000011"
     text = "### Scene\n\n@char: Bob\n\nSome text mentioning Bob.\n"
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor.setPlainText(text)
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
     cursor = docEditor.textCursor()
     cursor.setPosition(text.index("Bob"))
     docEditor._processTag(cursor, create=True)
 
-    nwGUI.viewDocument(C.hSceneDoc)
+    nwGUI.docPanes.viewDocument(C.hSceneDoc)
 
     # A tag link navigates to the tagged item
     docViewer._linkClicked(QUrl("#tag_bob"))
@@ -308,15 +308,15 @@ def testGuiDocViewer_HoverCard(qtbot, nwGUI, projPath, mockRnd):
 
     hBob = "0000000000010"
     text = "### Scene\n\n@char: Bob\n\nSome text mentioning Bob.\n"
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor.setPlainText(text)
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
     cursor = docEditor.textCursor()
     cursor.setPosition(text.index("Bob"))
     docEditor._processTag(cursor, create=True)
     assert hBob in SHARED.project.tree
 
-    nwGUI.viewDocument(C.hSceneDoc)
+    nwGUI.docPanes.viewDocument(C.hSceneDoc)
 
     document = docViewer.document()
     assert document is not None
@@ -405,13 +405,13 @@ def testGuiDocViewer_MouseNavigation(qtbot, nwGUI, projPath, mockRnd, ipsumText)
 
     # Make the scene long enough to produce a visible scroll bar, so
     # that the scroll position is also exercised while navigating
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor.setPlainText("### Scene\n\n" + "\n\n".join(ipsumText))
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
 
-    nwGUI.viewDocument(C.hChapterDoc)
+    nwGUI.docPanes.viewDocument(C.hChapterDoc)
     assert docViewer.docHandle == C.hChapterDoc
-    nwGUI.viewDocument(C.hSceneDoc)
+    nwGUI.docPanes.viewDocument(C.hSceneDoc)
     assert docViewer.docHandle == C.hSceneDoc
     assert docViewer.verticalScrollBar().isVisible() is True
 
@@ -450,7 +450,7 @@ def testGuiDocViewer_ScrollAndMargins(qtbot, monkeypatch, nwGUI, projPath, mockR
     nwGUI.openProject(projPath)
     docViewer = nwGUI.docViewer
 
-    nwGUI.viewDocument(C.hSceneDoc)
+    nwGUI.docPanes.viewDocument(C.hSceneDoc)
 
     # Scroll bar default on empty document
     docViewer.clear()
@@ -486,7 +486,7 @@ def testGuiDocViewer_HeaderTitle(qtbot, nwGUI, projPath, mockRnd):
     nwGUI.openProject(projPath)
     docViewer = nwGUI.docViewer
 
-    nwGUI.viewDocument(C.hChapterDoc)
+    nwGUI.docPanes.viewDocument(C.hChapterDoc)
 
     # Change document title
     nwItem = SHARED.project.tree[C.hChapterDoc]
@@ -535,7 +535,7 @@ def testGuiDocViewer_FooterAndErrors(qtbot, monkeypatch, nwGUI, projPath, mockRn
     docEditor = nwGUI.docEditor
     docViewer = nwGUI.docViewer
 
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor.setPlainText(
         "### Scene\n\n"
         "%Synopsis: A short synopsis.\n\n"
@@ -543,9 +543,9 @@ def testGuiDocViewer_FooterAndErrors(qtbot, monkeypatch, nwGUI, projPath, mockRn
         "%Note: A note about something.\n\n"
         "Some body text.\n\n"
     )
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
 
-    nwGUI.viewDocument(C.hSceneDoc)
+    nwGUI.docPanes.viewDocument(C.hSceneDoc)
     fullLength = len(docViewer.toPlainText())
 
     with qtbot.waitSignal(docViewer.togglePanelVisibility, timeout=1000):
@@ -584,8 +584,8 @@ def testGuiDocViewer_DragAndDrop(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
 
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hTitlePage) is True
-    assert nwGUI.viewDocument(C.hTitlePage) is True
+    assert nwGUI.docPanes.openDocument(C.hTitlePage) is True
+    nwGUI.docPanes.viewDocument(C.hTitlePage)
     assert docViewer.docHandle == C.hTitlePage
 
     middle = docViewer.viewport().rect().center()

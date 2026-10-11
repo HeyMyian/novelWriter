@@ -37,7 +37,7 @@ def testGuiTextDocument_LayoutBusy(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     qDoc = nwGUI.docEditor._qDocument
 
     # A small document never becomes busy
@@ -71,7 +71,7 @@ def testGuiTextDocument_BigDocOperations(qtbot, monkeypatch, nwGUI, projPath, ip
     monkeypatch.setattr(nwConst, "BIG_DOC_LIMIT", 10)
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     qDoc = nwGUI.docEditor._qDocument
 
     qDoc.setTextContent(ipsumText[0], C.hSceneDoc)
@@ -109,7 +109,7 @@ def testGuiTextDocument_IterBlockByType(qtbot, nwGUI, projPath, mockRnd):
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     qDoc = nwGUI.docEditor._qDocument
 
     qDoc.setPlainText("\n\n".join(f"### Heading {i}" for i in range(5)))

@@ -91,7 +91,7 @@ def testGuiNovelView_Content(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     root = QModelIndex()
 
     novelView.setTreeFocus()
-    nwGUI._changeView(nwView.NOVEL)
+    nwGUI.changeView(nwView.NOVEL)
 
     # Clear tree
     novelView.setCurrentNovel(None)
@@ -205,14 +205,14 @@ def testGuiNovelView_Content(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     assert novelBar._refresh == {C.hNovelRoot: False}
 
     # Add a document while tree in focus
-    nwGUI._changeView(nwView.PROJECT)
+    nwGUI.changeView(nwView.PROJECT)
     assert novelBar._active is False
     nwGUI.projView.projTree.setSelectedHandle(C.hChapterDir)
     nwGUI.projView.projTree.newTreeItem(nwItemType.FILE, hLevel=3)
     assert novelBar._refresh == {C.hNovelRoot: True}
 
     # Switch back and check that the refresh status is reset
-    nwGUI._changeView(nwView.NOVEL)
+    nwGUI.changeView(nwView.NOVEL)
     assert novelBar._refresh == {C.hNovelRoot: False}
 
     # Close

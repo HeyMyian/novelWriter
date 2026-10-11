@@ -47,13 +47,13 @@ def testGuiDocViewerPanel_BackRefs(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
     viewPanel = nwGUI.docViewerPanel
     tabBackRefs = viewPanel.tabBackRefs
 
-    nwGUI.openDocument(C.hSceneDoc)
-    nwGUI.viewDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.viewDocument(C.hSceneDoc)
 
     # Hide/Show
-    nwGUI._toggleViewerPanelVisibility()
+    nwGUI.docPanes._toggleViewerPanelVisibility()
     assert viewPanel.isVisible() is False
-    nwGUI._toggleViewerPanelVisibility()
+    nwGUI.docPanes._toggleViewerPanelVisibility()
     assert viewPanel.isVisible() is True
 
     # Initial State
@@ -62,13 +62,13 @@ def testGuiDocViewerPanel_BackRefs(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
     # Add Two Tags
     hJane = "0000000000011"
     nwGUI.docEditor.setPlainText("### New Scene\n\n@char: Jane, John\n\n")
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
     cursor = nwGUI.docEditor.textCursor()
     cursor.setPosition(22)
     nwGUI.docEditor._processTag(cursor, create=True)
     cursor.setPosition(28)
     nwGUI.docEditor._processTag(cursor, create=True)
-    nwGUI.viewDocument(hJane)
+    nwGUI.docPanes.viewDocument(hJane)
     assert tabBackRefs.topLevelItemCount() == 1
 
     # Check Backreference
@@ -78,7 +78,7 @@ def testGuiDocViewerPanel_BackRefs(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
 
     # Update Title
     nwGUI.docEditor.setPlainText("### Scene One\n\n@char: Jane, John\n\n")
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
     item = tabBackRefs.topLevelItem(0)
     assert item.text(tabBackRefs.C_DOC) == "New Scene"
     assert item.text(tabBackRefs.C_TITLE) == "Scene One"
@@ -106,7 +106,7 @@ def testGuiDocViewerPanel_BackRefs(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
     assert isinstance(tabBackRefs._viewIcon, QIcon)
 
     # Click the Edit Button
-    nwGUI.openDocument(C.hChapterDoc)
+    nwGUI.docPanes.openDocument(C.hChapterDoc)
     assert nwGUI.docEditor.docHandle == C.hChapterDoc
     tabBackRefs._treeItemClicked(tabBackRefs.model().index(0, tabBackRefs.C_EDIT))
     assert nwGUI.docEditor.docHandle == C.hSceneDoc
@@ -117,35 +117,35 @@ def testGuiDocViewerPanel_BackRefs(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
     assert nwGUI.docViewer.docHandle == C.hSceneDoc
 
     # Clicking any other column does nothing
-    nwGUI.viewDocument(hJane)
+    nwGUI.docPanes.viewDocument(hJane)
     assert nwGUI.docViewer.docHandle == hJane
     tabBackRefs._treeItemClicked(tabBackRefs.model().index(0, tabBackRefs.C_DOC))
     assert nwGUI.docViewer.docHandle == hJane
 
     # Double-Click
-    nwGUI.viewDocument(hJane)
+    nwGUI.docPanes.viewDocument(hJane)
     assert nwGUI.docViewer.docHandle == hJane
     tabBackRefs._treeItemDoubleClicked(tabBackRefs.model().index(0, tabBackRefs.C_DOC))
     assert nwGUI.docViewer.docHandle == C.hSceneDoc
 
     # Double-clicking the edit/view columns does nothing
-    nwGUI.viewDocument(hJane)
+    nwGUI.docPanes.viewDocument(hJane)
     assert nwGUI.docViewer.docHandle == hJane
     tabBackRefs._treeItemDoubleClicked(tabBackRefs.model().index(0, tabBackRefs.C_EDIT))
     assert nwGUI.docViewer.docHandle == hJane
 
     # Regression: Adding/removing references while viewing target should refresh panel
-    nwGUI.viewDocument(hJane)
+    nwGUI.docPanes.viewDocument(hJane)
     assert nwGUI.docViewer.docHandle == hJane
     assert tabBackRefs.topLevelItemCount() == 1
 
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     nwGUI.docEditor.setPlainText("### Scene One\n\nNo references in this section.\n")
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
     assert tabBackRefs.topLevelItemCount() == 0
 
     nwGUI.docEditor.setPlainText("### Scene One\n\n@char: Jane\n")
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
     assert tabBackRefs.topLevelItemCount() == 1
 
     # A None handle just clears the content
@@ -171,8 +171,8 @@ def testGuiDocViewerPanel_Tags(qtbot, monkeypatch, caplog, nwGUI, projPath, mock
     nwGUI.projView.projTree.expandAll()
     viewPanel = nwGUI.docViewerPanel
 
-    nwGUI.openDocument(C.hSceneDoc)
-    nwGUI.viewDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.viewDocument(C.hSceneDoc)
 
     assert len(viewPanel.kwTabs) == len(nwLists.USER_CLASSES)
     assert len(viewPanel.idTabs) == len(nwLists.USER_CLASSES)
@@ -181,7 +181,7 @@ def testGuiDocViewerPanel_Tags(qtbot, monkeypatch, caplog, nwGUI, projPath, mock
     hJane = "0000000000011"
     hJohn = "0000000000012"
     nwGUI.docEditor.setPlainText("### New Scene\n\n@char: Jane, John\n\n")
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
     cursor = nwGUI.docEditor.textCursor()
     cursor.setPosition(22)
     nwGUI.docEditor._processTag(cursor, create=True)
@@ -211,9 +211,9 @@ def testGuiDocViewerPanel_Tags(qtbot, monkeypatch, caplog, nwGUI, projPath, mock
     assert item.text(charTab.C_TITLE) == "John"
 
     # Edit Jane
-    nwGUI.openDocument(hJane)
+    nwGUI.docPanes.openDocument(hJane)
     nwGUI.docEditor.setPlainText("# Jane Smith\n\n@tag: Janey\n\n")
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
     SHARED.project.tree[hJane].setName("Awesome Jane")  # type: ignore
     nwGUI.projView.renameTreeItem(hJane)
     item = charTab.topLevelItem(0)

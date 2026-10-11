@@ -155,7 +155,7 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
 def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
     """Test saving and loading the column order and widths."""
     assert nwGUI.openProject(prjLipsum)
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     storyView = nwGUI.storyView
     storyView.addView.click()
 
@@ -179,7 +179,7 @@ def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
     # The state is saved when the project is closed
     assert nwGUI.closeProject(isYes=True)
     assert nwGUI.openProject(prjLipsum)
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
 
     view = storyView.tabMain.currentWidget()
     assert isinstance(view, GuiStoryOutlineView)

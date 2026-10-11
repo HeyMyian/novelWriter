@@ -337,10 +337,6 @@ class GuiDocViewer(QTextBrowser):
             return False
         return True
 
-    def anyFocus(self) -> bool:
-        """Check if any widget or child widget has focus."""
-        return self.hasFocus() or self.isAncestorOf(QApplication.focusWidget())
-
     def clearNavHistory(self) -> None:
         """Clear the navigation history."""
         self.docHistory.clear()

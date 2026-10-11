@@ -39,6 +39,7 @@ from novelwriter import CONFIG, SHARED
 from novelwriter.config import DEF_GUI_DARK, DEF_GUI_LIGHT
 from novelwriter.enum import nwTheme
 
+from tests.helpers import MockRnd, TstPaths
 from tests.mocked import MockGuiMain
 
 _TST_ROOT = Path(__file__).parent
@@ -114,22 +115,17 @@ def functionFixture(qtbot):
 
 
 @pytest.fixture(scope="session")
-def tstPaths():
-    """Return an object that can provide the various paths needed for
-    running tests.
-    """
-
-    class _Store:
-        testDir = _TST_ROOT
-        filesDir = _TST_ROOT / "_files"
-        refDir = _TST_ROOT / "_reference"
-        outDir = _TMP_ROOT / "results"
-        tmpDir = _TMP_ROOT
-        cnfDir = _TMP_CONF
-
-    store = _Store()
+def tstPaths() -> TstPaths:
+    """Return the paths needed for running tests."""
+    store = TstPaths(
+        testDir=_TST_ROOT,
+        filesDir=_TST_ROOT / "_files",
+        refDir=_TST_ROOT / "_reference",
+        outDir=_TMP_ROOT / "results",
+        tmpDir=_TMP_ROOT,
+        cnfDir=_TMP_CONF,
+    )
     store.outDir.mkdir(exist_ok=True)
-
     return store
 
 
@@ -225,24 +221,12 @@ def nwGUI(qtbot, monkeypatch, functionFixture):
 
 
 @pytest.fixture
-def mockRnd(monkeypatch):
+def mockRnd(monkeypatch: pytest.MonkeyPatch) -> MockRnd:
     """Create a mock random number generator that just counts upwards
     from 0. This one will generate status/importance flags and handles
     in a predictable sequence.
     """
-
-    class MockRnd:
-        def __init__(self):
-            self.reset()
-
-        def _rnd(self, n):
-            yield from range(n)
-
-        def reset(self):
-            gen = self._rnd(1000)
-            monkeypatch.setattr("random.getrandbits", lambda *a: next(gen))
-
-    return MockRnd()
+    return MockRnd(monkeypatch)
 
 
 ##

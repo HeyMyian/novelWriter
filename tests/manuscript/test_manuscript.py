@@ -221,7 +221,7 @@ def testGuiManuscript_Features(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
 
-    nwGUI.openDocument(C.hTitlePage)
+    nwGUI.docPanes.openDocument(C.hTitlePage)
     nwGUI.docEditor.setPlainText(
         "#! My Novel\n\n"
         "# Part One\n\n"
@@ -238,7 +238,7 @@ def testGuiManuscript_Features(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
         "#### Section\n\n"
         "Text\n\n"
     )
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
     # qtbot.stop()
 
     manus = GuiManuscript(nwGUI)

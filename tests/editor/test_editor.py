@@ -109,11 +109,11 @@ def testGuiDocEditor_Init(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     # Open project
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc)
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
 
     docEditor.setPlainText(f"### Lorem Ipsum\n\n{ipsumText[0]}")
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
 
     # Check Defaults
     qDoc = docEditor.document()
@@ -214,13 +214,13 @@ def testGuiDocEditor_LoadText(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test loading text into the editor."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
     longText = "### Lorem Ipsum\n\n{0}".format("\n\n".join(ipsumText * 20))
     docEditor.replaceText(longText)
-    nwGUI.saveDocument()
-    nwGUI.closeDocument()
+    nwGUI.docPanes.saveDocument()
+    nwGUI.docPanes.closeDocument()
 
     # Invalid handle
     assert docEditor.loadText("abcdefghijklm") is False
@@ -235,7 +235,7 @@ def testGuiDocEditor_LoadText(qtbot, nwGUI, projPath, ipsumText, mockRnd):
 
     # Load empty document
     docEditor.replaceText("")
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
     assert docEditor.loadText(C.hSceneDoc) is True
     assert docEditor.toPlainText() == ""
 
@@ -247,7 +247,7 @@ def testGuiDocEditor_SaveText(qtbot, monkeypatch, caplog, nwGUI, projPath, ipsum
     """Test saving text from the editor."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
     longText = "### Lorem Ipsum\n\n{0}".format("\n\n".join(ipsumText))
@@ -290,7 +290,7 @@ def testGuiDocEditor_SaveTextEdgeCases(qtbot, monkeypatch, nwGUI, projPath, ipsu
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
     text = "### Lorem Ipsum\n\n{0}".format("\n\n".join(ipsumText))
@@ -322,7 +322,7 @@ def testGuiDocEditor_DragAndDrop(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
 
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hTitlePage) is True
+    assert nwGUI.docPanes.openDocument(C.hTitlePage) is True
     assert docEditor.docHandle == C.hTitlePage
 
     middle = docEditor.viewport().rect().center()
@@ -396,7 +396,7 @@ def testGuiDocEditor_MetaData(qtbot, nwGUI, projPath, mockRnd):
     """Test extracting various meta data and other values."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
     # Get Text
@@ -465,7 +465,7 @@ def testGuiDocEditor_ContextMenu(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
 
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
     sceneItem = SHARED.project.tree[C.hSceneDoc]
     assert sceneItem is not None
@@ -646,7 +646,7 @@ def testGuiDocEditor_SpellChecking(qtbot, monkeypatch, nwGUI, projPath, ipsumTex
     monkeypatch.setattr(SpellEnchant, "checkWord", lambda *a: True)
     monkeypatch.setattr(SHARED, "runInThreadPool", lambda r: r.run())
 
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
     text = "### A Scene\n\n{0}".format("\n\n".join(ipsumText))
@@ -955,7 +955,7 @@ def testGuiDocEditor_FormatChecking(qtbot, monkeypatch, nwGUI, projPath, mockRnd
     nwGUI.openProject(projPath)
     monkeypatch.setattr(SHARED, "runInThreadPool", lambda r: r.run())
 
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
     text = "### A Scene\n\nA  double space, and a trailing space \n"
@@ -1025,7 +1025,7 @@ def testGuiDocEditor_UpdateSyntaxColors(qtbot, monkeypatch, nwGUI, projPath, moc
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
 
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
     text = "### A Scene\n\nA  double space, and a trailing space \n"
@@ -1097,7 +1097,7 @@ def testGuiDocEditor_Actions(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
     text = "### A Scene\n\n{0}".format("\n\n".join(ipsumText))
@@ -1451,7 +1451,7 @@ def testGuiDocEditor_Zoom(qtbot, nwGUI, projPath, mockRnd):
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc)
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
 
     basePt = docEditor.font().pointSizeF()
@@ -1533,7 +1533,7 @@ def testGuiDocEditor_Navigation(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test editor navigation."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor: GuiDocEditor = nwGUI.docEditor
 
     text = "### A Scene\n\n{0}".format("\n\n".join(ipsumText[:3]))
@@ -1566,7 +1566,7 @@ def testGuiDocEditor_ToolBar(qtbot, nwGUI, projPath, mockRnd):
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
 
     docEditor = nwGUI.docEditor
     docToolBar = docEditor.docToolBar
@@ -1680,7 +1680,7 @@ def testGuiDocEditor_Insert(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mock
     """Test the document insert functions."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
     text = f"### A Scene\n\n{ipsumText[0]}"
 
@@ -1790,7 +1790,7 @@ def testGuiDocEditor_TextManipulation(qtbot, nwGUI, projPath, ipsumText, mockRnd
     """Test the text manipulation functions."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
     text = "### A Scene\n\n{0}".format("\n\n".join(ipsumText))
@@ -2020,7 +2020,7 @@ def testGuiDocEditor_BlockFormatting(qtbot, monkeypatch, nwGUI, projPath, ipsumT
     """Test the block formatting function."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
     # Invalid and Generic
@@ -2407,7 +2407,7 @@ def testGuiDocEditor_MultiBlockFormatting(qtbot, nwGUI, projPath, ipsumText, moc
     """Test the block formatting function."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
     text = "### A Scene\n\n@char: Jane, John\n\n" + "\n\n".join(ipsumText) + "\n\n"
@@ -2674,7 +2674,7 @@ def testGuiDocEditor_Tags(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     """Test the document editor tags functionality."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
     docViewer = nwGUI.docViewer
 
@@ -2685,13 +2685,13 @@ def testGuiDocEditor_Tags(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     # Create Character
     text = "### Jane Doe\n\n@tag: Jane\n\n" + ipsumText[1] + "\n\n"
     cHandle = SHARED.project.newFile("Jane Doe", C.hCharRoot)
-    nwGUI.openDocument(cHandle)
+    nwGUI.docPanes.openDocument(cHandle)
     docEditor.replaceText(text)
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
 
     # Follow Tag
     # ==========
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
 
     # Empty Block
     docEditor.setCursorLine(2)
@@ -2717,7 +2717,7 @@ def testGuiDocEditor_Tags(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     assert docViewer._docHandle is None
     docEditor.mouseReleaseEvent(event)
     assert docViewer._docHandle == cHandle
-    assert nwGUI.closeViewerPanel() is True
+    nwGUI.docPanes.closeViewerPanel()
     assert docViewer._docHandle is None
 
     # A mouse release without the Ctrl modifier does not follow the tag
@@ -2730,7 +2730,7 @@ def testGuiDocEditor_Tags(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     assert docEditor._docHandle == cHandle
 
     # On Unknown Tag, Create It
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     assert "0000000000012" not in SHARED.project.tree
     docEditor.setCursorPosition(28)
     assert docEditor._processTag(create=True) == _TagAction.CREATE
@@ -2764,15 +2764,15 @@ def testGuiDocEditor_HoverCard(qtbot, nwGUI, projPath, mockRnd):
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
     cHandle = SHARED.project.newFile("Jane Doe", C.hCharRoot)
-    assert nwGUI.openDocument(cHandle) is True
+    assert nwGUI.docPanes.openDocument(cHandle) is True
     docEditor.replaceText("# Jane Doe\n\n@tag: Jane\n\n")
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
 
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor.replaceText("### A Scene\n\n@char: Jane\n\n")
 
     def moveTo(position: int) -> QPoint:
@@ -2839,7 +2839,7 @@ def testGuiDocEditor_ProcessTagEdgeCases(qtbot, monkeypatch, nwGUI, projPath, mo
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
     docEditor.replaceText("### A Scene\n\n@char: Jane\n\n")
 
@@ -2891,7 +2891,7 @@ def testGuiDocEditor_MoveTextToNewDocument(qtbot, monkeypatch, nwGUI, projPath, 
 
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor: GuiDocEditor = nwGUI.docEditor
 
     text = "### A Scene\n\n{0}".format("\n\n".join(ipsumText))
@@ -2904,7 +2904,7 @@ def testGuiDocEditor_MoveTextToNewDocument(qtbot, monkeypatch, nwGUI, projPath, 
     item = SHARED.project.tree[nHandle]
     assert isinstance(item, ProjectItem)
     assert item.itemName == "New Scene (1)"
-    assert nwGUI.openDocument(nHandle) is True
+    assert nwGUI.docPanes.openDocument(nHandle) is True
     assert docEditor.getText() == "### New Scene (1)\n\n{0}\n".format("\n\n".join(ipsumText[2:]))
 
     # New from selection, with existing header
@@ -2926,18 +2926,18 @@ def testGuiDocEditor_MoveTextToNewDocument(qtbot, monkeypatch, nwGUI, projPath, 
     item = SHARED.project.tree[nHandle]
     assert isinstance(item, ProjectItem)
     assert item.itemName == "Another Scene"
-    assert nwGUI.openDocument(nHandle) is True
+    assert nwGUI.docPanes.openDocument(nHandle) is True
     assert docEditor.getText() == f"### Another Scene\n\n{ipsumText[3]}\n"
 
     # An empty document has no text to select, so nothing happens
     emptyHandle = SHARED.project.newFile("Empty", C.hNovelRoot)
-    assert nwGUI.openDocument(emptyHandle) is True
+    assert nwGUI.docPanes.openDocument(emptyHandle) is True
     countBefore = len(SHARED.project.tree)
     docEditor.docAction(nwDocAction.MOVE_TEXT)
     assert len(SHARED.project.tree) == countBefore
 
     # Cancelling the label dialog does not create a new document
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor.docAction(nwDocAction.SEL_ALL)
     countBefore = len(SHARED.project.tree)
     with monkeypatch.context() as mp:
@@ -2961,7 +2961,7 @@ def testGuiDocEditor_Links(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockR
     """Test the document editor links functionality."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
     docEditor.replaceText("### Scene\n\nFoo http://www.example.com bar.\n\n")
 
@@ -2984,7 +2984,7 @@ def testGuiDocEditor_FormatLink(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test formatting a link under the cursor via the edit dialog."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
 
     # Cancelling the dialog is a no-op, regardless of context
@@ -3083,7 +3083,7 @@ def testGuiDocEditor_InternalSlotEdgeCases(qtbot, nwGUI, projPath, mockRnd):
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
     docEditor.replaceText("### A Scene\n\nSome text.\n\n")
 
@@ -3138,7 +3138,7 @@ def testGuiDocEditor_UpdateDocMargins(qtbot, nwGUI, projPath, mockRnd):
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
 
     CONFIG.textWidth = 0
@@ -3153,7 +3153,7 @@ def testGuiDocEditor_ScrollPastEnd(qtbot, nwGUI, projPath, mockRnd):
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
     docEditor.resize(400, 300)
 
@@ -3177,7 +3177,7 @@ def testGuiDocEditor_TypewriterScrolling(qtbot, nwGUI, projPath, mockRnd):
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
     docEditor.resize(400, 300)
 
@@ -3513,7 +3513,7 @@ def testGuiDocEditor_CursorVisibility(qtbot, monkeypatch, nwGUI, projPath, mockR
     """Test the custom ensure cursor visible feature."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
 
     docEditor.setPlainText("### Scene\n\n" + "".join(["Text\n\n"] * 100))
@@ -3576,7 +3576,7 @@ def testGuiDocEditor_ReplaceNextEdgeCases(qtbot, monkeypatch, nwGUI, projPath, m
 
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
     docSearch = docEditor.docSearch
 
@@ -3633,7 +3633,7 @@ def testGuiDocEditor_WordCounters(qtbot, monkeypatch, nwGUI, projPath, ipsumText
 
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    nwGUI.closeDocument()  # Opening the project auto-restores a document
+    nwGUI.docPanes.closeDocument()  # Opening the project auto-restores a document
 
     # Run on an empty document
     docEditor._runDocumentTasks()
@@ -3647,7 +3647,7 @@ def testGuiDocEditor_WordCounters(qtbot, monkeypatch, nwGUI, projPath, ipsumText
     assert docEditor.docFooter.wordsText.text() == "Words: 0 (+0)"
 
     # Open a document and populate it
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     SHARED.project.tree[C.hSceneDoc]._wordInit = 0  # type: ignore
     SHARED.project.tree[C.hSceneDoc]._charInit = 0  # type: ignore
     SHARED.project.tree[C.hSceneDoc]._wordCount = 0  # type: ignore
@@ -3774,7 +3774,7 @@ def testGuiDocEditor_Search(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mock
         doc.writeDocument(content)
         SHARED.project.index.reIndexHandle(handle)
 
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor: GuiDocEditor = nwGUI.docEditor
     docSearch: GuiDocEditSearch = docEditor.docSearch
 
@@ -4041,7 +4041,7 @@ def testGuiDocEditor_Search(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mock
 
     # Replace Text
     # ============
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
 
     setToggle(docSearch.tbCase, True)
     setToggle(docSearch.tbWord, False)
@@ -4113,7 +4113,7 @@ def testGuiDocEditor_SearchAutoReplace(qtbot, nwGUI, projPath, mockRnd):
     """Test the auto-replace symbols feature of the search and replace boxes."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
 
     docEditor = nwGUI.docEditor
     docSearch: GuiDocEditSearch = docEditor.docSearch
@@ -4168,7 +4168,7 @@ def testGuiDocEditor_Vim_EnableVimMode(qtbot, nwGUI, projPath, mockRnd):
     inputDelay = 2
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc)
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc)
 
     docEditor = nwGUI.docEditor
     CONFIG.vimMode = True
@@ -4204,7 +4204,7 @@ def testGuiDocEditor_Vim_StateInsertModeNoOp(qtbot, nwGUI, projPath, mockRnd):
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc)
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor = nwGUI.docEditor
 
     vim = docEditor._vim
@@ -4221,7 +4221,7 @@ def testGuiDocEditor_Vim_InsertMode(qtbot, nwGUI, projPath, mockRnd):
     inputDelay = 2
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc)
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc)
 
     docEditor = nwGUI.docEditor
     CONFIG.vimMode = True
@@ -4316,7 +4316,7 @@ def testGuiDocEditor_Vim_DeleteYankPaste(qtbot, nwGUI, projPath, mockRnd):
     inputDelay = 2
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc)
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc)
 
     docEditor = nwGUI.docEditor
     CONFIG.vimMode = True
@@ -4436,7 +4436,7 @@ def testGuiDocEditor_Vim_VisualMode(qtbot, nwGUI, projPath, mockRnd):
     inputDelay = 2
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc)
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc)
 
     docEditor = nwGUI.docEditor
     CONFIG.vimMode = True
@@ -4629,7 +4629,7 @@ def testGuiDocEditor_Vim_NormalMode(qtbot, nwGUI, projPath, mockRnd):
     inputDelay = 2
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc)
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc)
 
     docEditor = nwGUI.docEditor
     CONFIG.vimMode = True
@@ -4749,7 +4749,7 @@ def testGuiDocEditor_BigDocLifecycle(qtbot, nwGUI, projPath, ipsumText, mockRnd)
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
 
     unit = "\n\n".join(ipsumText)
@@ -4757,8 +4757,8 @@ def testGuiDocEditor_BigDocLifecycle(qtbot, nwGUI, projPath, ipsumText, mockRnd)
     text = "### Big Doc\n\n" + "\n\n".join([unit] * reps)
 
     docEditor.replaceText(text)
-    nwGUI.saveDocument()
-    nwGUI.closeDocument()
+    nwGUI.docPanes.saveDocument()
+    nwGUI.docPanes.closeDocument()
 
     cursPos = len(text) - 500
     item = SHARED.project.tree[C.hSceneDoc]

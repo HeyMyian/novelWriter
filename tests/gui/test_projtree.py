@@ -250,7 +250,7 @@ def testGuiProjectTree_NewTreeItem(qtbot, caplog, monkeypatch, nwGUI, projPath, 
     assert item.itemParent == hNewFolder
     assert item.itemRoot == C.hNovelRoot
     assert item.itemClass == nwItemClass.NOVEL
-    assert nwGUI.openDocument(hNewPart)
+    assert nwGUI.docPanes.openDocument(hNewPart)
     assert nwGUI.docEditor.getText() == "# New Part\n\n"
     assert [n.item.itemName for n in tree.model.root.allChildren()] == [
         "Novel",
@@ -279,7 +279,7 @@ def testGuiProjectTree_NewTreeItem(qtbot, caplog, monkeypatch, nwGUI, projPath, 
     assert item.itemParent == hNewFolder
     assert item.itemRoot == C.hNovelRoot
     assert item.itemClass == nwItemClass.NOVEL
-    assert nwGUI.openDocument(hNewChapter)
+    assert nwGUI.docPanes.openDocument(hNewChapter)
     assert nwGUI.docEditor.getText() == "## New Chapter\n\n"
     assert [n.item.itemName for n in tree.model.root.allChildren()] == [
         "Novel",
@@ -309,7 +309,7 @@ def testGuiProjectTree_NewTreeItem(qtbot, caplog, monkeypatch, nwGUI, projPath, 
     assert item.itemParent == hNewFolder
     assert item.itemRoot == C.hNovelRoot
     assert item.itemClass == nwItemClass.NOVEL
-    assert nwGUI.openDocument(hNewScene)
+    assert nwGUI.docPanes.openDocument(hNewScene)
     assert nwGUI.docEditor.getText() == "### New Scene\n\n"
     assert [n.item.itemName for n in tree.model.root.allChildren()] == [
         "Novel",
@@ -330,9 +330,9 @@ def testGuiProjectTree_NewTreeItem(qtbot, caplog, monkeypatch, nwGUI, projPath, 
     ]
 
     # Add a new scene with the content copied from the previous
-    nwGUI.openDocument(hNewScene)
+    nwGUI.docPanes.openDocument(hNewScene)
     nwGUI.docEditor.setPlainText("### New Scene\n\nWith Stuff\n\n")
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
 
     hNewSceneCopy = "0000000000017"
     projView.setSelectedHandle(hNewScene, doScroll=True)
@@ -344,7 +344,7 @@ def testGuiProjectTree_NewTreeItem(qtbot, caplog, monkeypatch, nwGUI, projPath, 
     assert item.itemParent == hNewFolder
     assert item.itemRoot == C.hNovelRoot
     assert item.itemClass == nwItemClass.NOVEL
-    assert nwGUI.openDocument(hNewSceneCopy)
+    assert nwGUI.docPanes.openDocument(hNewSceneCopy)
     assert nwGUI.docEditor.getText() == "### New Scene\n\nWith Stuff\n\n"
     assert [n.item.itemName for n in tree.model.root.allChildren()] == [
         "Novel",
@@ -376,7 +376,7 @@ def testGuiProjectTree_NewTreeItem(qtbot, caplog, monkeypatch, nwGUI, projPath, 
     assert item.itemParent == C.hCharRoot
     assert item.itemRoot == C.hCharRoot
     assert item.itemClass == nwItemClass.CHARACTER
-    assert nwGUI.openDocument(hNewCharacter)
+    assert nwGUI.docPanes.openDocument(hNewCharacter)
     assert nwGUI.docEditor.getText() == "# New Note\n\n"
     assert [n.item.itemName for n in tree.model.root.allChildren()] == [
         "Novel",
@@ -471,9 +471,9 @@ def testGuiProjectTree_NewTreeItem(qtbot, caplog, monkeypatch, nwGUI, projPath, 
     assert item.itemClass == nwItemClass.TEMPLATE
 
     item.setName("New Scene Template")
-    nwGUI.openDocument(hSceneTemplate)
+    nwGUI.docPanes.openDocument(hSceneTemplate)
     nwGUI.docEditor.setPlainText("### New Scene Template\n\nWith Stuff\n\n")
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
     assert [n.item.itemName for n in tree.model.root.allChildren()] == [
         "Novel",
         "Title Page",
@@ -507,7 +507,7 @@ def testGuiProjectTree_NewTreeItem(qtbot, caplog, monkeypatch, nwGUI, projPath, 
     assert item.itemParent == hNewFolder
     assert item.itemRoot == C.hNovelRoot
     assert item.itemClass == nwItemClass.NOVEL
-    assert nwGUI.openDocument(hNewFromTemplate)
+    assert nwGUI.docPanes.openDocument(hNewFromTemplate)
     assert nwGUI.docEditor.getText() == "### New Scene Template\n\nWith Stuff\n\n"
     assert [n.item.itemName for n in tree.model.root.allChildren()] == [
         "Novel",
@@ -1140,8 +1140,8 @@ def testGuiProjectTree_DeleteRequest(qtbot, caplog, monkeypatch, nwGUI, projPath
     ]
 
     # Opening documents before delete, will close them
-    nwGUI.openDocument(hScenes[2])
-    nwGUI.viewDocument(hScenes[3])
+    nwGUI.docPanes.openDocument(hScenes[2])
+    nwGUI.docPanes.viewDocument(hScenes[3])
 
     assert nwGUI.docEditor.docHandle == hScenes[2]
     assert nwGUI.docViewer.docHandle == hScenes[3]

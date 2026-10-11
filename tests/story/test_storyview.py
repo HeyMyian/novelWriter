@@ -45,7 +45,7 @@ def testStoryView_ExportData(monkeypatch, nwGUI, prjLipsum, fncPath, tstPaths):
     """Test exporting the story view outline data to a CSV file."""
     assert nwGUI.openProject(prjLipsum)
     nwGUI.rebuildIndex()
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
 
     storyView = nwGUI.storyView
     csvFile = fncPath / "outline.csv"
@@ -75,7 +75,7 @@ def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
     tabMain = storyView.tabMain
 
     # No views are loaded or added without a project
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     storyView.addView.click()
     assert storyView._views is None
     assert tabMain.count() == 0
@@ -100,7 +100,7 @@ def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
     assert not viewsFile.exists()
 
     # A default outline view is created on first show
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert tabNames() == ["Outline"]
     assert savedNames() == ["Outline"]
     assert isinstance(tabMain.currentWidget(), GuiStoryOutlineView)
@@ -126,7 +126,7 @@ def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
     assert savedNames() == ["Outline", "Outline", "Outline 2"]
 
     # Showing the view again does not reload the views
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert tabMain.count() == 3
 
     # Refresh and theme update
@@ -156,7 +156,7 @@ def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
     assert storyView.novelValue.isEnabled() is False
     assert storyView.addView.isEnabled() is False
     assert nwGUI.openProject(prjLipsum)
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert [tabMain.widget(i).settings.viewID for i in range(tabMain.count())] == viewIDs  # type: ignore
     assert tabMain.currentIndex() == 1
 
@@ -193,7 +193,7 @@ def testStoryView_SettingsDialog(monkeypatch, nwGUI, prjLipsum):
     viewsFile = SHARED.project.storage.getMetaFile(nwFiles.VIEWS_FILE)
     assert isinstance(viewsFile, Path)
     viewsFile.unlink(missing_ok=True)
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
 
     def openDialog() -> GuiOutlineViewSettings:
         storyView.editView.click()
@@ -312,13 +312,13 @@ def testStoryView_SettingsDialog(monkeypatch, nwGUI, prjLipsum):
     # A view that is hidden when its settings change is rebuilt when shown
     dialog = openDialog()
     dialog.showSections.setChecked(True)
-    nwGUI._changeView(nwView.PROJECT)
+    nwGUI.changeView(nwView.PROJECT)
     dialog.btnSave.click()
     assert rebuilt == 1
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert rebuilt == 2
-    nwGUI._changeView(nwView.PROJECT)
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.PROJECT)
+    nwGUI.changeView(nwView.STORY)
     assert rebuilt == 2
 
     # Deleting a view discards only its own open dialog, without asking
@@ -390,7 +390,7 @@ def testStoryView_LazyLoad(nwGUI, prjLipsum):
         return [tabMain.widget(i).outlineContent._built for i in range(tabMain.count())]  # type: ignore
 
     # Create two extra views, and reopen with the first view active
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     storyView.addView.click()
     storyView.addView.click()
     tabMain.setCurrentIndex(0)
@@ -399,7 +399,7 @@ def testStoryView_LazyLoad(nwGUI, prjLipsum):
     assert tabMain.count() == 0
 
     # Only the active view is built when the story view is first shown
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert built() == [True, False, False]
 
     # Other views are built when switched to
@@ -412,12 +412,12 @@ def testStoryView_LazyLoad(nwGUI, prjLipsum):
 
     # Changing the novel while hidden does not rebuild the view
     current = tabMain.currentWidget().outlineContent  # type: ignore
-    nwGUI._changeView(nwView.PROJECT)
+    nwGUI.changeView(nwView.PROJECT)
     novelValue.setCurrentIndex(novelValue.findData(rootHandle))
     assert current._lastHandle is None
 
     # It is rebuilt when the story view is shown again
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert current._lastHandle == rootHandle
 
     # Rebuilding the index while visible rebuilds the current view
@@ -441,7 +441,7 @@ def testStoryView_Highlight(qtbot, nwGUI, prjLipsum):
         return [tabMain.widget(i).outlineContent._delegate._highlight for i in range(tabMain.count())]  # type: ignore
 
     # The references are listed when the view is shown
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert [combo.itemData(i) for i in range(combo.count())] == ["", "bod", "europe", "main"]
     assert [combo.itemText(i) for i in range(combo.count())] == ["", "Bod", "Europe", "Main"]
 
@@ -496,7 +496,7 @@ def testStoryView_Highlight(qtbot, nwGUI, prjLipsum):
 
     # The highlight is restored when the views are loaded
     assert nwGUI.openProject(prjLipsum)
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert combo.currentData() == "bod"
     assert highlights() == [{"bod"}, {"bod"}]
 
