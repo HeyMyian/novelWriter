@@ -21,17 +21,28 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
+
+from pytestqt.qtbot import QtBot
 
 from novelwriter.constants import nwConst
 from novelwriter.core.project import NWProject
 from novelwriter.editor.highlighter import BLOCK_TITLE
+from novelwriter.guimain import GuiMain
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, MockRnd, buildTestProject
 
 
 @pytest.mark.gui
-def testGuiTextDocument_LayoutBusy(qtbot, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiTextDocument_LayoutBusy(
+    qtbot: QtBot,
+    nwGUI: GuiMain,
+    projPath: Path,
+    ipsumText: list[str],
+    mockRnd: MockRnd,
+):
     """Test that only a document over the size limit enters the busy
     state, and that it settles again once the layout catches up.
     """
@@ -64,7 +75,14 @@ def testGuiTextDocument_LayoutBusy(qtbot, nwGUI, projPath, ipsumText, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiTextDocument_BigDocOperations(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockRnd):
+def testGuiTextDocument_BigDocOperations(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    ipsumText: list[str],
+    mockRnd: MockRnd,
+):
     """Test that setTextContent, setLineHeight, and setBottomMargin
     all respect the layout busy state on a document over the size limit.
     """
@@ -103,7 +121,7 @@ def testGuiTextDocument_BigDocOperations(qtbot, monkeypatch, nwGUI, projPath, ip
 
 
 @pytest.mark.gui
-def testGuiTextDocument_IterBlockByType(qtbot, nwGUI, projPath, mockRnd):
+def testGuiTextDocument_IterBlockByType(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd: MockRnd):
     """Test that iterBlockByType stops at maxCount instead of
     continuing to scan the rest of the document.
     """

@@ -21,15 +21,19 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from PyQt6.QtCore import QEvent, QModelIndex, QPoint, QPointF, Qt
 from PyQt6.QtGui import QDropEvent, QHelpEvent, QPainter, QPixmap, QWheelEvent
 from PyQt6.QtWidgets import QApplication, QStyleOptionViewItem, QToolTip
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwKeyWords
 from novelwriter.enum import nwView
+from novelwriter.guimain import GuiMain
 from novelwriter.models.outlinemodel import OutlineModel
 from novelwriter.story.outline import GuiOutlineViewSettings, GuiStoryOutlineView, _OutlineDelegate
 from novelwriter.story.storysettings import OutlineColumn, OutlineViewSettings
@@ -45,7 +49,7 @@ ALL_SETTINGS = (
 
 
 @pytest.mark.gui
-def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
+def testStoryOutline_Settings(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
     """Test the outline view settings and build state."""
     assert nwGUI.openProject(prjLipsum)
     root = QModelIndex()
@@ -152,7 +156,7 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
+def testStoryOutline_ColumnState(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
     """Test saving and loading the column order and widths."""
     assert nwGUI.openProject(prjLipsum)
     nwGUI.changeView(nwView.STORY)
@@ -248,7 +252,7 @@ def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryOutline_WheelScroll(qtbot, nwGUI, prjLipsum):
+def testStoryOutline_WheelScroll(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
     """Test that the mouse wheel scrolls one item per step."""
     assert nwGUI.openProject(prjLipsum)
 
@@ -294,7 +298,7 @@ def testStoryOutline_WheelScroll(qtbot, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
+def testStoryOutline_Paint(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, prjLipsum: Path):
     """Test painting the outline rows."""
     assert nwGUI.openProject(prjLipsum)
 
@@ -449,7 +453,7 @@ def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryOutline_ColumnsPage(qtbot, nwGUI, prjLipsum):
+def testStoryOutline_ColumnsPage(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
     """Test the outline columns settings page."""
     assert nwGUI.openProject(prjLipsum)
     index = SHARED.project.index

@@ -24,6 +24,7 @@ from __future__ import annotations
 import gc
 import weakref
 
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -31,6 +32,7 @@ import pytest
 from PyQt6.QtCore import QEvent, QItemSelectionModel, QModelIndex, QPointF
 from PyQt6.QtGui import QMouseEvent
 from PyQt6.QtWidgets import QMenu
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.core.coretools import DocMerger
@@ -40,6 +42,7 @@ from novelwriter.dialogs.docsplit import GuiDocSplit
 from novelwriter.dialogs.editlabel import GuiEditLabel
 from novelwriter.enum import nwDocMode, nwItemClass, nwItemLayout, nwItemType
 from novelwriter.gui.projtree import _TreeContextMenu
+from novelwriter.guimain import GuiMain
 from novelwriter.shared import _GuiAlert
 from novelwriter.types import (
     QtAccepted,
@@ -51,12 +54,12 @@ from novelwriter.types import (
     QtScrollAsNeeded,
 )
 
-from tests.helpers import C, buildTestProject, checkWidgetFreedOnRelease
+from tests.helpers import C, MockRnd, buildTestProject, checkWidgetFreedOnRelease
 from tests.mocked import causeOSError
 
 
 @pytest.mark.gui
-def testGuiProjectTree_NoProjectEdgeCases(qtbot, nwGUI):
+def testGuiProjectTree_NoProjectEdgeCases(qtbot: QtBot, nwGUI: GuiMain):
     """Test project tree and view methods called when no project is
     open, and thus no model has been assigned to the tree view.
     """
@@ -82,7 +85,14 @@ def testGuiProjectTree_NoProjectEdgeCases(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiProjectTree_NewTreeItem(qtbot, caplog, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectTree_NewTreeItem(
+    qtbot: QtBot,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test adding items to the project tree."""
     monkeypatch.setattr(GuiEditLabel, "getLabel", lambda *a, text: (text, True))
 
@@ -561,7 +571,13 @@ def testGuiProjectTree_NewTreeItem(qtbot, caplog, monkeypatch, nwGUI, projPath, 
 
 
 @pytest.mark.gui
-def testGuiProjectTree_RenameCancelled(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectTree_RenameCancelled(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test that cancelling the rename dialog leaves the item name
     unchanged.
     """
@@ -578,7 +594,13 @@ def testGuiProjectTree_RenameCancelled(qtbot, monkeypatch, nwGUI, projPath, mock
 
 
 @pytest.mark.gui
-def testGuiProjectTree_NewTreeItemFailures(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectTree_NewTreeItemFailures(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the defensive checks in newTreeItem for when the tree
     cannot find a valid parent, or the file creation itself fails.
     """
@@ -610,7 +632,13 @@ def testGuiProjectTree_NewTreeItemFailures(qtbot, monkeypatch, nwGUI, projPath, 
 
 
 @pytest.mark.gui
-def testGuiProjectTree_SimpleOperations(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectTree_SimpleOperations(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test simple operations in the project tree like internal move,
     change selection and expand/collapse nodes.
     """
@@ -790,7 +818,13 @@ def testGuiProjectTree_SimpleOperations(qtbot, monkeypatch, nwGUI, projPath, moc
 
 
 @pytest.mark.gui
-def testGuiProjectTree_MouseClicks(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectTree_MouseClicks(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test mouse clicks in the project tree."""
     monkeypatch.setattr(GuiEditLabel, "getLabel", lambda *a, text: (text, True))
 
@@ -816,6 +850,7 @@ def testGuiProjectTree_MouseClicks(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
     # Single click emits a signal
     with qtbot.waitSignal(projView.selectedItemChanged) as signal:
         projTree._onSelectionChange(model.indexFromHandle(C.hNovelRoot), QModelIndex())
+    assert signal.args is not None
     assert signal.args[0] == C.hNovelRoot
 
     # Double click on folder expands/collapses it
@@ -831,6 +866,7 @@ def testGuiProjectTree_MouseClicks(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
     # Double click on file opens it
     with qtbot.waitSignal(projView.openDocumentRequest) as signal:
         projTree._onDoubleClick(model.indexFromHandle(C.hChapterDoc))
+    assert signal.args is not None
     assert signal.args[0] == C.hChapterDoc
     assert signal.args[1] == nwDocMode.EDIT
     assert signal.args[2] == ""
@@ -862,7 +898,7 @@ def testGuiProjectTree_MouseClicks(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
 
 
 @pytest.mark.gui
-def testGuiProjectTree_MouseAndNavEdgeCases(qtbot, nwGUI, projPath, mockRnd):
+def testGuiProjectTree_MouseAndNavEdgeCases(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd: MockRnd):
     """Test mouse press and keyboard navigation edge cases not covered
     by the other tests.
     """
@@ -901,7 +937,14 @@ def testGuiProjectTree_MouseAndNavEdgeCases(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiProjectTree_DeleteRequest(qtbot, caplog, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectTree_DeleteRequest(
+    qtbot: QtBot,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test delete requests in the project tree."""
     monkeypatch.setattr(GuiEditLabel, "getLabel", lambda *a, text: (text, True))
 
@@ -1188,7 +1231,13 @@ def testGuiProjectTree_DeleteRequest(qtbot, caplog, monkeypatch, nwGUI, projPath
 
 
 @pytest.mark.gui
-def testGuiProjectTree_DeleteEdgeCases(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectTree_DeleteEdgeCases(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test defensive branches in the delete/trash handling that are
     not covered by the main delete request test.
     """
@@ -1226,7 +1275,14 @@ def testGuiProjectTree_DeleteEdgeCases(qtbot, monkeypatch, nwGUI, projPath, mock
 
 
 @pytest.mark.gui
-def testGuiProjectTree_MergeDocuments(qtbot, monkeypatch, nwGUI, projPath, mockRnd, ipsumText):
+def testGuiProjectTree_MergeDocuments(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+    ipsumText: list[str],
+):
     """Test the merge document function."""
     mergeData = {}
 
@@ -1394,7 +1450,13 @@ def testGuiProjectTree_MergeDocuments(qtbot, monkeypatch, nwGUI, projPath, mockR
 
 
 @pytest.mark.gui
-def testGuiProjectTree_MergeTargetHandleEdgeCase(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectTree_MergeTargetHandleEdgeCase(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the defensive check after a successful merge, in case the
     merger somehow ends up without a valid target handle.
     """
@@ -1425,7 +1487,14 @@ def testGuiProjectTree_MergeTargetHandleEdgeCase(qtbot, monkeypatch, nwGUI, proj
 
 
 @pytest.mark.gui
-def testGuiProjectTree_SplitDocument(qtbot, monkeypatch, nwGUI, projPath, mockRnd, ipsumText):
+def testGuiProjectTree_SplitDocument(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+    ipsumText: list[str],
+):
     """Test the split document function."""
     splitData = {}
     splitText = []
@@ -1578,7 +1647,13 @@ def testGuiProjectTree_SplitDocument(qtbot, monkeypatch, nwGUI, projPath, mockRn
 
 
 @pytest.mark.gui
-def testGuiProjectTree_Duplicate(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectTree_Duplicate(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the duplicate items function."""
     # Create a project
     projView = nwGUI.projView
@@ -1700,7 +1775,13 @@ def testGuiProjectTree_Duplicate(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiProjectTree_Other(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectTree_Other(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test various parts of the project tree class not covered by
     other tests.
     """
@@ -1729,7 +1810,13 @@ def testGuiProjectTree_Other(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiProjectTree_ContextMenu(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectTree_ContextMenu(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the building of the project tree context menu. All this does
     is test that the menu builds. It doesn't open the actual menu.
     """
@@ -1809,7 +1896,9 @@ def testGuiProjectTree_ContextMenu(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
         projTree._clearSelection()
 
         # No item under menu
-        projTree.openContextMenu(projTree.viewport().rect().bottomRight())
+        viewport = projTree.viewport()
+        assert viewport is not None
+        projTree.openContextMenu(viewport.rect().bottomRight())
         assert mockMenu.call_count == 0
 
         # Open Trash Menu
@@ -1823,8 +1912,10 @@ def testGuiProjectTree_ContextMenu(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
         assert mockMenu.call_count == 2
 
         # Open Multi-Select Menu
-        projTree.selectionModel().select(model.indexFromHandle(hNovelNote), QtSelect)
-        projTree.selectionModel().select(model.indexFromHandle(hSubNote), QtSelect)
+        selModel = projTree.selectionModel()
+        assert selModel is not None
+        selModel.select(model.indexFromHandle(hNovelNote), QtSelect)
+        selModel.select(model.indexFromHandle(hSubNote), QtSelect)
         projTree.openContextMenu()
         assert mockMenu.call_count == 3
         projTree.clearSelection()
@@ -2138,7 +2229,13 @@ def testGuiProjectTree_ContextMenu(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
 
 
 @pytest.mark.gui
-def testGuiProjectTree_ContextMenuEdgeCases(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectTree_ContextMenuEdgeCases(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test defensive branches in the context menu builders and their
     associated actions that aren't covered by the main context menu test.
     """
@@ -2230,7 +2327,7 @@ def testGuiProjectTree_ContextMenuEdgeCases(qtbot, monkeypatch, nwGUI, projPath,
 
 
 @pytest.mark.gui
-def testGuiProjectTree_TemplateMenuEdgeCase(qtbot, nwGUI):
+def testGuiProjectTree_TemplateMenuEdgeCase(qtbot: QtBot, nwGUI: GuiMain):
     """Test that removing a template handle that isn't currently in the
     templates menu does nothing.
     """
@@ -2239,7 +2336,13 @@ def testGuiProjectTree_TemplateMenuEdgeCase(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiProjectTree_Templates(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectTree_Templates(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the templates feature of the project tree."""
     monkeypatch.setattr(GuiEditLabel, "getLabel", lambda *a, text: (text, True))
 
@@ -2332,7 +2435,9 @@ def testGuiProjectTree_Templates(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     assert len(projBar.mTemplates.actions()) == 2
 
     # Remove the note template
-    assert projBar.mTemplates.menuAction().isVisible() is True
+    templatesAction = projBar.mTemplates.menuAction()
+    assert templatesAction is not None
+    assert templatesAction.isVisible() is True
     assert len(projBar.mTemplates.actions()) == 2
     assert trash.childCount() == 0
     projTree.processDeleteRequest([hNoteTemplate])
@@ -2340,13 +2445,13 @@ def testGuiProjectTree_Templates(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     assert len(projBar.mTemplates.actions()) == 1
     projTree.processDeleteRequest([hSceneTemplate])
     assert len(projBar.mTemplates.actions()) == 0
-    assert projBar.mTemplates.menuAction().isVisible() is False
+    assert templatesAction.isVisible() is False
 
     # qtbot.stop()
 
 
 @pytest.mark.gui
-def testGuiProjectTree_MemoryLeakRegression(qtbot, nwGUI, projPath, mockRnd):
+def testGuiProjectTree_MemoryLeakRegression(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd: MockRnd):
     """Test that the context menu is freed when it is released."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
@@ -2366,7 +2471,13 @@ def testGuiProjectTree_MemoryLeakRegression(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiProjectToolBar_MemoryLeakRegression(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiProjectToolBar_MemoryLeakRegression(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test that the toolbar's dynamic per-item menus free their actions
     by reference count alone, since neither rebuild path routes through
     a setParent(None)/del sequence a generic helper could drive: the

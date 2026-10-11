@@ -21,23 +21,33 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from PyQt6.QtCore import QEvent, QPoint, QPointF
 from PyQt6.QtGui import QEnterEvent
 from PyQt6.QtWidgets import QWidget
+from pytestqt.qtbot import QtBot
 
 from novelwriter import SHARED
 from novelwriter.core.indexdata import TT_NONE
 from novelwriter.core.project import NWProject
 from novelwriter.editor.hovercard import GuiDocHoverCard
 from novelwriter.enum import nwDocMode
+from novelwriter.guimain import GuiMain
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, MockRnd, buildTestProject
 
 
 @pytest.mark.gui
-def testGuiDocHoverCard_Widget(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocHoverCard_Widget(
+    monkeypatch: pytest.MonkeyPatch,
+    qtbot: QtBot,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the hover card's widget mechanics: theming, caching, and
     the show/hide/mouse-enter grace period. A real project is needed
     since setTag() looks up SHARED.project.index even for tags that
@@ -144,7 +154,7 @@ def testGuiDocHoverCard_Widget(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiDocHoverCard_TagContent(qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocHoverCard_TagContent(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd: MockRnd):
     """Test that setTag() assembles the correct HTML for a tag's name,
     display alias, title and synopsis, and that the View/Edit buttons
     resolve the current tag and re-emit openDocumentRequest.
@@ -227,7 +237,13 @@ def testGuiDocHoverCard_TagContent(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiDocHoverCard_NoHeadingTitle(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocHoverCard_NoHeadingTitle(
+    monkeypatch: pytest.MonkeyPatch,
+    qtbot: QtBot,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """A tag defined under the dummy T0000 heading must not show a
     title. The real indexer never actually produces this combination
     for a tag definition, since an '@' line before any heading is not
@@ -259,7 +275,13 @@ def testGuiDocHoverCard_NoHeadingTitle(monkeypatch, qtbot, nwGUI, projPath, mock
 
 
 @pytest.mark.gui
-def testGuiDocHoverCard_NoHeadingItem(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
+def testGuiDocHoverCard_NoHeadingItem(
+    monkeypatch: pytest.MonkeyPatch,
+    qtbot: QtBot,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """A tag whose heading cannot be resolved at all, despite having a
     valid name and item, must fall back to just the name paragraph.
     getSingleTag() cannot actually return this shape for a tag with a
