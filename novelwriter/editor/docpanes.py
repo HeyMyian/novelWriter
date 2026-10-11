@@ -87,7 +87,19 @@ class GuiDocPanes(QWidget):
 
         self.setLayout(self.outerBox)
 
-        # Signals
+        # Connect Signals
+        SHARED.indexAvailable.connect(self.docViewerPanel.indexHasAppeared)
+        SHARED.indexChangedRefs.connect(self.docViewerPanel.updateChangedRefs)
+        SHARED.indexChangedTags.connect(self.docEditor.updateChangedTags)
+        SHARED.indexChangedTags.connect(self.docViewer.updateChangedTags)
+        SHARED.indexChangedTags.connect(self.docViewerPanel.updateChangedTags)
+        SHARED.indexCleared.connect(self.docViewerPanel.indexWasCleared)
+        SHARED.projectItemChanged.connect(self.docEditor.onProjectItemChanged)
+        SHARED.projectItemChanged.connect(self.docViewer.onProjectItemChanged)
+        SHARED.projectItemChanged.connect(self.docViewerPanel.onProjectItemChanged)
+        SHARED.spellLanguageChanged.connect(self.docEditor.processSpellCheckChange)
+        SHARED.statusLabelsChanged.connect(self.docViewerPanel.updateStatusLabels)
+
         self.docEditor.closeEditorRequest.connect(self.closeDocEditor)
         self.docEditor.loadDocumentTagRequest.connect(self._followTag)
         self.docEditor.openDocumentRequest.connect(self.openDocumentInMode)
@@ -104,7 +116,37 @@ class GuiDocPanes(QWidget):
         self.docViewerPanel.openDocumentRequest.connect(self.openDocumentInMode)
 
     ##
-    #  Methods
+    #  Class Methods
+    ##
+
+    def openProjectTasks(self) -> None:
+        """Run open project tasks, and restore the last open documents."""
+        self.docEditor.toggleSpellCheck(SHARED.project.data.spellCheck)
+        self.docViewerPanel.openProjectTasks()
+
+        # If no document was recorded, open the first one found
+        lastEdited = SHARED.project.data.getLastHandle("editor")
+        if lastEdited is None:
+            for nwItem in SHARED.project.tree:
+                if nwItem and nwItem.isFileType():
+                    lastEdited = nwItem.itemHandle
+                    break
+
+        if lastEdited is not None:
+            self.openDocument(lastEdited, doScroll=True)
+
+        if lastViewed := SHARED.project.data.getLastHandle("viewer"):
+            self.viewDocument(lastViewed)
+
+    def closeProjectTasks(self) -> None:
+        """Run close project tasks."""
+        self.closeDocument()
+        self.docViewer.clearNavHistory()
+        self.closeViewerPanel(byUser=False)
+        self.docViewerPanel.closeProjectTasks()
+
+    ##
+    #  Document Methods
     ##
 
     def closeDocument(self) -> None:
@@ -241,12 +283,8 @@ class GuiDocPanes(QWidget):
         if self.docViewer.loadText(tHandle, updateHistory=updateHistory):
             if not self.splitView.isVisible():
                 cursorVisible = self.docEditor.cursorIsVisible()
-                bPos = self.splitMain.sizes()
                 self.splitView.setVisible(True)
-                vPos = [0, 0]
-                vPos[0] = int(bPos[1] / 2)
-                vPos[1] = bPos[1] - vPos[0]
-                self.splitMain.setSizes(vPos)
+                self.splitMain.setSizes([1, 1])
                 self.docViewerPanel.setVisible(CONFIG.showViewerPanel)
 
                 # Since editor width changes, we need to make sure we
@@ -268,10 +306,7 @@ class GuiDocPanes(QWidget):
 
         cursorVisible = self.docEditor.cursorIsVisible()
 
-        # Hide the panel
-        bPos = self.splitMain.sizes()
         self.splitView.setVisible(False)
-        self.splitMain.setSizes([bPos[1], 0])
 
         # Since editor width changes, we need to make sure we restore
         # cursor visibility in the editor. See #1302
@@ -294,7 +329,6 @@ class GuiDocPanes(QWidget):
     def closeDocViewer(self) -> None:
         """Close the document viewer."""
         self.closeViewerPanel()
-        SHARED.project.data.setLastHandle(None, "viewer")
 
     @pyqtSlot()
     def forceSaveDocument(self) -> None:

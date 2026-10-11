@@ -1050,11 +1050,28 @@ def testGuiMain_Viewing(
         assert nwGUI.docPanes.viewDocument(C.hSceneDoc) is True
     assert nwGUI.splitView.isVisible() is True
 
+    # The viewer opens at half the width
+    edWidth, vwWidth = nwGUI.docPanes.splitMain.sizes()
+    assert vwWidth > 0
+    assert abs(edWidth - vwWidth) <= 1
+
     # Closing the viewer panel doesn't restore cursor visibility either,
     # if the cursor wasn't visible to begin with
     with monkeypatch.context() as mp:
         mp.setattr(nwGUI.docEditor, "cursorIsVisible", lambda: False)
         assert nwGUI.docPanes.closeViewerPanel() is True
+
+    # The editor takes back the full width once the layout updates
+    qtbot.waitUntil(lambda: nwGUI.docPanes.splitMain.sizes()[1] == 0, timeout=1000)
+
+    # Reopening the viewer always restores the even split
+    assert nwGUI.docPanes.viewDocument(C.hSceneDoc) is True
+    nwGUI.docPanes.splitMain.setSizes([3, 1])
+    assert nwGUI.docPanes.closeViewerPanel() is True
+    assert nwGUI.docPanes.viewDocument(C.hSceneDoc) is True
+    edWidth, vwWidth = nwGUI.docPanes.splitMain.sizes()
+    assert abs(edWidth - vwWidth) <= 1
+    assert nwGUI.docPanes.closeViewerPanel() is True
 
     # Reloading the viewer only saves the editor first if the two
     # panels show the same document

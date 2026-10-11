@@ -202,17 +202,8 @@ class GuiMain(QMainWindow):
         # ===============
 
         SHARED.focusModeChanged.connect(self._focusModeChanged)
-        SHARED.indexAvailable.connect(self.docViewerPanel.indexHasAppeared)
         SHARED.indexAvailable.connect(self.storyView.indexHasAppeared)
-        SHARED.indexChangedRefs.connect(self.docViewerPanel.updateChangedRefs)
-        SHARED.indexChangedTags.connect(self.docEditor.updateChangedTags)
-        SHARED.indexChangedTags.connect(self.docViewer.updateChangedTags)
-        SHARED.indexChangedTags.connect(self.docViewerPanel.updateChangedTags)
-        SHARED.indexCleared.connect(self.docViewerPanel.indexWasCleared)
         SHARED.mainClockTick.connect(self._timeTick)
-        SHARED.projectItemChanged.connect(self.docEditor.onProjectItemChanged)
-        SHARED.projectItemChanged.connect(self.docViewer.onProjectItemChanged)
-        SHARED.projectItemChanged.connect(self.docViewerPanel.onProjectItemChanged)
         SHARED.projectItemChanged.connect(self.itemDetails.onProjectItemChanged)
         SHARED.projectItemChanged.connect(self.projView.onProjectItemChanged)
         SHARED.projectStatusChanged.connect(self.mainStatus.updateProjectStatus)
@@ -221,9 +212,7 @@ class GuiMain(QMainWindow):
         SHARED.rootFolderChanged.connect(self.projSearch.updateRootItem)
         SHARED.rootFolderChanged.connect(self.projView.updateRootItem)
         SHARED.rootFolderChanged.connect(self.storyView.updateRootItem)
-        SHARED.spellLanguageChanged.connect(self.docEditor.processSpellCheckChange)
         SHARED.spellLanguageChanged.connect(self.mainStatus.setLanguage)
-        SHARED.statusLabelsChanged.connect(self.docViewerPanel.updateStatusLabels)
 
         self.mainMenu.requestDocAction.connect(self._passDocumentAction)
         self.mainMenu.requestDocInsert.connect(self._passDocumentInsert)
@@ -377,11 +366,7 @@ class GuiMain(QMainWindow):
             SHARED.project.backupProject(False)
 
         if saveOK:
-            self.docPanes.closeDocument()
-            self.docViewer.clearNavHistory()
-            self.docPanes.closeViewerPanel(byUser=False)
-
-            self.docViewerPanel.closeProjectTasks()
+            self.docPanes.closeProjectTasks()
             self.storyView.closeProjectTasks()
             self.novelView.closeProjectTasks()
             self.projView.closeProjectTasks()
@@ -450,30 +435,16 @@ class GuiMain(QMainWindow):
 
         # Update GUI
         self._updateWindowTitle(SHARED.project.data.name)
-        self.docEditor.toggleSpellCheck(SHARED.project.data.spellCheck)
         self.mainStatus.setRefTime(SHARED.project.projOpened)
         self.mainStatus.initProjectSettings()
         self.projView.openProjectTasks()
         self.novelView.openProjectTasks()
         self.storyView.openProjectTasks()
         self.projSearch.openProjectTasks()
-        self.docViewerPanel.openProjectTasks()
         self._updateStatusWordCount()
 
-        # Restore previously open documents, if any
-        # If none was recorded, open the first document found
-        lastEdited = SHARED.project.data.getLastHandle("editor")
-        if lastEdited is None:
-            for nwItem in SHARED.project.tree:
-                if nwItem and nwItem.isFileType():
-                    lastEdited = nwItem.itemHandle
-                    break
-
-        if lastEdited is not None:
-            self.docPanes.openDocument(lastEdited, doScroll=True)
-
-        if lastViewed := SHARED.project.data.getLastHandle("viewer"):
-            self.docPanes.viewDocument(lastViewed)
+        # Must run after the project tree is populated
+        self.docPanes.openProjectTasks()
 
         # Check if we need to rebuild the index
         if SHARED.project.index.indexRebuild:
