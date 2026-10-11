@@ -21,25 +21,35 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtGui import QAction, QFont
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import describeFont
 from novelwriter.constants import nwHeadFmt, nwStyles, nwUnicode
 from novelwriter.core.project import NWProject
 from novelwriter.extensions.modified import NFontDialog
+from novelwriter.guimain import GuiMain
 from novelwriter.manuscript.buildsettings import BuildSettings, FilterMode
 from novelwriter.manuscript.manussettings import GuiBuildSettings, _FilterTab, _FormattingTab, _HeadingsTab
 from novelwriter.shared import _GuiAlert
 
-from tests.helpers import C, buildTestProject, checkDialogFreedOnClose
+from tests.helpers import C, MockRnd, buildTestProject, checkDialogFreedOnClose
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_Init(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiBuildSettings_Init(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the initialisation of the GuiBuildSettings dialog."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
@@ -120,7 +130,7 @@ def testGuiBuildSettings_Init(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_Filter(qtbot, nwGUI, projPath, mockRnd):
+def testGuiBuildSettings_Filter(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd: MockRnd):
     """Test the Filter Tab of the GuiBuildSettings dialog."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
@@ -347,7 +357,7 @@ def testGuiBuildSettings_Filter(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_Headings(qtbot, nwGUI):
+def testGuiBuildSettings_Headings(qtbot: QtBot, nwGUI: GuiMain):
     """Test the Headings Tab of the GuiBuildSettings dialog."""
     build = BuildSettings()
 
@@ -541,7 +551,7 @@ def testGuiBuildSettings_Headings(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_HeadingsAutoReplace(qtbot, nwGUI):
+def testGuiBuildSettings_HeadingsAutoReplace(qtbot: QtBot, nwGUI: GuiMain):
     """Test the auto-replace symbols feature of the heading edit box."""
     build = BuildSettings()
 
@@ -579,7 +589,7 @@ def testGuiBuildSettings_HeadingsAutoReplace(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_FormatTextContent(qtbot, nwGUI):
+def testGuiBuildSettings_FormatTextContent(qtbot: QtBot, nwGUI: GuiMain):
     """Test the Text Content settings."""
     build = BuildSettings()
 
@@ -662,7 +672,7 @@ def testGuiBuildSettings_FormatTextContent(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_FormatTextFormat(monkeypatch, qtbot, nwGUI):
+def testGuiBuildSettings_FormatTextFormat(monkeypatch: pytest.MonkeyPatch, qtbot: QtBot, nwGUI: GuiMain):
     """Test the Text Format settings."""
     build = BuildSettings()
 
@@ -748,7 +758,7 @@ def testGuiBuildSettings_FormatTextFormat(monkeypatch, qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_FormatHeadingFormat(monkeypatch, qtbot, nwGUI):
+def testGuiBuildSettings_FormatHeadingFormat(monkeypatch: pytest.MonkeyPatch, qtbot: QtBot, nwGUI: GuiMain):
     """Test the Heading Format settings."""
     build = BuildSettings()
 
@@ -792,7 +802,7 @@ def testGuiBuildSettings_FormatHeadingFormat(monkeypatch, qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_FormatFirstLineIndent(monkeypatch, qtbot, nwGUI):
+def testGuiBuildSettings_FormatFirstLineIndent(monkeypatch: pytest.MonkeyPatch, qtbot: QtBot, nwGUI: GuiMain):
     """Test the First Line Indent settings."""
     build = BuildSettings()
 
@@ -835,7 +845,7 @@ def testGuiBuildSettings_FormatFirstLineIndent(monkeypatch, qtbot, nwGUI):
     # qtbot.stop()
 
 
-def testGuiBuildSettings_SizeAndMargins(monkeypatch, qtbot, nwGUI):
+def testGuiBuildSettings_SizeAndMargins(monkeypatch: pytest.MonkeyPatch, qtbot: QtBot, nwGUI: GuiMain):
     """Test the Size & Margins settings."""
     build = BuildSettings()
 
@@ -972,7 +982,7 @@ def testGuiBuildSettings_SizeAndMargins(monkeypatch, qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_FormatPageLayout(monkeypatch, qtbot, nwGUI):
+def testGuiBuildSettings_FormatPageLayout(monkeypatch: pytest.MonkeyPatch, qtbot: QtBot, nwGUI: GuiMain):
     """Test the First Line Indent settings."""
     build = BuildSettings()
 
@@ -1037,7 +1047,7 @@ def testGuiBuildSettings_FormatPageLayout(monkeypatch, qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_FormatOutput(qtbot, nwGUI):
+def testGuiBuildSettings_FormatOutput(qtbot: QtBot, nwGUI: GuiMain):
     """Test the format-specific settings."""
     build = BuildSettings()
 
@@ -1099,7 +1109,7 @@ def testGuiBuildSettings_FormatOutput(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_MemoryLeakRegression(qtbot, nwGUI, projPath, mockRnd):
+def testGuiBuildSettings_MemoryLeakRegression(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd: MockRnd):
     """Test that the dialog is freed when it is closed."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)

@@ -21,6 +21,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -30,12 +31,13 @@ from PyQt6.QtTest import QAbstractItemModelTester
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwKeyWords
+from novelwriter.guimain import GuiMain
 from novelwriter.models.outlinemodel import BLANK_STYLE, NODE_FLAGS, OutlineModel, OutlineNode
 from novelwriter.types import QtDisplayRole
 
 
 @pytest.mark.core
-def testOutlineModel_ModelTest(nwGUI, prjLipsum):
+def testOutlineModel_ModelTest(nwGUI: GuiMain, prjLipsum: Path):
     """Run the Qt model tester on the model."""
     model = OutlineModel()
     QAbstractItemModelTester(model)
@@ -46,7 +48,7 @@ def testOutlineModel_ModelTest(nwGUI, prjLipsum):
 
 
 @pytest.mark.core
-def testOutlineModel_Interface(nwGUI, prjLipsum):
+def testOutlineModel_Interface(nwGUI: GuiMain, prjLipsum: Path):
     """Test the outline model interface."""
     assert nwGUI.openProject(prjLipsum)
     index = SHARED.project.index
@@ -118,7 +120,7 @@ def testOutlineModel_Interface(nwGUI, prjLipsum):
 
 
 @pytest.mark.core
-def testOutlineModel_Columns(nwGUI, prjLipsum):
+def testOutlineModel_Columns(nwGUI: GuiMain, prjLipsum: Path):
     """Test the outline model columns."""
     assert nwGUI.openProject(prjLipsum)
     index = SHARED.project.index
@@ -154,7 +156,7 @@ def testOutlineModel_Columns(nwGUI, prjLipsum):
 
 
 @pytest.mark.core
-def testOutlineModel_Progress(nwGUI, prjLipsum):
+def testOutlineModel_Progress(nwGUI: GuiMain, prjLipsum: Path):
     """Test the outline model page and progress calculation."""
     assert nwGUI.openProject(prjLipsum)
     index = SHARED.project.index

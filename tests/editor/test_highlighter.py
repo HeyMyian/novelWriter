@@ -21,6 +21,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 import pytest
 
 from PyQt6.QtGui import QTextCharFormat, QTextCursor, QTextDocument
@@ -31,6 +33,7 @@ from novelwriter.core.spellcheck import SpellEnchant
 from novelwriter.editor.highlighter import BLOCK_META, BLOCK_TITLE, GuiDocHighlighter
 from novelwriter.editor.textblock import TextBlockData
 from novelwriter.enum import nwItemClass, nwItemLayout, nwItemType, nwTheme
+from novelwriter.guimain import GuiMain
 from novelwriter.types import QtKeepAnchor
 
 R_HANDLE = "3456789abcdef"
@@ -38,7 +41,7 @@ T_HANDLE = "0123456789abc"
 
 
 @pytest.fixture
-def syntax(nwGUI):
+def syntax(nwGUI: GuiMain) -> Iterator[GuiDocHighlighter]:
     """Create a syntax object for use with testing."""
     CONFIG.lightTheme = "default_light"
     CONFIG.themeMode = nwTheme.LIGHT
@@ -102,7 +105,7 @@ def maxOrd(text: str) -> int:
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_Basic(syntax):
+def testGuiDocHighlighter_Basic(syntax: GuiDocHighlighter):
     """Test the basic functionality of the syntax highlighter."""
     # Check Handle
     assert syntax._tHandle is None
@@ -128,7 +131,7 @@ def testGuiDocHighlighter_Basic(syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_Keywords(syntax):
+def testGuiDocHighlighter_Keywords(syntax: GuiDocHighlighter):
     """Test highlighting of keywords."""
     theme = SHARED.theme
     doc = syntax.document()
@@ -213,7 +216,7 @@ def testGuiDocHighlighter_Keywords(syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_Titles(syntax):
+def testGuiDocHighlighter_Titles(syntax: GuiDocHighlighter):
     """Test highlighting of titles."""
     theme = SHARED.theme
     doc = syntax.document()
@@ -315,7 +318,7 @@ def testGuiDocHighlighter_Titles(syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_Comments(syntax):
+def testGuiDocHighlighter_Comments(syntax: GuiDocHighlighter):
     """Test highlighting of comments."""
     theme = SHARED.theme
     doc = syntax.document()
@@ -412,7 +415,7 @@ def testGuiDocHighlighter_Comments(syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_Special(syntax):
+def testGuiDocHighlighter_Special(syntax: GuiDocHighlighter):
     """Test highlighting of special commands."""
     theme = SHARED.theme
     doc = syntax.document()
@@ -508,7 +511,7 @@ def testGuiDocHighlighter_Special(syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_Text(monkeypatch, syntax):
+def testGuiDocHighlighter_Text(monkeypatch: pytest.MonkeyPatch, syntax: GuiDocHighlighter):
     """Test highlighting of text."""
     theme = SHARED.theme
     doc = syntax.document()
@@ -638,7 +641,7 @@ def testGuiDocHighlighter_Text(monkeypatch, syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_Lists(monkeypatch, syntax):
+def testGuiDocHighlighter_Lists(monkeypatch: pytest.MonkeyPatch, syntax: GuiDocHighlighter):
     """Test highlighting of list items."""
     theme = SHARED.theme
     doc = syntax.document()
@@ -699,7 +702,7 @@ def testGuiDocHighlighter_Lists(monkeypatch, syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_MaxBlockLength(monkeypatch, syntax):
+def testGuiDocHighlighter_MaxBlockLength(monkeypatch: pytest.MonkeyPatch, syntax: GuiDocHighlighter):
     """Content beyond the max block length cap must be ignored
     entirely: no syntax highlighting, and no spell/format checking.
     """
@@ -730,7 +733,7 @@ def testGuiDocHighlighter_MaxBlockLength(monkeypatch, syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_UnknownCommand(syntax):
+def testGuiDocHighlighter_UnknownCommand(syntax: GuiDocHighlighter):
     """An unrecognised bracketed command falls back to plain rules."""
     doc = syntax.document()
     assert doc is not None
@@ -744,7 +747,7 @@ def testGuiDocHighlighter_UnknownCommand(syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_OverlappingMarkup(syntax):
+def testGuiDocHighlighter_OverlappingMarkup(syntax: GuiDocHighlighter):
     """Nested markup (e.g. italic inside bold) must not have the
     outer rule overwrite the markup already applied by the inner
     rule, including when a 4-byte unicode character forces the

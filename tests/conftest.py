@@ -26,7 +26,9 @@ import shutil
 import sys
 import warnings
 
+from collections.abc import Iterator
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -42,6 +44,11 @@ from novelwriter.enum import nwTheme
 from tests.helpers import MockRnd, TstPaths
 from tests.mocked import MockGuiMain
 
+if TYPE_CHECKING:
+    from pytestqt.qtbot import QtBot
+
+    from novelwriter.guimain import GuiMain
+
 _TST_ROOT = Path(__file__).parent
 _SRC_ROOT = _TST_ROOT.parent
 _TMP_ROOT = _TST_ROOT / "_temp"
@@ -53,7 +60,7 @@ _TMP_CONF = _TMP_ROOT / "conf"
 ##
 
 
-def resetConfigVars():
+def resetConfigVars() -> None:
     """Reset the CONFIG object and set various values for testing to
     prevent interfering with local OS.
     """
@@ -80,7 +87,7 @@ def resetConfigVars():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def sessionFixture():
+def sessionFixture() -> None:
     """A default session wide fixture to set up the test environment."""
     logging.root.setLevel(logging.INFO)
     if _TMP_ROOT.exists():
@@ -93,7 +100,7 @@ def sessionFixture():
 
 
 @pytest.fixture(autouse=True)
-def functionFixture(qtbot):
+def functionFixture(qtbot: QtBot) -> None:
     """A default function fixture that:
     * Ensures that the main Qt thread is always available
     * Resets the config object for each function and redirect its
@@ -130,7 +137,7 @@ def tstPaths() -> TstPaths:
 
 
 @pytest.fixture
-def fncPath():
+def fncPath() -> Path:
     """A temporary folder for a single test function."""
     fncPath = _TMP_ROOT / "function"
     if fncPath.is_dir():
@@ -140,7 +147,7 @@ def fncPath():
 
 
 @pytest.fixture
-def projPath(fncPath):
+def projPath(fncPath: Path) -> Path:
     """A temp folder for a single test function + project folder."""
     prjDir = fncPath / "project"
     if prjDir.exists():
@@ -155,7 +162,7 @@ def projPath(fncPath):
 
 
 @pytest.fixture
-def mockGUI(qtbot, monkeypatch):
+def mockGUI(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> MockGuiMain:
     """Create a mock instance of novelWriter's main GUI class."""
     from novelwriter.gui.theme import GuiTheme
     from novelwriter.shared import _GuiAlert
@@ -174,7 +181,7 @@ def mockGUI(qtbot, monkeypatch):
 
 
 @pytest.fixture
-def mockGUIwithTheme(mockGUI):
+def mockGUIwithTheme(mockGUI: MockGuiMain) -> MockGuiMain:
     """Create a mock instance of novelWriter's main GUI class with the
     theme instance initialised.
     """
@@ -183,7 +190,7 @@ def mockGUIwithTheme(mockGUI):
 
 
 @pytest.fixture
-def nwGUI(qtbot, monkeypatch, functionFixture):
+def nwGUI(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, functionFixture: None) -> Iterator[GuiMain]:
     """Create an instance of the novelWriter GUI."""
     from novelwriter.gui.theme import GuiTheme
     from novelwriter.guimain import GuiMain
@@ -235,7 +242,7 @@ def mockRnd(monkeypatch: pytest.MonkeyPatch) -> MockRnd:
 
 
 @pytest.fixture
-def prjLipsum():
+def prjLipsum() -> Iterator[Path]:
     """A medium sized novelWriter example project with a lot of Lorem
     Ipsum text.
     """
@@ -259,7 +266,7 @@ def prjLipsum():
 
 
 @pytest.fixture(scope="session")
-def ipsumText():
+def ipsumText() -> list[str]:
     """Return five paragraphs of Lorem Ipsum text."""
     return [
         (

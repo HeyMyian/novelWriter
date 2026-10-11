@@ -25,6 +25,7 @@ import json
 import uuid
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -32,13 +33,13 @@ from novelwriter.constants import nwFiles
 from novelwriter.core.project import NWProject
 from novelwriter.story.storysettings import OutlineColumn, OutlineViewSettings, StoryViewCollection, StoryViewSettings
 
-from tests.helpers import buildTestProject
-from tests.mocked import causeOSError
+from tests.helpers import MockRnd, buildTestProject
+from tests.mocked import MockGuiMain, causeOSError
 
 VIEW_ID = "5cf45d24-f496-42c9-8733-529a9e52a62b"
 
 
-def isUUID(value):
+def isUUID(value: Any) -> bool:
     """Check if a value is a valid UUID object."""
     try:
         uuid.UUID(value)
@@ -312,7 +313,12 @@ def testStoryViewSettings_Columns():
 
 
 @pytest.mark.core
-def testStoryViewSettings_Collection(monkeypatch, mockGUI, fncPath: Path, mockRnd):
+def testStoryViewSettings_Collection(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the collections class for story views."""
     project = NWProject()
     buildTestProject(project, fncPath)
