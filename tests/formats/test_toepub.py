@@ -194,6 +194,35 @@ def testToEPub_ConvertParagraphs(mockGUI):
     epub.doConvert()
     assert epub._sections[-1].text[-1] == "<p>Line one<br />Line two<br />Line three</p>"
 
+    # Lists
+    epub._text = "Text\n\n* One\n* Two\nmore\n\n* Three\n"
+    epub.tokenizeText()
+    epub.doConvert()
+    assert epub._sections[-1].text[-8:] == [
+        "<p>Text</p>",
+        "<ul>",
+        "<li style='margin-bottom: 0;'>One</li>",
+        "<li style='margin-top: 0;'>Two<br />more</li>",
+        "</ul>",
+        "<ul>",
+        "<li>Three</li>",
+        "</ul>",
+    ]
+
+    # Ordered Lists
+    epub._text = "#. One\n#. Two\n* Three\n"
+    epub.tokenizeText()
+    epub.doConvert()
+    assert epub._sections[-1].text[-7:] == [
+        "<ol>",
+        "<li style='margin-bottom: 0;'>One</li>",
+        "<li style='margin-top: 0;'>Two</li>",
+        "</ol>",
+        "<ul>",
+        "<li>Three</li>",
+        "</ul>",
+    ]
+
     # Synopsis, Short, and plain comments
     nText = len(epub._sections[-1].text)
 

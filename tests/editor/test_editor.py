@@ -1657,6 +1657,21 @@ def testGuiDocEditor_ToolBar(qtbot, nwGUI, projPath, mockRnd):
         "Text [sub]subscript[/sub] one\n\n"
     )
 
+    # Lists
+    # =====
+
+    docEditor.replaceText("One\n\nTwo\n\n")
+
+    # Click Unordered List
+    docEditor.setCursorPosition(1)
+    docToolBar.tbListU.click()
+    assert docEditor.getText() == "* One\n\nTwo\n\n"
+
+    # Click Ordered List
+    docEditor.setCursorPosition(9)
+    docToolBar.tbListO.click()
+    assert docEditor.getText() == "* One\n\n#. Two\n\n"
+
     # qtbot.stop()
 
 
@@ -2266,6 +2281,56 @@ def testGuiDocEditor_BlockFormatting(qtbot, monkeypatch, nwGUI, projPath, ipsumT
     assert docEditor.getText() == "###! Some text\n\n"
     assert docEditor.getCursorPosition() == 10
 
+    # Unordered List
+    docEditor.replaceText("Some text\n\n")
+    docEditor.setCursorPosition(5)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_U) is True
+    assert docEditor.getText() == "* Some text\n\n"
+    assert docEditor.getCursorPosition() == 7
+
+    # Ordered List
+    docEditor.replaceText("Some text\n\n")
+    docEditor.setCursorPosition(5)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_O) is True
+    assert docEditor.getText() == "#. Some text\n\n"
+    assert docEditor.getCursorPosition() == 8
+
+    # Unordered to Ordered List, and back
+    docEditor.replaceText("* Some text\n\n")
+    docEditor.setCursorPosition(7)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_O) is True
+    assert docEditor.getText() == "#. Some text\n\n"
+    assert docEditor.getCursorPosition() == 8
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_U) is True
+    assert docEditor.getText() == "* Some text\n\n"
+    assert docEditor.getCursorPosition() == 7
+
+    # List to Plain Text
+    docEditor.replaceText("#. Some text\n\n")
+    docEditor.setCursorPosition(8)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_TXT) is True
+    assert docEditor.getText() == "Some text\n\n"
+    assert docEditor.getCursorPosition() == 5
+
+    # Toggle Lists Off
+    docEditor.replaceText("* Some text\n\n")
+    docEditor.setCursorPosition(7)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_U) is True
+    assert docEditor.getText() == "Some text\n\n"
+    assert docEditor.getCursorPosition() == 5
+
+    docEditor.replaceText("#. Some text\n\n")
+    docEditor.setCursorPosition(8)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_O) is True
+    assert docEditor.getText() == "Some text\n\n"
+    assert docEditor.getCursorPosition() == 5
+
+    # A separator is not a list item
+    docEditor.replaceText("* * *\n\n")
+    docEditor.setCursorPosition(5)
+    assert docEditor._formatBlock(nwDocAction.ALIGN_C) is True
+    assert docEditor.getText() == ">> * * * <<\n\n"
+
     # Left Indent
     docEditor.replaceText("Some text\n\n")
     docEditor.setCursorPosition(5)
@@ -2482,6 +2547,121 @@ def testGuiDocEditor_MultiBlockFormatting(qtbot, nwGUI, projPath, ipsumText, moc
         "Integ",
         "",
     ]
+
+    # Toggle List
+    cursor = docEditor.textCursor()
+    cursor.setPosition(50)
+    cursor.movePosition(QtMoveRight, QtKeepAnchor, 2000)
+    docEditor.setTextCursor(cursor)
+
+    docEditor._iterFormatBlocks(nwDocAction.BLOCK_LST_U)
+    assert [x[:5] for x in docEditor.getText().splitlines()] == [
+        "### A",
+        "",
+        "@char",
+        "",
+        "* Lor",
+        "",
+        "* Nul",
+        "",
+        "* Nul",
+        "",
+        "* Pel",
+        "",
+        "Integ",
+        "",
+    ]
+
+    # Un-toggle all, the first item decides
+    cursor = docEditor.textCursor()
+    cursor.setPosition(50)
+    cursor.movePosition(QtMoveRight, QtKeepAnchor, 3000)
+    docEditor.setTextCursor(cursor)
+
+    docEditor._iterFormatBlocks(nwDocAction.BLOCK_LST_U)
+    assert [x[:5] for x in docEditor.getText().splitlines()] == [
+        "### A",
+        "",
+        "@char",
+        "",
+        "Lorem",
+        "",
+        "Nulla",
+        "",
+        "Nulla",
+        "",
+        "Pelle",
+        "",
+        "Integ",
+        "",
+    ]
+
+    # Align across a heading and a keyword, which are skipped
+    cursor = docEditor.textCursor()
+    cursor.setPosition(0)
+    cursor.movePosition(QtMoveRight, QtKeepAnchor, 2000)
+    docEditor.setTextCursor(cursor)
+
+    docEditor.docAction(nwDocAction.ALIGN_C)
+    assert [x[:5] for x in docEditor.getText().splitlines()] == [
+        "### A",
+        "",
+        "@char",
+        "",
+        ">> Lo",
+        "",
+        ">> Nu",
+        "",
+        ">> Nu",
+        "",
+        ">> Pe",
+        "",
+        "Integ",
+        "",
+    ]
+
+    # The affected blocks are reselected
+    lastBlock = docEditor.document().findBlockByNumber(10)
+    assert lastBlock.text().startswith(">> Pe")
+    cursor = docEditor.textCursor()
+    assert cursor.selectionStart() == 0
+    assert cursor.selectionEnd() == lastBlock.position() + lastBlock.length() - 1
+
+    # Toggle back off, the first formattable block decides
+    docEditor.docAction(nwDocAction.ALIGN_C)
+    assert [x[:5] for x in docEditor.getText().splitlines()] == [
+        "### A",
+        "",
+        "@char",
+        "",
+        "Lorem",
+        "",
+        "Nulla",
+        "",
+        "Nulla",
+        "",
+        "Pelle",
+        "",
+        "Integ",
+        "",
+    ]
+
+    # Indent the same selection
+    docEditor.docAction(nwDocAction.INDENT_L)
+    docEditor.docAction(nwDocAction.INDENT_R)
+    assert docEditor.getText().splitlines()[4].startswith("> Lorem")
+    assert docEditor.getText().splitlines()[4].endswith(" <")
+    assert docEditor.getText().splitlines()[0] == "### A Scene"
+    cursor = docEditor.textCursor()
+    cursor.setPosition(50)
+    cursor.movePosition(QtMoveRight, QtKeepAnchor, 2000)
+    docEditor.setTextCursor(cursor)
+    docEditor.docAction(nwDocAction.BLOCK_TXT)
+
+    # A single heading is not aligned
+    docEditor.setCursorPosition(3)
+    assert docEditor._formatBlock(nwDocAction.ALIGN_C) is False
+    assert docEditor.getText().splitlines()[0] == "### A Scene"
 
     # Final text should be identical to initial text
     assert docEditor.getText() == text
@@ -3243,6 +3423,89 @@ def testGuiDocEditor_LineHeightDoubleReturn(qtbot, nwGUI, projPath, mockRnd):
     qtbot.keyClicks(docEditor, "Body text.")
 
     assert docEditor.getText().startswith("# Heading\n\nBody text.")
+
+
+@pytest.mark.gui
+def testGuiDocEditor_ListMarkerOnReturn(qtbot, nwGUI, projPath, mockRnd):
+    """Test that list markers are carried over to new lines."""
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+    docEditor = nwGUI.docEditor
+    assert docEditor.loadText(C.hSceneDoc) is True
+
+    # Unordered item, then ordered item, at end of line
+    docEditor.setPlainText("* One")
+    docEditor.setCursorPosition(5)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    qtbot.keyClicks(docEditor, "Two")
+    assert docEditor.getText() == "* One\n* Two"
+
+    docEditor.setPlainText("#. One")
+    docEditor.setCursorPosition(6)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    qtbot.keyClicks(docEditor, "Two")
+    assert docEditor.getText() == "#. One\n#. Two"
+
+    # Splitting an item carries the marker
+    docEditor.setPlainText("* OneTwo")
+    docEditor.setCursorPosition(5)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "* One\n* Two"
+
+    # Return inside the marker inserts a plain line
+    docEditor.setPlainText("#. One")
+    docEditor.setCursorPosition(1)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "#\n. One"
+
+    # Return on an empty item clears the marker
+    docEditor.setPlainText("* One\n* ")
+    docEditor.setCursorPosition(8)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "* One\n"
+    assert docEditor.getCursorPosition() == 6
+
+    docEditor.setPlainText("#.  ")
+    docEditor.setCursorPosition(4)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == ""
+
+    # Not list items
+    docEditor.setPlainText("* * *")
+    docEditor.setCursorPosition(5)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "* * *\n"
+
+    docEditor.setPlainText("*")
+    docEditor.setCursorPosition(1)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "*\n"
+
+    # A selection is replaced, and the marker is from its first line
+    docEditor.setPlainText("* One\nText")
+    cursor = docEditor.textCursor()
+    cursor.setPosition(3)
+    cursor.setPosition(8, QtKeepAnchor)
+    docEditor.setTextCursor(cursor)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "* O\n* xt"
+
+    # A selection on an empty item is not cleared as an empty item
+    docEditor.setPlainText("* ")
+    cursor = docEditor.textCursor()
+    cursor.setPosition(1)
+    cursor.setPosition(2, QtKeepAnchor)
+    docEditor.setTextCursor(cursor)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "*\n"
+
+    # The marker is undone with the new line
+    docEditor.setPlainText("* One")
+    docEditor.setCursorPosition(5)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "* One\n* "
+    docEditor.docAction(nwDocAction.UNDO)
+    assert docEditor.getText() == "* One"
 
 
 @pytest.mark.gui

@@ -138,6 +138,7 @@ class nwStyles:
     H_VALID = ("H0", "H1", "H2", "H3", "H4")
     H_LEVEL: ClassVar[dict[str, int]] = {"H0": 0, "H1": 1, "H2": 2, "H3": 3, "H4": 4}
     H_SIZES: ClassVar[dict[int, float]] = {0: 2.50, 1: 2.00, 2: 1.75, 3: 1.50, 4: 1.25}
+    H_MARKERS = ("# ", "## ", "### ", "#### ", "#! ", "##! ", "###! ")
 
     T_NORMAL = 1.0
     T_SMALL = 0.8

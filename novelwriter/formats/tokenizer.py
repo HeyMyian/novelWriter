@@ -84,6 +84,7 @@ HEADING_BLOCKS = [
 ]
 COMMENT_BLOCKS = (BlockTyp.COMMENT, BlockTyp.SUMMARY, BlockTyp.NOTE)
 META_BLOCKS = (BlockTyp.COMMENT, BlockTyp.SUMMARY, BlockTyp.NOTE, BlockTyp.KEYWORD)
+LIST_BLOCKS = (BlockTyp.LIST_U, BlockTyp.LIST_O)
 SKIP_INDENT = [*HEADING_BLOCKS, BlockTyp.SEP, BlockTyp.SKIP]
 B_EMPTY: T_Block = (BlockTyp.EMPTY, "", "", [], BlockFmt.NONE)
 
@@ -872,7 +873,19 @@ class Tokenizer(ABC):
                 alnRight = False
                 indLeft = False
                 indRight = False
-                if bLine.startswith(">>"):
+
+                tType = BlockTyp.TEXT
+                hDialog = isNovel
+
+                if bLine.startswith("* ") and (temp := bLine[2:].lstrip(" ")).strip("* "):
+                    tType = BlockTyp.LIST_U
+                    bLine = temp
+                    hDialog = False
+                elif bLine.startswith("#. ") and (temp := bLine[3:].lstrip(" ")):
+                    tType = BlockTyp.LIST_O
+                    bLine = temp
+                    hDialog = False
+                elif bLine.startswith(">>"):
                     alnRight = True
                     bLine = bLine[2:].lstrip(" ")
                 elif bLine.startswith(">"):
@@ -899,8 +912,8 @@ class Tokenizer(ABC):
                     tStyle |= BlockFmt.IND_R
 
                 # Process formats
-                tLine, tFmt = self._extractFormats(bLine, hDialog=isNovel)
-                tBlocks.append((BlockTyp.TEXT, "", tLine, tFmt, tStyle))
+                tLine, tFmt = self._extractFormats(bLine, hDialog=hDialog)
+                tBlocks.append((tType, "", tLine, tFmt, tStyle))
 
         # If we have content, turn off the first page flag
         if self._isFirst and len(tBlocks) > 1:
@@ -953,7 +966,7 @@ class Tokenizer(ABC):
                     addEmptyLine = False
                 sBlocks.append((cBlock[0], cBlock[1], cBlock[2], cBlock[3], aStyle))
 
-            elif cBlock[0] == BlockTyp.TEXT:
+            elif cBlock[0] in (BlockTyp.TEXT, BlockTyp.LIST_U, BlockTyp.LIST_O):
                 # Combine lines from the same paragraph
                 pLines.append(cBlock)
                 addEmptyLine = False
@@ -987,19 +1000,33 @@ class Tokenizer(ABC):
                     else:  # pragma: no cover
                         pass
 
+                    pType = pLines[0][0]
+                    if pType in LIST_BLOCKS:
+                        cStyle &= ~(BlockFmt.ALIGNED | BlockFmt.IND_L | BlockFmt.IND_R)  # Strip align and indent
+
+                        if not (sBlocks and sBlocks[-1][0] == pType and not sBlocks[-1][4] & BlockFmt.LIST_E):
+                            cStyle |= BlockFmt.LIST_S
+                        else:
+                            cStyle |= BlockFmt.Z_TOP
+
+                        if nBlock[0] != pType:
+                            cStyle |= BlockFmt.LIST_E
+                        else:
+                            cStyle |= BlockFmt.Z_BTM
+
                     if nLines:  # pragma: no branch
                         isAligned = cStyle & BlockFmt.ALIGNED
-                        if firstIndent and not (self._noIndent or isAligned):
-                            # If paragraph indentation is enabled, not temporarily
-                            # turned off, and the block is not aligned, we add the
-                            # text indentation flag
+                        if firstIndent and pType not in LIST_BLOCKS and not (self._noIndent or isAligned):
+                            # If paragraph indentation is enabled, not a list,
+                            # not temporarily turned off, and the block is not
+                            # aligned, we add the text indentation flag
                             cStyle |= BlockFmt.IND_T
 
                         if doJustify and not isAligned:
                             cStyle |= BlockFmt.JUSTIFY
 
-                        sBlocks.append((BlockTyp.TEXT, pLines[0][1], pTxt, tFmt, cStyle))
-                        addEmptyLine = lineMargins
+                        sBlocks.append((pType, pLines[0][1], pTxt, tFmt, cStyle))
+                        addEmptyLine = lineMargins and (pType not in LIST_BLOCKS or bool(cStyle & BlockFmt.LIST_E))
 
                     # Reset buffer and make sure text indent is on for next pass
                     pLines = []
@@ -1072,7 +1099,7 @@ class Tokenizer(ABC):
             nChars = len(tText)
             nWChars = len("".join(tWords))
 
-            if tType == BlockTyp.TEXT:
+            if tType in (BlockTyp.TEXT, BlockTyp.LIST_U, BlockTyp.LIST_O):
                 tPWords = tText.split()
                 nPWords = len(tPWords)
                 nPChars = len(tText)

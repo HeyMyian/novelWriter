@@ -38,6 +38,7 @@ from PyQt6.QtGui import (
     QTextDocument,
     QTextFrameFormat,
     QTextLength,
+    QTextListFormat,
     QTextTableCellFormat,
     QTextTableFormat,
 )
@@ -46,7 +47,7 @@ from PyQt6.QtPrintSupport import QPrinter
 from novelwriter import __version__
 from novelwriter.constants import nwUnicode
 from novelwriter.formats.shared import BlockFmt, BlockTyp, T_Formats, TextFmt, stripEscape
-from novelwriter.formats.tokenizer import HEADING_BLOCKS, META_BLOCKS, Tokenizer
+from novelwriter.formats.tokenizer import HEADING_BLOCKS, LIST_BLOCKS, META_BLOCKS, Tokenizer
 from novelwriter.types import (
     QtAlignAbsolute,
     QtAlignCenter,
@@ -106,6 +107,8 @@ class ToQTextDocument(Tokenizer):
         "_hWeight",
         "_iHead",
         "_init",
+        "_listFmtO",
+        "_listFmtU",
         "_mHead",
         "_mIndent",
         "_mMeta",
@@ -161,6 +164,8 @@ class ToQTextDocument(Tokenizer):
         self._tIndent = 1.0
         self._blockFmt = QTextBlockFormat()
         self._charFmt = QTextCharFormat()
+        self._listFmtU = QTextListFormat()
+        self._listFmtO = QTextListFormat()
 
     ##
     #  Properties
@@ -281,6 +286,8 @@ class ToQTextDocument(Tokenizer):
         self._mIndent = mPx * 2.0
         self._tIndent = mPx * self._firstWidth
 
+        self._document.setIndentWidth(self._mIndent)
+
         # Text Formats
         self._blockFmt.setTopMargin(self._mText[0])
         self._blockFmt.setBottomMargin(self._mText[1])
@@ -289,6 +296,12 @@ class ToQTextDocument(Tokenizer):
 
         self._charFmt.setBackground(QtTransparent)
         self._charFmt.setForeground(self._theme.text)
+
+        self._listFmtU.setStyle(QTextListFormat.Style.ListDisc)
+        self._listFmtU.setIndent(1)
+
+        self._listFmtO.setStyle(QTextListFormat.Style.ListDecimal)
+        self._listFmtO.setIndent(1)
 
         self._init = True
 
@@ -301,6 +314,7 @@ class ToQTextDocument(Tokenizer):
         cursor = QTextCursor(self._document)
         cursor.movePosition(QtMoveEnd)
 
+        qList = None
         for tType, tMeta, tText, tFormat, tStyle in self._blocks:
             bFmt = QTextBlockFormat(self._blockFmt)
             if tType in META_BLOCKS:
@@ -339,6 +353,15 @@ class ToQTextDocument(Tokenizer):
 
             if tType == BlockTyp.TEXT:
                 newBlock(cursor, bFmt)
+                self._insertFragments(tText, tFormat, cursor, self._charFmt)
+
+            elif tType in LIST_BLOCKS:
+                newBlock(cursor, bFmt)
+                cursor.setBlockCharFormat(self._charFmt)
+                if qList is None or tStyle & BlockFmt.LIST_S:
+                    qList = cursor.createList(self._listFmtO if tType == BlockTyp.LIST_O else self._listFmtU)
+                else:
+                    qList.add(cursor.block())
                 self._insertFragments(tText, tFormat, cursor, self._charFmt)
 
             elif tType in HEADING_BLOCKS:

@@ -108,6 +108,26 @@ class GuiDocToolBar(QWidget):
         self.tbSubscript.setToolTip(self.tr("Shortcode Subscript"))
         self.tbSubscript.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.SC_SUB))
 
+        self.tbListU = NFlatIconButton(self, iSz, "fmt_list_u:action")
+        self.tbListU.setToolTip(self.tr("Format as Bullet List"))
+        self.tbListU.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.BLOCK_LST_U))
+
+        self.tbListO = NFlatIconButton(self, iSz, "fmt_list_o:action")
+        self.tbListO.setToolTip(self.tr("Format as Numbered List"))
+        self.tbListO.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.BLOCK_LST_O))
+
+        self.tbAlignLeft = NFlatIconButton(self, iSz, "fmt_align_left:action")
+        self.tbAlignLeft.setToolTip(self.tr("Align Left"))
+        self.tbAlignLeft.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.ALIGN_L))
+
+        self.tbAlignCenter = NFlatIconButton(self, iSz, "fmt_align_center:action")
+        self.tbAlignCenter.setToolTip(self.tr("Align Centre"))
+        self.tbAlignCenter.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.ALIGN_C))
+
+        self.tbAlignRight = NFlatIconButton(self, iSz, "fmt_align_right:action")
+        self.tbAlignRight.setToolTip(self.tr("Align Right"))
+        self.tbAlignRight.clicked.connect(qtWeakLambda(self._emitDocAction, nwDocAction.ALIGN_R))
+
         # Assemble
         # ========
 
@@ -117,7 +137,7 @@ class GuiDocToolBar(QWidget):
         self.outerBox.addWidget(self.tbStrikeMD)
         self.outerBox.addWidget(self.tbMarkMD)
         self.outerBox.addWidget(self.tbLinkMD)
-        self.outerBox.addSpacing(4)
+        self.outerBox.addSpacing(8)
         self.outerBox.addWidget(self.tbBold)
         self.outerBox.addWidget(self.tbItalic)
         self.outerBox.addWidget(self.tbStrike)
@@ -125,6 +145,13 @@ class GuiDocToolBar(QWidget):
         self.outerBox.addWidget(self.tbMark)
         self.outerBox.addWidget(self.tbSuperscript)
         self.outerBox.addWidget(self.tbSubscript)
+        self.outerBox.addSpacing(8)
+        self.outerBox.addWidget(self.tbListU)
+        self.outerBox.addWidget(self.tbListO)
+        self.outerBox.addSpacing(8)
+        self.outerBox.addWidget(self.tbAlignLeft)
+        self.outerBox.addWidget(self.tbAlignCenter)
+        self.outerBox.addWidget(self.tbAlignRight)
         self.outerBox.setContentsMargins(4, 4, 4, 4)
         self.outerBox.setSpacing(4)
 

@@ -1473,6 +1473,221 @@ def testTokenizer_BreakJustify(mockGUI):
 
 
 @pytest.mark.core
+def testTokenizer_Lists(mockGUI):
+    """Test the tokenization of lists."""
+    CONFIG.fmtDQuoteOpen = "“"
+    CONFIG.fmtDQuoteClose = "”"
+    CONFIG.dialogStyle = 3
+
+    project = NWProject()
+    tokens = BareTokenizer(project)
+    tokens._handle = TMH
+
+    # List between paragraphs
+    tokens._text = "Text\n\n* One\n* Two\n* Three\n\nMore text\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Two", [], BlockFmt.Z_TOP | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Three", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+        (BlockTyp.TEXT, "", "More text", [], BlockFmt.NONE),
+    ]
+
+    # Blank lines end the list
+    tokens._text = "* One\n\n\n* Two\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.LIST_U, "", "Two", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+    ]
+
+    # A list item ends a paragraph
+    tokens._text = "Text\n* One\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+    ]
+
+    # Other blocks end the list
+    tokens._text = "* One\n### Scene\n* Two\n[vspace]\n* Three\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.HEAD3, TM1, "Scene", [], BlockFmt.NONE),
+        (BlockTyp.LIST_U, "", "Two", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
+        (BlockTyp.LIST_U, "", "Three", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+    ]
+
+    # A page break doesn't end the list
+    tokens._text = "* One\n[newpage]\n* Two\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Two", [], BlockFmt.LIST_E | BlockFmt.Z_TOP | BlockFmt.PBB),
+    ]
+
+    # Ignored lines don't end the list
+    tokens._text = "* One\n%~ * Two\n* Three\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Three", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+    ]
+
+    # Continuation lines, keep breaks
+    tokens._text = "* One\nmore\n* Two\nmore\n"
+    tokens.setKeepLineBreaks(True)
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.LIST_U, "", "One\nmore", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Two\nmore", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+    ]
+
+    # Continuation lines, remove breaks
+    tokens.setKeepLineBreaks(False)
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.LIST_U, "", "One more", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Two more", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+    ]
+    tokens.setKeepLineBreaks(True)
+
+    # Not list items
+    tokens._text = "* * *\n\n*  *  *\n\n* *\n\n*item\n\n> * item\n\n>> * item\n\n\\* item\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.TEXT, "", "* * *", [], BlockFmt.NONE),
+        (BlockTyp.TEXT, "", "*  *  *", [], BlockFmt.NONE),
+        (BlockTyp.TEXT, "", "* *", [], BlockFmt.NONE),
+        (BlockTyp.TEXT, "", "*item", [], BlockFmt.NONE),
+        (BlockTyp.TEXT, "", "* item", [], BlockFmt.IND_L),
+        (BlockTyp.TEXT, "", "* item", [], BlockFmt.RIGHT),
+        (BlockTyp.TEXT, "", "\\* item", [], BlockFmt.NONE),
+    ]
+
+    # Alignment and indent markers are ignored, also on continuation lines
+    tokens._text = "* One <<\n* Two <\n* Three\nmore <<\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Two", [], BlockFmt.Z_TOP | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Three\nmore", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+    ]
+
+    # Text formats
+    tokens._text = "* Some **bold** text\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (
+            BlockTyp.LIST_U,
+            "",
+            "Some bold text",
+            [(5, TextFmt.B_B, ""), (9, TextFmt.B_E, "")],
+            BlockFmt.LIST_S | BlockFmt.LIST_E,
+        ),
+    ]
+
+    # No first line indent on items, but justify applies
+    tokens.setFirstLineIndent(True, 1.0, False)
+    tokens.setJustify(True, False)
+    tokens._text = "Text\n\n* One\n\nText\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.IND_T | BlockFmt.JUSTIFY),
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E | BlockFmt.JUSTIFY),
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.IND_T | BlockFmt.JUSTIFY),
+    ]
+    tokens.setFirstLineIndent(False, 1.0, False)
+    tokens.setJustify(False, False)
+
+    # Line for margin is only added after the list
+    tokens.setLineForMargin(True)
+    tokens._text = "Text\n\n* One\n* Two\n\nText\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
+        (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_U, "", "Two", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+        (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
+        (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
+    ]
+    tokens.setLineForMargin(False)
+
+    # Hidden headings end the list
+    tokens._isNovel = True
+    tokens.setSceneFormat(nwHeadFmt.TITLE, True)
+    tokens._text = "* One\n### Scene\n* Two\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.LIST_U, "", "Two", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+    ]
+    tokens.setSceneFormat(nwHeadFmt.TITLE, False)
+
+    # No dialogue highlighting in items
+    tokens._isNovel = True
+    tokens.setDialogHighlight(True)
+    tokens._text = "“Hi,” she said.\n\n* “Hi,” she said.\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (
+            BlockTyp.TEXT,
+            "",
+            "“Hi,” she said.",
+            [(0, TextFmt.COL_B, "dialog"), (5, TextFmt.COL_E, "enddialog")],
+            BlockFmt.NONE,
+        ),
+        (BlockTyp.LIST_U, "", "“Hi,” she said.", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+    ]
+    tokens._isNovel = False
+
+    # Ordered list with continuation line
+    tokens._text = "Text\n\n#. One\n#. Two\nmore\n\nText\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
+        (BlockTyp.LIST_O, "", "One", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_O, "", "Two\nmore", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
+    ]
+
+    # Changing list type ends the list
+    tokens._text = "* One\n#. Two\n#. Three\n* Four\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.LIST_U, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.LIST_O, "", "Two", [], BlockFmt.LIST_S | BlockFmt.Z_BTM),
+        (BlockTyp.LIST_O, "", "Three", [], BlockFmt.LIST_E | BlockFmt.Z_TOP),
+        (BlockTyp.LIST_U, "", "Four", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+    ]
+
+    # Not ordered list items
+    tokens._text = "#.One\n\n#.   \n\n\\#. Three\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.TEXT, "", "#.One", [], BlockFmt.NONE),
+        (BlockTyp.TEXT, "", "#.   ", [], BlockFmt.NONE),
+        (BlockTyp.TEXT, "", "\\#. Three", [], BlockFmt.NONE),
+    ]
+
+    # No first line indent on ordered items
+    tokens.setFirstLineIndent(True, 1.0, False)
+    tokens._text = "Text\n\n#. One\n\nText\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.IND_T),
+        (BlockTyp.LIST_O, "", "One", [], BlockFmt.LIST_S | BlockFmt.LIST_E),
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.IND_T),
+    ]
+    tokens.setFirstLineIndent(False, 1.0, False)
+
+
+@pytest.mark.core
 def testTokenizer_TextFormat(mockGUI):
     """Test the tokenization of text formats in the Tokenizer class."""
     project = NWProject()
@@ -2504,6 +2719,27 @@ def testTokenizer_CountStats(mockGUI, ipsumText):
         "dialogChars": 0,
         "allWordChars": 40,
         "textWordChars": 40,
+        "titleWordChars": 0,
+    }
+
+    # List Items
+    # Each item is a paragraph, and the markers are not counted
+    tokens._text = "* One item\n#. Two\nlines\n\nText\n\n"
+    tokens._counts = {}
+    tokens.tokenizeText()
+    tokens.countStats()
+    assert tokens.textStats == {
+        "titleCount": 0,
+        "paragraphCount": 3,
+        "allWords": 5,
+        "textWords": 5,
+        "titleWords": 0,
+        "allChars": 21,
+        "textChars": 21,
+        "titleChars": 0,
+        "dialogChars": 0,
+        "allWordChars": 19,
+        "textWordChars": 19,
         "titleWordChars": 0,
     }
 

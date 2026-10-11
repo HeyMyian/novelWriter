@@ -26,16 +26,16 @@ import xml.etree.ElementTree as ET
 
 from datetime import datetime
 from hashlib import sha256
-from typing import TYPE_CHECKING, Final, Literal, NamedTuple
+from typing import TYPE_CHECKING, ClassVar, Literal, NamedTuple
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from PyQt6.QtGui import QColor, QFont
 
 from novelwriter import __version__
 from novelwriter.common import xmlElement, xmlIndent, xmlSubElem
-from novelwriter.constants import nwHeadFmt, nwStyles
+from novelwriter.constants import nwHeadFmt, nwStyles, nwUnicode
 from novelwriter.formats.shared import BlockFmt, BlockTyp, TextFmt, stripEscape
-from novelwriter.formats.tokenizer import COMMENT_BLOCKS, Tokenizer
+from novelwriter.formats.tokenizer import COMMENT_BLOCKS, LIST_BLOCKS, META_BLOCKS, Tokenizer
 from novelwriter.types import FONT_STYLE, QtHexRgb
 
 if TYPE_CHECKING:
@@ -88,6 +88,9 @@ TAG_SPC = _mkTag("text", "s")
 TAG_NSPC = _mkTag("text", "c")
 TAG_TAB = _mkTag("text", "tab")
 TAG_SPAN = _mkTag("text", "span")
+TAG_LIST = _mkTag("text", "list")
+TAG_ITEM = _mkTag("text", "list-item")
+TAG_STNM = _mkTag("text", "style-name")
 
 # Formatting Codes
 X_BLD = 0x001  # Bold format
@@ -124,6 +127,9 @@ S_TEXT = "Text_20_body"
 S_META = "Text_20_Meta"
 S_HNF = "Header_20_and_20_Footer"
 S_NUM = "N0"
+S_LIST = "List"
+S_BULL = "List_20_Bullet"
+S_NUMB = "Numbering_20_123"
 
 # Font Data
 FONT_WEIGHT_NUM = ["100", "200", "300", "400", "500", "600", "700", "800", "900"]
@@ -406,11 +412,13 @@ class ToOdt(Tokenizer):
         self._pageStyles()
         self._defaultStyles()
         self._useableStyles()
-        self._writeHeader()
+        self._writeHeaderStyle()
+        self._writeListStyle()
 
     def doConvert(self) -> None:
         """Convert the list of text tokens into XML elements."""
         xText = self._xText
+        xList = None
         for tType, _, tText, tFormat, tStyle in self._blocks:
             # Styles
             oStyle = ODTParagraphStyle("New")
@@ -428,10 +436,10 @@ class ToOdt(Tokenizer):
             if tStyle & BlockFmt.PBA:
                 oStyle.setBreakAfter("page")
 
-            if tStyle & BlockFmt.Z_BTM:
-                oStyle.setMarginBottom("0.000cm")
-            if tStyle & BlockFmt.Z_TOP:
-                oStyle.setMarginTop("0.000cm")
+            if tStyle & (BlockFmt.Z_TOP | BlockFmt.Z_BTM):
+                mTop, mBtm = self._marginMeta if tType in META_BLOCKS else self._marginText
+                oStyle.setMarginTop("0.000cm" if tStyle & BlockFmt.Z_TOP else self._emToCm(mTop))
+                oStyle.setMarginBottom("0.000cm" if tStyle & BlockFmt.Z_BTM else self._emToCm(mBtm))
 
             if tStyle & BlockFmt.IND_L:
                 oStyle.setMarginLeft(self._fBlockIndent)
@@ -450,6 +458,13 @@ class ToOdt(Tokenizer):
             elif tType in (BlockTyp.TITLE, BlockTyp.PART):
                 # Title must be text:p
                 self._addTextPar(xText, S_TITLE, oStyle, tText, isHead=False)
+
+            elif tType in LIST_BLOCKS:
+                if xList is None or tStyle & BlockFmt.LIST_S:
+                    sList = S_NUMB if tType == BlockTyp.LIST_O else S_BULL
+                    xList = ET.SubElement(xText, TAG_LIST, attrib={TAG_STNM: sList})
+                xItem = ET.SubElement(xList, TAG_ITEM)
+                self._addTextPar(xItem, S_LIST, oStyle, tText, tFmt=tFormat)
 
             elif tType == BlockTyp.HEAD1:
                 self._addTextPar(xText, S_HEAD1, oStyle, tText, isHead=True, oLevel="1")
@@ -992,6 +1007,14 @@ class ToOdt(Tokenizer):
         style.packXML(self._xStyl)
         self._mainPara[style.name] = style
 
+        # Add List Style
+        style = ODTParagraphStyle(S_LIST)
+        style.setDisplayName("List")
+        style.setParentStyleName(S_TEXT)
+        style.setClass("list")
+        style.packXML(self._xStyl)
+        self._mainPara[style.name] = style
+
         # Add Separator Style
         style = ODTParagraphStyle(S_SEP)
         style.setDisplayName("Separator")
@@ -1114,7 +1137,7 @@ class ToOdt(Tokenizer):
         style.packXML(self._xStyl)
         self._mainPara[style.name] = style
 
-    def _writeHeader(self) -> None:
+    def _writeHeaderStyle(self) -> None:
         """Write the header elements."""
         xPage = ET.SubElement(
             self._xMast,
@@ -1151,6 +1174,55 @@ class ToOdt(Tokenizer):
         xHead = ET.SubElement(xPage, _mkTag("style", "header-first"))
         xPar = ET.SubElement(xHead, _mkTag("text", "p"), attrib={_mkTag("text", "style-name"): "Header"})
 
+    def _writeListStyle(self) -> None:
+        """Write the list styles."""
+        for sName, sDisplay, sHang in ((S_BULL, "List Bullet", 1.0), (S_NUMB, "Numbering 123", 1.5)):
+            xList = ET.SubElement(
+                self._xStyl,
+                _mkTag("text", "list-style"),
+                attrib={
+                    _mkTag("style", "name"): sName,
+                    _mkTag("style", "display-name"): sDisplay,
+                },
+            )
+            bIndent = self._emToCm(sHang)
+            for level in range(1, 11):
+                if sName == S_BULL:
+                    xLevel = ET.SubElement(
+                        xList,
+                        _mkTag("text", "list-level-style-bullet"),
+                        attrib={
+                            _mkTag("text", "level"): str(level),
+                            _mkTag("text", "bullet-char"): nwUnicode.U_BULL,
+                        },
+                    )
+                else:
+                    xLevel = ET.SubElement(
+                        xList,
+                        _mkTag("text", "list-level-style-number"),
+                        attrib={
+                            _mkTag("text", "level"): str(level),
+                            _mkTag("style", "num-suffix"): ".",
+                            _mkTag("style", "num-format"): "1",
+                        },
+                    )
+                xProp = ET.SubElement(
+                    xLevel,
+                    _mkTag("style", "list-level-properties"),
+                    attrib={_mkTag("text", "list-level-position-and-space-mode"): "label-alignment"},
+                )
+                tIndent = self._emToCm(2.0 * level)
+                ET.SubElement(
+                    xProp,
+                    _mkTag("style", "list-level-label-alignment"),
+                    attrib={
+                        _mkTag("text", "label-followed-by"): "listtab",
+                        _mkTag("text", "list-tab-stop-position"): tIndent,
+                        _mkTag("fo", "text-indent"): f"-{bIndent}",
+                        _mkTag("fo", "margin-left"): tIndent,
+                    },
+                )
+
 
 # Auto-Style Classes
 # ==================
@@ -1164,11 +1236,11 @@ class ODTParagraphStyle:
 
     __slots__ = ("_mAttr", "_name", "_pAttr", "_tAttr")
 
-    VALID_ALIGN: Final[list[str]] = ["start", "center", "end", "justify", "left", "right"]
-    VALID_BREAK: Final[list[str]] = ["auto", "page", "even-page", "odd-page", "inherit"]
-    VALID_LEVEL: Final[list[str]] = ["1", "2", "3", "4"]
-    VALID_CLASS: Final[list[str]] = ["text", "chapter", "extra", "html"]
-    VALID_WEIGHT: Final[list[str]] = ["normal", "bold", *FONT_WEIGHT_NUM]
+    VALID_ALIGN: ClassVar[list[str]] = ["start", "center", "end", "justify", "left", "right"]
+    VALID_BREAK: ClassVar[list[str]] = ["auto", "page", "even-page", "odd-page", "inherit"]
+    VALID_LEVEL: ClassVar[list[str]] = ["1", "2", "3", "4"]
+    VALID_CLASS: ClassVar[list[str]] = ["text", "chapter", "extra", "html", "list"]
+    VALID_WEIGHT: ClassVar[list[str]] = ["normal", "bold", *FONT_WEIGHT_NUM]
 
     def __init__(self, name: str) -> None:
 
@@ -1411,13 +1483,13 @@ class ODTTextStyle:
 
     __slots__ = ("_name", "_tAttr")
 
-    VALID_WEIGHT: Final[list[str]] = ["normal", "bold", *FONT_WEIGHT_NUM]
-    VALID_STYLE: Final[list[str]] = ["normal", "italic", "oblique"]
-    VALID_POS: Final[list[str]] = ["super", "sub"]
-    VALID_LSTYLE: Final[list[str]] = ["none", "solid"]
-    VALID_LTYPE: Final[list[str]] = ["single", "double"]
-    VALID_LWIDTH: Final[list[str]] = ["auto"]
-    VALID_LCOL: Final[list[str]] = ["font-color"]
+    VALID_WEIGHT: ClassVar[list[str]] = ["normal", "bold", *FONT_WEIGHT_NUM]
+    VALID_STYLE: ClassVar[list[str]] = ["normal", "italic", "oblique"]
+    VALID_POS: ClassVar[list[str]] = ["super", "sub"]
+    VALID_LSTYLE: ClassVar[list[str]] = ["none", "solid"]
+    VALID_LTYPE: ClassVar[list[str]] = ["single", "double"]
+    VALID_LWIDTH: ClassVar[list[str]] = ["auto"]
+    VALID_LCOL: ClassVar[list[str]] = ["font-color"]
 
     def __init__(self, name: str) -> None:
         self._name = name

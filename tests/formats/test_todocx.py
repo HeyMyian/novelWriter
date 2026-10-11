@@ -27,7 +27,7 @@ import zipfile
 import pytest
 
 from novelwriter.common import xmlIndent
-from novelwriter.constants import nwHeadFmt
+from novelwriter.constants import nwHeadFmt, nwUnicode
 from novelwriter.core.project import NWProject
 from novelwriter.enum import nwBuildFmt, nwComment
 from novelwriter.formats.shared import BlockFmt, BlockTyp
@@ -658,6 +658,89 @@ def testToDocX_Footnotes(mockGUI):
 
 
 @pytest.mark.core
+def testToDocX_Lists(mockGUI):
+    """Test formatting of lists."""
+    project = NWProject()
+    doc = ToDocX(project)
+    doc.initDocument()
+
+    # Text
+    xTest = ET.Element(_wTag("body"))
+    doc._text = "Text\n* One\n* Two\nmore\n* Three\n\n* Four\n\nText\n"
+    doc.tokenizeText()
+    doc.doConvert()
+    for par in doc._pars:
+        par.toXml(xTest)
+    assert xmlToText(xTest) == (
+        '<w:body><w:p><w:pPr><w:pStyle w:val="Normal" /></w:pPr>'
+        "<w:r><w:rPr /><w:t>Text</w:t></w:r></w:p>"
+        '<w:p><w:pPr><w:pStyle w:val="ListParagraph" />'
+        '<w:numPr><w:ilvl w:val="0" /><w:numId w:val="1" /></w:numPr>'
+        '<w:spacing w:before="0" w:after="0" w:line="252" w:lineRule="auto" /></w:pPr>'
+        "<w:r><w:rPr /><w:t>One</w:t></w:r></w:p>"
+        '<w:p><w:pPr><w:pStyle w:val="ListParagraph" />'
+        '<w:numPr><w:ilvl w:val="0" /><w:numId w:val="1" /></w:numPr>'
+        '<w:spacing w:before="0" w:after="0" w:line="252" w:lineRule="auto" /></w:pPr>'
+        "<w:r><w:rPr /><w:t>Two</w:t><w:br /><w:t>more</w:t></w:r></w:p>"
+        '<w:p><w:pPr><w:pStyle w:val="ListParagraph" />'
+        '<w:numPr><w:ilvl w:val="0" /><w:numId w:val="1" /></w:numPr>'
+        '<w:spacing w:before="0" w:after="132" w:line="252" w:lineRule="auto" /></w:pPr>'
+        "<w:r><w:rPr /><w:t>Three</w:t></w:r></w:p>"
+        '<w:p><w:pPr><w:pStyle w:val="ListParagraph" />'
+        '<w:numPr><w:ilvl w:val="0" /><w:numId w:val="2" /></w:numPr></w:pPr>'
+        "<w:r><w:rPr /><w:t>Four</w:t></w:r></w:p>"
+        '<w:p><w:pPr><w:pStyle w:val="Normal" /></w:pPr>'
+        "<w:r><w:rPr /><w:t>Text</w:t></w:r></w:p></w:body>"
+    )
+
+    # Ordered List
+    xTest = ET.Element(_wTag("body"))
+    doc._text = "#. Five\n#. Six\n"
+    doc.tokenizeText()
+    doc.doConvert()
+    for par in doc._pars[-2:]:
+        par.toXml(xTest)
+    assert [x.get(_wTag("val")) for x in xTest.iter(_wTag("numId"))] == ["3", "3"]
+    assert doc._numLists == [False, False, True]
+
+    # Numbering
+    doc.closeDocument()
+    xRoot = doc._files["numbering.xml"].xml
+    assert doc._rels["numbering.xml"].relType.endswith("/numbering")
+
+    xAbst = xRoot.findall(_wTag("abstractNum"))
+    assert [x.get(_wTag("abstractNumId")) for x in xAbst] == ["0", "1"]
+    for xA, numFmt, lvlText, hanging in [
+        (xAbst[0], "bullet", [nwUnicode.U_BULL, nwUnicode.U_BULL], "220"),
+        (xAbst[1], "decimal", ["%1.", "%9."], "330"),
+    ]:
+        xLvls = xA.findall(_wTag("lvl"))
+        assert len(xLvls) == 9
+        for xLvl, left, text in [(xLvls[0], "440", lvlText[0]), (xLvls[8], "3960", lvlText[1])]:
+            assert [(x.tag, x.get(_wTag("val"))) for x in xLvl[:4]] == [
+                (_wTag("start"), "1"),
+                (_wTag("numFmt"), numFmt),
+                (_wTag("lvlText"), text),
+                (_wTag("lvlJc"), "left"),
+            ]
+            xInd = xLvl.find(f"{_wTag('pPr')}/{_wTag('ind')}")
+            assert xInd is not None
+            assert xInd.get(_wTag("left")) == left
+            assert xInd.get(_wTag("hanging")) == hanging
+
+    # Ordered lists restart their numbering
+    xNums = xRoot.findall(_wTag("num"))
+    assert [x.get(_wTag("numId")) for x in xNums] == ["1", "2", "3"]
+    assert [x[0].get(_wTag("val")) for x in xNums] == ["0", "0", "1"]
+    assert [len(x) for x in xNums] == [1, 1, 2]
+    xOvr = xNums[2][1]
+    assert xOvr.tag == _wTag("lvlOverride")
+    assert xOvr.get(_wTag("ilvl")) == "0"
+    assert xOvr[0].tag == _wTag("startOverride")
+    assert xOvr[0].get(_wTag("val")) == "1"
+
+
+@pytest.mark.core
 def testToDocX_Fields(mockGUI):
     """Test formatting of footnotes."""
     project = NWProject()
@@ -712,6 +795,7 @@ def testToDocX_MinimalClose(mockGUI):
     doc.closeDocument()
     assert "header1.xml" not in doc._files
     assert "footnotes.xml" not in doc._files
+    assert "numbering.xml" not in doc._files
 
     xVars = doc._files["settings.xml"].xml.find(_wTag("docVars"))
     assert xVars is None

@@ -32,6 +32,8 @@ from novelwriter.types import QtAccepted, QtRoleAccept, QtRoleReject
 
 logger = logging.getLogger(__name__)
 
+URL_ESCAPE = str.maketrans({" ": "%20", "(": "%28", ")": "%29"})
+
 
 class GuiEditLink(NDialog):
     """GUI: Edit Markdown Link Dialog."""
@@ -88,7 +90,8 @@ class GuiEditLink(NDialog):
 
     @property
     def linkUrl(self) -> str:
-        return self.edtUrl.text().strip()
+        """Return the URL with characters the link syntax can't hold encoded."""
+        return self.edtUrl.text().strip().translate(URL_ESCAPE)
 
     @classmethod
     def getLink(cls, parent: QWidget, text: str = "", url: str = "") -> tuple[str, str, bool]:
