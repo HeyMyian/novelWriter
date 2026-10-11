@@ -149,12 +149,6 @@ class GuiMain(QMainWindow):
         self.treeBox.addWidget(self.itemDetails)
         self.treePane.setLayout(self.treeBox)
 
-        # Splitter : Document Viewer / Document Meta
-        self.splitView = self.docPanes.splitView
-
-        # Splitter : Document Editor / Document Viewer
-        self.splitDocs = self.docPanes.splitMain
-
         # Splitter : Project Tree / Document Area
         self.splitMain = QSplitter(Qt.Orientation.Horizontal)
         self.splitMain.setContentsMargins(0, 0, 0, 0)
@@ -300,7 +294,7 @@ class GuiMain(QMainWindow):
         QApplication.processEvents()
         app = QApplication.instance()
         if isinstance(app, QApplication):
-            app.focusChanged.connect(self._appFocusChanged)
+            app.focusChanged.connect(self.docPanes.onFocusChanged)
 
         # Check that config loaded fine
         if CONFIG.hasError:
@@ -607,11 +601,9 @@ class GuiMain(QMainWindow):
             if not self.treePane.isHidden():  # Note: not the same as isVisible()
                 CONFIG.mainPanePos = self.splitMain.sizes()
             CONFIG.searchPanePos = self.projSearch.splitSizes()
-            if self.docViewerPanel.isVisible():
-                CONFIG.viewPanePos = self.docPanes.splitView.sizes()
 
+        self.docPanes.saveLayout()
         CONFIG.showDetailsPanel = self.itemDetails.isExpanded()
-        CONFIG.showViewerPanel = self.docViewerPanel.isVisible()
         wFull = Qt.WindowState.WindowFullScreen
         if self.windowState() & wFull != wFull:
             # Ignore window size if in full screen mode
@@ -632,8 +624,7 @@ class GuiMain(QMainWindow):
         """Load theme if mode changed."""
         if SHARED.theme.loadTheme(schemeHint=schemeHint):
             self.refreshThemeColors(syntax=True)
-            self.docEditor.initEditor()
-            self.docViewer.initViewer()
+            self.docPanes.initPanes()
 
             # This also forces the icon to update if there was already a message on the status bar (#2886)
             meta = SHARED.theme.themeInfo
@@ -644,9 +635,7 @@ class GuiMain(QMainWindow):
         SHARED.theme.loadTheme(force=force)
         SHARED.project.updateTheme()
         self.setPalette(QApplication.palette())
-        self.docEditor.updateTheme()
-        self.docViewer.updateTheme()
-        self.docViewerPanel.updateTheme()
+        self.docPanes.updateTheme(syntax=syntax)
         self.sideBar.updateTheme()
         self.projView.updateTheme()
         self.novelView.updateTheme()
@@ -658,9 +647,6 @@ class GuiMain(QMainWindow):
 
         if dialog := SHARED.findTopLevelWidget(GuiManuscript):
             dialog.updateTheme()
-
-        if syntax:
-            self.docEditor.updateSyntaxColors()
 
     ##
     #  Events
@@ -703,19 +689,6 @@ class GuiMain(QMainWindow):
     #  Private Slots
     ##
 
-    @pyqtSlot("QWidget*", "QWidget*")
-    def _appFocusChanged(self, old: QWidget, new: QWidget) -> None:
-        """Alert main widgets that they have received or lost focus."""
-        if isinstance(new, QWidget):
-            docEditor = False
-            docViewer = False
-            if self.docEditor.isAncestorOf(new):
-                docEditor = True
-            elif self.docViewer.isAncestorOf(new):
-                docViewer = True
-            self.docEditor.changeFocusState(docEditor)
-            self.docViewer.changeFocusState(docViewer)
-
     @pyqtSlot(bool)
     def _focusModeChanged(self, focusMode: bool) -> None:
         """Handle change of focus mode. The Main GUI Focus Mode hides
@@ -735,14 +708,7 @@ class GuiMain(QMainWindow):
         self.mainStatus.setVisible(isVisible)
         self.mainMenu.setVisible(isVisible)
         self.sideBar.setVisible(isVisible)
-
-        hideDocFooter = focusMode and CONFIG.hideFocusFooter
-        self.docEditor.docFooter.setVisible(not hideDocFooter)
-
-        if self.splitView.isVisible():
-            self.splitView.setVisible(False)
-        elif self.docViewer.docHandle is not None:
-            self.splitView.setVisible(True)
+        self.docPanes.setFocusMode(focusMode)
 
         if cursorVisible:
             self.docEditor.ensureCursorVisible(centre=False)
@@ -781,16 +747,13 @@ class GuiMain(QMainWindow):
 
         elif paneNo == nwFocus.DOCUMENT:
             self.changeView(nwView.EDITOR, exitFocus=True)
-            hasViewer = self.splitView.isVisible()
-            if hasViewer and self.docEditor.anyFocus():
-                self.docViewer.setFocus()
-            elif hasViewer and self.docViewer.anyFocus():
-                self.docEditor.setFocus()
-            else:
-                self.docEditor.setFocus()
+            self.docPanes.cycleFocus()
 
         elif paneNo == nwFocus.STORY:
             self.changeView(nwView.STORY, exitFocus=True)
+
+        else:  # pragma: no cover
+            pass
 
     @pyqtSlot(GuiNeedsUpdate)
     def _processConfigChanges(self, update: GuiNeedsUpdate) -> None:
@@ -806,24 +769,12 @@ class GuiMain(QMainWindow):
 
         if update.theme:
             self.refreshThemeColors(syntax=update.syntax, force=True)
-        if update.editor or update.syntax or update.theme:
-            self.docEditor.initEditor()
-        if update.viewer or update.syntax or update.theme:
-            self.docViewer.initViewer()
+        self.docPanes.applySettings(update)
         if update.viewport:
-            if not update.editor:
-                self.docEditor.initViewport()
-            if not update.viewer:
-                self.docViewer.initViewport()
             self.projView.initViewport()
             self.novelView.initViewport()
         if update.spelling:
             SHARED.updateSpellCheckLanguage(reload=True)
-
-        if not update.editor:
-            self.docEditor.initSettings(updateVimMode=update.vim)
-        if not update.viewer:
-            self.docViewer.initSettings()
 
         self.projSearch.initSettings()
         self.storyView.initSettings()

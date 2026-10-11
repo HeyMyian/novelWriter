@@ -36,6 +36,7 @@ from novelwriter.editor.viewerpanel import GuiDocViewerPanel
 from novelwriter.enum import nwDocMode, nwView
 
 if TYPE_CHECKING:
+    from novelwriter.dialogs.preferences import GuiNeedsUpdate
     from novelwriter.guimain import GuiMain
 
 logger = logging.getLogger(__name__)
@@ -118,6 +119,56 @@ class GuiDocPanes(QWidget):
     ##
     #  Class Methods
     ##
+
+    def initPanes(self) -> None:
+        """Initialise the editor and viewer."""
+        self.docEditor.initEditor()
+        self.docViewer.initViewer()
+
+    def updateTheme(self, syntax: bool = False) -> None:
+        """Update theme elements."""
+        self.docEditor.updateTheme()
+        self.docViewer.updateTheme()
+        self.docViewerPanel.updateTheme()
+        if syntax:
+            self.docEditor.updateSyntaxColors()
+
+    def applySettings(self, update: GuiNeedsUpdate) -> None:
+        """Apply changed preferences to the editor and viewer."""
+        if update.editor or update.syntax or update.theme:
+            self.docEditor.initEditor()
+        if update.viewer or update.syntax or update.theme:
+            self.docViewer.initViewer()
+        if update.viewport:
+            if not update.editor:
+                self.docEditor.initViewport()
+            if not update.viewer:
+                self.docViewer.initViewport()
+        if not update.editor:
+            self.docEditor.initSettings(updateVimMode=update.vim)
+        if not update.viewer:
+            self.docViewer.initSettings()
+
+    def saveLayout(self) -> None:
+        """Save the layout state to config."""
+        if not SHARED.focusMode and self.docViewerPanel.isVisible():
+            CONFIG.viewPanePos = self.splitView.sizes()
+        CONFIG.showViewerPanel = self.docViewerPanel.isVisible()
+
+    def setFocusMode(self, focusMode: bool) -> None:
+        """Show or hide pane elements for focus mode."""
+        self.docEditor.docFooter.setVisible(not (focusMode and CONFIG.hideFocusFooter))
+        if self.splitView.isVisible():
+            self.splitView.setVisible(False)
+        elif self.docViewer.docHandle is not None:
+            self.splitView.setVisible(True)
+
+    def cycleFocus(self) -> None:
+        """Move focus to the viewer if the editor has it, otherwise to the editor."""
+        if self.splitView.isVisible() and self.docEditor.anyFocus():
+            self.docViewer.setFocus()
+        else:
+            self.docEditor.setFocus()
 
     def openProjectTasks(self) -> None:
         """Run open project tasks, and restore the last open documents."""
@@ -370,6 +421,15 @@ class GuiDocPanes(QWidget):
                     self.openDocument(nHandle, tLine=(-1 if goBack else 1), doScroll=True)
             except Exception:
                 logger.error("Could not find next document for '%s'", tHandle)
+
+    @pyqtSlot("QWidget*", "QWidget*")
+    def onFocusChanged(self, old: QWidget, new: QWidget) -> None:
+        """Update the focus state of the editor and viewer."""
+        if isinstance(new, QWidget):
+            docEditor = self.docEditor.isAncestorOf(new)
+            docViewer = not docEditor and self.docViewer.isAncestorOf(new)
+            self.docEditor.changeFocusState(docEditor)
+            self.docViewer.changeFocusState(docViewer)
 
     ##
     #  Private Slots

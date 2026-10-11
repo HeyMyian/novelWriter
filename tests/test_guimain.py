@@ -977,9 +977,9 @@ def testGuiMain_Viewing(
     nwGUI.closeProject()
 
     # View before a project is open does nothing
-    assert nwGUI.splitView.isVisible() is False
+    assert nwGUI.docPanes.splitView.isVisible() is False
     assert nwGUI.docPanes.viewDocument(None) is False
-    assert nwGUI.splitView.isVisible() is False
+    assert nwGUI.docPanes.splitView.isVisible() is False
 
     # Open project requires a path
     assert nwGUI.openProject(None) is False
@@ -1041,14 +1041,14 @@ def testGuiMain_Viewing(
     with monkeypatch.context() as mp:
         mp.setattr(nwGUI.docViewer, "loadText", lambda *a, **k: False)
         assert nwGUI.docPanes.viewDocument(C.hSceneDoc) is True
-    assert nwGUI.splitView.isVisible() is False
+    assert nwGUI.docPanes.splitView.isVisible() is False
 
     # If the editor's cursor isn't visible when the viewer panel first
     # appears, its visibility isn't restored either
     with monkeypatch.context() as mp:
         mp.setattr(nwGUI.docEditor, "cursorIsVisible", lambda: False)
         assert nwGUI.docPanes.viewDocument(C.hSceneDoc) is True
-    assert nwGUI.splitView.isVisible() is True
+    assert nwGUI.docPanes.splitView.isVisible() is True
 
     # The viewer opens at half the width
     edWidth, vwWidth = nwGUI.docPanes.splitMain.sizes()
@@ -1117,7 +1117,7 @@ def testGuiMain_Features(
     # or try to restore cursor visibility
     assert nwGUI.docPanes.openDocument(C.hSceneDoc)
     assert nwGUI.docViewer.docHandle is None
-    assert nwGUI.splitView.isVisible() is False
+    assert nwGUI.docPanes.splitView.isVisible() is False
     with monkeypatch.context() as mp:
         mp.setattr(nwGUI.docEditor, "cursorIsVisible", lambda: False)
         nwGUI.toggleFocusMode()
@@ -1136,7 +1136,7 @@ def testGuiMain_Features(
     assert nwGUI.mainStatus.isVisible() is False
     assert nwGUI.mainMenu.isVisible() is False
     assert nwGUI.sideBar.isVisible() is False
-    assert nwGUI.splitView.isVisible() is False
+    assert nwGUI.docPanes.splitView.isVisible() is False
 
     # Disable focus mode
     nwGUI.toggleFocusMode()
@@ -1145,7 +1145,7 @@ def testGuiMain_Features(
     assert nwGUI.mainStatus.isVisible() is True
     assert nwGUI.mainMenu.isVisible() is True
     assert nwGUI.sideBar.isVisible() is True
-    assert nwGUI.splitView.isVisible() is True
+    assert nwGUI.docPanes.splitView.isVisible() is True
 
     # Closing editor disables focus mode
     nwGUI.toggleFocusMode()
@@ -1548,17 +1548,17 @@ def testGuiMain_FocusView(
     assert nwGUI.docEditor.anyFocus()
 
     # Simulate focus change to viewer
-    nwGUI._appFocusChanged(widget, nwGUI.docViewer)
+    nwGUI.docPanes.onFocusChanged(widget, nwGUI.docViewer)
     assert nwGUI.docEditor.docHeader.itemTitle._state == nwState.INACTIVE
     assert nwGUI.docViewer.docHeader.itemTitle._state == nwState.NORMAL
 
     # Simulate focus change to editor
-    nwGUI._appFocusChanged(widget, nwGUI.docEditor)
+    nwGUI.docPanes.onFocusChanged(widget, nwGUI.docEditor)
     assert nwGUI.docEditor.docHeader.itemTitle._state == nwState.NORMAL
     assert nwGUI.docViewer.docHeader.itemTitle._state == nwState.INACTIVE
 
     # Simulate focus change to an unrelated widget: neither is focused
-    nwGUI._appFocusChanged(widget, widget)
+    nwGUI.docPanes.onFocusChanged(widget, widget)
     assert nwGUI.docEditor.docHeader.itemTitle._state == nwState.INACTIVE
     assert nwGUI.docViewer.docHeader.itemTitle._state == nwState.INACTIVE
 
@@ -1594,10 +1594,10 @@ def testGuiMain_FocusView(
     nwGUI._switchFocus(nwFocus.TREE)
 
     def mockEmitEditorFocus(*a):
-        nwGUI._appFocusChanged(widget, nwGUI.docEditor)
+        nwGUI.docPanes.onFocusChanged(widget, nwGUI.docEditor)
 
     def mockEmitViewerFocus(*a):
-        nwGUI._appFocusChanged(widget, nwGUI.docViewer)
+        nwGUI.docPanes.onFocusChanged(widget, nwGUI.docViewer)
 
     # Switch to viewer
     with monkeypatch.context() as mp:
