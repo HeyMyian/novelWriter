@@ -32,6 +32,8 @@ from novelwriter.extensions.modified import NPushButton
 
 
 class MockGuiMain(QWidget):
+    """Mock main GUI."""
+
     def __init__(self):
         super().__init__()
         self.mainStatus = MagicMock()
@@ -41,25 +43,33 @@ class MockGuiMain(QWidget):
         self.projPath = ""
 
     def postLaunchTasks(self, cmdOpen: str | None) -> None:
+        """Skip the post-launch tasks."""
         return
 
     def setStatus(self, message: str) -> None:
+        """Ignore the status message."""
         return
 
     def openProject(self, projPath: str) -> None:
+        """Record the project path."""
         self.projPath = projPath
 
     def rebuildIndex(self):
+        """Skip rebuilding the index."""
         return
 
     def closeMain(self):
+        """Return a marker string."""
         return "closeMain"
 
     def close(self):
+        """Return a marker string."""
         return "close"
 
 
 class MockTheme:
+    """Mock GUI theme."""
+
     def __init__(self):
         self.baseIconHeight = 20
         self.fontPixelSize = 20
@@ -68,29 +78,38 @@ class MockTheme:
         self.guiFontBU = QFont()
 
     def initThemes(self) -> None:
+        """Skip initialising the themes."""
         return
 
     def getPixmap(self, *a: Any) -> QPixmap:
+        """Return an empty pixmap."""
         return QPixmap()
 
     def getHeaderDecoration(self, *a: Any) -> QPixmap:
+        """Return an empty pixmap."""
         return QPixmap()
 
     def getStandardButton(self, *a: Any) -> NPushButton:
+        """Return a minimal push button."""
         return NPushButton(None, "", QSize(1, 1))  # type: ignore
 
     def getIcon(self, *a: Any) -> QIcon:
+        """Return an empty icon."""
         return QIcon()
 
     def getItemIcon(self, *a: Any, **k: Any) -> QIcon:
+        """Return an empty icon."""
         return QIcon()
 
 
 class MockApp:
+    """Mock application."""
+
     def __init__(self):
         return
 
     def installTranslator(self, language: QTranslator) -> None:
+        """Ignore the translator."""
         return
 
 

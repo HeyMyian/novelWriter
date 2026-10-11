@@ -44,13 +44,18 @@ TM2 = f"{TMH}:T0002"
 
 
 class BareTokenizer(Tokenizer):
+    """Tokenizer that calls the abstract base methods."""
+
     def doConvert(self):
+        """Call the abstract convert method."""
         super().doConvert()  # type: ignore (deliberate check)
 
     def closeDocument(self):
+        """Call the abstract close method."""
         super().closeDocument()  # type: ignore (deliberate check)
 
     def saveDocument(self, path: Path) -> None:
+        """Call the abstract save method."""
         super().saveDocument(path)  # type: ignore (deliberate check)
 
 

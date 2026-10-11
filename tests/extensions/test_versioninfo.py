@@ -38,67 +38,98 @@ from tests.mocked import MockGuiMain
 
 
 class MockSignalHolder(QObject):
+    """Mock object holding the data ready signal."""
+
     dataReady = pyqtSignal(str, str)
 
 
 class MockRetriever:
+    """Mock retriever that only stores the signal."""
+
     def __init__(self, signal: pyqtBoundSignal) -> None:
         self.signal = signal
 
 
 class MockDesktopServices:
+    """Mock desktop services that record the opened URL."""
+
     url = None
 
     @staticmethod
     def openUrl(url: QUrl) -> None:
+        """Record the URL instead of opening it."""
         MockDesktopServices.url = url
 
 
 class MockData:
+    """Mock release data."""
+
     def decode(self, *a: Any) -> str:
+        """Return a release as JSON."""
         return '{"tag_name": "v1.0"}'
 
 
 class MockPayload:
+    """Mock release payload."""
+
     def __enter__(self):
+        """Enter the payload context."""
         return self
 
     def __exit__(self, *args: Any) -> None:
+        """Exit the payload context."""
         return
 
     def read(self):
+        """Return the release data."""
         return MockData()
 
 
 class MockListData:
+    """Mock empty release list data."""
+
     def decode(self, *a: Any) -> str:
+        """Return an empty JSON list."""
         return "[]"
 
 
 class MockListPayload:
+    """Mock empty release list payload."""
+
     def __enter__(self):
+        """Enter the payload context."""
         return self
 
     def __exit__(self, *args: Any) -> None:
+        """Exit the payload context."""
         return
 
     def read(self):
+        """Return the empty list data."""
         return MockListData()
 
 
 class MockHTTPError:
+    """Mock payload that raises an HTTP error."""
+
     def __enter__(self):
+        """Raise an HTTP error."""
         raise HTTPError("http://example.com", 403, "Rate limit", None, None)  # type: ignore
 
     def __exit__(self, *args: Any) -> None:
+        """Exit the payload context."""
         return
 
 
 class MockException:
+    """Mock payload that raises a generic exception."""
+
     def __enter__(self):
+        """Raise a generic exception."""
         raise Exception("Oh noes!")
 
     def __exit__(self, *args: Any) -> None:
+        """Exit the payload context."""
         return
 
 

@@ -52,6 +52,8 @@ MOCK_TIME = datetime(2019, 5, 10, 18, 52, 0).timestamp()
 
 
 class C:
+    """Constants from the test project when the random generator is mocked."""
+
     # Import and status items from test project when random generator is mocked
     sNew = "s000000"
     sNote = "s000001"
@@ -264,6 +266,8 @@ def checkWidgetFreedOnRelease(factory: Callable[[], QWidget]) -> None:
 
 
 class SimpleDialog(QDialog):
+    """Dialog for showing a single widget in tests."""
+
     def __init__(self, widget: QWidget | None = None) -> None:
         super().__init__()
         self._widget = widget
@@ -278,6 +282,7 @@ class SimpleDialog(QDialog):
         return self._widget
 
     def addWidget(self, widget: QWidget) -> None:
+        """Add a widget to the dialog."""
         self._widget = widget
         layout = self.layout()
         assert layout is not None

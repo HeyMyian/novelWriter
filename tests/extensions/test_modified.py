@@ -53,6 +53,8 @@ from tests.mocked import MockGuiMain
 
 
 class MockWheelEvent(QWheelEvent):
+    """Mock wheel event that records being ignored."""
+
     def __init__(self):
         super().__init__(
             QPointF(0, 0),
@@ -67,6 +69,7 @@ class MockWheelEvent(QWheelEvent):
         self.ignored = False
 
     def ignore(self):
+        """Ignore the event and record it."""
         super().ignore()
         self.ignored = True
 
