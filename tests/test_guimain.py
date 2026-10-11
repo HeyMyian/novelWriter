@@ -79,14 +79,21 @@ KEY_DELAY = 1
 
 
 @pytest.mark.gui
-def testGuiMain_ProjectBlocker(nwGUI: GuiMain):
+def testGuiMain_ProjectBlocker(caplog: pytest.LogCaptureFixture, nwGUI: GuiMain):
     """Test the blocking of features when there's no project open."""
     # Test no-project blocking
     assert nwGUI.closeProject() is True
     assert nwGUI.saveProject() is False
     assert nwGUI.docPanes.openDocument(None) is False
-    assert nwGUI.docPanes.viewDocument(None) is False
-    assert nwGUI.docPanes.importDocument() is False
+
+    caplog.clear()
+    nwGUI.docPanes.viewDocument(None)
+    assert "No project open" in caplog.text
+    assert nwGUI.docViewer.docHandle is None
+
+    caplog.clear()
+    nwGUI.docPanes.importDocument()
+    assert "No project open" in caplog.text
 
     # These should all just do nothing and not raise
     nwGUI.docPanes.closeDocument()
@@ -328,7 +335,7 @@ def testGuiMain_ProjectTreeItems(
         nwGUI.docPanes.closeDocViewer()
 
     # Internal open-document slots ignore a missing or invalid handle
-    nwGUI.docPanes.openDocumentInMode(None, nwDocMode.EDIT, "", True)  # type: ignore
+    nwGUI.docPanes.openDocumentInMode("", nwDocMode.EDIT, "", True)
     assert nwGUI.docEditor.docHandle is None
 
     nwGUI.docPanes.openDocumentSelection(C.hInvalid, 0, 3, True)
@@ -438,7 +445,8 @@ def testGuiMain_ProcessConfigChanges_LightweightSettings(
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
     assert nwGUI.docPanes.openDocument(C.hSceneDoc)
-    assert nwGUI.docPanes.viewDocument(C.hSceneDoc)
+    nwGUI.docPanes.viewDocument(C.hSceneDoc)
+    assert nwGUI.docViewer.docHandle == C.hSceneDoc
 
     docEditor = nwGUI.docEditor
     docViewer = nwGUI.docViewer
@@ -925,9 +933,11 @@ def testGuiMain_Editing(
     # Open and view the edited document
     nwGUI.docViewer.setFocus()
     assert nwGUI.docPanes.openDocument(C.hSceneDoc)
-    assert nwGUI.docPanes.viewDocument(C.hSceneDoc)
+    nwGUI.docPanes.viewDocument(C.hSceneDoc)
+    assert nwGUI.docViewer.docHandle == C.hSceneDoc
     assert nwGUI.saveProject()
-    assert nwGUI.docPanes.closeViewerPanel()
+    nwGUI.docPanes.closeViewerPanel()
+    assert nwGUI.docPanes.splitView.isVisible() is False
 
     # Check the files
     projFile = projPath / "nwProject.nwx"
@@ -978,7 +988,7 @@ def testGuiMain_Viewing(
 
     # View before a project is open does nothing
     assert nwGUI.docPanes.splitView.isVisible() is False
-    assert nwGUI.docPanes.viewDocument(None) is False
+    nwGUI.docPanes.viewDocument(None)
     assert nwGUI.docPanes.splitView.isVisible() is False
 
     # Open project requires a path
@@ -1013,12 +1023,13 @@ def testGuiMain_Viewing(
         assert nwGUI.docViewer.docHandle == C.hChapterDoc
 
     # If all fails, don't open anything
-    SHARED.project.data.setLastHandle(None, "viewer")
+    nwGUI.docPanes.closeDocViewer()
     assert SHARED.project.data.getLastHandle("viewer") is None
     with monkeypatch.context() as mp:
         mp.setattr(nwGUI.docEditor, "hasFocus", lambda *a: False)
         nwGUI.projView.projTree.clearSelection()
-        assert nwGUI.docPanes.viewDocument(None) is False
+        nwGUI.docPanes.viewDocument(None)
+    assert nwGUI.docViewer.docHandle is None
 
     # If editor doc was edited and requested for the viewer, save it first
     nwGUI.docPanes.openDocument(C.hSceneDoc)
@@ -1040,14 +1051,14 @@ def testGuiMain_Viewing(
     nwGUI.docPanes.closeDocViewer()
     with monkeypatch.context() as mp:
         mp.setattr(nwGUI.docViewer, "loadText", lambda *a, **k: False)
-        assert nwGUI.docPanes.viewDocument(C.hSceneDoc) is True
+        nwGUI.docPanes.viewDocument(C.hSceneDoc)
     assert nwGUI.docPanes.splitView.isVisible() is False
 
     # If the editor's cursor isn't visible when the viewer panel first
     # appears, its visibility isn't restored either
     with monkeypatch.context() as mp:
         mp.setattr(nwGUI.docEditor, "cursorIsVisible", lambda: False)
-        assert nwGUI.docPanes.viewDocument(C.hSceneDoc) is True
+        nwGUI.docPanes.viewDocument(C.hSceneDoc)
     assert nwGUI.docPanes.splitView.isVisible() is True
 
     # The viewer opens at half the width
@@ -1059,19 +1070,20 @@ def testGuiMain_Viewing(
     # if the cursor wasn't visible to begin with
     with monkeypatch.context() as mp:
         mp.setattr(nwGUI.docEditor, "cursorIsVisible", lambda: False)
-        assert nwGUI.docPanes.closeViewerPanel() is True
+        nwGUI.docPanes.closeViewerPanel()
 
-    # The editor takes back the full width once the layout updates
-    qtbot.waitUntil(lambda: nwGUI.docPanes.splitMain.sizes()[1] == 0, timeout=1000)
+    # The editor takes back the full width
+    assert nwGUI.docPanes.splitMain.sizes()[1] == 0
 
     # Reopening the viewer always restores the even split
-    assert nwGUI.docPanes.viewDocument(C.hSceneDoc) is True
+    nwGUI.docPanes.viewDocument(C.hSceneDoc)
     nwGUI.docPanes.splitMain.setSizes([3, 1])
-    assert nwGUI.docPanes.closeViewerPanel() is True
-    assert nwGUI.docPanes.viewDocument(C.hSceneDoc) is True
+    nwGUI.docPanes.closeViewerPanel()
+    nwGUI.docPanes.viewDocument(C.hSceneDoc)
     edWidth, vwWidth = nwGUI.docPanes.splitMain.sizes()
     assert abs(edWidth - vwWidth) <= 1
-    assert nwGUI.docPanes.closeViewerPanel() is True
+    nwGUI.docPanes.closeViewerPanel()
+    assert nwGUI.docPanes.splitView.isVisible() is False
 
     # Reloading the viewer only saves the editor first if the two
     # panels show the same document
@@ -1127,7 +1139,8 @@ def testGuiMain_Features(
 
     # Open a file in editor and viewer
     assert nwGUI.docPanes.openDocument(C.hSceneDoc)
-    assert nwGUI.docPanes.viewDocument(C.hSceneDoc)
+    nwGUI.docPanes.viewDocument(C.hSceneDoc)
+    assert nwGUI.docViewer.docHandle == C.hSceneDoc
 
     # Enable focus mode
     nwGUI.toggleFocusMode()
@@ -1249,7 +1262,7 @@ def testGuiMain_Features(
     importFile.write_text("Imported text.", encoding="utf-8")
     with monkeypatch.context() as mp:
         mp.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(importFile), ""))
-        assert nwGUI.docPanes.importDocument() is True
+        nwGUI.docPanes.importDocument()
     assert nwGUI.docEditor.getText() == "Imported text."
 
     # Dialogs

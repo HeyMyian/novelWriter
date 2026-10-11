@@ -158,10 +158,7 @@ class GuiDocPanes(QWidget):
     def setFocusMode(self, focusMode: bool) -> None:
         """Show or hide pane elements for focus mode."""
         self.docEditor.docFooter.setVisible(not (focusMode and CONFIG.hideFocusFooter))
-        if self.splitView.isVisible():
-            self.splitView.setVisible(False)
-        elif self.docViewer.docHandle is not None:
-            self.splitView.setVisible(True)
+        self.splitView.setVisible(not focusMode and self.docViewer.docHandle is not None)
 
     def cycleFocus(self) -> None:
         """Move focus to the viewer if the editor has it, otherwise to the editor."""
@@ -190,8 +187,10 @@ class GuiDocPanes(QWidget):
             self.viewDocument(lastViewed)
 
     def closeProjectTasks(self) -> None:
-        """Run close project tasks."""
-        self.closeDocument()
+        """Run close project tasks. The document is saved by the caller."""
+        if SHARED.focusMode:
+            SHARED.setFocusMode(False)
+        self.docEditor.clearEditor()
         self.docViewer.clearNavHistory()
         self.closeViewerPanel(byUser=False)
         self.docViewerPanel.closeProjectTasks()
@@ -255,35 +254,31 @@ class GuiDocPanes(QWidget):
             if force or self.docEditor.docChanged:
                 self.docEditor.saveText()
 
-    def importDocument(self) -> bool:
+    def importDocument(self) -> None:
         """Import the text contained in an out-of-project text file, and
         insert the text into the currently open document.
         """
         if not SHARED.hasProject:
             logger.error("No project open")
-            return False
+            return
+
+        if self.docEditor.docHandle is None:
+            SHARED.error(self.tr("Please open a document to import the text file into."))
+            return
 
         lastPath = CONFIG.lastPath("import")
         ffilter = formatFileFilter(["*.txt", "*.md", "*"])
         loadFile, _ = QFileDialog.getOpenFileName(self, self.tr("Import File"), str(lastPath), filter=ffilter)
-        if not loadFile:
-            return False
+        if not loadFile.strip():
+            return
 
-        if loadFile.strip() == "":
-            return False
-
-        text = None
         try:
             with open(loadFile, mode="rt", encoding="utf-8") as inFile:
                 text = inFile.read()
             CONFIG.setLastPath("import", loadFile)
         except Exception as exc:
             SHARED.error(self.tr("Could not read file. The file must be an existing text file."), exc=exc)
-            return False
-
-        if self.docEditor.docHandle is None:
-            SHARED.error(self.tr("Please open a document to import the text file into."))
-            return False
+            return
 
         if not self.docEditor.isEmpty:
             msgYes = SHARED.question(
@@ -292,17 +287,15 @@ class GuiDocPanes(QWidget):
                 )
             )
             if not msgYes:
-                return False
+                return
 
         self.docEditor.replaceText(text)
 
-        return True
-
-    def viewDocument(self, tHandle: str | None = None, sTitle: str | None = None) -> bool:
+    def viewDocument(self, tHandle: str | None = None, sTitle: str | None = None) -> None:
         """Load a document for viewing in the view panel."""
         if not SHARED.hasProject:
             logger.error("No project open")
-            return False
+            return
 
         if tHandle is None:
             logger.debug("Viewing document, but no handle provided")
@@ -320,7 +313,7 @@ class GuiDocPanes(QWidget):
 
             if tHandle is None:
                 logger.debug("No document to view, giving up")
-                return False
+                return
 
         # Make sure main tab is in Editor view
         self.mainGui.changeView(nwView.EDITOR)
@@ -346,9 +339,7 @@ class GuiDocPanes(QWidget):
             if sTitle:
                 self.docViewer.navigateTo(f"#{tHandle}:{sTitle}")
 
-        return True
-
-    def closeViewerPanel(self, byUser: bool = True) -> bool:
+    def closeViewerPanel(self, byUser: bool = True) -> None:
         """Close the document view panel."""
         self.docViewer.clearViewer()
         if byUser:
@@ -358,13 +349,12 @@ class GuiDocPanes(QWidget):
         cursorVisible = self.docEditor.cursorIsVisible()
 
         self.splitView.setVisible(False)
+        self.splitMain.refresh()  # Resize now, not on the next layout pass
 
         # Since editor width changes, we need to make sure we restore
         # cursor visibility in the editor. See #1302
         if cursorVisible:
             self.docEditor.ensureCursorVisible(centre=False)
-
-        return not self.splitView.isVisible()
 
     ##
     #  Public Slots
@@ -408,13 +398,12 @@ class GuiDocPanes(QWidget):
     @pyqtSlot(str, nwDocMode, str, bool)
     def openDocumentInMode(self, tHandle: str, mode: nwDocMode, sTitle: str, setFocus: bool) -> None:
         """Handle an open document request."""
-        if tHandle is not None:
-            if mode == nwDocMode.EDIT:
-                self.openDocument(tHandle, sTitle=sTitle, changeFocus=setFocus)
-            elif mode == nwDocMode.VIEW:
-                self.viewDocument(tHandle=tHandle, sTitle=sTitle)
-            else:  # pragma: no cover
-                pass
+        if mode == nwDocMode.EDIT:
+            self.openDocument(tHandle, sTitle=sTitle, changeFocus=setFocus)
+        elif mode == nwDocMode.VIEW:
+            self.viewDocument(tHandle=tHandle, sTitle=sTitle)
+        else:  # pragma: no cover
+            pass
 
     @pyqtSlot(str, int, int, bool)
     def openDocumentSelection(self, tHandle: str, selStart: int, selLength: int, changeFocus: bool) -> None:
@@ -428,18 +417,19 @@ class GuiDocPanes(QWidget):
         next to the document with the given handle. Stop when reaching
         the edge unless the wrapAround flag is set.
         """
-        if SHARED.hasProject and (allDocs := SHARED.project.tree.allDocs()):
-            try:
-                currIdx = allDocs.index(tHandle)
-                nHandle = (
-                    ((allDocs[-1] if wrapAround else None) if currIdx == 0 else allDocs[currIdx - 1])
-                    if goBack
-                    else ((allDocs[0] if wrapAround else None) if currIdx == len(allDocs) - 1 else allDocs[currIdx + 1])
-                )
-                if nHandle is not None:
-                    self.openDocument(nHandle, tLine=(-1 if goBack else 1), doScroll=True)
-            except Exception:
-                logger.error("Could not find next document for '%s'", tHandle)
+        if not SHARED.hasProject:
+            return
+
+        allDocs = SHARED.project.tree.allDocs()
+        if tHandle not in allDocs:
+            logger.error("Could not find next document for '%s'", tHandle)
+            return
+
+        idx = allDocs.index(tHandle) + (-1 if goBack else 1)
+        if wrapAround:
+            idx %= len(allDocs)
+        if 0 <= idx < len(allDocs):
+            self.openDocument(allDocs[idx], tLine=(-1 if goBack else 1), doScroll=True)
 
     @pyqtSlot("QWidget*", "QWidget*")
     def onFocusChanged(self, old: QWidget, new: QWidget) -> None:
@@ -467,12 +457,7 @@ class GuiDocPanes(QWidget):
                 ).format(tag, "F9")
             )
         else:
-            if mode == nwDocMode.EDIT:
-                self.openDocument(tHandle, sTitle=sTitle)
-            elif mode == nwDocMode.VIEW:
-                self.viewDocument(tHandle=tHandle, sTitle=sTitle)
-            else:  # pragma: no cover
-                pass
+            self.openDocumentInMode(tHandle, mode, sTitle, True)
 
     @pyqtSlot()
     def _reloadViewer(self) -> None:

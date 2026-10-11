@@ -576,35 +576,46 @@ def testGuiMainMenu_Insert(qtbot, monkeypatch, nwGUI, fncPath, projPath, mockRnd
     # Insert Text from File
     # =====================
 
+    # With no target document open, the file dialog is never shown
     nwGUI.docPanes.closeDocument()
-
-    # First, with no path
-    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: ("", ""))
-    assert not nwGUI.docPanes.importDocument()
-
-    # Then with a path, but an invalid one
-    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (" ", ""))
-    assert not nwGUI.docPanes.importDocument()
-
-    # Then a valid path, but bot a file that exists
-    iFile = fncPath / "import.txt"
-    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(iFile), ""))
-    assert not nwGUI.docPanes.importDocument()
-
-    # Create the file and try again, but with no target document open
-    writeFile(iFile, "Foo")
-    assert not nwGUI.docPanes.importDocument()
+    with monkeypatch.context() as mp:
+        mp.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: pytest.fail("Dialog shown"))
+        nwGUI.docPanes.importDocument()
+    assert SHARED.lastAlert[0] == "Please open a document to import the text file into."
 
     # Open the document from before, and add some text to it
     nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor.setPlainText("Bar")
+
+    # First, with no path, which is ignored without an alert
+    lastAlert = SHARED.lastAlert
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: ("", ""))
+    nwGUI.docPanes.importDocument()
+    assert SHARED.lastAlert is lastAlert
     assert docEditor.getText() == "Bar"
 
-    # The document isn't empty, so the message box should pop
+    # Then with a blank path, which is also ignored
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (" ", ""))
+    nwGUI.docPanes.importDocument()
+    assert SHARED.lastAlert is lastAlert
+    assert docEditor.getText() == "Bar"
+
+    # Then a valid path, but not a file that exists
+    iFile = fncPath / "import.txt"
+    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(iFile), ""))
+    nwGUI.docPanes.importDocument()
+    assert SHARED.lastAlert[0] == "Could not read file. The file must be an existing text file."
+    assert docEditor.getText() == "Bar"
+
+    # Create the file
+    writeFile(iFile, "Foo")
+
+    # The document isn't empty, so the user is asked, and declines
     with monkeypatch.context() as mp:
         mp.setattr(_GuiAlert, "finalState", False)
-        assert not nwGUI.docPanes.importDocument()
-        assert docEditor.getText() == "Bar"
+        nwGUI.docPanes.importDocument()
+    assert SHARED.lastAlert[0].startswith("Importing the file will overwrite")
+    assert docEditor.getText() == "Bar"
 
     # Finally, accept the replaced text, this time we use the menu entry to trigger it
     mainMenu.aImportFile.activate(QAction.ActionEvent.Trigger)

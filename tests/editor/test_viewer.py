@@ -585,7 +585,7 @@ def testGuiDocViewer_DragAndDrop(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
     assert nwGUI.docPanes.openDocument(C.hTitlePage) is True
-    assert nwGUI.docPanes.viewDocument(C.hTitlePage) is True
+    nwGUI.docPanes.viewDocument(C.hTitlePage)
     assert docViewer.docHandle == C.hTitlePage
 
     middle = docViewer.viewport().rect().center()

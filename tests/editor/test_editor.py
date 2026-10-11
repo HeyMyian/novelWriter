@@ -2717,7 +2717,7 @@ def testGuiDocEditor_Tags(qtbot, nwGUI, projPath, ipsumText, mockRnd):
     assert docViewer._docHandle is None
     docEditor.mouseReleaseEvent(event)
     assert docViewer._docHandle == cHandle
-    assert nwGUI.docPanes.closeViewerPanel() is True
+    nwGUI.docPanes.closeViewerPanel()
     assert docViewer._docHandle is None
 
     # A mouse release without the Ctrl modifier does not follow the tag
