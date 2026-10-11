@@ -25,6 +25,7 @@ import pytest
 
 from PyQt6.QtGui import QTextCursor, QTextDocument
 from PyQt6.QtWidgets import QLineEdit
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG
 from novelwriter.constants import nwUnicode
@@ -167,7 +168,7 @@ def testTextAutoReplace_Process():
 
 
 @pytest.mark.gui
-def testTextAutoReplace_LineEdit(qtbot):
+def testTextAutoReplace_LineEdit(qtbot: QtBot):
     """Test the line edit auto-replace functionality."""
     CONFIG.fmtDQuoteOpen = nwUnicode.U_LAQUO
     CONFIG.fmtDQuoteClose = nwUnicode.U_RAQUO

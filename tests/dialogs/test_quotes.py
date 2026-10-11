@@ -25,13 +25,15 @@ import pytest
 
 from PyQt6.QtCore import QItemSelectionModel
 from PyQt6.QtWidgets import QListWidgetItem
+from pytestqt.qtbot import QtBot
 
 from novelwriter.dialogs.quotes import GuiQuoteSelect
+from novelwriter.guimain import GuiMain
 from novelwriter.types import QtAccepted, QtRejected
 
 
 @pytest.mark.gui
-def testGuiQuoteSelect_Main(qtbot, monkeypatch, nwGUI):
+def testGuiQuoteSelect_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain):
     """Test the quote symbols dialog."""
     monkeypatch.setattr(GuiQuoteSelect, "exec", lambda *a: None)
 

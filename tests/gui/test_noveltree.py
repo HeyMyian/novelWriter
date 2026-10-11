@@ -27,19 +27,27 @@ import pytest
 
 from PyQt6.QtCore import QModelIndex, QPoint
 from PyQt6.QtWidgets import QInputDialog, QToolTip
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.core.project import NWProject
 from novelwriter.dialogs.editlabel import GuiEditLabel
 from novelwriter.enum import nwFocus, nwItemType, nwNovelExtra, nwView
+from novelwriter.guimain import GuiMain
 from novelwriter.models.novelmodel import NovelModel
 from novelwriter.types import QtDisplayRole
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, MockRnd, buildTestProject
 
 
 @pytest.mark.gui
-def testGuiNovelView_Content(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiNovelView_Content(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test navigating the novel tree."""
     monkeypatch.setattr(GuiEditLabel, "getLabel", lambda *a, text: (text, True))
 
@@ -77,14 +85,18 @@ def testGuiNovelView_Content(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     CONFIG.hideVScroll = True
     CONFIG.hideHScroll = True
     novelView.initViewport()
-    assert not novelTree.verticalScrollBar().isVisible()
-    assert not novelTree.horizontalScrollBar().isVisible()
+    vBar = novelTree.verticalScrollBar()
+    hBar = novelTree.horizontalScrollBar()
+    assert vBar is not None
+    assert hBar is not None
+    assert not vBar.isVisible()
+    assert not hBar.isVisible()
 
     CONFIG.hideVScroll = False
     CONFIG.hideHScroll = False
     novelView.initViewport()
-    assert novelTree.verticalScrollBar().isEnabled()
-    assert novelTree.horizontalScrollBar().isEnabled()
+    assert vBar.isEnabled()
+    assert hBar.isEnabled()
 
     # Populate Tree
     # =============
@@ -168,7 +180,7 @@ def testGuiNovelView_Content(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
 
     toolTip = ""
 
-    def showText(pos, text):
+    def showText(pos: QPoint, text: str) -> None:
         nonlocal toolTip
         toolTip = text
 

@@ -25,7 +25,9 @@ import json
 import xml.etree.ElementTree as ET
 
 from datetime import date, datetime
+from pathlib import Path
 from shutil import copyfile
+from typing import Any
 
 import pytest
 
@@ -37,8 +39,8 @@ from novelwriter.core.projectxml import ProjectXMLReader, ProjectXMLWriter, XMLR
 from novelwriter.core.status import CUSTOM_COL, ItemStatus
 from novelwriter.enum import nwStatusShape
 
-from tests.helpers import cmpFiles, writeFile
-from tests.mocked import causeOSError
+from tests.helpers import MockRnd, TstPaths, cmpFiles, writeFile
+from tests.mocked import MockGuiMain, causeOSError
 
 
 class MockProject:
@@ -46,7 +48,7 @@ class MockProject:
 
     data: ProjectData
 
-    def setProjectChanged(self, *a):
+    def setProjectChanged(self, *a: Any):
         """Fake project method."""
 
     def markCountsDirty(self):
@@ -54,14 +56,19 @@ class MockProject:
 
 
 @pytest.fixture(autouse=True)
-def mockVersion(monkeypatch):
+def mockVersion(monkeypatch: pytest.MonkeyPatch) -> None:
     """Mock the version info to prevent diff from failing."""
     monkeypatch.setattr("novelwriter.core.projectxml.__version__", "26.2rc1")
     monkeypatch.setattr("novelwriter.core.projectxml.__hexversion__", "0x260200c1")
 
 
 @pytest.mark.core
-def testProjectXMLReader_ReadCurrent(monkeypatch, mockGUI, tstPaths, fncPath):
+def testProjectXMLReader_ReadCurrent(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    tstPaths: TstPaths,
+    fncPath: Path,
+):
     """Test reading the current XML file format."""
     refFile = tstPaths.filesDir / "nwProject-1.6.nwx"
     tstFile = tstPaths.outDir / "ProjectXML_ReadCurrent.nwx"
@@ -319,7 +326,7 @@ def testProjectXMLReader_ReadCurrent(monkeypatch, mockGUI, tstPaths, fncPath):
 
 
 @pytest.mark.core
-def testProjectXMLReader_ReadLegacy10(tstPaths, fncPath, mockGUI, mockRnd):
+def testProjectXMLReader_ReadLegacy10(tstPaths: TstPaths, fncPath: Path, mockGUI: MockGuiMain, mockRnd: MockRnd):
     """Test reading the version 1.0 XML file format."""
     refFile = tstPaths.filesDir / "nwProject-1.0.nwx"
     xmlFile = fncPath / "nwProject-1.0.nwx"
@@ -485,7 +492,7 @@ def testProjectXMLReader_ReadLegacy10(tstPaths, fncPath, mockGUI, mockRnd):
 
 
 @pytest.mark.core
-def testProjectXMLReader_ReadLegacy11(tstPaths, fncPath, mockGUI, mockRnd):
+def testProjectXMLReader_ReadLegacy11(tstPaths: TstPaths, fncPath: Path, mockGUI: MockGuiMain, mockRnd: MockRnd):
     """Test reading the version 1.1 XML file format."""
     refFile = tstPaths.filesDir / "nwProject-1.1.nwx"
     xmlFile = fncPath / "nwProject-1.1.nwx"
@@ -651,7 +658,7 @@ def testProjectXMLReader_ReadLegacy11(tstPaths, fncPath, mockGUI, mockRnd):
 
 
 @pytest.mark.core
-def testProjectXMLReader_ReadLegacy12(tstPaths, fncPath, mockGUI, mockRnd):
+def testProjectXMLReader_ReadLegacy12(tstPaths: TstPaths, fncPath: Path, mockGUI: MockGuiMain, mockRnd: MockRnd):
     """Test reading the version 1.2 XML file format."""
     refFile = tstPaths.filesDir / "nwProject-1.2.nwx"
     xmlFile = fncPath / "nwProject-1.2.nwx"
@@ -820,7 +827,7 @@ def testProjectXMLReader_ReadLegacy12(tstPaths, fncPath, mockGUI, mockRnd):
 
 
 @pytest.mark.core
-def testProjectXMLReader_ReadLegacy13(tstPaths, fncPath, mockGUI, mockRnd):
+def testProjectXMLReader_ReadLegacy13(tstPaths: TstPaths, fncPath: Path, mockGUI: MockGuiMain, mockRnd: MockRnd):
     """Test reading the version 1.3 XML file format."""
     refFile = tstPaths.filesDir / "nwProject-1.3.nwx"
     xmlFile = fncPath / "nwProject-1.3.nwx"
@@ -989,7 +996,7 @@ def testProjectXMLReader_ReadLegacy13(tstPaths, fncPath, mockGUI, mockRnd):
 
 
 @pytest.mark.core
-def testProjectXMLReader_ReadLegacy14(tstPaths, fncPath, mockGUI, mockRnd):
+def testProjectXMLReader_ReadLegacy14(tstPaths: TstPaths, fncPath: Path, mockGUI: MockGuiMain, mockRnd: MockRnd):
     """Test reading the version 1.4 XML file format."""
     refFile = tstPaths.filesDir / "nwProject-1.4.nwx"
     xmlFile = fncPath / "nwProject-1.4.nwx"
@@ -1159,7 +1166,7 @@ def testProjectXMLReader_ReadLegacy14(tstPaths, fncPath, mockGUI, mockRnd):
 
 
 @pytest.mark.core
-def testProjectXMLReader_ReadLegacy15(tstPaths, fncPath, mockGUI, mockRnd):
+def testProjectXMLReader_ReadLegacy15(tstPaths: TstPaths, fncPath: Path, mockGUI: MockGuiMain, mockRnd: MockRnd):
     """Test reading the version 1.5 XML file format. It is identical to
     the first 1.6 format, as the difference is on the document files, so
     this is just a shallow test.
@@ -1211,7 +1218,7 @@ def testProjectXMLReader_ReadLegacy15(tstPaths, fncPath, mockGUI, mockRnd):
 
 
 @pytest.mark.core
-def testProjectXMLReaderWriter_ParsePackHelpers(mockGUI, fncPath):
+def testProjectXMLReaderWriter_ParsePackHelpers(mockGUI: MockGuiMain, fncPath: Path):
     """Test the internal parse/pack helper functions directly."""
     xmlReader = ProjectXMLReader(fncPath / nwFiles.PROJ_FILE)
     xmlWriter = ProjectXMLWriter(fncPath / nwFiles.PROJ_FILE)
@@ -1235,7 +1242,7 @@ def testProjectXMLReaderWriter_ParsePackHelpers(mockGUI, fncPath):
 
 
 @pytest.mark.core
-def testProjectXMLReaderWriter_TargetCountChars(mockGUI, fncPath):
+def testProjectXMLReaderWriter_TargetCountChars(mockGUI: MockGuiMain, fncPath: Path):
     """Test that the project target count mode (words vs characters) is
     written to and parsed back from the XML file correctly, and that a
     file saved before the mode attribute existed defaults to words.

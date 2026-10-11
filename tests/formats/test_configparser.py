@@ -32,7 +32,7 @@ from tests.helpers import writeFile
 
 
 @pytest.mark.base
-def testConfigParser_NConfigParser(fncPath):
+def testConfigParser_NConfigParser(fncPath: Path):
     """Test the NConfigParser subclass."""
     conf = fncPath / "test.cfg"
     writeFile(

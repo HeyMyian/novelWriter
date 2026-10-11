@@ -23,6 +23,8 @@ from __future__ import annotations
 
 import re
 
+from collections.abc import Iterator
+from pathlib import Path
 from time import time
 
 import pytest
@@ -30,19 +32,28 @@ import pytest
 from PyQt6.QtCore import QModelIndex, QRect, Qt
 from PyQt6.QtGui import QAction, QPainter, QPixmap
 from PyQt6.QtWidgets import QStyleOptionViewItem
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwItemClass, nwUnicode
+from novelwriter.core.item import ProjectItem
 from novelwriter.core.project import NWProject
-from novelwriter.core.projectsearch import DocSearch
+from novelwriter.core.projectsearch import DocSearch, T_SearchResults
 from novelwriter.enum import nwChange, nwDocMode, nwView
+from novelwriter.guimain import GuiMain
 from novelwriter.types import QtDisplayRole, QtKeyDown, QtKeyReturn, QtKeyUp
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, MockRnd, buildTestProject
 
 
 @pytest.mark.gui
-def testGuiProjectSearch_Interaction(qtbot, nwGUI, fncPath, mockRnd, ipsumText):
+def testGuiProjectSearch_Interaction(
+    qtbot: QtBot,
+    nwGUI: GuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+    ipsumText: list[str],
+):
     """Test running a search and interacting with the result tree via
     the keyboard, mouse and selection.
     """
@@ -74,7 +85,9 @@ def testGuiProjectSearch_Interaction(qtbot, nwGUI, fncPath, mockRnd, ipsumText):
     assert model.data(sceneIdx, QtDisplayRole) == "New Scene"
 
     firstResult = model.index(0, 0, chapterIdx)
-    handle, start, length = model.result(firstResult)
+    result = model.result(firstResult)
+    assert result is not None
+    handle, start, length = result
     assert handle == C.hChapterDoc
 
     # Move down from the search box selects the first result
@@ -131,7 +144,7 @@ def testGuiProjectSearch_Interaction(qtbot, nwGUI, fncPath, mockRnd, ipsumText):
 
 
 @pytest.mark.gui
-def testGuiProjectSearch_Options(qtbot, nwGUI, fncPath, mockRnd, ipsumText):
+def testGuiProjectSearch_Options(qtbot: QtBot, nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd, ipsumText: list[str]):
     """Test the case sensitive, whole word, and RegEx search options."""
     mockRnd.reset()
     buildTestProject(NWProject(), fncPath)
@@ -197,7 +210,7 @@ def testGuiProjectSearch_Options(qtbot, nwGUI, fncPath, mockRnd, ipsumText):
 
 
 @pytest.mark.gui
-def testGuiProjectSearch_AutoReplace(qtbot, nwGUI, fncPath, mockRnd):
+def testGuiProjectSearch_AutoReplace(qtbot: QtBot, nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd):
     """Test the auto-replace symbols feature of the search box."""
     mockRnd.reset()
     buildTestProject(NWProject(), fncPath)
@@ -224,7 +237,7 @@ def testGuiProjectSearch_AutoReplace(qtbot, nwGUI, fncPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiProjectSearch_FilterPanel(nwGUI, fncPath, mockRnd, ipsumText):
+def testGuiProjectSearch_FilterPanel(nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd, ipsumText: list[str]):
     """Test that toggling the switches in the search filter panel
     updates the underlying DocSearch filters and triggers a live
     refresh of the current search.
@@ -288,7 +301,7 @@ def testGuiProjectSearch_FilterPanel(nwGUI, fncPath, mockRnd, ipsumText):
 
 
 @pytest.mark.gui
-def testGuiProjectSearch_LiveRefresh(nwGUI, fncPath, mockRnd, ipsumText):
+def testGuiProjectSearch_LiveRefresh(nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd, ipsumText: list[str]):
     """Test the live per-document refresh triggered while a document is
     being edited, which keeps stale match positions from lingering.
     """
@@ -337,7 +350,7 @@ def testGuiProjectSearch_LiveRefresh(nwGUI, fncPath, mockRnd, ipsumText):
 
 
 @pytest.mark.gui
-def testGuiProjectSearch_EdgeCases(nwGUI, fncPath, mockRnd, ipsumText):
+def testGuiProjectSearch_EdgeCases(nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd, ipsumText: list[str]):
     """Test empty search text, re-entrant search calls, and closing the project."""
     mockRnd.reset()
     buildTestProject(NWProject(), fncPath)
@@ -383,7 +396,13 @@ def testGuiProjectSearch_EdgeCases(nwGUI, fncPath, mockRnd, ipsumText):
 
 
 @pytest.mark.gui
-def testGuiProjectSearch_ReentrancyGuard(nwGUI, fncPath, mockRnd, ipsumText, monkeypatch):
+def testGuiProjectSearch_ReentrancyGuard(
+    nwGUI: GuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+    ipsumText: list[str],
+    monkeypatch: pytest.MonkeyPatch,
+):
     """Regression test for the processSearch re-entrancy guard."""
     mockRnd.reset()
     buildTestProject(NWProject(), fncPath)
@@ -401,7 +420,9 @@ def testGuiProjectSearch_ReentrancyGuard(nwGUI, fncPath, mockRnd, ipsumText, mon
 
     realIterSearch = DocSearch.iterSearch
 
-    def nestedIterSearch(self, project, searchText):
+    def nestedIterSearch(
+        self: DocSearch, project: NWProject, searchText: str
+    ) -> Iterator[tuple[ProjectItem, T_SearchResults, bool]]:
         for i, result in enumerate(realIterSearch(self, project, searchText)):
             if i == 0:
                 # Simulate a nested invocation entering mid-iteration
@@ -421,7 +442,7 @@ def testGuiProjectSearch_ReentrancyGuard(nwGUI, fncPath, mockRnd, ipsumText, mon
 
 
 @pytest.mark.gui
-def testGuiProjectSearch_DelegatePaint(nwGUI, fncPath, mockRnd):
+def testGuiProjectSearch_DelegatePaint(nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd):
     """Test the search result delegate's paint code directly for the
     branches not exercised by normal interaction: eliding a match whose
     context overflows the available width, and a zero-length match.

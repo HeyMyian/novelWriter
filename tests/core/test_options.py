@@ -23,6 +23,8 @@ from __future__ import annotations
 
 import json
 
+from pathlib import Path
+
 import pytest
 
 from novelwriter.constants import nwFiles
@@ -30,11 +32,11 @@ from novelwriter.core.options import OptionState
 from novelwriter.core.project import NWProject
 from novelwriter.enum import nwNovelExtra
 
-from tests.mocked import causeOSError
+from tests.mocked import MockGuiMain, causeOSError
 
 
 @pytest.mark.core
-def testOptionState_LoadSave(monkeypatch, mockGUI, fncPath):
+def testOptionState_LoadSave(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, fncPath: Path):
     """Test loading and saving from the OptionState class."""
     project = NWProject()
     options = OptionState(project)
@@ -110,7 +112,7 @@ def testOptionState_LoadSave(monkeypatch, mockGUI, fncPath):
 
 
 @pytest.mark.core
-def testOptionState_SetGet(mockGUI):
+def testOptionState_SetGet(mockGUI: MockGuiMain):
     """Test setting and getting values from the OptionState class."""
     project = NWProject()
     options = OptionState(project)

@@ -93,7 +93,7 @@ from novelwriter.common import (
     yesNo,
 )
 
-from tests.helpers import writeFile
+from tests.helpers import TstPaths, writeFile
 from tests.mocked import causeOSError
 
 
@@ -744,7 +744,7 @@ def testCommon_describeFont():
 
 
 @pytest.mark.base
-def testCommon_fontMatcher(monkeypatch):
+def testCommon_fontMatcher(monkeypatch: pytest.MonkeyPatch):
     """Test the fontMatcher function."""
     # Nonsense font is just returned
     nonsense = QFont("nonesense", 10)
@@ -767,7 +767,7 @@ def testCommon_fontMatcher(monkeypatch):
 
 
 @pytest.mark.base
-def testCommon_encodeDecodeMimeHandles(monkeypatch):
+def testCommon_encodeDecodeMimeHandles(monkeypatch: pytest.MonkeyPatch):
     """Test the encodeMimeHandles and decodeMimeHandles functions."""
     handles = ["0123456789abc", "123456789abcd", "23456789abcde"]
     mimeData = QMimeData()
@@ -776,7 +776,7 @@ def testCommon_encodeDecodeMimeHandles(monkeypatch):
 
 
 @pytest.mark.base
-def testCommon_utf16CharMap(monkeypatch):
+def testCommon_utf16CharMap(monkeypatch: pytest.MonkeyPatch):
     """Test the utf16CharMap function."""
     assert utf16CharMap("abc") == [0, 1, 2, 3]
     assert utf16CharMap("a\u2014b\u2014c") == [0, 1, 2, 3, 4, 5]
@@ -914,7 +914,7 @@ def testCommon_xmlSubElem():
 
 
 @pytest.mark.base
-def testCommon_readTextFile(monkeypatch, fncPath, ipsumText):
+def testCommon_readTextFile(monkeypatch: pytest.MonkeyPatch, fncPath: Path, ipsumText: list[str]):
     """Test the readTextFile function."""
     testText = "\n\n".join(ipsumText) + "\n"
     testFile = fncPath / "ipsum.txt"
@@ -967,7 +967,7 @@ def testCommon_makeFileNameSafe():
 
 
 @pytest.mark.base
-def testCommon_getFileSize(fncPath):
+def testCommon_getFileSize(fncPath: Path):
     """Test the getFileSize function."""
     (fncPath / "one.txt").write_bytes(b"foobar")
     (fncPath / "two.txt").touch()
@@ -978,7 +978,7 @@ def testCommon_getFileSize(fncPath):
 
 
 @pytest.mark.base
-def testCommon_openExternalPath(monkeypatch, tstPaths):
+def testCommon_openExternalPath(monkeypatch: pytest.MonkeyPatch, tstPaths: TstPaths):
     """Test the openExternalPath function."""
     lastUrl = ""
 

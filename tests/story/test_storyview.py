@@ -23,25 +23,34 @@ from __future__ import annotations
 
 from pathlib import Path
 from shutil import copyfile
+from typing import Any
 
 import pytest
 
 from PyQt6.QtCore import QAbstractAnimation
 from PyQt6.QtWidgets import QFileDialog, QLabel
+from pytestqt.qtbot import QtBot
 
 from novelwriter import SHARED
 from novelwriter.constants import nwFiles
 from novelwriter.enum import nwChange, nwView
+from novelwriter.guimain import GuiMain
 from novelwriter.shared import _GuiAlert
 from novelwriter.story.outline import GuiOutlineViewSettings, GuiStoryOutlineView
 from novelwriter.story.storysettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
 from novelwriter.story.storyviewbase import GuiStorySettingsBase, GuiStoryViewBase
 
-from tests.helpers import cmpFiles
+from tests.helpers import TstPaths, cmpFiles
 
 
 @pytest.mark.gui
-def testStoryView_ExportData(monkeypatch, nwGUI, prjLipsum, fncPath, tstPaths):
+def testStoryView_ExportData(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    prjLipsum: Path,
+    fncPath: Path,
+    tstPaths: TstPaths,
+):
     """Test exporting the story view outline data to a CSV file."""
     assert nwGUI.openProject(prjLipsum)
     nwGUI.rebuildIndex()
@@ -69,7 +78,7 @@ def testStoryView_ExportData(monkeypatch, nwGUI, prjLipsum, fncPath, tstPaths):
 
 
 @pytest.mark.gui
-def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
+def testStoryView_ManageViews(monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, prjLipsum: Path):
     """Test adding, copying, moving and deleting story views."""
     storyView = nwGUI.storyView
     tabMain = storyView.tabMain
@@ -185,7 +194,7 @@ def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryView_SettingsDialog(monkeypatch, nwGUI, prjLipsum):
+def testStoryView_SettingsDialog(monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, prjLipsum: Path):
     """Test editing story views with the settings dialog."""
     assert nwGUI.openProject(prjLipsum)
     storyView = nwGUI.storyView
@@ -209,12 +218,12 @@ def testStoryView_SettingsDialog(monkeypatch, nwGUI, prjLipsum):
     answer = True
     rebuilt = 0
 
-    def question(*args, **kwargs) -> bool:
+    def question(*args: Any, **kwargs: Any) -> bool:
         nonlocal asked
         asked += 1
         return answer
 
-    def refresh(self, rootHandle, force=False) -> None:
+    def refresh(self: GuiStoryOutlineView, rootHandle: str | None, force: bool = False) -> None:
         nonlocal rebuilt
         rebuilt += int(force)
 
@@ -350,7 +359,7 @@ def testStoryView_SettingsDialog(monkeypatch, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryView_LastHandle(nwGUI, prjLipsum):
+def testStoryView_LastHandle(nwGUI: GuiMain, prjLipsum: Path):
     """Test that the selected novel folder is restored on reopen."""
     assert nwGUI.openProject(prjLipsum)
     storyView = nwGUI.storyView
@@ -377,7 +386,7 @@ def testStoryView_LastHandle(nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryView_LazyLoad(nwGUI, prjLipsum):
+def testStoryView_LazyLoad(nwGUI: GuiMain, prjLipsum: Path):
     """Test that views are only built when shown."""
     assert nwGUI.openProject(prjLipsum)
     storyView = nwGUI.storyView
@@ -428,7 +437,7 @@ def testStoryView_LazyLoad(nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryView_Highlight(qtbot, nwGUI, prjLipsum):
+def testStoryView_Highlight(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
     """Test highlighting a reference in the views."""
     assert nwGUI.openProject(prjLipsum)
     storyView = nwGUI.storyView
@@ -506,7 +515,7 @@ def testStoryView_Highlight(qtbot, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryView_BaseClass(qtbot, nwGUI):
+def testStoryView_BaseClass(qtbot: QtBot, nwGUI: GuiMain):
     """Test the story view base class."""
     settings = OutlineViewSettings()
     view = GuiStoryViewBase(nwGUI, settings)
@@ -523,7 +532,7 @@ def testStoryView_BaseClass(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testStoryView_SettingsPages(qtbot, nwGUI):
+def testStoryView_SettingsPages(qtbot: QtBot, nwGUI: GuiMain):
     """Test the story view settings dialog base class pages."""
 
     class Dialog(GuiStorySettingsBase):

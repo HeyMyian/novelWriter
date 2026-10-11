@@ -24,6 +24,8 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 import zipfile
 
+from pathlib import Path
+
 import pytest
 
 from novelwriter.common import xmlIndent
@@ -35,11 +37,12 @@ from novelwriter.formats.todocx import OOXML_SCM, DocXParagraph, ToDocX, _mkTag,
 from novelwriter.manuscript.buildsettings import BuildSettings
 from novelwriter.manuscript.docbuild import DocumentBuilder
 
-from tests.helpers import DOCX_IGNORE, cmpFiles, xmlToText
+from tests.helpers import DOCX_IGNORE, TstPaths, cmpFiles, xmlToText
+from tests.mocked import MockGuiMain
 
 
 @pytest.mark.core
-def testToDocX_NovelHeadingStyles(mockGUI):
+def testToDocX_NovelHeadingStyles(mockGUI: MockGuiMain):
     """Test formatting of novel headings."""
     project = NWProject()
     doc = ToDocX(project)
@@ -145,7 +148,7 @@ def testToDocX_NovelHeadingStyles(mockGUI):
 
 
 @pytest.mark.core
-def testToDocX_NotesHeadingStyles(mockGUI):
+def testToDocX_NotesHeadingStyles(mockGUI: MockGuiMain):
     """Test formatting of notes headings."""
     project = NWProject()
     doc = ToDocX(project)
@@ -209,7 +212,7 @@ def testToDocX_NotesHeadingStyles(mockGUI):
 
 
 @pytest.mark.core
-def testToDocX_ParagraphStyles(mockGUI):
+def testToDocX_ParagraphStyles(mockGUI: MockGuiMain):
     """Test formatting of paragraphs."""
     project = NWProject()
     doc = ToDocX(project)
@@ -339,7 +342,7 @@ def testToDocX_ParagraphStyles(mockGUI):
 
 
 @pytest.mark.core
-def testToDocX_Links(mockGUI):
+def testToDocX_Links(mockGUI: MockGuiMain):
     """Test formatting of links."""
     project = NWProject()
     doc = ToDocX(project)
@@ -381,7 +384,7 @@ def testToDocX_Links(mockGUI):
 
 
 @pytest.mark.core
-def testToDocX_ParagraphFormatting(mockGUI):
+def testToDocX_ParagraphFormatting(mockGUI: MockGuiMain):
     """Test formatting of paragraphs."""
     project = NWProject()
     doc = ToDocX(project)
@@ -489,7 +492,7 @@ def testToDocX_ParagraphFormatting(mockGUI):
 
 
 @pytest.mark.core
-def testToDocX_TextFormatting(mockGUI):
+def testToDocX_TextFormatting(mockGUI: MockGuiMain):
     """Test formatting of text."""
     project = NWProject()
     doc = ToDocX(project)
@@ -605,7 +608,7 @@ def testToDocX_TextFormatting(mockGUI):
 
 
 @pytest.mark.core
-def testToDocX_Footnotes(mockGUI):
+def testToDocX_Footnotes(mockGUI: MockGuiMain):
     """Test formatting of footnotes."""
     project = NWProject()
     doc = ToDocX(project)
@@ -658,7 +661,7 @@ def testToDocX_Footnotes(mockGUI):
 
 
 @pytest.mark.core
-def testToDocX_Lists(mockGUI):
+def testToDocX_Lists(mockGUI: MockGuiMain):
     """Test formatting of lists."""
     project = NWProject()
     doc = ToDocX(project)
@@ -741,7 +744,7 @@ def testToDocX_Lists(mockGUI):
 
 
 @pytest.mark.core
-def testToDocX_Fields(mockGUI):
+def testToDocX_Fields(mockGUI: MockGuiMain):
     """Test formatting of footnotes."""
     project = NWProject()
     doc = ToDocX(project)
@@ -780,7 +783,7 @@ def testToDocX_Fields(mockGUI):
 
 
 @pytest.mark.core
-def testToDocX_MinimalClose(mockGUI):
+def testToDocX_MinimalClose(mockGUI: MockGuiMain):
     """Test closing a document with no header format and no counts."""
     project = NWProject()
     doc = ToDocX(project)
@@ -852,7 +855,7 @@ def testToDocX_ParagraphEdgeCases():
 
 
 @pytest.mark.core
-def testToDocX_SaveDocument(mockGUI, prjLipsum, fncPath, tstPaths):
+def testToDocX_SaveDocument(mockGUI: MockGuiMain, prjLipsum: Path, fncPath: Path, tstPaths: TstPaths):
     """Test document output."""
     project = NWProject()
     project.openProject(prjLipsum)
@@ -902,7 +905,7 @@ def testToDocX_SaveDocument(mockGUI, prjLipsum, fncPath, tstPaths):
     with zipfile.ZipFile(docPath, mode="r") as zipObj:
         zipObj.extractall(fncPath / "extract")
 
-    def prettifyXml(inFile, outFile):
+    def prettifyXml(inFile: Path, outFile: Path) -> None:
         with open(outFile, mode="wb") as fStream:
             xml = ET.parse(inFile)
             xmlIndent(xml)  # type: ignore

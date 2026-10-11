@@ -21,26 +21,29 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
 from PyQt6.QtGui import QAction, QDesktopServices, QTextBlock
 from PyQt6.QtWidgets import QFileDialog
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwKeyWords, nwShortcode, nwStats, nwUnicode
 from novelwriter.core.project import NWProject
 from novelwriter.editor.editor import GuiDocEditor
 from novelwriter.enum import nwDocAction, nwDocInsert, nwFocus, nwView
+from novelwriter.guimain import GuiMain
 from novelwriter.shared import _GuiAlert
 from novelwriter.types import QtKeepAnchor, QtMoveRight, QtSelectWord
 
-from tests.helpers import C, buildTestProject, writeFile
+from tests.helpers import C, MockRnd, buildTestProject, writeFile
 
 
 @pytest.mark.gui
-def testGuiMainMenu_Slots(qtbot, monkeypatch, nwGUI, projPath):
+def testGuiMainMenu_Slots(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, projPath: Path):
     """Test the main menu slots."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
@@ -78,7 +81,7 @@ def testGuiMainMenu_Slots(qtbot, monkeypatch, nwGUI, projPath):
 
 
 @pytest.mark.gui
-def testGuiMainMenu_EditFormat(qtbot, monkeypatch, nwGUI, prjLipsum):
+def testGuiMainMenu_EditFormat(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, prjLipsum: Path):
     """Test the main menu Edit and Format entries."""
     monkeypatch.setattr(GuiDocEditor, "hasFocus", lambda *a: True)
     mainMenu = nwGUI.mainMenu
@@ -397,7 +400,14 @@ def testGuiMainMenu_EditFormat(qtbot, monkeypatch, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testGuiMainMenu_Insert(qtbot, monkeypatch, nwGUI, fncPath, projPath, mockRnd):
+def testGuiMainMenu_Insert(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the Insert menu."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
@@ -415,7 +425,7 @@ def testGuiMainMenu_Insert(qtbot, monkeypatch, nwGUI, fncPath, projPath, mockRnd
     docEditor.insertText(nwDocInsert.NO_INSERT)
     assert docEditor.isEmpty
 
-    docEditor.insertText(None)
+    docEditor.insertText(None)  # type: ignore
     assert docEditor.isEmpty
 
     # qtbot.stop()

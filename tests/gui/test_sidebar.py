@@ -23,13 +23,16 @@ from __future__ import annotations
 
 import pytest
 
+from pytestqt.qtbot import QtBot
+
 from novelwriter import CONFIG
 from novelwriter.constants import nwLabels
 from novelwriter.enum import nwTheme, nwView
+from novelwriter.guimain import GuiMain
 
 
 @pytest.mark.gui
-def testGuiSideBar_ViewChange(qtbot, nwGUI):
+def testGuiSideBar_ViewChange(qtbot: QtBot, nwGUI: GuiMain):
     """Test the view change buttons on the side bar."""
     sidebar = nwGUI.sideBar
     buttons = [
@@ -45,7 +48,7 @@ def testGuiSideBar_ViewChange(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiSideBar_CycleColourTheme(monkeypatch, nwGUI):
+def testGuiSideBar_CycleColourTheme(monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain):
     """Test theme cycle feature on the side bar."""
     CONFIG.themeMode = nwTheme.AUTO
     sidebar = nwGUI.sideBar

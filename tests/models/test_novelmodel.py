@@ -21,6 +21,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from PyQt6.QtCore import QModelIndex
@@ -29,21 +31,22 @@ from PyQt6.QtTest import QAbstractItemModelTester
 from novelwriter.core.indexdata import IndexHeading
 from novelwriter.core.project import NWProject
 from novelwriter.enum import nwNovelExtra
+from novelwriter.guimain import GuiMain
 from novelwriter.models.novelmodel import NovelModel
 from novelwriter.types import QtDisplayRole
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, MockRnd, buildTestProject
 
 
 @pytest.mark.core
-def testNovelModel_ModelTest(nwGUI):
+def testNovelModel_ModelTest(nwGUI: GuiMain):
     """Run the Qt model tester on the model."""
     model = NovelModel()
     QAbstractItemModelTester(model)
 
 
 @pytest.mark.core
-def testNovelModel_Interface(nwGUI, fncPath, mockRnd):
+def testNovelModel_Interface(nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd):
     """Test the novel model interface."""
     project = NWProject()
     mockRnd.reset()
@@ -75,7 +78,7 @@ def testNovelModel_Interface(nwGUI, fncPath, mockRnd):
 
 
 @pytest.mark.core
-def testNovelModel_Extra(nwGUI, fncPath, mockRnd):
+def testNovelModel_Extra(nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd):
     """Test the novel model extra column."""
     project = NWProject()
     mockRnd.reset()
@@ -138,7 +141,7 @@ def testNovelModel_Extra(nwGUI, fncPath, mockRnd):
 
 
 @pytest.mark.core
-def testNovelModel_Data(nwGUI, fncPath, mockRnd):
+def testNovelModel_Data(nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd):
     """Test the novel model data methods."""
     project = NWProject()
     mockRnd.reset()

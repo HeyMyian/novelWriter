@@ -38,13 +38,14 @@ from novelwriter.config import Config, RecentPaths, RecentProjects
 from novelwriter.constants import nwFiles
 from novelwriter.core.project import NWProject
 from novelwriter.enum import nwTheme
+from novelwriter.guimain import GuiMain
 
-from tests.helpers import cmpFiles, writeFile
+from tests.helpers import TstPaths, cmpFiles, writeFile
 from tests.mocked import MockApp, causeOSError
 
 
 @pytest.mark.base
-def testConfig_Constructor(monkeypatch):
+def testConfig_Constructor(monkeypatch: pytest.MonkeyPatch):
     """Test config constructor."""
     # Linux
     with monkeypatch.context() as mp:
@@ -93,7 +94,7 @@ def testConfig_Constructor(monkeypatch):
 
 
 @pytest.mark.base
-def testConfig_BuildMeta(monkeypatch, caplog, tstPaths):
+def testConfig_BuildMeta(monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture, tstPaths: TstPaths):
     """Test parsing of the build meta.toml file, both as the checked-in
     placeholder and as stamped by the build scripts for a release.
     """
@@ -142,7 +143,7 @@ def testConfig_BuildMeta(monkeypatch, caplog, tstPaths):
 
 
 @pytest.mark.base
-def testConfig_InitLoadSave(monkeypatch, fncPath, tstPaths):
+def testConfig_InitLoadSave(monkeypatch: pytest.MonkeyPatch, fncPath: Path, tstPaths: TstPaths):
     """Test config initialisation."""
     conf = Config()
 
@@ -222,7 +223,7 @@ def testConfig_InitLoadSave(monkeypatch, fncPath, tstPaths):
 
 
 @pytest.mark.base
-def testConfig_Localisation(fncPath, tstPaths):
+def testConfig_Localisation(fncPath: Path, tstPaths: TstPaths):
     """Test localisation."""
     conf = Config()
     conf.initConfig(confPath=fncPath, dataPath=fncPath)
@@ -266,7 +267,7 @@ def testConfig_Localisation(fncPath, tstPaths):
 
 
 @pytest.mark.base
-def testConfig_Methods(fncPath):
+def testConfig_Methods(fncPath: Path):
     """Check class methods."""
     conf = Config()
     conf.initConfig(confPath=fncPath, dataPath=fncPath)
@@ -323,7 +324,7 @@ def testConfig_Methods(fncPath):
 
 
 @pytest.mark.base
-def testConfig_Fonts(monkeypatch, fncPath):
+def testConfig_Fonts(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Check the OS-specific default font selection."""
     conf = Config()
     conf.initConfig(confPath=fncPath, dataPath=fncPath)
@@ -345,7 +346,7 @@ def testConfig_Fonts(monkeypatch, fncPath):
 
 
 @pytest.mark.base
-def testConfig_SettersGetters(fncPath):
+def testConfig_SettersGetters(fncPath: Path):
     """Set various sizes and positions."""
     conf = Config()
     conf.initConfig(confPath=fncPath, dataPath=fncPath)
@@ -388,7 +389,7 @@ def testConfig_SettersGetters(fncPath):
 
 
 @pytest.mark.base
-def testConfig_Internal(monkeypatch, fncPath):
+def testConfig_Internal(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Check internal functions."""
     conf = Config()
     conf.initConfig(confPath=fncPath, dataPath=fncPath)
@@ -408,7 +409,7 @@ def testConfig_Internal(monkeypatch, fncPath):
 
 
 @pytest.mark.base
-def testConfig_RecentCache(monkeypatch, tstPaths, nwGUI):
+def testConfig_RecentCache(monkeypatch: pytest.MonkeyPatch, tstPaths: TstPaths, nwGUI: GuiMain):
     """Test recent cache file."""
     cacheFile = tstPaths.cnfDir / nwFiles.RECENT_FILE
     recent = RecentProjects(CONFIG)
@@ -503,7 +504,7 @@ def testConfig_RecentCache(monkeypatch, tstPaths, nwGUI):
 
 
 @pytest.mark.base
-def testConfig_RecentPaths(monkeypatch, tstPaths):
+def testConfig_RecentPaths(monkeypatch: pytest.MonkeyPatch, tstPaths: TstPaths):
     """Test recent paths file."""
     cacheFile = tstPaths.cnfDir / nwFiles.RECENT_PATH
     recent = RecentPaths(CONFIG)
@@ -577,7 +578,7 @@ def testConfig_RecentPaths(monkeypatch, tstPaths):
 
 
 @pytest.mark.base
-def testConfig_IOError(monkeypatch):
+def testConfig_IOError(monkeypatch: pytest.MonkeyPatch):
     """Test handling of I/O errors when using pathlib."""
     with monkeypatch.context() as mp:
         mp.setattr(Path, "iterdir", causeOSError)
@@ -598,7 +599,7 @@ def testConfig_IOError(monkeypatch):
 
 
 @pytest.mark.base
-def testConfig_ConvertOldConfig(fncPath, tstPaths):
+def testConfig_ConvertOldConfig(fncPath: Path, tstPaths: TstPaths):
     """Test that an old ini-format config file is converted to the new
     TOML format when loaded.
     """

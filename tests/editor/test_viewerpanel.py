@@ -21,9 +21,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from PyQt6.QtGui import QIcon
+from pytestqt.qtbot import QtBot
 
 from novelwriter import SHARED
 from novelwriter.constants import nwLists
@@ -32,12 +35,19 @@ from novelwriter.core.options import OptionState
 from novelwriter.core.project import NWProject
 from novelwriter.dialogs.editlabel import GuiEditLabel
 from novelwriter.enum import nwChange
+from novelwriter.guimain import GuiMain
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, MockRnd, buildTestProject
 
 
 @pytest.mark.gui
-def testGuiDocViewerPanel_BackRefs(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiDocViewerPanel_BackRefs(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the document viewer backreference panel."""
     monkeypatch.setattr(GuiEditLabel, "getLabel", lambda *a, text: (text, True))
 
@@ -73,6 +83,7 @@ def testGuiDocViewerPanel_BackRefs(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
 
     # Check Backreference
     item = tabBackRefs.topLevelItem(0)
+    assert item is not None
     assert item.text(tabBackRefs.C_DOC) == "New Scene"
     assert item.text(tabBackRefs.C_TITLE) == "New Scene"
 
@@ -80,6 +91,7 @@ def testGuiDocViewerPanel_BackRefs(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
     nwGUI.docEditor.setPlainText("### Scene One\n\n@char: Jane, John\n\n")
     nwGUI.docPanes.saveDocument()
     item = tabBackRefs.topLevelItem(0)
+    assert item is not None
     assert item.text(tabBackRefs.C_DOC) == "New Scene"
     assert item.text(tabBackRefs.C_TITLE) == "Scene One"
 
@@ -87,6 +99,7 @@ def testGuiDocViewerPanel_BackRefs(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
     SHARED.project.tree[C.hSceneDoc].setName("First Scene")  # type: ignore
     nwGUI.projView.renameTreeItem(C.hSceneDoc)
     item = tabBackRefs.topLevelItem(0)
+    assert item is not None
     assert item.text(tabBackRefs.C_DOC) == "First Scene"
     assert item.text(tabBackRefs.C_TITLE) == "Scene One"
 
@@ -99,8 +112,8 @@ def testGuiDocViewerPanel_BackRefs(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
     assert tabBackRefs.topLevelItemCount() == 1
 
     # Test Update Theme
-    tabBackRefs._editIcon = None
-    tabBackRefs._viewIcon = None
+    tabBackRefs._editIcon = None  # type: ignore
+    tabBackRefs._viewIcon = None  # type: ignore
     tabBackRefs.updateTheme()
     assert isinstance(tabBackRefs._editIcon, QIcon)
     assert isinstance(tabBackRefs._viewIcon, QIcon)
@@ -108,30 +121,32 @@ def testGuiDocViewerPanel_BackRefs(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
     # Click the Edit Button
     nwGUI.docPanes.openDocument(C.hChapterDoc)
     assert nwGUI.docEditor.docHandle == C.hChapterDoc
-    tabBackRefs._treeItemClicked(tabBackRefs.model().index(0, tabBackRefs.C_EDIT))
+    refsModel = tabBackRefs.model()
+    assert refsModel is not None
+    tabBackRefs._treeItemClicked(refsModel.index(0, tabBackRefs.C_EDIT))
     assert nwGUI.docEditor.docHandle == C.hSceneDoc
 
     # Click the View Button
     assert nwGUI.docViewer.docHandle == hJane
-    tabBackRefs._treeItemClicked(tabBackRefs.model().index(0, tabBackRefs.C_VIEW))
+    tabBackRefs._treeItemClicked(refsModel.index(0, tabBackRefs.C_VIEW))
     assert nwGUI.docViewer.docHandle == C.hSceneDoc
 
     # Clicking any other column does nothing
     nwGUI.docPanes.viewDocument(hJane)
     assert nwGUI.docViewer.docHandle == hJane
-    tabBackRefs._treeItemClicked(tabBackRefs.model().index(0, tabBackRefs.C_DOC))
+    tabBackRefs._treeItemClicked(refsModel.index(0, tabBackRefs.C_DOC))
     assert nwGUI.docViewer.docHandle == hJane
 
     # Double-Click
     nwGUI.docPanes.viewDocument(hJane)
     assert nwGUI.docViewer.docHandle == hJane
-    tabBackRefs._treeItemDoubleClicked(tabBackRefs.model().index(0, tabBackRefs.C_DOC))
+    tabBackRefs._treeItemDoubleClicked(refsModel.index(0, tabBackRefs.C_DOC))
     assert nwGUI.docViewer.docHandle == C.hSceneDoc
 
     # Double-clicking the edit/view columns does nothing
     nwGUI.docPanes.viewDocument(hJane)
     assert nwGUI.docViewer.docHandle == hJane
-    tabBackRefs._treeItemDoubleClicked(tabBackRefs.model().index(0, tabBackRefs.C_EDIT))
+    tabBackRefs._treeItemDoubleClicked(refsModel.index(0, tabBackRefs.C_EDIT))
     assert nwGUI.docViewer.docHandle == hJane
 
     # Regression: Adding/removing references while viewing target should refresh panel
@@ -162,7 +177,14 @@ def testGuiDocViewerPanel_BackRefs(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
 
 
 @pytest.mark.gui
-def testGuiDocViewerPanel_Tags(qtbot, monkeypatch, caplog, nwGUI, projPath, mockRnd):
+def testGuiDocViewerPanel_Tags(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the document viewer tags panels."""
     monkeypatch.setattr(GuiEditLabel, "getLabel", lambda *a, text: (text, True))
 
@@ -202,10 +224,12 @@ def testGuiDocViewerPanel_Tags(qtbot, monkeypatch, caplog, nwGUI, projPath, mock
     viewPanel.mainTabs.setCurrentIndex(viewPanel.idTabs["CHARACTER"])
     assert charTab.topLevelItemCount() == 2
     item = charTab.topLevelItem(0)
+    assert item is not None
     assert item.text(charTab.C_NAME) == "Jane"
     assert item.text(charTab.C_DOC) == "Jane"
     assert item.text(charTab.C_TITLE) == "Jane"
     item = charTab.topLevelItem(1)
+    assert item is not None
     assert item.text(charTab.C_NAME) == "John"
     assert item.text(charTab.C_DOC) == "John"
     assert item.text(charTab.C_TITLE) == "John"
@@ -217,6 +241,7 @@ def testGuiDocViewerPanel_Tags(qtbot, monkeypatch, caplog, nwGUI, projPath, mock
     SHARED.project.tree[hJane].setName("Awesome Jane")  # type: ignore
     nwGUI.projView.renameTreeItem(hJane)
     item = charTab.topLevelItem(0)
+    assert item is not None
     assert item.text(charTab.C_NAME) == "Janey"
     assert item.text(charTab.C_DOC) == "Awesome Jane"
     assert item.text(charTab.C_TITLE) == "Jane Smith"
@@ -230,9 +255,9 @@ def testGuiDocViewerPanel_Tags(qtbot, monkeypatch, caplog, nwGUI, projPath, mock
     assert charTab.topLevelItemCount() == 2
 
     # Test Update Theme
-    charTab._classIcon = None
-    charTab._editIcon = None
-    charTab._viewIcon = None
+    charTab._classIcon = None  # type: ignore
+    charTab._editIcon = None  # type: ignore
+    charTab._viewIcon = None  # type: ignore
     charTab.updateTheme()
     assert isinstance(charTab._classIcon, QIcon)
     assert isinstance(charTab._editIcon, QIcon)
@@ -246,21 +271,23 @@ def testGuiDocViewerPanel_Tags(qtbot, monkeypatch, caplog, nwGUI, projPath, mock
 
     # View/Edit John
     assert nwGUI.docEditor.docHandle == hJane
-    charTab._treeItemClicked(charTab.model().index(1, charTab.C_EDIT))
+    charModel = charTab.model()
+    assert charModel is not None
+    charTab._treeItemClicked(charModel.index(1, charTab.C_EDIT))
     assert nwGUI.docEditor.docHandle == hJohn
     assert nwGUI.docViewer.docHandle == C.hSceneDoc
-    charTab._treeItemClicked(charTab.model().index(1, charTab.C_VIEW))
+    charTab._treeItemClicked(charModel.index(1, charTab.C_VIEW))
     assert nwGUI.docViewer.docHandle == hJohn
 
     # Clicking any other column does nothing
-    charTab._treeItemClicked(charTab.model().index(0, charTab.C_NAME))
+    charTab._treeItemClicked(charModel.index(0, charTab.C_NAME))
     assert nwGUI.docViewer.docHandle == hJohn
 
-    charTab._treeItemDoubleClicked(charTab.model().index(0, charTab.C_NAME))
+    charTab._treeItemDoubleClicked(charModel.index(0, charTab.C_NAME))
     assert nwGUI.docViewer.docHandle == hJane
 
     # Double-clicking the edit/view columns does nothing
-    charTab._treeItemDoubleClicked(charTab.model().index(0, charTab.C_EDIT))
+    charTab._treeItemDoubleClicked(charModel.index(0, charTab.C_EDIT))
     assert nwGUI.docViewer.docHandle == hJane
 
     # Hide Inactive Tags
@@ -274,10 +301,14 @@ def testGuiDocViewerPanel_Tags(qtbot, monkeypatch, caplog, nwGUI, projPath, mock
     assert charTab.topLevelItemCount() == 1
 
     # Update Labels
-    assert charTab.topLevelItem(0).text(charTab.C_IMPORT) == "New"
+    item = charTab.topLevelItem(0)
+    assert item is not None
+    assert item.text(charTab.C_IMPORT) == "New"
     SHARED.project.data.itemImport.add(C.iNew, "Stuff", "#646464", "SQUARE", 0)
     viewPanel.updateStatusLabels("i")
-    assert charTab.topLevelItem(0).text(charTab.C_IMPORT) == "Stuff"
+    item = charTab.topLevelItem(0)
+    assert item is not None
+    assert item.text(charTab.C_IMPORT) == "Stuff"
 
     # A stale tag reference with no resolved item is skipped
     indexClass = type(SHARED.project.index)

@@ -31,6 +31,8 @@ from novelwriter.formats.fromqdoc import FromQTextDocument
 from novelwriter.formats.tohtml import ToHtml
 from novelwriter.formats.toqdoc import ToQTextDocument
 
+from tests.mocked import MockGuiMain
+
 
 @pytest.mark.core
 def testFromQTextDocument_General():
@@ -118,7 +120,7 @@ def testFromQTextDocument_MergeSplitFragments():
 
 
 @pytest.mark.core
-def testFromQTextDocument_MarkdownVsShortcode(mockGUI):
+def testFromQTextDocument_MarkdownVsShortcode(mockGUI: MockGuiMain):
     """Test the edge cases that decide whether a format is written
     as Markdown or as a novelWriter shortcode: Markdown is only used
     when the formatted run sits on two clean word edges. Also checks
@@ -210,7 +212,7 @@ def testFromQTextDocument_MarkdownVsShortcode(mockGUI):
 
 
 @pytest.mark.core
-def testFromQTextDocument_MarkdownNestingRoundTrip(mockGUI):
+def testFromQTextDocument_MarkdownNestingRoundTrip(mockGUI: MockGuiMain):
     """Test that every non-empty combination of bold, italic and
     strike survives a full round trip: HTML to FromQTextDocument to
     novelWriter text to the real tokenizer (ToQTextDocument) to the
@@ -253,7 +255,7 @@ def testFromQTextDocument_MarkdownNestingRoundTrip(mockGUI):
 
 
 @pytest.mark.core
-def testFromQTextDocument_DocumentRoundTrip(mockGUI):
+def testFromQTextDocument_DocumentRoundTrip(mockGUI: MockGuiMain):
     """Test a round trip of novelWriter text through ToQTextDocument
     and back again through FromQTextDocument.
     """

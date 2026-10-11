@@ -26,8 +26,10 @@ import pytest
 from PyQt6.QtCore import QEvent, QPointF, Qt
 from PyQt6.QtGui import QMouseEvent, QPixmap
 from PyQt6.QtWidgets import QWidget
+from pytestqt.qtbot import QtBot
 
 from novelwriter.extensions.tabwidget import NTabBar, NTabWidget
+from novelwriter.guimain import GuiMain
 from novelwriter.types import QtModNone, QtMouseLeft, QtMouseMiddle
 
 
@@ -37,7 +39,7 @@ def mouseEvent(kind: QEvent.Type, x: int, button: Qt.MouseButton, buttons: Qt.Mo
 
 
 @pytest.mark.gui
-def testNTabWidget_Paint(qtbot, nwGUI):
+def testNTabWidget_Paint(qtbot: QtBot, nwGUI: GuiMain):
     """Test the NTabWidget and NTabBar paint logic."""
     tabs = NTabWidget(None)  # type: ignore
     qtbot.addWidget(tabs)
@@ -61,7 +63,7 @@ def testNTabWidget_Paint(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testNTabWidget_Drag(qtbot, nwGUI):
+def testNTabWidget_Drag(qtbot: QtBot, nwGUI: GuiMain):
     """Test dragging tabs on the NTabBar."""
     tabs = NTabWidget(None)  # type: ignore
     qtbot.addWidget(tabs)
@@ -78,13 +80,13 @@ def testNTabWidget_Drag(qtbot, nwGUI):
     def names():
         return [bar.tabText(i) for i in range(bar.count())]
 
-    def press(x, button=QtMouseLeft):
+    def press(x: int, button: Qt.MouseButton = QtMouseLeft) -> None:
         bar.mousePressEvent(mouseEvent(QEvent.Type.MouseButtonPress, x, button, button))
 
-    def move(x, buttons=QtMouseLeft):
+    def move(x: int, buttons: Qt.MouseButton = QtMouseLeft) -> None:
         bar.mouseMoveEvent(mouseEvent(QEvent.Type.MouseMove, x, Qt.MouseButton.NoButton, buttons))
 
-    def release(x):
+    def release(x: int) -> None:
         bar.mouseReleaseEvent(mouseEvent(QEvent.Type.MouseButtonRelease, x, QtMouseLeft, Qt.MouseButton.NoButton))
 
     first = bar.tabRect(0).center().x()

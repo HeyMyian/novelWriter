@@ -26,8 +26,9 @@ from unittest.mock import Mock
 import pytest
 
 from PyQt6.QtCore import QEvent, QPoint, QPointF, QSize, Qt
-from PyQt6.QtGui import QFont, QKeyEvent, QMouseEvent, QStandardItem, QStandardItemModel, QWheelEvent
+from PyQt6.QtGui import QCloseEvent, QFont, QKeyEvent, QMouseEvent, QStandardItem, QStandardItemModel, QWheelEvent
 from PyQt6.QtWidgets import QFontDialog, QSplitter, QWidget
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG
 from novelwriter.extensions.modified import (
@@ -44,12 +45,16 @@ from novelwriter.extensions.modified import (
     NToolDialog,
     NTreeView,
 )
+from novelwriter.guimain import GuiMain
 from novelwriter.types import QtKeyEscape, QtModNone, QtMouseLeft, QtMouseMiddle, QtRejected
 
 from tests.helpers import SimpleDialog
+from tests.mocked import MockGuiMain
 
 
 class MockWheelEvent(QWheelEvent):
+    """Mock wheel event that records being ignored."""
+
     def __init__(self):
         super().__init__(
             QPointF(0, 0),
@@ -64,12 +69,13 @@ class MockWheelEvent(QWheelEvent):
         self.ignored = False
 
     def ignore(self):
+        """Ignore the event and record it."""
         super().ignore()
         self.ignored = True
 
 
 @pytest.mark.gui
-def testNDialog_Main(qtbot, monkeypatch):
+def testNDialog_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch):
     """Test the NDialog class."""
     widget = QWidget()
     dialog = NDialog(widget)
@@ -84,7 +90,7 @@ def testNDialog_Main(qtbot, monkeypatch):
 
 
 @pytest.mark.gui
-def testNToolDialog_Main(qtbot, nwGUI):
+def testNToolDialog_Main(qtbot: QtBot, nwGUI: GuiMain):
     """Test the NToolDialog class."""
     dialog = NToolDialog(nwGUI)
     qtbot.addWidget(dialog)
@@ -105,7 +111,7 @@ def testNToolDialog_Main(qtbot, nwGUI):
     # Escape closes the dialog via a closeEvent override
     closed = False
 
-    def closeEvent(event):
+    def closeEvent(event: QCloseEvent) -> None:
         nonlocal closed
         closed = True
         event.accept()
@@ -120,7 +126,7 @@ def testNToolDialog_Main(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testNNonBlockingDialog_Main(qtbot):
+def testNNonBlockingDialog_Main(qtbot: QtBot):
     """Test the NNonBlockingDialog class."""
     dialog = NNonBlockingDialog()
     qtbot.addWidget(dialog)
@@ -128,7 +134,7 @@ def testNNonBlockingDialog_Main(qtbot):
     dialog.close()
 
 
-def testNFontDialog_Main(qtbot, monkeypatch, nwGUI):
+def testNFontDialog_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain):
     """Test the NFontDialog class."""
     current = QFont()
     other = QFont()
@@ -167,7 +173,7 @@ def testNFontDialog_Main(qtbot, monkeypatch, nwGUI):
 
 
 @pytest.mark.gui
-def testNTreeView_Main(qtbot, monkeypatch):
+def testNTreeView_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch):
     """Test the NTreeView class."""
     model = QStandardItemModel(1, 1)
     model.insertRow(0, QStandardItem("Hello World"))
@@ -206,7 +212,7 @@ def testNTreeView_Main(qtbot, monkeypatch):
 
 
 @pytest.mark.gui
-def testNComboBox_Main(qtbot, monkeypatch):
+def testNComboBox_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch):
     """Test the NComboBox class."""
     widget = NComboBox()
     widget.addItem("Item 1", 1)
@@ -231,7 +237,7 @@ def testNComboBox_Main(qtbot, monkeypatch):
 
 
 @pytest.mark.gui
-def testNSpinBox_Main(qtbot, monkeypatch):
+def testNSpinBox_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch):
     """Test the NSpinBox class."""
     widget = NSpinBox()
     widget.setMinimum(0)
@@ -257,7 +263,7 @@ def testNSpinBox_Main(qtbot, monkeypatch):
 
 
 @pytest.mark.gui
-def testNDoubleSpinBox_Main(qtbot, monkeypatch):
+def testNDoubleSpinBox_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch):
     """Test the NDoubleSpinBox class."""
     widget = NDoubleSpinBox()
     widget.setMinimum(0.0)
@@ -283,7 +289,7 @@ def testNDoubleSpinBox_Main(qtbot, monkeypatch):
 
 
 @pytest.mark.gui
-def testNClickableLabel_Main(qtbot):
+def testNClickableLabel_Main(qtbot: QtBot):
     """Test the NClickableLabel class."""
     widget = NClickableLabel()
     dialog = SimpleDialog(widget)
@@ -306,7 +312,7 @@ def testNClickableLabel_Main(qtbot):
 
 
 @pytest.mark.gui
-def testNFlatButtons_Main(qtbot, mockGUI):
+def testNFlatButtons_Main(qtbot: QtBot, mockGUI: MockGuiMain):
     """Test the NFlatIconButton and NFlatIconTextButton classes."""
     dialog = SimpleDialog(None)
 
@@ -332,7 +338,7 @@ def testNFlatButtons_Main(qtbot, mockGUI):
 
 
 @pytest.mark.gui
-def testNSplitterHandle_Main(qtbot):
+def testNSplitterHandle_Main(qtbot: QtBot):
     """Test the NSplitterHandle class."""
     splitter = QSplitter(Qt.Orientation.Vertical)
     handle = NSplitterHandle(Qt.Orientation.Vertical, splitter)

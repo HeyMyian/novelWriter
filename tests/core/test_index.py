@@ -23,9 +23,12 @@ from __future__ import annotations
 
 import json
 
+from pathlib import Path
 from shutil import copyfile
 
 import pytest
+
+from pytestqt.qtbot import QtBot
 
 from novelwriter import SHARED
 from novelwriter.constants import nwFiles
@@ -33,14 +36,21 @@ from novelwriter.core.index import Index, TagsIndex
 from novelwriter.core.item import ProjectItem
 from novelwriter.core.project import NWProject
 from novelwriter.enum import nwComment, nwItemClass, nwItemLayout, nwNovelExtra
+from novelwriter.guimain import GuiMain
 from novelwriter.models.novelmodel import NovelModel
 
-from tests.helpers import C, buildTestProject, cmpFiles
-from tests.mocked import causeException
+from tests.helpers import C, MockRnd, TstPaths, buildTestProject, cmpFiles
+from tests.mocked import MockGuiMain, causeException
 
 
 @pytest.mark.core
-def testIndex_LoadSave(qtbot, monkeypatch, prjLipsum, nwGUI, tstPaths):
+def testIndex_LoadSave(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    prjLipsum: Path,
+    nwGUI: GuiMain,
+    tstPaths: TstPaths,
+):
     """Test core functionality of scanning, saving, loading and checking
     the index cache file.
     """
@@ -213,7 +223,7 @@ def testIndex_LoadSave(qtbot, monkeypatch, prjLipsum, nwGUI, tstPaths):
 
 
 @pytest.mark.core
-def testIndex_ScanThis(mockGUI):
+def testIndex_ScanThis(mockGUI: MockGuiMain):
     """Test the tag scanner function scanThis."""
     project = NWProject()
     index = project.index
@@ -269,7 +279,7 @@ def testIndex_ScanThis(mockGUI):
 
 
 @pytest.mark.core
-def testIndex_CheckThese(nwGUI, fncPath, mockRnd):
+def testIndex_CheckThese(nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd):
     """Test the tag checker function checkThese."""
     project = NWProject()
     mockRnd.reset()
@@ -366,7 +376,7 @@ def testIndex_CheckThese(nwGUI, fncPath, mockRnd):
 
 
 @pytest.mark.core
-def testIndex_ScanText(monkeypatch, nwGUI, fncPath, mockRnd):
+def testIndex_ScanText(monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd):
     """Check the index text scanner."""
     project = NWProject()
     mockRnd.reset()
@@ -614,7 +624,7 @@ def testIndex_ScanText(monkeypatch, nwGUI, fncPath, mockRnd):
 
 
 @pytest.mark.core
-def testIndex_ChangedRefsSignal(qtbot, nwGUI, fncPath, mockRnd):
+def testIndex_ChangedRefsSignal(qtbot: QtBot, nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd):
     """Check that scanning emits updated backreference handles."""
     project = NWProject()
     mockRnd.reset()
@@ -646,7 +656,7 @@ def testIndex_ChangedRefsSignal(qtbot, nwGUI, fncPath, mockRnd):
 
 
 @pytest.mark.core
-def testIndex_CommentKeys(monkeypatch, nwGUI, fncPath, mockRnd):
+def testIndex_CommentKeys(monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd):
     """Check the index comment key generator."""
     project = NWProject()
     mockRnd.reset()
@@ -683,7 +693,7 @@ def testIndex_CommentKeys(monkeypatch, nwGUI, fncPath, mockRnd):
 
 
 @pytest.mark.core
-def testIndex_ExtractData(nwGUI, fncPath, mockRnd):
+def testIndex_ExtractData(nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd):
     """Check the index data extraction functions."""
     project = NWProject()
     mockRnd.reset()
@@ -1181,7 +1191,7 @@ def testTagsIndex_Main():
 
 
 @pytest.mark.core
-def testItemIndex_Main(nwGUI, fncPath, mockRnd):
+def testItemIndex_Main(nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd):
     """Check the ItemIndex class."""
     project = NWProject()
     mockRnd.reset()

@@ -25,6 +25,7 @@ import shutil
 
 from pathlib import Path
 from shutil import copyfile
+from typing import Any
 from unittest.mock import MagicMock, Mock
 
 import pytest
@@ -1524,7 +1525,7 @@ def testGuiMain_OpenDocument_ReentrancyGuard(
     reentered = []
     realProcessEvents = QApplication.processEvents
 
-    def reentrantProcessEvents(*args, **kwargs):
+    def reentrantProcessEvents(*args: Any, **kwargs: Any) -> None:
         if not reentered:
             reentered.append(True)
             assert nwGUI.docPanes.openDocument(C.hChapterDoc) is False
@@ -1606,10 +1607,10 @@ def testGuiMain_FocusView(
     # ==============
     nwGUI._switchFocus(nwFocus.TREE)
 
-    def mockEmitEditorFocus(*a):
+    def mockEmitEditorFocus(*a: Any) -> None:
         nwGUI.docPanes.onFocusChanged(widget, nwGUI.docEditor)
 
-    def mockEmitViewerFocus(*a):
+    def mockEmitViewerFocus(*a: Any) -> None:
         nwGUI.docPanes.onFocusChanged(widget, nwGUI.docViewer)
 
     # Switch to viewer
