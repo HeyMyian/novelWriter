@@ -27,6 +27,7 @@ import xml.etree.ElementTree as ET
 from datetime import date, datetime
 from pathlib import Path
 from shutil import copyfile
+from typing import Any
 
 import pytest
 
@@ -47,7 +48,7 @@ class MockProject:
 
     data: ProjectData
 
-    def setProjectChanged(self, *a):
+    def setProjectChanged(self, *a: Any):
         """Fake project method."""
 
     def markCountsDirty(self):

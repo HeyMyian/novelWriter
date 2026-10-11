@@ -21,9 +21,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from typing import Any, NoReturn
 from unittest.mock import MagicMock
 
-from PyQt6.QtCore import QSize
+from PyQt6.QtCore import QSize, QTranslator
 from PyQt6.QtGui import QFont, QIcon, QPixmap
 from PyQt6.QtWidgets import QWidget
 
@@ -39,13 +40,13 @@ class MockGuiMain(QWidget):
         self.mainProgress = MagicMock()
         self.projPath = ""
 
-    def postLaunchTasks(self, cmdOpen):
+    def postLaunchTasks(self, cmdOpen: str | None) -> None:
         return
 
-    def setStatus(self, message):
+    def setStatus(self, message: str) -> None:
         return
 
-    def openProject(self, projPath):
+    def openProject(self, projPath: str) -> None:
         self.projPath = projPath
 
     def rebuildIndex(self):
@@ -69,19 +70,19 @@ class MockTheme:
     def initThemes(self) -> None:
         return
 
-    def getPixmap(self, *a) -> QPixmap:
+    def getPixmap(self, *a: Any) -> QPixmap:
         return QPixmap()
 
-    def getHeaderDecoration(self, *a) -> QPixmap:
+    def getHeaderDecoration(self, *a: Any) -> QPixmap:
         return QPixmap()
 
-    def getStandardButton(self, *a) -> NPushButton:
+    def getStandardButton(self, *a: Any) -> NPushButton:
         return NPushButton(None, "", QSize(1, 1))  # type: ignore
 
-    def getIcon(self, *a) -> QIcon:
+    def getIcon(self, *a: Any) -> QIcon:
         return QIcon()
 
-    def getItemIcon(self, *a, **k) -> QIcon:
+    def getItemIcon(self, *a: Any, **k: Any) -> QIcon:
         return QIcon()
 
 
@@ -89,7 +90,7 @@ class MockApp:
     def __init__(self):
         return
 
-    def installTranslator(self, language):
+    def installTranslator(self, language: QTranslator) -> None:
         return
 
 
@@ -98,11 +99,11 @@ class MockApp:
 # Mock functions that will raise errors instead.
 
 
-def causeOSError(*args, **kwargs):
+def causeOSError(*args: Any, **kwargs: Any) -> NoReturn:
     """Raise an OSError."""
     raise OSError("Mock OSError")
 
 
-def causeException(*args, **kwargs):
+def causeException(*args: Any, **kwargs: Any) -> NoReturn:
     """Raise an Exception."""
     raise Exception("Mock Exception")

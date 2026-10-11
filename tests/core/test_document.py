@@ -24,6 +24,7 @@ from __future__ import annotations
 import os
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -180,7 +181,7 @@ def testProjectDocument_LoadSave(
     # Cause stat() to fail right after a successful write
     origStat = type(docPath).stat
 
-    def failDocStat(path, *a, **kw):
+    def failDocStat(path: Path, *a: Any, **kw: Any) -> os.stat_result:
         if path == docPath:
             raise OSError("Mock OSError")
         return origStat(path, *a, **kw)

@@ -905,7 +905,7 @@ def testToDocX_SaveDocument(mockGUI: MockGuiMain, prjLipsum: Path, fncPath: Path
     with zipfile.ZipFile(docPath, mode="r") as zipObj:
         zipObj.extractall(fncPath / "extract")
 
-    def prettifyXml(inFile, outFile):
+    def prettifyXml(inFile: Path, outFile: Path) -> None:
         with open(outFile, mode="wb") as fStream:
             xml = ET.parse(inFile)
             xmlIndent(xml)  # type: ignore

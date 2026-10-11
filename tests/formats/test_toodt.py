@@ -454,7 +454,7 @@ def testToOdt_ConvertParagraphs(mockGUI: MockGuiMain):
     odt = ToOdt(project, isFlat=True)
     odt._isNovel = True
 
-    def getStyle(styleName):
+    def getStyle(styleName: str) -> ODTParagraphStyle | None:
         for style in odt._autoPara.values():
             if style.name == styleName:
                 return style
@@ -1045,7 +1045,7 @@ def testToOdt_SaveFull(mockGUI: MockGuiMain, fncPath: Path, tstPaths: TstPaths, 
     metaOut = tstPaths.outDir / "fmtToOdt_SaveFull" / "meta.xml"
     stylOut = tstPaths.outDir / "fmtToOdt_SaveFull" / "styles.xml"
 
-    def prettifyXml(inFile, outFile):
+    def prettifyXml(inFile: Path, outFile: Path) -> None:
         with open(outFile, mode="wb") as fStream:
             xml = ET.parse(inFile)
             xmlIndent(xml.getroot())

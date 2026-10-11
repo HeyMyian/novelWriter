@@ -954,7 +954,7 @@ def testProjectTree_ToCFile(
     tree = ProjectTree(project)
     tree.unpack(mockItems)
 
-    def mockIsFile(fileName):
+    def mockIsFile(fileName: Path) -> bool:
         """Return True for items that are files in novelWriter and
         should thus also be files in the project folder structure.
         """

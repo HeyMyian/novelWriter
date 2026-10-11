@@ -84,7 +84,7 @@ def testGuiManuscriptBuild_Main(
     manus.buildName.setText("TestBuild")
 
     # Helper function
-    def selectFormat(fmt):
+    def selectFormat(fmt: nwBuildFmt) -> None:
         for i in range(manus.listFormats.count()):
             item = manus.listFormats.item(i)
             assert isinstance(item, QListWidgetItem)
@@ -131,7 +131,7 @@ def testGuiManuscriptBuild_ErrorHandling(
     manus = GuiManuscriptBuild(nwGUI, build)
     manus.show()
 
-    def selectFormat(fmt):
+    def selectFormat(fmt: nwBuildFmt) -> None:
         for i in range(manus.listFormats.count()):
             item = manus.listFormats.item(i)
             assert isinstance(item, QListWidgetItem)

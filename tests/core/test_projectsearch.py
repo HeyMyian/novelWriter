@@ -23,13 +23,15 @@ from __future__ import annotations
 
 import re
 
+from collections.abc import Iterable
 from pathlib import Path
 
 import pytest
 
 from novelwriter.constants import nwConst
+from novelwriter.core.item import ProjectItem
 from novelwriter.core.project import NWProject
-from novelwriter.core.projectsearch import DocSearch
+from novelwriter.core.projectsearch import DocSearch, T_SearchResults
 
 from tests.helpers import C, MockRnd, buildTestProject
 from tests.mocked import MockGuiMain
@@ -75,7 +77,7 @@ def testProjectSearch_Search(
     # Test Settings
     # =============
 
-    def pruneResult(result, index):
+    def pruneResult(result: Iterable[tuple[ProjectItem, T_SearchResults, bool]], index: int) -> list:
         temp = [(i.itemHandle, r, c) for i, r, c in result][index][1]
         return [(s, n, c[o : o + n]) for s, n, c, o in temp]
 
@@ -237,7 +239,7 @@ def testProjectSearch_DocumentFilters(mockGUI: MockGuiMain, fncPath: Path, mockR
 
     search = DocSearch()
 
-    def handles(result):
+    def handles(result: Iterable[tuple[ProjectItem, T_SearchResults, bool]]) -> list[str]:
         return [i.itemHandle for i, r, _ in result if r]
 
     # By default, novel documents, notes, and inactive documents are all included
@@ -292,7 +294,7 @@ def testProjectSearch_ContentFilters():
     search._regEx = re.compile(r"TARGET")
     text = "# Heading TARGET\n@char: TARGET\n% comment TARGET\n\nBody text TARGET here\n"
 
-    def pruneResult(result):
+    def pruneResult(result: T_SearchResults) -> list:
         return [(pos, num, context) for pos, num, context, _ in result]
 
     # By default, all content types are searched

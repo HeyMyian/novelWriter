@@ -80,13 +80,13 @@ def testNTabWidget_Drag(qtbot: QtBot, nwGUI: GuiMain):
     def names():
         return [bar.tabText(i) for i in range(bar.count())]
 
-    def press(x, button=QtMouseLeft):
+    def press(x: int, button: Qt.MouseButton = QtMouseLeft) -> None:
         bar.mousePressEvent(mouseEvent(QEvent.Type.MouseButtonPress, x, button, button))
 
-    def move(x, buttons=QtMouseLeft):
+    def move(x: int, buttons: Qt.MouseButton = QtMouseLeft) -> None:
         bar.mouseMoveEvent(mouseEvent(QEvent.Type.MouseMove, x, Qt.MouseButton.NoButton, buttons))
 
-    def release(x):
+    def release(x: int) -> None:
         bar.mouseReleaseEvent(mouseEvent(QEvent.Type.MouseButtonRelease, x, QtMouseLeft, Qt.MouseButton.NoButton))
 
     first = bar.tabRect(0).center().x()

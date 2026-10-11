@@ -33,7 +33,9 @@ import pytest
 from novelwriter import CONFIG
 from novelwriter.constants import nwFiles, nwItemClass
 from novelwriter.core.coretools import DocDuplicator, DocMerger, DocSplitter, ProjectBuilder
+from novelwriter.core.item import ProjectItem
 from novelwriter.core.project import NWProject
+from novelwriter.core.tree import ProjectTree
 from novelwriter.enum import nwBuildFmt
 from novelwriter.manuscript.buildsettings import BuildSettings
 from novelwriter.manuscript.docbuild import DocumentBuilder
@@ -508,7 +510,7 @@ def testCoreTools_DocDuplicator(
         original = type(project.tree).duplicate
         state = {"count": 0}
 
-        def flaky(self, handle, pHandle, after):
+        def flaky(self: ProjectTree, handle: str, pHandle: str | None, after: bool) -> ProjectItem | None:
             state["count"] += 1
             return None if state["count"] == 1 else original(self, handle, pHandle, after)
 

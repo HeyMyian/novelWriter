@@ -26,7 +26,7 @@ from unittest.mock import Mock
 import pytest
 
 from PyQt6.QtCore import QEvent, QPoint, QPointF, QSize, Qt
-from PyQt6.QtGui import QFont, QKeyEvent, QMouseEvent, QStandardItem, QStandardItemModel, QWheelEvent
+from PyQt6.QtGui import QCloseEvent, QFont, QKeyEvent, QMouseEvent, QStandardItem, QStandardItemModel, QWheelEvent
 from PyQt6.QtWidgets import QFontDialog, QSplitter, QWidget
 from pytestqt.qtbot import QtBot
 
@@ -108,7 +108,7 @@ def testNToolDialog_Main(qtbot: QtBot, nwGUI: GuiMain):
     # Escape closes the dialog via a closeEvent override
     closed = False
 
-    def closeEvent(event):
+    def closeEvent(event: QCloseEvent) -> None:
         nonlocal closed
         closed = True
         event.accept()

@@ -21,11 +21,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from typing import Any
 from urllib.error import HTTPError
 
 import pytest
 
-from PyQt6.QtCore import QObject, QUrl, pyqtSignal
+from PyQt6.QtCore import QObject, QUrl, pyqtBoundSignal, pyqtSignal
 from pytestqt.qtbot import QtBot
 
 from novelwriter import SHARED
@@ -41,7 +42,7 @@ class MockSignalHolder(QObject):
 
 
 class MockRetriever:
-    def __init__(self, signal):
+    def __init__(self, signal: pyqtBoundSignal) -> None:
         self.signal = signal
 
 
@@ -49,12 +50,12 @@ class MockDesktopServices:
     url = None
 
     @staticmethod
-    def openUrl(url):
+    def openUrl(url: QUrl) -> None:
         MockDesktopServices.url = url
 
 
 class MockData:
-    def decode(self, *a):
+    def decode(self, *a: Any) -> str:
         return '{"tag_name": "v1.0"}'
 
 
@@ -62,7 +63,7 @@ class MockPayload:
     def __enter__(self):
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         return
 
     def read(self):
@@ -70,7 +71,7 @@ class MockPayload:
 
 
 class MockListData:
-    def decode(self, *a):
+    def decode(self, *a: Any) -> str:
         return "[]"
 
 
@@ -78,7 +79,7 @@ class MockListPayload:
     def __enter__(self):
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         return
 
     def read(self):
@@ -89,7 +90,7 @@ class MockHTTPError:
     def __enter__(self):
         raise HTTPError("http://example.com", 403, "Rate limit", None, None)  # type: ignore
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         return
 
 
@@ -97,7 +98,7 @@ class MockException:
     def __enter__(self):
         raise Exception("Oh noes!")
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         return
 
 

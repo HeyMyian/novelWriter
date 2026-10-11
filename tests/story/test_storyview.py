@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from shutil import copyfile
+from typing import Any
 
 import pytest
 
@@ -217,12 +218,12 @@ def testStoryView_SettingsDialog(monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain
     answer = True
     rebuilt = 0
 
-    def question(*args, **kwargs) -> bool:
+    def question(*args: Any, **kwargs: Any) -> bool:
         nonlocal asked
         asked += 1
         return answer
 
-    def refresh(self, rootHandle, force=False) -> None:
+    def refresh(self: GuiStoryOutlineView, rootHandle: str | None, force: bool = False) -> None:
         nonlocal rebuilt
         rebuilt += int(force)
 

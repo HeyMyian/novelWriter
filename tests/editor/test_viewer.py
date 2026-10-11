@@ -22,6 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -180,7 +181,7 @@ def testGuiDocViewer_Selection(
     # Open context menu with a selection
     menuOpened = False
 
-    def mockExec(*a):
+    def mockExec(*a: Any) -> None:
         nonlocal menuOpened
         menuOpened = True
 

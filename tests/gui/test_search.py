@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import re
 
+from collections.abc import Iterator
 from pathlib import Path
 from time import time
 
@@ -35,8 +36,9 @@ from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwItemClass, nwUnicode
+from novelwriter.core.item import ProjectItem
 from novelwriter.core.project import NWProject
-from novelwriter.core.projectsearch import DocSearch
+from novelwriter.core.projectsearch import DocSearch, T_SearchResults
 from novelwriter.enum import nwChange, nwDocMode, nwView
 from novelwriter.guimain import GuiMain
 from novelwriter.types import QtDisplayRole, QtKeyDown, QtKeyReturn, QtKeyUp
@@ -418,7 +420,9 @@ def testGuiProjectSearch_ReentrancyGuard(
 
     realIterSearch = DocSearch.iterSearch
 
-    def nestedIterSearch(self, project, searchText):
+    def nestedIterSearch(
+        self: DocSearch, project: NWProject, searchText: str
+    ) -> Iterator[tuple[ProjectItem, T_SearchResults, bool]]:
         for i, result in enumerate(realIterSearch(self, project, searchText)):
             if i == 0:
                 # Simulate a nested invocation entering mid-iteration

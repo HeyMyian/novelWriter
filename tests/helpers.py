@@ -39,6 +39,8 @@ from novelwriter import logger
 if TYPE_CHECKING:
     import pytest
 
+    from pytestqt.qtbot import QtBot
+
     from novelwriter.core.project import NWProject
 
 XML_IGNORE = ("<novelWriterXML ", "<project ", "<dailyTarget ")
@@ -153,7 +155,7 @@ def cmpFiles(
     return False
 
 
-def xmlToText(xElem):
+def xmlToText(xElem: ET.Element) -> str:
     """Get the text content of an XML element."""
     text = ET.tostring(xElem, encoding="utf-8", xml_declaration=False).decode()
     bits = text.partition(">")
@@ -162,17 +164,17 @@ def xmlToText(xElem):
     return f"{node[0]}{rest}{bits[1]}{bits[2]}"
 
 
-def readFile(file: Path):
+def readFile(file: Path) -> str:
     """Return the content of a file as a string."""
     return file.read_text(encoding="utf-8")
 
 
-def writeFile(file: Path, data: str):
+def writeFile(file: Path, data: str) -> None:
     """Write the contents of a string to a file."""
     file.write_text(data, encoding="utf-8")
 
 
-def clearLogHandlers():
+def clearLogHandlers() -> None:
     """Clear all log handlers."""
     for handler in logger.handlers:
         logger.removeHandler(handler)
@@ -222,7 +224,7 @@ def buildTestProject(project: NWProject, path: Path) -> None:
     project._tree._ready = True
 
 
-def checkDialogFreedOnClose(qtbot, factory: Callable[[], QDialog]) -> None:
+def checkDialogFreedOnClose(qtbot: QtBot, factory: Callable[[], QDialog]) -> None:
     """Check that a dialog is freed by reference count alone when it is
     closed. This guards against PyQt6 reference loops where a closure
     connected to a signal captures the dialog that owns the sender, in

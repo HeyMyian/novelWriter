@@ -26,7 +26,7 @@ from pathlib import Path
 import pytest
 
 from PyQt6.QtCore import QEvent, QModelIndex, QPoint, QPointF, Qt
-from PyQt6.QtGui import QDropEvent, QHelpEvent, QPainter, QPixmap, QWheelEvent
+from PyQt6.QtGui import QDropEvent, QHelpEvent, QPainter, QPixmap, QTextLayout, QWheelEvent
 from PyQt6.QtWidgets import QApplication, QStyleOptionViewItem, QToolTip
 from pytestqt.qtbot import QtBot
 
@@ -385,7 +385,17 @@ def testStoryOutline_Paint(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI:
     calls = []
     drawLayout = _OutlineDelegate._drawLayout
 
-    def recordLayout(self, painter, x, y, w, h, text, formats, indent=0):
+    def recordLayout(
+        self: _OutlineDelegate,
+        painter: QPainter,
+        x: int,
+        y: int,
+        w: int,
+        h: int,
+        text: str,
+        formats: list[QTextLayout.FormatRange],
+        indent: int = 0,
+    ) -> int:
         used = drawLayout(self, painter, x, y, w, h, text, formats, indent)
         calls.append((y, h, text, used, painter.pen().color(), formats, indent))
         return used

@@ -50,7 +50,7 @@ class BareTokenizer(Tokenizer):
     def closeDocument(self):
         super().closeDocument()  # type: ignore (deliberate check)
 
-    def saveDocument(self, path) -> None:
+    def saveDocument(self, path: Path) -> None:
         super().saveDocument(path)  # type: ignore (deliberate check)
 
 

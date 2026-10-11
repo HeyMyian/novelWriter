@@ -25,11 +25,12 @@ import re
 
 from pathlib import Path
 from time import time
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 
-from PyQt6.QtCore import QEvent, QMimeData, QPoint, QPointF, QRect, Qt, QThreadPool, QUrl, QVariant
+from PyQt6.QtCore import QEvent, QMimeData, QPoint, QPointF, QRect, QRunnable, Qt, QThreadPool, QUrl, QVariant
 from PyQt6.QtGui import (
     QAction,
     QClipboard,
@@ -46,7 +47,7 @@ from PyQt6.QtGui import (
     QTextOption,
     QWheelEvent,
 )
-from PyQt6.QtWidgets import QApplication, QMenu, QTextEdit
+from PyQt6.QtWidgets import QAbstractButton, QApplication, QMenu, QTextEdit
 from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
@@ -3101,7 +3102,7 @@ def testGuiDocEditor_FormatLink(
     # URL is passed to the dialog, with no link text
     captured = {}
 
-    def fakeBareUrl(*_a, text="", url=""):
+    def fakeBareUrl(*_a: Any, text: str = "", url: str = "") -> tuple[str, str, bool]:
         captured["text"], captured["url"] = text, url
         return "a link", url, True
 
@@ -3117,7 +3118,7 @@ def testGuiDocEditor_FormatLink(
     docEditor.setCursorPosition(10)
     captured.clear()
 
-    def fakeEditLink(*_a, text="", url=""):
+    def fakeEditLink(*_a: Any, text: str = "", url: str = "") -> tuple[str, str, bool]:
         captured["text"], captured["url"] = text, url
         return "new text", "http://new.example.com", True
 
@@ -3744,13 +3745,13 @@ def testGuiDocEditor_WordCounters(
         def __init__(self):
             self._runObj = None
 
-        def start(self, runObj, priority=0):
+        def start(self, runObj: QRunnable, priority: int = 0) -> None:
             self._runObj = runObj
 
         def runnable(self):
             return self._runObj
 
-        def waitForDone(self, msecs=-1):
+        def waitForDone(self, msecs: int = -1) -> bool:
             return True
 
         def clear(self):
@@ -3887,7 +3888,7 @@ def testGuiDocEditor_Search(
         flags = 0 if case else re.IGNORECASE
         return [(m.start(), m.end()) for m in re.finditer(pat, source, flags)]
 
-    def setToggle(button, state: bool) -> None:
+    def setToggle(button: QAbstractButton, state: bool) -> None:
         """Click a checkable tool button until it reaches the wanted state."""
         if button.isChecked() != state:
             button.click()

@@ -180,7 +180,7 @@ def testGuiNovelView_Content(
 
     toolTip = ""
 
-    def showText(pos, text):
+    def showText(pos: QPoint, text: str) -> None:
         nonlocal toolTip
         toolTip = text
 

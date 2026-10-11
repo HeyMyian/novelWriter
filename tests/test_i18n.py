@@ -23,11 +23,12 @@ from __future__ import annotations
 
 import sys
 
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 
-from PyQt6.QtWidgets import QApplication, QDialog
+from PyQt6.QtWidgets import QApplication, QDialog, QWidget
 from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
@@ -69,7 +70,7 @@ def testGuiI18n_Localisation(
     nwGUI.openProject(projPath)
     nwGUI.show()
 
-    def showDialog(func, dType) -> None:
+    def showDialog(func: Callable[[], None], dType: type[QWidget]) -> None:
         func()
         qtbot.waitUntil(lambda: SHARED.findTopLevelWidget(dType) is not None, timeout=1000)
         dialog = SHARED.findTopLevelWidget(dType)
