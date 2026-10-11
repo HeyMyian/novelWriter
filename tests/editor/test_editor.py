@@ -55,6 +55,7 @@ from novelwriter.core.item import ProjectItem
 from novelwriter.core.project import NWProject
 from novelwriter.core.spellcheck import SpellEnchant
 from novelwriter.dialogs.editlabel import GuiEditLabel
+from novelwriter.dialogs.editlink import GuiEditLink
 from novelwriter.editor.editor import GuiDocEditor, _TagAction
 from novelwriter.editor.editsearch import GuiDocEditSearch
 from novelwriter.editor.textblock import TextBlockData, formatCheckText
@@ -898,6 +899,55 @@ def testGuiDocEditor_FormatCheckText():
     assert data.formatErrors == []
 
 
+def testGuiDocEditor_ProcessTextLinks():
+    """Test that TextBlockData detects Markdown links, and does not
+    also flag the URL they contain as a separate bare URL.
+    """
+    data = TextBlockData()
+
+    # A bare URL is kept in the spell text, and recorded as a "url"
+    text = "See http://example.com for details."
+    data.processText(text, 0, None)
+    assert data._text == "See                    for details."
+    assert data.metaData == [(4, 22, "http://example.com", "url")]
+
+    # A Markdown link has its brackets and URL blanked from the spell
+    # text, keeping only the link text, and is recorded as a "link"
+    # with the target URL
+    text = "See [a link](http://example.com) for details."
+    data.processText(text, 0, None)
+    assert data._text == "See  a link                      for details."
+    assert data.metaData == [(4, 32, "http://example.com", "link")]
+
+    # The URL inside a Markdown link must not also be picked up as a
+    # separate bare URL, while an unrelated bare URL still is
+    text = "See [a link](http://example.com) and http://other.com too."
+    data.processText(text, 0, None)
+    assert data.metaData == [
+        (4, 32, "http://example.com", "link"),
+        (37, 53, "http://other.com", "url"),
+    ]
+
+    # A Markdown link's positions are translated through a UTF-16 map
+    # when the block contains a 4 byte Unicode character
+    text = "\U0001f605 [a link](http://example.com) done."
+    utf16Map = utf16CharMap(text)
+    data.processText(text, 0, utf16Map)
+    assert data.metaData == [(3, 31, "http://example.com", "link")]
+
+    # A bare "file://" URL has no "http" substring, so the bare URL
+    # check must not be gated on that alone, or it would be missed
+    text = "See file:///tmp/note.txt here."
+    data.processText(text, 0, None)
+    assert data.metaData == [(4, 24, "file:///tmp/note.txt", "url")]
+
+    # A Markdown link's target need not be a URL with a "://" scheme,
+    # so the link check must not be gated on that either
+    text = "See [reference](internal-note) here."
+    data.processText(text, 0, None)
+    assert data.metaData == [(4, 30, "internal-note", "link")]
+
+
 @pytest.mark.gui
 def testGuiDocEditor_FormatChecking(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     """Test the document multi-space and trailing-space checker."""
@@ -1607,6 +1657,21 @@ def testGuiDocEditor_ToolBar(qtbot, nwGUI, projPath, mockRnd):
         "Text [sub]subscript[/sub] one\n\n"
     )
 
+    # Lists
+    # =====
+
+    docEditor.replaceText("One\n\nTwo\n\n")
+
+    # Click Unordered List
+    docEditor.setCursorPosition(1)
+    docToolBar.tbListU.click()
+    assert docEditor.getText() == "* One\n\nTwo\n\n"
+
+    # Click Ordered List
+    docEditor.setCursorPosition(9)
+    docToolBar.tbListO.click()
+    assert docEditor.getText() == "* One\n\n#. Two\n\n"
+
     # qtbot.stop()
 
 
@@ -2216,6 +2281,56 @@ def testGuiDocEditor_BlockFormatting(qtbot, monkeypatch, nwGUI, projPath, ipsumT
     assert docEditor.getText() == "###! Some text\n\n"
     assert docEditor.getCursorPosition() == 10
 
+    # Unordered List
+    docEditor.replaceText("Some text\n\n")
+    docEditor.setCursorPosition(5)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_U) is True
+    assert docEditor.getText() == "* Some text\n\n"
+    assert docEditor.getCursorPosition() == 7
+
+    # Ordered List
+    docEditor.replaceText("Some text\n\n")
+    docEditor.setCursorPosition(5)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_O) is True
+    assert docEditor.getText() == "#. Some text\n\n"
+    assert docEditor.getCursorPosition() == 8
+
+    # Unordered to Ordered List, and back
+    docEditor.replaceText("* Some text\n\n")
+    docEditor.setCursorPosition(7)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_O) is True
+    assert docEditor.getText() == "#. Some text\n\n"
+    assert docEditor.getCursorPosition() == 8
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_U) is True
+    assert docEditor.getText() == "* Some text\n\n"
+    assert docEditor.getCursorPosition() == 7
+
+    # List to Plain Text
+    docEditor.replaceText("#. Some text\n\n")
+    docEditor.setCursorPosition(8)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_TXT) is True
+    assert docEditor.getText() == "Some text\n\n"
+    assert docEditor.getCursorPosition() == 5
+
+    # Toggle Lists Off
+    docEditor.replaceText("* Some text\n\n")
+    docEditor.setCursorPosition(7)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_U) is True
+    assert docEditor.getText() == "Some text\n\n"
+    assert docEditor.getCursorPosition() == 5
+
+    docEditor.replaceText("#. Some text\n\n")
+    docEditor.setCursorPosition(8)
+    assert docEditor._formatBlock(nwDocAction.BLOCK_LST_O) is True
+    assert docEditor.getText() == "Some text\n\n"
+    assert docEditor.getCursorPosition() == 5
+
+    # A separator is not a list item
+    docEditor.replaceText("* * *\n\n")
+    docEditor.setCursorPosition(5)
+    assert docEditor._formatBlock(nwDocAction.ALIGN_C) is True
+    assert docEditor.getText() == ">> * * * <<\n\n"
+
     # Left Indent
     docEditor.replaceText("Some text\n\n")
     docEditor.setCursorPosition(5)
@@ -2432,6 +2547,121 @@ def testGuiDocEditor_MultiBlockFormatting(qtbot, nwGUI, projPath, ipsumText, moc
         "Integ",
         "",
     ]
+
+    # Toggle List
+    cursor = docEditor.textCursor()
+    cursor.setPosition(50)
+    cursor.movePosition(QtMoveRight, QtKeepAnchor, 2000)
+    docEditor.setTextCursor(cursor)
+
+    docEditor._iterFormatBlocks(nwDocAction.BLOCK_LST_U)
+    assert [x[:5] for x in docEditor.getText().splitlines()] == [
+        "### A",
+        "",
+        "@char",
+        "",
+        "* Lor",
+        "",
+        "* Nul",
+        "",
+        "* Nul",
+        "",
+        "* Pel",
+        "",
+        "Integ",
+        "",
+    ]
+
+    # Un-toggle all, the first item decides
+    cursor = docEditor.textCursor()
+    cursor.setPosition(50)
+    cursor.movePosition(QtMoveRight, QtKeepAnchor, 3000)
+    docEditor.setTextCursor(cursor)
+
+    docEditor._iterFormatBlocks(nwDocAction.BLOCK_LST_U)
+    assert [x[:5] for x in docEditor.getText().splitlines()] == [
+        "### A",
+        "",
+        "@char",
+        "",
+        "Lorem",
+        "",
+        "Nulla",
+        "",
+        "Nulla",
+        "",
+        "Pelle",
+        "",
+        "Integ",
+        "",
+    ]
+
+    # Align across a heading and a keyword, which are skipped
+    cursor = docEditor.textCursor()
+    cursor.setPosition(0)
+    cursor.movePosition(QtMoveRight, QtKeepAnchor, 2000)
+    docEditor.setTextCursor(cursor)
+
+    docEditor.docAction(nwDocAction.ALIGN_C)
+    assert [x[:5] for x in docEditor.getText().splitlines()] == [
+        "### A",
+        "",
+        "@char",
+        "",
+        ">> Lo",
+        "",
+        ">> Nu",
+        "",
+        ">> Nu",
+        "",
+        ">> Pe",
+        "",
+        "Integ",
+        "",
+    ]
+
+    # The affected blocks are reselected
+    lastBlock = docEditor.document().findBlockByNumber(10)
+    assert lastBlock.text().startswith(">> Pe")
+    cursor = docEditor.textCursor()
+    assert cursor.selectionStart() == 0
+    assert cursor.selectionEnd() == lastBlock.position() + lastBlock.length() - 1
+
+    # Toggle back off, the first formattable block decides
+    docEditor.docAction(nwDocAction.ALIGN_C)
+    assert [x[:5] for x in docEditor.getText().splitlines()] == [
+        "### A",
+        "",
+        "@char",
+        "",
+        "Lorem",
+        "",
+        "Nulla",
+        "",
+        "Nulla",
+        "",
+        "Pelle",
+        "",
+        "Integ",
+        "",
+    ]
+
+    # Indent the same selection
+    docEditor.docAction(nwDocAction.INDENT_L)
+    docEditor.docAction(nwDocAction.INDENT_R)
+    assert docEditor.getText().splitlines()[4].startswith("> Lorem")
+    assert docEditor.getText().splitlines()[4].endswith(" <")
+    assert docEditor.getText().splitlines()[0] == "### A Scene"
+    cursor = docEditor.textCursor()
+    cursor.setPosition(50)
+    cursor.movePosition(QtMoveRight, QtKeepAnchor, 2000)
+    docEditor.setTextCursor(cursor)
+    docEditor.docAction(nwDocAction.BLOCK_TXT)
+
+    # A single heading is not aligned
+    docEditor.setCursorPosition(3)
+    assert docEditor._formatBlock(nwDocAction.ALIGN_C) is False
+    assert docEditor.getText().splitlines()[0] == "### A Scene"
 
     # Final text should be identical to initial text
     assert docEditor.getText() == text
@@ -2750,6 +2980,103 @@ def testGuiDocEditor_Links(qtbot, monkeypatch, nwGUI, projPath, ipsumText, mockR
 
 
 @pytest.mark.gui
+def testGuiDocEditor_FormatLink(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+    """Test formatting a link under the cursor via the edit dialog."""
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+    nwGUI.openDocument(C.hSceneDoc)
+    docEditor = nwGUI.docEditor
+
+    # Cancelling the dialog is a no-op, regardless of context
+    docEditor.replaceText("Foo http://example.com bar.")
+    docEditor.setCursorPosition(6)
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiEditLink, "getLink", lambda *a, text="", url="": (text, url, False))
+        docEditor.docAction(nwDocAction.MD_LINK)
+    assert docEditor.getText() == "Foo http://example.com bar."
+
+    # A bare URL under the cursor is detected via TextBlockData and its
+    # URL is passed to the dialog, with no link text
+    captured = {}
+
+    def fakeBareUrl(*_a, text="", url=""):
+        captured["text"], captured["url"] = text, url
+        return "a link", url, True
+
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiEditLink, "getLink", fakeBareUrl)
+        assert docEditor.docAction(nwDocAction.MD_LINK) is True
+    assert captured == {"text": "", "url": "http://example.com"}
+    assert docEditor.getText() == "Foo [a link](http://example.com) bar."
+
+    # An existing Markdown link under the cursor has both its text and
+    # URL passed to the dialog, and the whole construct is replaced
+    docEditor.replaceText("Foo [a link](http://example.com) bar.")
+    docEditor.setCursorPosition(10)
+    captured.clear()
+
+    def fakeEditLink(*_a, text="", url=""):
+        captured["text"], captured["url"] = text, url
+        return "new text", "http://new.example.com", True
+
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiEditLink, "getLink", fakeEditLink)
+        assert docEditor.docAction(nwDocAction.MD_LINK) is True
+    assert captured == {"text": "a link", "url": "http://example.com"}
+    assert docEditor.getText() == "Foo [new text](http://new.example.com) bar."
+
+    # With no link or selection at the cursor, a new link is inserted
+    docEditor.replaceText("Foo bar.")
+    docEditor.setCursorPosition(4)
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiEditLink, "getLink", lambda *a, text="", url="": ("site", "http://site.com", True))
+        assert docEditor.docAction(nwDocAction.MD_LINK) is True
+    assert docEditor.getText() == "Foo [site](http://site.com)bar."
+
+    # A selection with no identified link pre-fills the link text
+    docEditor.replaceText("Foo bar baz.")
+    cursor = docEditor.textCursor()
+    cursor.setPosition(4)
+    cursor.setPosition(7, QtKeepAnchor)
+    docEditor.setTextCursor(cursor)
+    captured.clear()
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiEditLink, "getLink", fakeEditLink)
+        assert docEditor.docAction(nwDocAction.MD_LINK) is True
+    assert captured == {"text": "bar", "url": ""}
+    assert docEditor.getText() == "Foo [new text](http://new.example.com) baz."
+
+    # A blank URL from the dialog is a no-op
+    docEditor.replaceText("Foo bar.")
+    docEditor.setCursorPosition(4)
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiEditLink, "getLink", lambda *a, text="", url="": ("text", "", True))
+        assert docEditor.docAction(nwDocAction.MD_LINK) is True
+    assert docEditor.getText() == "Foo bar."
+
+    # With more than one identified URL in the block, the one matching
+    # the cursor position is picked, not just the first one
+    docEditor.replaceText("Foo http://one.com and http://two.com bar.")
+    docEditor.setCursorPosition(30)
+    captured.clear()
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiEditLink, "getLink", fakeBareUrl)
+        assert docEditor.docAction(nwDocAction.MD_LINK) is True
+    assert captured == {"text": "", "url": "http://two.com"}
+
+    # An empty block has no TextBlockData at all, which must not be
+    # mistaken for an identified link
+    docEditor.replaceText("")
+    docEditor.setCursorPosition(0)
+    with monkeypatch.context() as mp:
+        mp.setattr(GuiEditLink, "getLink", lambda *a, text="", url="": ("site", "http://site.com", True))
+        assert docEditor.docAction(nwDocAction.MD_LINK) is True
+    assert docEditor.getText() == "[site](http://site.com)"
+
+    # qtbot.stop()
+
+
+@pytest.mark.gui
 def testGuiDocEditor_InternalSlotEdgeCases(qtbot, nwGUI, projPath, mockRnd):
     """Test defensive branches in a few internal slots and functions
     that aren't covered by their respective feature tests.
@@ -2977,6 +3304,41 @@ def testGuiDocEditor_InsertFromMimeData_Markdown(qtbot, nwGUI, projPath, mockRnd
 
 
 @pytest.mark.gui
+def testGuiDocEditor_InsertFromMimeData_Urls(qtbot, nwGUI, projPath, mockRnd):
+    """Test that dropped file and web URLs are inserted as properly
+    encoded URLs rather than as raw, unencoded text.
+    """
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+    docEditor = nwGUI.docEditor
+    assert docEditor.loadText(C.hSceneDoc) is True
+    docEditor.setCursorPosition(0)
+
+    # A local file path with a space, as provided by a file manager drag,
+    # must be percent-encoded so that it is recognised as a single URL
+    mime = QMimeData()
+    mime.setUrls([QUrl.fromLocalFile("/some/path/my file.txt")])
+    docEditor.insertFromMimeData(mime)
+    assert docEditor.getText().startswith("file:///some/path/my%20file.txt")
+
+    # Multiple dropped files are inserted one per line
+    docEditor.replaceText("")
+    docEditor.setCursorPosition(0)
+    mime = QMimeData()
+    mime.setUrls([QUrl.fromLocalFile("/some/one.txt"), QUrl.fromLocalFile("/some/two.txt")])
+    docEditor.insertFromMimeData(mime)
+    assert docEditor.getText().startswith("file:///some/one.txt\nfile:///some/two.txt")
+
+    # A regular web URL is preserved as-is
+    docEditor.replaceText("")
+    docEditor.setCursorPosition(0)
+    mime = QMimeData()
+    mime.setUrls([QUrl("https://example.com/page")])
+    docEditor.insertFromMimeData(mime)
+    assert docEditor.getText().startswith("https://example.com/page")
+
+
+@pytest.mark.gui
 def testGuiDocEditor_StripUnsafeCharacters(qtbot, nwGUI, projPath, mockRnd):
     """Control characters must never survive an import/replace or a
     paste, and must never be returned by getText or getSelectedText,
@@ -3061,6 +3423,89 @@ def testGuiDocEditor_LineHeightDoubleReturn(qtbot, nwGUI, projPath, mockRnd):
     qtbot.keyClicks(docEditor, "Body text.")
 
     assert docEditor.getText().startswith("# Heading\n\nBody text.")
+
+
+@pytest.mark.gui
+def testGuiDocEditor_ListMarkerOnReturn(qtbot, nwGUI, projPath, mockRnd):
+    """Test that list markers are carried over to new lines."""
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+    docEditor = nwGUI.docEditor
+    assert docEditor.loadText(C.hSceneDoc) is True
+
+    # Unordered item, then ordered item, at end of line
+    docEditor.setPlainText("* One")
+    docEditor.setCursorPosition(5)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    qtbot.keyClicks(docEditor, "Two")
+    assert docEditor.getText() == "* One\n* Two"
+
+    docEditor.setPlainText("#. One")
+    docEditor.setCursorPosition(6)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    qtbot.keyClicks(docEditor, "Two")
+    assert docEditor.getText() == "#. One\n#. Two"
+
+    # Splitting an item carries the marker
+    docEditor.setPlainText("* OneTwo")
+    docEditor.setCursorPosition(5)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "* One\n* Two"
+
+    # Return inside the marker inserts a plain line
+    docEditor.setPlainText("#. One")
+    docEditor.setCursorPosition(1)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "#\n. One"
+
+    # Return on an empty item clears the marker
+    docEditor.setPlainText("* One\n* ")
+    docEditor.setCursorPosition(8)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "* One\n"
+    assert docEditor.getCursorPosition() == 6
+
+    docEditor.setPlainText("#.  ")
+    docEditor.setCursorPosition(4)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == ""
+
+    # Not list items
+    docEditor.setPlainText("* * *")
+    docEditor.setCursorPosition(5)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "* * *\n"
+
+    docEditor.setPlainText("*")
+    docEditor.setCursorPosition(1)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "*\n"
+
+    # A selection is replaced, and the marker is from its first line
+    docEditor.setPlainText("* One\nText")
+    cursor = docEditor.textCursor()
+    cursor.setPosition(3)
+    cursor.setPosition(8, QtKeepAnchor)
+    docEditor.setTextCursor(cursor)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "* O\n* xt"
+
+    # A selection on an empty item is not cleared as an empty item
+    docEditor.setPlainText("* ")
+    cursor = docEditor.textCursor()
+    cursor.setPosition(1)
+    cursor.setPosition(2, QtKeepAnchor)
+    docEditor.setTextCursor(cursor)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "*\n"
+
+    # The marker is undone with the new line
+    docEditor.setPlainText("* One")
+    docEditor.setCursorPosition(5)
+    qtbot.keyClick(docEditor, QtKeyReturn, delay=KEY_DELAY)
+    assert docEditor.getText() == "* One\n* "
+    docEditor.docAction(nwDocAction.UNDO)
+    assert docEditor.getText() == "* One"
 
 
 @pytest.mark.gui

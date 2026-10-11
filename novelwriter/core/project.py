@@ -43,7 +43,7 @@ from novelwriter.common import (
     minmax,
     safeIsFile,
 )
-from novelwriter.constants import nwLabels, trConst
+from novelwriter.constants import nwLabels, nwStyles, trConst
 from novelwriter.core.index import Index
 from novelwriter.core.options import OptionState
 from novelwriter.core.projectdata import ProjectData
@@ -174,11 +174,6 @@ class NWProject:
         return self._storage.lockStatus
 
     @property
-    def currentEditTime(self) -> int:
-        """Return total edit time, including the current session."""
-        return self._data.editTime + round(time() - self._session.start)
-
-    @property
     def currentTotalCount(self) -> int:
         """Return the current total word count from the tree."""
         return self._tree.model.root.count
@@ -268,12 +263,7 @@ class NWProject:
 
         logger.debug("Populating '%s' with text from '%s'", tHandle, sHandle)
         text = self._storage.getDocumentText(sHandle)
-        if (
-            newTitle
-            and (lines := text.split("\n"))
-            and lines
-            and lines[0].startswith(("# ", "## ", "### ", "#### ", "#! ", "##! ", "###! "))
-        ):
+        if newTitle and (lines := text.split("\n")) and lines and lines[0].startswith(nwStyles.H_MARKERS):
             prefix, _, _ = lines[0].partition(" ")
             lines[0] = f"{prefix} {newTitle}"
             text = "\n".join(lines)

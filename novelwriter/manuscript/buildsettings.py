@@ -74,6 +74,7 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "headings.breakPart":      (bool, True),
     "headings.breakChapter":   (bool, True),
     "headings.breakScene":     (bool, False),
+
     "text.includeBodyText":    (bool, True),
     "text.includeSynopsis":    (bool, False),
     "text.includeComments":    (bool, False),
@@ -82,6 +83,7 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "text.includeKeywords":    (bool, False),
     "text.ignoredKeywords":    (str, ""),
     "text.addNoteHeadings":    (bool, True),
+
     "format.textFont":         (str, CONFIG.textFont.toString()),
     "format.lineHeight":       (float, 1.15),
     "format.justifyText":      (bool, False),
@@ -124,9 +126,13 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "format.bottomMargin":     (float, 2.0),
     "format.leftMargin":       (float, 2.0),
     "format.rightMargin":      (float, 2.0),
+    "format.gutterMargin":     (float, 0.0),
+    "format.mirrorMargins":    (bool, False),
+
     "doc.pageHeader":          (str, nwHeadFmt.DOC_AUTO),
     "doc.pageCountOffset":     (int, 0),
     "doc.metaLanguage":        (str, ""),
+
     "html.addStyles":          (bool, True),
     "html.preserveTabs":       (bool, False),
 }
@@ -187,7 +193,11 @@ SETTINGS_LABELS = {
     "format.grpPage":          QT_TRANSLATE_NOOP("Builds", "Page Layout"),
     "format.pageUnit":         QT_TRANSLATE_NOOP("Builds", "Unit"),
     "format.pageSize":         QT_TRANSLATE_NOOP("Builds", "Page size"),
-    "format.pageMargins":      QT_TRANSLATE_NOOP("Builds", "Page margins"),
+    "format.pageMarginsTB":    QT_TRANSLATE_NOOP("Builds", "Top and bottom margins"),
+    "format.pageMarginsLR":    QT_TRANSLATE_NOOP("Builds", "Left and right margins"),
+    "format.pageMarginsIO":    QT_TRANSLATE_NOOP("Builds", "Inner and outer margins"),
+    "format.gutterMargin":     QT_TRANSLATE_NOOP("Builds", "Gutter margin"),
+    "format.mirrorMargins":    QT_TRANSLATE_NOOP("Builds", "Mirror margins"),
 
     "doc":                     QT_TRANSLATE_NOOP("Builds", "Document Style"),
     "doc.pageHeader":          QT_TRANSLATE_NOOP("Builds", "Page header"),
@@ -220,11 +230,25 @@ class FilterMode(Enum):
 
 
 class BuildSettings:
-    """Core: Build Settings Class.
+    """Manuscript: Build Settings Class.
 
     This class manages the build settings for a Manuscript build job.
     The settings can be packed/unpacked to/from a dictionary for JSON.
     """
+
+    __slots__ = (
+        "_build",
+        "_changed",
+        "_excluded",
+        "_format",
+        "_included",
+        "_name",
+        "_order",
+        "_path",
+        "_settings",
+        "_skipRoot",
+        "_uuid",
+    )
 
     def __init__(self) -> None:
         self._name = ""
@@ -521,7 +545,7 @@ class BuildSettings:
 
 
 class BuildCollection:
-    """Core: Build Collection Class.
+    """Manuscript: Build Collection Class.
 
     This object holds all the build setting objects defined by the given
     project. The build settings are saved as a single JSON file in the
@@ -609,17 +633,17 @@ class BuildCollection:
         buildsFile = self._project.storage.getMetaFile(nwFiles.BUILDS_FILE)
         if not isinstance(buildsFile, Path):
             return False
+        if not safeExists(buildsFile):
+            return True
 
-        data = {}
-        if safeExists(buildsFile):
-            logger.debug("Loading builds file")
-            try:
-                with open(buildsFile, mode="r", encoding="utf-8") as inFile:
-                    data = json.load(inFile)
-            except Exception:
-                logger.error("Failed to load builds file")
-                logException()
-                return False
+        logger.debug("Loading builds file")
+        try:
+            with open(buildsFile, mode="r", encoding="utf-8") as inFile:
+                data = json.load(inFile)
+        except Exception:
+            logger.error("Failed to load builds file")
+            logException()
+            return False
 
         if not isinstance(data, dict):
             logger.error("Builds file is not a JSON object")

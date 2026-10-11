@@ -60,9 +60,10 @@ from novelwriter import CONFIG, SHARED
 from novelwriter.common import formatInt, formatPercent, fuzzyTime
 from novelwriter.constants import nwHeadFmt, nwLabels, nwStats, nwUnicode, trStats
 from novelwriter.enum import nwStandardButton
-from novelwriter.extensions.modified import NFlatIconButton, NTabWidget, NToolDialog
+from novelwriter.extensions.modified import NFlatIconButton, NToolDialog
 from novelwriter.extensions.progressbars import NProgressCircle
 from novelwriter.extensions.switch import NSwitch
+from novelwriter.extensions.tabwidget import NTabWidget
 from novelwriter.formats.tokenizer import HeadingFormatter
 from novelwriter.formats.toqdoc import ToQTextDocument
 from novelwriter.manuscript.buildsettings import BuildCollection, BuildSettings

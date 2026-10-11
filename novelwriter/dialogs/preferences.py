@@ -42,9 +42,9 @@ from PyQt6.QtWidgets import (
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import compact, describeFont, processDialogSymbols, qtAddAction, uniqueCompact
 from novelwriter.config import DEF_GUI_DARK, DEF_GUI_LIGHT, DEF_ICONS, DEF_TREECOL
-from novelwriter.constants import nwLabels, nwQuotes, nwUnicode, trConst
+from novelwriter.constants import nwLabels, nwQuotes, nwUnicode, trConst, trUnit
 from novelwriter.dialogs.quotes import GuiQuoteSelect
-from novelwriter.enum import nwStandardButton, nwToolButton
+from novelwriter.enum import nwStandardButton, nwStdUnit, nwToolButton
 from novelwriter.extensions.configlayout import NColorLabel, NScrollableForm
 from novelwriter.extensions.modified import NComboBox, NDialog, NDoubleSpinBox, NIconButton, NSpinBox
 from novelwriter.extensions.pagedsidebar import NPagedSideBar
@@ -167,6 +167,10 @@ class GuiPreferences(NDialog):
         # Temporary Variables
         self._guiFont = CONFIG.guiFont
         self._textFont = CONFIG.textFont
+
+        trPx = trUnit(nwStdUnit.PIXELS)
+        trSec = trUnit(nwStdUnit.SECONDS)
+        trMin = trUnit(nwStdUnit.MINUTES)
 
         # Label
         self.sidebar.addLabel(self.tr("General"))
@@ -385,7 +389,7 @@ class GuiPreferences(NDialog):
             self.tr("Save document interval"),
             self.autoSaveDoc,
             self.tr("How often the document is automatically saved."),
-            unit=self.tr("seconds"),
+            unit=trSec,
         )
 
         # Project Save Timer
@@ -396,7 +400,7 @@ class GuiPreferences(NDialog):
             self.tr("Save project interval"),
             self.autoSaveProj,
             self.tr("How often the project is automatically saved."),
-            unit=self.tr("seconds"),
+            unit=trSec,
         )
 
         # Ask before exiting novelWriter
@@ -494,7 +498,7 @@ class GuiPreferences(NDialog):
             self.tr("Editor inactive time before pausing timer"),
             self.userIdleTime,
             self.tr("User activity includes typing and changing the content."),
-            unit=self.tr("minutes"),
+            unit=trMin,
         )
 
         # Label
@@ -516,7 +520,7 @@ class GuiPreferences(NDialog):
             self.tr('Maximum text width in "Normal Mode"'),
             self.textWidth,
             self.tr("Set to 0 to disable this feature."),
-            unit=self.tr("px"),
+            unit=trPx,
         )
 
         # Max Text Width in Focus Mode
@@ -527,7 +531,7 @@ class GuiPreferences(NDialog):
             self.tr('Maximum text width in "Focus Mode"'),
             self.focusWidth,
             self.tr("The maximum width cannot be disabled."),
-            unit=self.tr("px"),
+            unit=trPx,
         )
 
         # Focus Mode Footer
@@ -556,7 +560,7 @@ class GuiPreferences(NDialog):
             self.tr("Minimum text margin"),
             self.textMargin,
             self.tr("Applies to both document editor and viewer."),
-            unit=self.tr("px"),
+            unit=trPx,
         )
 
         # Tab Width
@@ -567,7 +571,7 @@ class GuiPreferences(NDialog):
             self.tr("Tab width"),
             self.tabWidth,
             self.tr("The width of a tab key press in the editor and viewer."),
-            unit=self.tr("px"),
+            unit=trPx,
         )
 
         # Line Height
@@ -627,7 +631,7 @@ class GuiPreferences(NDialog):
             self.tr("Cursor width"),
             self.cursorWidth,
             self.tr("The width of the text cursor of the editor."),
-            unit=self.tr("px"),
+            unit=trPx,
         )
 
         # Scale Headings

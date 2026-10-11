@@ -59,14 +59,13 @@ from novelwriter.extensions.progressbars import NProgressSimple
 from novelwriter.gui.itemdetails import GuiItemDetails
 from novelwriter.gui.mainmenu import GuiMainMenu
 from novelwriter.gui.noveltree import GuiNovelView
-from novelwriter.gui.outline import GuiOutlineView
 from novelwriter.gui.projtree import GuiProjectView
 from novelwriter.gui.search import GuiProjectSearch
 from novelwriter.gui.sidebar import GuiSideBar
 from novelwriter.gui.statusbar import GuiMainStatus
 from novelwriter.manuscript.manuscript import GuiManuscript
+from novelwriter.story.storyview import GuiStoryView
 from novelwriter.tools.dictionaries import GuiDictionaries
-from novelwriter.tools.noveldetails import GuiNovelDetails
 from novelwriter.tools.welcome import GuiWelcome
 from novelwriter.tools.writingstats import GuiWritingStats
 
@@ -105,6 +104,7 @@ class GuiMain(QMainWindow):
         # Internal Variables
         self._lastTotalCount = 0
         self._switchingDocument = False
+        self._treePaneHidden = False
 
         # Initialise UserData Instance
         SHARED.initSharedData(self)
@@ -130,7 +130,7 @@ class GuiMain(QMainWindow):
         self.docViewer = GuiDocViewer(self)
         self.docViewerPanel = GuiDocViewerPanel(self)
         self.itemDetails = GuiItemDetails(self)
-        self.outlineView = GuiOutlineView(self)
+        self.storyView = GuiStoryView(self)
         self.mainMenu = GuiMainMenu(self)
         self.sideBar = GuiSideBar(self)
 
@@ -179,14 +179,13 @@ class GuiMain(QMainWindow):
         self.splitMain.setSizes([max(s, 100) for s in CONFIG.mainPanePos])
         self.splitMain.setCollapsible(0, False)
         self.splitMain.setCollapsible(1, False)
-        self.splitMain.setStretchFactor(1, 0)
+        self.splitMain.setStretchFactor(0, 0)
         self.splitMain.setStretchFactor(1, 1)
 
-        # Main Stack : Editor / Outline
+        # Main Stack : Editor / Story View
         self.mainStack = QStackedWidget(self)
         self.mainStack.addWidget(self.splitMain)
-        self.mainStack.addWidget(self.outlineView)
-        self.mainStack.currentChanged.connect(self._mainStackChanged)
+        self.mainStack.addWidget(self.storyView)
 
         # Editor / Viewer Default State
         self.splitView.setVisible(False)
@@ -222,6 +221,7 @@ class GuiMain(QMainWindow):
 
         SHARED.focusModeChanged.connect(self._focusModeChanged)
         SHARED.indexAvailable.connect(self.docViewerPanel.indexHasAppeared)
+        SHARED.indexAvailable.connect(self.storyView.indexHasAppeared)
         SHARED.indexChangedRefs.connect(self.docViewerPanel.updateChangedRefs)
         SHARED.indexChangedTags.connect(self.docEditor.updateChangedTags)
         SHARED.indexChangedTags.connect(self.docViewer.updateChangedTags)
@@ -236,9 +236,9 @@ class GuiMain(QMainWindow):
         SHARED.projectStatusChanged.connect(self.mainStatus.updateProjectStatus)
         SHARED.projectStatusMessage.connect(self.mainStatus.setStatusMessage)
         SHARED.rootFolderChanged.connect(self.novelView.updateRootItem)
-        SHARED.rootFolderChanged.connect(self.outlineView.updateRootItem)
         SHARED.rootFolderChanged.connect(self.projSearch.updateRootItem)
         SHARED.rootFolderChanged.connect(self.projView.updateRootItem)
+        SHARED.rootFolderChanged.connect(self.storyView.updateRootItem)
         SHARED.spellLanguageChanged.connect(self.docEditor.processSpellCheckChange)
         SHARED.spellLanguageChanged.connect(self.mainStatus.setLanguage)
         SHARED.statusLabelsChanged.connect(self.docViewerPanel.updateStatusLabels)
@@ -287,9 +287,6 @@ class GuiMain(QMainWindow):
 
         self.docViewerPanel.loadDocumentTagRequest.connect(self._followTag)
         self.docViewerPanel.openDocumentRequest.connect(self._openDocument)
-
-        self.outlineView.loadDocumentTagRequest.connect(self._followTag)
-        self.outlineView.openDocumentRequest.connect(self._openDocument)
 
         # OS Theme Support
         # ================
@@ -416,7 +413,7 @@ class GuiMain(QMainWindow):
             self.closeViewerPanel(byUser=False)
 
             self.docViewerPanel.closeProjectTasks()
-            self.outlineView.closeProjectTasks()
+            self.storyView.closeProjectTasks()
             self.novelView.closeProjectTasks()
             self.projView.closeProjectTasks()
             self.projSearch.closeProjectTasks()
@@ -489,7 +486,7 @@ class GuiMain(QMainWindow):
         self.mainStatus.initProjectSettings()
         self.projView.openProjectTasks()
         self.novelView.openProjectTasks()
-        self.outlineView.openProjectTasks()
+        self.storyView.openProjectTasks()
         self.projSearch.openProjectTasks()
         self.docViewerPanel.openProjectTasks()
         self._updateStatusWordCount()
@@ -725,8 +722,6 @@ class GuiMain(QMainWindow):
                 self.projView.projTree.openSelectedItem()
             elif self.novelView.treeHasFocus():
                 self.novelView.novelTree.openSelectedItem()
-            elif self.outlineView.treeHasFocus():
-                self.outlineView.outlineTree.openSelectedItem()
             else:
                 logger.warning("No item selected")
 
@@ -777,14 +772,6 @@ class GuiMain(QMainWindow):
             dialog = GuiProjectSettings(self, gotoPage=focusTab)
             dialog.newProjectSettingsReady.connect(self._processProjectSettingsChanges)
             dialog.exec()
-
-    @pyqtSlot()
-    def showNovelDetailsDialog(self) -> None:
-        """Open the novel details dialog."""
-        if SHARED.hasProject:
-            dialog = GuiNovelDetails(self)
-            dialog.activateDialog()
-            dialog.updateValues()
 
     @pyqtSlot()
     def showBuildManuscriptDialog(self) -> None:
@@ -857,8 +844,8 @@ class GuiMain(QMainWindow):
         logger.info("Exiting novelWriter")
 
         if not SHARED.focusMode:
-            CONFIG.mainPanePos = self.splitMain.sizes()
-            CONFIG.outlinePanePos = self.outlineView.splitSizes()
+            if not self.treePane.isHidden():  # Note: not the same as isVisible()
+                CONFIG.mainPanePos = self.splitMain.sizes()
             CONFIG.searchPanePos = self.projSearch.splitSizes()
             if self.docViewerPanel.isVisible():
                 CONFIG.viewPanePos = self.splitView.sizes()
@@ -925,7 +912,7 @@ class GuiMain(QMainWindow):
         self.projView.updateTheme()
         self.novelView.updateTheme()
         self.projSearch.updateTheme()
-        self.outlineView.updateTheme()
+        self.storyView.updateTheme()
         self.itemDetails.updateTheme()
         self.mainStatus.updateTheme()
         SHARED.project.tree.refreshAllItems()
@@ -960,6 +947,12 @@ class GuiMain(QMainWindow):
     def toggleFullScreenMode(self) -> None:
         """Toggle full screen mode."""
         self.setWindowState(self.windowState() ^ Qt.WindowState.WindowFullScreen)
+
+    @pyqtSlot()
+    def toggleTreePane(self) -> None:
+        """Toggle the tree pane visibility."""
+        if self.mainStack.currentWidget() == self.splitMain and not SHARED.focusMode:
+            self.treePane.setVisible(not self.treePane.isVisible())
 
     @pyqtSlot()
     def closeDocEditor(self) -> None:
@@ -1003,6 +996,7 @@ class GuiMain(QMainWindow):
         """
         if focusMode:
             logger.debug("Activating Focus Mode")
+            self._treePaneHidden = self.treePane.isHidden()
             self._changeView(nwView.EDITOR)
             self.docEditor.setFocus()
         else:
@@ -1010,7 +1004,7 @@ class GuiMain(QMainWindow):
 
         cursorVisible = self.docEditor.cursorIsVisible()
         isVisible = not focusMode
-        self.treePane.setVisible(isVisible)
+        self.treePane.setVisible(isVisible and not self._treePaneHidden)
         self.mainStatus.setVisible(isVisible)
         self.mainMenu.setVisible(isVisible)
         self.sideBar.setVisible(isVisible)
@@ -1052,10 +1046,10 @@ class GuiMain(QMainWindow):
 
             self._changeView(nwView.EDITOR, exitFocus=True)
             if (vM and ((vP and fP) or (vN and not fN))) or (not vM and vN):
-                self._changeView(nwView.NOVEL, exitFocus=True)
+                self._changeView(nwView.NOVEL, exitFocus=True, forceVisible=True)
                 self.novelView.setTreeFocus()
             else:
-                self._changeView(nwView.PROJECT, exitFocus=True)
+                self._changeView(nwView.PROJECT, exitFocus=True, forceVisible=True)
                 self.projView.setTreeFocus()
 
         elif paneNo == nwFocus.DOCUMENT:
@@ -1068,9 +1062,8 @@ class GuiMain(QMainWindow):
             else:
                 self.docEditor.setFocus()
 
-        elif paneNo == nwFocus.OUTLINE:
-            self._changeView(nwView.OUTLINE, exitFocus=True)
-            self.outlineView.setTreeFocus()
+        elif paneNo == nwFocus.STORY:
+            self._changeView(nwView.STORY, exitFocus=True)
 
     @pyqtSlot(GuiNeedsUpdate)
     def _processConfigChanges(self, update: GuiNeedsUpdate) -> None:
@@ -1097,7 +1090,6 @@ class GuiMain(QMainWindow):
                 self.docViewer.initViewport()
             self.projView.initViewport()
             self.novelView.initViewport()
-            self.outlineView.initViewport()
         if update.spelling:
             SHARED.updateSpellCheckLanguage(reload=True)
 
@@ -1107,6 +1099,7 @@ class GuiMain(QMainWindow):
             self.docViewer.initSettings()
 
         self.projSearch.initSettings()
+        self.storyView.initSettings()
         self.mainStatus.initSettings()
 
         # Force update of word count
@@ -1187,28 +1180,53 @@ class GuiMain(QMainWindow):
         self.docViewer.reloadText()
 
     @pyqtSlot(nwView)
-    def _changeView(self, view: nwView, exitFocus: bool = False) -> None:
-        """Handle the requested change of view from the GuiViewBar."""
+    @pyqtSlot(nwView, bool)
+    def _changeView(
+        self,
+        view: nwView,
+        isSideBar: bool = False,
+        *,
+        exitFocus: bool = False,
+        forceVisible: bool = False,
+    ) -> None:
+        """Handle the requested change of view."""
         if exitFocus:
             SHARED.setFocusMode(False)
+
+        isMain = self.mainStack.currentWidget() == self.splitMain
+        isSame = False
+        canToggle = False
 
         if view == nwView.EDITOR:
             # Only change the main stack, but not the project stack
             self.mainStack.setCurrentWidget(self.splitMain)
         elif view == nwView.PROJECT:
+            isSame = isMain and self.projStack.currentWidget() == self.projView
+            canToggle = True
             self.mainStack.setCurrentWidget(self.splitMain)
             self.projStack.setCurrentWidget(self.projView)
         elif view == nwView.NOVEL:
+            isSame = isMain and self.projStack.currentWidget() == self.novelView
+            canToggle = True
             self.mainStack.setCurrentWidget(self.splitMain)
             self.projStack.setCurrentWidget(self.novelView)
         elif view == nwView.SEARCH:
+            isSame = isMain and self.projStack.currentWidget() == self.projSearch
+            canToggle = True
             self.mainStack.setCurrentWidget(self.splitMain)
             self.projStack.setCurrentWidget(self.projSearch)
             self.projSearch.beginSearch(self.docEditor.getSelectedText() if self.docEditor.anyFocus() else "")
-        elif view == nwView.OUTLINE:
-            self.mainStack.setCurrentWidget(self.outlineView)
+        elif view == nwView.STORY:
+            self.mainStack.setCurrentWidget(self.storyView)
+            self.storyView.viewStory()
         else:  # pragma: no cover
             pass
+
+        if canToggle:
+            if forceVisible or not isSame:
+                self.treePane.setVisible(True)
+            elif isSideBar:
+                self.treePane.setVisible(not self.treePane.isVisible())
 
         # Set active status
         isMain = self.mainStack.currentWidget() == self.splitMain
@@ -1309,12 +1327,6 @@ class GuiMain(QMainWindow):
 
             self.mainStatus.setProjectStats(cTotal, cTotal - iTotal)
             self.mainStatus.updateGoals(data.targetLastCount, data.dailyProgress)
-
-    @pyqtSlot(int)
-    def _mainStackChanged(self, index: int) -> None:
-        """Process main window tab change."""
-        if self.mainStack.widget(index) == self.outlineView and SHARED.hasProject:
-            self.outlineView.refreshTree()
 
     @pyqtSlot(int)
     def _projStackChanged(self, index: int) -> None:

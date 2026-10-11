@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import pytest
 
-from PyQt6.QtGui import QTextBlock, QTextCharFormat, QTextCursor, QTextFormat, QTextLength
+from PyQt6.QtGui import QTextBlock, QTextCharFormat, QTextCursor, QTextFormat, QTextLength, QTextListFormat
 
 from novelwriter import CONFIG
 from novelwriter.constants import nwHeadFmt, nwUnicode
@@ -467,6 +467,81 @@ def testToQTextDocument_TextBlockFormats(mockGUI):
     assert block.text() == "This has a page break"
     bFmt = block.blockFormat()
     assert bFmt.pageBreakPolicy() == QtPageBreakAfter
+
+
+@pytest.mark.core
+def testToQTextDocument_Lists(mockGUI):
+    """Test lists in the ToQTextDocument class."""
+    project = NWProject()
+    doc = ToQTextDocument(project)
+    doc.setShowNewPage(True)
+    doc.initDocument()
+
+    doc._isNovel = True
+    doc._isFirst = True
+
+    doc._text = (
+        "### Scene\n* One\n* Two\n\n* Three\n\nText\n\n* Four\n[newpage]\n* Five\n\n#. Six\n#. Seven\n* Eight\n\n"
+    )
+    doc.tokenizeText()
+    doc.doConvert()
+    blocks = {}
+    block = doc.document.begin()
+    while block.isValid():
+        blocks[block.text()] = block
+        block = block.next()
+
+    assert doc.document.indentWidth() == doc._mIndent
+
+    # First list
+    bOne = blocks["One"]
+    bTwo = blocks["Two"]
+    assert (lOne := bOne.textList()) is not None
+    assert lOne.format().style() == QTextListFormat.Style.ListDisc
+    assert lOne.format().indent() == 1
+    assert lOne.count() == 2
+    assert lOne.itemNumber(bOne) == 0
+    assert lOne.itemNumber(bTwo) == 1
+
+    # The bullet does not inherit the heading format
+    assert bOne.charFormat() == doc._charFmt
+
+    # Margins are zero between items
+    assert bOne.blockFormat().topMargin() == doc._mText[0]
+    assert bOne.blockFormat().bottomMargin() == 0.0
+    assert bTwo.blockFormat().topMargin() == 0.0
+    assert bTwo.blockFormat().bottomMargin() == doc._mText[1]
+
+    # A blank line starts a new list
+    bThree = blocks["Three"]
+    assert (lThree := bThree.textList()) is not None
+    assert lThree.count() == 1
+    assert lThree.itemNumber(bOne) == -1
+
+    # Text after a list is not a list item
+    assert blocks["Text"].textList() is None
+
+    # A page break does not end the list
+    bFour = blocks["Four"]
+    bFive = blocks["Five"]
+    assert (lFour := bFour.textList()) is not None
+    assert lFour.count() == 2
+    assert lFour.itemNumber(bFive) == 1
+    assert bFive.blockFormat().pageBreakPolicy() == QtPageBreakBefore
+
+    # Ordered list, ended by a bullet item
+    bSix = blocks["Six"]
+    bSeven = blocks["Seven"]
+    assert (lSix := bSix.textList()) is not None
+    assert lSix.format().style() == QTextListFormat.Style.ListDecimal
+    assert lSix.format().indent() == 1
+    assert lSix.count() == 2
+    assert lSix.itemNumber(bSeven) == 1
+    assert lSix.itemText(bSeven) == "2."
+
+    assert (lEight := blocks["Eight"].textList()) is not None
+    assert lEight.format().style() == QTextListFormat.Style.ListDisc
+    assert lEight.count() == 1
 
 
 @pytest.mark.core
