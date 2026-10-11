@@ -84,8 +84,8 @@ HEADING_BLOCKS = [
 ]
 COMMENT_BLOCKS = (BlockTyp.COMMENT, BlockTyp.SUMMARY, BlockTyp.NOTE)
 META_BLOCKS = (BlockTyp.COMMENT, BlockTyp.SUMMARY, BlockTyp.NOTE, BlockTyp.KEYWORD)
+SKIP_INDENT = [*HEADING_BLOCKS, BlockTyp.SEP, BlockTyp.SKIP, BlockTyp.HRULE]
 LIST_BLOCKS = (BlockTyp.LIST_U, BlockTyp.LIST_O)
-SKIP_INDENT = [*HEADING_BLOCKS, BlockTyp.SEP, BlockTyp.SKIP]
 B_EMPTY: T_Block = (BlockTyp.EMPTY, "", "", [], BlockFmt.NONE)
 
 

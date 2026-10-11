@@ -2284,6 +2284,22 @@ def testTokenizer_TextIndent(mockGUI):
     ]
     assert tokens._noIndent is False
 
+    # Page Four
+    # Scene break as a horizontal rule
+    tokens._isNovel = True
+    tokens._noSep = False
+    tokens.setSceneFormat(nwHeadFmt.HRULE, False)
+    tokens._text = "First paragraph.\n\n### Scene Two\n\nSecond paragraph.\n\nThird paragraph.\n\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.TEXT, "", "First paragraph.", [], BlockFmt.IND_T),
+        (BlockTyp.HRULE, TM1, "", [], BlockFmt.NONE),
+        (BlockTyp.TEXT, "", "Second paragraph.", [], BlockFmt.NONE),
+        (BlockTyp.TEXT, "", "Third paragraph.", [], BlockFmt.IND_T),
+    ]
+    assert tokens._noIndent is False
+    tokens._isNovel = False
+
     # First Indent
     tokens.setFirstLineIndent(True, 1.0, True)
 
@@ -2292,7 +2308,7 @@ def testTokenizer_TextIndent(mockGUI):
     assert tokens._firstWidth == 1.0
     assert tokens._indentFirst is True
 
-    # Page Four
+    # Page Five
     # Two paragraphs in the same scene
     tokens._text = "# Title One\n\n### Scene One\n\nFirst paragraph.\n\nSecond paragraph.\n\n"
     tokens.tokenizeText()

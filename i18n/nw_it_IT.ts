@@ -1120,7 +1120,7 @@
     <message>
       <location filename="../novelwriter/constants.py"/>
       <source>Single right-pointing angle quotation mark</source>
-      <translation>Virgoletta singola ad angolo destro (>)</translation>
+      <translation>Virgoletta singola ad angolo destro (&gt;)</translation>
     </message>
     <message>
       <location filename="../novelwriter/constants.py"/>
@@ -1130,7 +1130,7 @@
     <message>
       <location filename="../novelwriter/constants.py"/>
       <source>Double right-pointing angle quotation mark</source>
-      <translation>Virgolette doppie ad angolo destro (>>)</translation>
+      <translation>Virgolette doppie ad angolo destro (&gt;&gt;)</translation>
     </message>
     <message>
       <location filename="../novelwriter/constants.py"/>
