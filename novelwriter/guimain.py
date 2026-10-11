@@ -51,7 +51,7 @@ from novelwriter.dialogs.preferences import GuiNeedsUpdate, GuiPreferences
 from novelwriter.dialogs.projectsettings import GuiProjectSettings
 from novelwriter.dialogs.wordlist import GuiWordList
 from novelwriter.editor.docpanes import GuiDocPanes
-from novelwriter.enum import nwDocAction, nwDocInsert, nwDocMode, nwFocus, nwView
+from novelwriter.enum import nwDocAction, nwDocInsert, nwFocus, nwView
 from novelwriter.extensions.progressbars import NProgressSimple
 from novelwriter.gui.itemdetails import GuiItemDetails
 from novelwriter.gui.mainmenu import GuiMainMenu
@@ -234,41 +234,28 @@ class GuiMain(QMainWindow):
 
         self.sideBar.requestViewChange.connect(self.changeView)
 
-        self.projView.openDocumentRequest.connect(self._openDocument)
+        self.projView.openDocumentRequest.connect(self.docPanes.openDocumentInMode)
         self.projView.projectSettingsRequest.connect(self.showProjectSettingsDialog)
         self.projView.selectedItemChanged.connect(self.itemDetails.updateViewBox)
 
-        self.novelView.openDocumentRequest.connect(self._openDocument)
+        self.novelView.openDocumentRequest.connect(self.docPanes.openDocumentInMode)
         self.novelView.selectedItemChanged.connect(self.itemDetails.updateViewBox)
 
-        self.projSearch.openDocumentRequest.connect(self._openDocument)
-        self.projSearch.openDocumentSelectRequest.connect(self._openDocumentSelection)
+        self.projSearch.openDocumentRequest.connect(self.docPanes.openDocumentInMode)
+        self.projSearch.openDocumentSelectRequest.connect(self.docPanes.openDocumentSelection)
         self.projSearch.selectedItemChanged.connect(self.itemDetails.updateViewBox)
 
-        self.docEditor.closeEditorRequest.connect(self.closeDocEditor)
         self.docEditor.docTextChanged.connect(self.projSearch.textChanged)
         self.docEditor.editedStatusChanged.connect(self.mainStatus.updateDocumentStatus)
         self.docEditor.itemHandleChanged.connect(self.novelView.setActiveHandle)
         self.docEditor.itemHandleChanged.connect(self.projView.setActiveHandle)
-        self.docEditor.loadDocumentTagRequest.connect(self._followTag)
-        self.docEditor.openDocumentRequest.connect(self._openDocument)
         self.docEditor.requestNewNoteCreation.connect(SHARED.createNewNote)
-        self.docEditor.requestNextDocument.connect(self.docPanes.openNextDocument)
         self.docEditor.requestProjectItemRenamed.connect(self.projView.renameTreeItem)
         self.docEditor.requestProjectItemSelected.connect(self.projView.setSelectedHandle)
         self.docEditor.spellCheckStateChanged.connect(self.mainMenu.setSpellCheckState)
         self.docEditor.toggleFocusModeRequest.connect(self.toggleFocusMode)
 
-        self.docViewer.closeDocumentRequest.connect(self.closeDocViewer)
-        self.docViewer.documentLoaded.connect(self.docViewerPanel.updateHandle)
-        self.docViewer.loadDocumentTagRequest.connect(self._followTag)
-        self.docViewer.openDocumentRequest.connect(self._openDocument)
-        self.docViewer.reloadDocumentRequest.connect(self._reloadViewer)
         self.docViewer.requestProjectItemSelected.connect(self.projView.setSelectedHandle)
-        self.docViewer.togglePanelVisibility.connect(self._toggleViewerPanelVisibility)
-
-        self.docViewerPanel.loadDocumentTagRequest.connect(self._followTag)
-        self.docViewerPanel.openDocumentRequest.connect(self._openDocument)
 
         # OS Theme Support
         # ================
@@ -736,18 +723,6 @@ class GuiMain(QMainWindow):
             self.treePane.setVisible(not self.treePane.isVisible())
 
     @pyqtSlot()
-    def closeDocEditor(self) -> None:
-        """Close the document editor. This does not hide the editor."""
-        self.docPanes.closeDocument()
-        SHARED.project.data.setLastHandle(None, "editor")
-
-    @pyqtSlot()
-    def closeDocViewer(self) -> None:
-        """Close the document viewer."""
-        self.docPanes.closeViewerPanel()
-        SHARED.project.data.setLastHandle(None, "viewer")
-
-    @pyqtSlot()
     def toggleFocusMode(self) -> None:
         """Toggle focus mode."""
         if self.docEditor.docHandle:
@@ -907,26 +882,6 @@ class GuiMain(QMainWindow):
         SHARED.updateSpellCheckLanguage(reload=True)
         self.docEditor.spellCheckDocument()
 
-    @pyqtSlot(str, nwDocMode)
-    def _followTag(self, tag: str, mode: nwDocMode) -> None:
-        """Follow a tag after user interaction with a link."""
-        tHandle, sTitle = SHARED.project.index.getTagSource(tag)
-        if tHandle is None:
-            SHARED.error(
-                self.tr(
-                    "Could not find the reference for tag '{0}'. It either doesn't "
-                    "exist, or the index is out of date. The index can be updated "
-                    "from the Tools menu, or by pressing {1}."
-                ).format(tag, "F9")
-            )
-        else:
-            if mode == nwDocMode.EDIT:
-                self.docPanes.openDocument(tHandle, sTitle=sTitle)
-            elif mode == nwDocMode.VIEW:
-                self.docPanes.viewDocument(tHandle=tHandle, sTitle=sTitle)
-            else:  # pragma: no cover
-                pass
-
     @pyqtSlot(Path)
     def _openProjectFromWelcome(self, path: Path) -> None:
         """Handle an open project request from the welcome dialog."""
@@ -934,31 +889,6 @@ class GuiMain(QMainWindow):
         self.openProject(path)
         if not SHARED.hasProject:
             self.showWelcomeDialog()
-
-    @pyqtSlot(str, nwDocMode, str, bool)
-    def _openDocument(self, tHandle: str, mode: nwDocMode, sTitle: str, setFocus: bool) -> None:
-        """Handle an open document request."""
-        if tHandle is not None:
-            if mode == nwDocMode.EDIT:
-                self.docPanes.openDocument(tHandle, sTitle=sTitle, changeFocus=setFocus)
-            elif mode == nwDocMode.VIEW:
-                self.docPanes.viewDocument(tHandle=tHandle, sTitle=sTitle)
-            else:  # pragma: no cover
-                pass
-
-    @pyqtSlot(str, int, int, bool)
-    def _openDocumentSelection(self, tHandle: str, selStart: int, selLength: int, changeFocus: bool) -> None:
-        """Open a document and select a section of the text."""
-        if self.docPanes.openDocument(tHandle, changeFocus=changeFocus):
-            self.docEditor.setCursorSelection(selStart, selLength)
-
-    @pyqtSlot()
-    def _reloadViewer(self) -> None:
-        """Reload the document in the viewer."""
-        if self.docEditor.docHandle == self.docViewer.docHandle:
-            # If the two panels have the same document, save any changes in the editor
-            self.docPanes.saveDocument()
-        self.docViewer.reloadText()
 
     @pyqtSlot(nwView)
     @pyqtSlot(nwView, bool)
@@ -1032,12 +962,6 @@ class GuiMain(QMainWindow):
         """
         if self.docEditor.hasFocus():
             self.docEditor.insertText(content)
-
-    @pyqtSlot()
-    def _toggleViewerPanelVisibility(self) -> None:
-        """Toggle the visibility of the document viewer panel."""
-        CONFIG.showViewerPanel = not CONFIG.showViewerPanel
-        self.docViewerPanel.setVisible(CONFIG.showViewerPanel)
 
     @pyqtSlot()
     def _timeTick(self) -> None:

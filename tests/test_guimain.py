@@ -325,13 +325,13 @@ def testGuiMain_ProjectTreeItems(
             mpShift.setattr(QApplication, "keyboardModifiers", lambda: QtModShift)
             nwGUI.openSelectedItem()
         assert nwGUI.docViewer.docHandle == sHandle
-        nwGUI.closeDocViewer()
+        nwGUI.docPanes.closeDocViewer()
 
     # Internal open-document slots ignore a missing or invalid handle
-    nwGUI._openDocument(None, nwDocMode.EDIT, "", True)  # type: ignore
+    nwGUI.docPanes.openDocumentInMode(None, nwDocMode.EDIT, "", True)  # type: ignore
     assert nwGUI.docEditor.docHandle is None
 
-    nwGUI._openDocumentSelection(C.hInvalid, 0, 3, True)
+    nwGUI.docPanes.openDocumentSelection(C.hInvalid, 0, 3, True)
     assert nwGUI.docEditor.docHandle is None
 
     # qtbot.stop()
@@ -994,7 +994,7 @@ def testGuiMain_Viewing(
         mp.setattr(nwGUI.docEditor, "hasFocus", lambda *a: True)
         nwGUI.docPanes.viewDocument(None)
         assert nwGUI.docViewer.docHandle == C.hTitlePage
-    nwGUI.closeDocViewer()
+    nwGUI.docPanes.closeDocViewer()
 
     # If editor does not have focus, open selected handle
     with monkeypatch.context() as mp:
@@ -1029,7 +1029,7 @@ def testGuiMain_Viewing(
     assert nwGUI.docViewer.toPlainText() == "New Scene\nWith some stuff in it!"
 
     # Open with keypress
-    nwGUI.closeDocViewer()
+    nwGUI.docPanes.closeDocViewer()
     assert nwGUI.docViewer.docHandle is None
     nwGUI.projView.setSelectedHandle(C.hSceneDoc)
     nwGUI.projView.projTree.setFocus()
@@ -1037,7 +1037,7 @@ def testGuiMain_Viewing(
     assert nwGUI.docViewer.docHandle == C.hSceneDoc
 
     # If the viewer fails to load the document, nothing else happens
-    nwGUI.closeDocViewer()
+    nwGUI.docPanes.closeDocViewer()
     with monkeypatch.context() as mp:
         mp.setattr(nwGUI.docViewer, "loadText", lambda *a, **k: False)
         assert nwGUI.docPanes.viewDocument(C.hSceneDoc) is True
@@ -1061,7 +1061,7 @@ def testGuiMain_Viewing(
     nwGUI.docPanes.openDocument(C.hChapterDoc)
     nwGUI.docPanes.viewDocument(C.hSceneDoc)
     assert nwGUI.docEditor.docHandle != nwGUI.docViewer.docHandle
-    nwGUI._reloadViewer()  # Should not raise, and skip saving the editor
+    nwGUI.docPanes._reloadViewer()  # Should not raise, and skip saving the editor
 
     # qtbot.stop()
 
@@ -1195,16 +1195,16 @@ def testGuiMain_Features(
     # =================
 
     nwGUI.docPanes.closeDocument()
-    nwGUI.closeDocViewer()
+    nwGUI.docPanes.closeDocViewer()
     assert nwGUI.docEditor.docHandle is None
     assert nwGUI.docViewer.docHandle is None
-    nwGUI._followTag("John", nwDocMode.EDIT)  # Doesn't exist
+    nwGUI.docPanes._followTag("John", nwDocMode.EDIT)  # Doesn't exist
     assert nwGUI.docEditor.docHandle is None
     assert nwGUI.docViewer.docHandle is None
-    nwGUI._followTag("Jane", nwDocMode.EDIT)
+    nwGUI.docPanes._followTag("Jane", nwDocMode.EDIT)
     assert nwGUI.docEditor.docHandle == cHandle
     assert nwGUI.docViewer.docHandle is None
-    nwGUI._followTag("Jane", nwDocMode.VIEW)
+    nwGUI.docPanes._followTag("Jane", nwDocMode.VIEW)
     assert nwGUI.docEditor.docHandle == cHandle
     assert nwGUI.docViewer.docHandle == cHandle
 

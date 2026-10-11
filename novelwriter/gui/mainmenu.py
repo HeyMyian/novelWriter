@@ -254,7 +254,7 @@ class GuiMainMenu(QMenuBar):
         # Document > Close
         self.aCloseDoc = qtAddAction(self.docuMenu, self.tr("Close Document"))
         self.aCloseDoc.setShortcut("Ctrl+W")
-        self.aCloseDoc.triggered.connect(self.mainGui.closeDocEditor)
+        self.aCloseDoc.triggered.connect(self.mainGui.docPanes.closeDocEditor)
         self.mainGui.addAction(self.aCloseDoc)
 
         # Document > Separator
@@ -268,7 +268,7 @@ class GuiMainMenu(QMenuBar):
         # Document > Close Preview
         self.aCloseView = qtAddAction(self.docuMenu, self.tr("Close Document View"))
         self.aCloseView.setShortcut("Ctrl+Shift+R")
-        self.aCloseView.triggered.connect(self.mainGui.closeDocViewer)
+        self.aCloseView.triggered.connect(self.mainGui.docPanes.closeDocViewer)
 
         # Document > Separator
         self.docuMenu.addSeparator()

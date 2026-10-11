@@ -51,9 +51,9 @@ def testGuiDocViewerPanel_BackRefs(qtbot, monkeypatch, nwGUI, projPath, mockRnd)
     nwGUI.docPanes.viewDocument(C.hSceneDoc)
 
     # Hide/Show
-    nwGUI._toggleViewerPanelVisibility()
+    nwGUI.docPanes._toggleViewerPanelVisibility()
     assert viewPanel.isVisible() is False
-    nwGUI._toggleViewerPanelVisibility()
+    nwGUI.docPanes._toggleViewerPanelVisibility()
     assert viewPanel.isVisible() is True
 
     # Initial State

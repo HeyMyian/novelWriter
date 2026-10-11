@@ -33,7 +33,7 @@ from novelwriter.common import formatFileFilter
 from novelwriter.editor.editor import GuiDocEditor
 from novelwriter.editor.viewer import GuiDocViewer
 from novelwriter.editor.viewerpanel import GuiDocViewerPanel
-from novelwriter.enum import nwView
+from novelwriter.enum import nwDocMode, nwView
 
 if TYPE_CHECKING:
     from novelwriter.guimain import GuiMain
@@ -86,6 +86,22 @@ class GuiDocPanes(QWidget):
         self.outerBox.setContentsMargins(0, 0, 0, 0)
 
         self.setLayout(self.outerBox)
+
+        # Signals
+        self.docEditor.closeEditorRequest.connect(self.closeDocEditor)
+        self.docEditor.loadDocumentTagRequest.connect(self._followTag)
+        self.docEditor.openDocumentRequest.connect(self.openDocumentInMode)
+        self.docEditor.requestNextDocument.connect(self.openNextDocument)
+
+        self.docViewer.closeDocumentRequest.connect(self.closeDocViewer)
+        self.docViewer.documentLoaded.connect(self.docViewerPanel.updateHandle)
+        self.docViewer.loadDocumentTagRequest.connect(self._followTag)
+        self.docViewer.openDocumentRequest.connect(self.openDocumentInMode)
+        self.docViewer.reloadDocumentRequest.connect(self._reloadViewer)
+        self.docViewer.togglePanelVisibility.connect(self._toggleViewerPanelVisibility)
+
+        self.docViewerPanel.loadDocumentTagRequest.connect(self._followTag)
+        self.docViewerPanel.openDocumentRequest.connect(self.openDocumentInMode)
 
     ##
     #  Methods
@@ -269,9 +285,38 @@ class GuiDocPanes(QWidget):
     ##
 
     @pyqtSlot()
+    def closeDocEditor(self) -> None:
+        """Close the document editor. This does not hide the editor."""
+        self.closeDocument()
+        SHARED.project.data.setLastHandle(None, "editor")
+
+    @pyqtSlot()
+    def closeDocViewer(self) -> None:
+        """Close the document viewer."""
+        self.closeViewerPanel()
+        SHARED.project.data.setLastHandle(None, "viewer")
+
+    @pyqtSlot()
     def forceSaveDocument(self) -> None:
         """Save document even of it has not changed."""
         self.saveDocument(force=True)
+
+    @pyqtSlot(str, nwDocMode, str, bool)
+    def openDocumentInMode(self, tHandle: str, mode: nwDocMode, sTitle: str, setFocus: bool) -> None:
+        """Handle an open document request."""
+        if tHandle is not None:
+            if mode == nwDocMode.EDIT:
+                self.openDocument(tHandle, sTitle=sTitle, changeFocus=setFocus)
+            elif mode == nwDocMode.VIEW:
+                self.viewDocument(tHandle=tHandle, sTitle=sTitle)
+            else:  # pragma: no cover
+                pass
+
+    @pyqtSlot(str, int, int, bool)
+    def openDocumentSelection(self, tHandle: str, selStart: int, selLength: int, changeFocus: bool) -> None:
+        """Open a document and select a section of the text."""
+        if self.openDocument(tHandle, changeFocus=changeFocus):
+            self.docEditor.setCursorSelection(selStart, selLength)
 
     @pyqtSlot(str, bool, bool)
     def openNextDocument(self, tHandle: str, wrapAround: bool, goBack: bool) -> None:
@@ -291,3 +336,41 @@ class GuiDocPanes(QWidget):
                     self.openDocument(nHandle, tLine=(-1 if goBack else 1), doScroll=True)
             except Exception:
                 logger.error("Could not find next document for '%s'", tHandle)
+
+    ##
+    #  Private Slots
+    ##
+
+    @pyqtSlot(str, nwDocMode)
+    def _followTag(self, tag: str, mode: nwDocMode) -> None:
+        """Follow a tag after user interaction with a link."""
+        tHandle, sTitle = SHARED.project.index.getTagSource(tag)
+        if tHandle is None:
+            SHARED.error(
+                self.tr(
+                    "Could not find the reference for tag '{0}'. It either doesn't "
+                    "exist, or the index is out of date. The index can be updated "
+                    "from the Tools menu, or by pressing {1}."
+                ).format(tag, "F9")
+            )
+        else:
+            if mode == nwDocMode.EDIT:
+                self.openDocument(tHandle, sTitle=sTitle)
+            elif mode == nwDocMode.VIEW:
+                self.viewDocument(tHandle=tHandle, sTitle=sTitle)
+            else:  # pragma: no cover
+                pass
+
+    @pyqtSlot()
+    def _reloadViewer(self) -> None:
+        """Reload the document in the viewer."""
+        if self.docEditor.docHandle == self.docViewer.docHandle:
+            # If the two panels have the same document, save any changes in the editor
+            self.saveDocument()
+        self.docViewer.reloadText()
+
+    @pyqtSlot()
+    def _toggleViewerPanelVisibility(self) -> None:
+        """Toggle the visibility of the document viewer panel."""
+        CONFIG.showViewerPanel = not CONFIG.showViewerPanel
+        self.docViewerPanel.setVisible(CONFIG.showViewerPanel)
