@@ -1636,14 +1636,14 @@ def testGuiMain_FocusView(
     with monkeypatch.context() as mp:
         mp.setattr(nwGUI.docEditor, "hasFocus", lambda *a: True)
         mp.setattr(nwGUI.docViewer, "hasFocus", lambda *a: False)
-        nwGUI._passDocumentAction(nwDocAction.SEL_ALL)
+        nwGUI.docPanes.passDocumentAction(nwDocAction.SEL_ALL)
         assert nwGUI.docEditor.textCursor().hasSelection() is True
 
     # Pass to viewer
     with monkeypatch.context() as mp:
         mp.setattr(nwGUI.docEditor, "hasFocus", lambda *a: False)
         mp.setattr(nwGUI.docViewer, "hasFocus", lambda *a: True)
-        nwGUI._passDocumentAction(nwDocAction.SEL_ALL)
+        nwGUI.docPanes.passDocumentAction(nwDocAction.SEL_ALL)
         assert nwGUI.docViewer.textCursor().hasSelection() is True
 
     # Pass to neither, since neither has focus: nothing changes
@@ -1651,7 +1651,7 @@ def testGuiMain_FocusView(
     with monkeypatch.context() as mp:
         mp.setattr(nwGUI.docEditor, "hasFocus", lambda *a: False)
         mp.setattr(nwGUI.docViewer, "hasFocus", lambda *a: False)
-        nwGUI._passDocumentAction(nwDocAction.MOVE_TEXT)
+        nwGUI.docPanes.passDocumentAction(nwDocAction.MOVE_TEXT)
         assert nwGUI.docEditor.textCursor().hasSelection() is hadSelection
 
     # qtbot.stop()

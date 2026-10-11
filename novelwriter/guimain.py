@@ -51,7 +51,7 @@ from novelwriter.dialogs.preferences import GuiNeedsUpdate, GuiPreferences
 from novelwriter.dialogs.projectsettings import GuiProjectSettings
 from novelwriter.dialogs.wordlist import GuiWordList
 from novelwriter.editor.docpanes import GuiDocPanes
-from novelwriter.enum import nwDocAction, nwDocInsert, nwFocus, nwView
+from novelwriter.enum import nwFocus, nwView
 from novelwriter.extensions.progressbars import NProgressSimple
 from novelwriter.gui.itemdetails import GuiItemDetails
 from novelwriter.gui.mainmenu import GuiMainMenu
@@ -208,9 +208,9 @@ class GuiMain(QMainWindow):
         SHARED.rootFolderChanged.connect(self.storyView.updateRootItem)
         SHARED.spellLanguageChanged.connect(self.mainStatus.setLanguage)
 
-        self.mainMenu.requestDocAction.connect(self._passDocumentAction)
-        self.mainMenu.requestDocInsert.connect(self._passDocumentInsert)
-        self.mainMenu.requestDocInsertText.connect(self._passDocumentInsert)
+        self.mainMenu.requestDocAction.connect(self.docPanes.passDocumentAction)
+        self.mainMenu.requestDocInsert.connect(self.docPanes.passDocumentInsert)
+        self.mainMenu.requestDocInsertText.connect(self.docPanes.passDocumentInsert)
         self.mainMenu.requestDocKeyWordInsert.connect(self.docEditor.insertKeyWord)
         self.mainMenu.requestFocusChange.connect(self._switchFocus)
         self.mainMenu.requestViewChange.connect(self.changeView)
@@ -865,25 +865,6 @@ class GuiMain(QMainWindow):
         isMain = self.mainStack.currentWidget() == self.splitMain
         isNovel = self.projStack.currentWidget() == self.novelView
         self.novelView.setActive(isMain and isNovel)
-
-    @pyqtSlot(nwDocAction)
-    def _passDocumentAction(self, action: nwDocAction) -> None:
-        """Pass on a document action to the editor or viewer based on
-        which one has focus, or if neither has focus, ignore it.
-        """
-        if self.docEditor.hasFocus():
-            self.docEditor.docAction(action)
-        elif self.docViewer.hasFocus():
-            self.docViewer.docAction(action)
-
-    @pyqtSlot(str)
-    @pyqtSlot(nwDocInsert)
-    def _passDocumentInsert(self, content: str | nwDocInsert) -> None:
-        """Pass on a document insert action to the document editor if it
-        has focus. If not, ignore it.
-        """
-        if self.docEditor.hasFocus():
-            self.docEditor.insertText(content)
 
     @pyqtSlot()
     def _timeTick(self) -> None:

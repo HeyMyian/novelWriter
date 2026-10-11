@@ -33,7 +33,7 @@ from novelwriter.common import formatFileFilter
 from novelwriter.editor.editor import GuiDocEditor
 from novelwriter.editor.viewer import GuiDocViewer
 from novelwriter.editor.viewerpanel import GuiDocViewerPanel
-from novelwriter.enum import nwDocMode, nwView
+from novelwriter.enum import nwDocAction, nwDocInsert, nwDocMode, nwView
 
 if TYPE_CHECKING:
     from novelwriter.dialogs.preferences import GuiNeedsUpdate
@@ -380,6 +380,25 @@ class GuiDocPanes(QWidget):
     def closeDocViewer(self) -> None:
         """Close the document viewer."""
         self.closeViewerPanel()
+
+    @pyqtSlot(nwDocAction)
+    def passDocumentAction(self, action: nwDocAction) -> None:
+        """Pass on a document action to the editor or viewer based on
+        which one has focus, or if neither has focus, ignore it.
+        """
+        if self.docEditor.hasFocus():
+            self.docEditor.docAction(action)
+        elif self.docViewer.hasFocus():
+            self.docViewer.docAction(action)
+
+    @pyqtSlot(str)
+    @pyqtSlot(nwDocInsert)
+    def passDocumentInsert(self, content: str | nwDocInsert) -> None:
+        """Pass on a document insert action to the document editor if it
+        has focus. If not, ignore it.
+        """
+        if self.docEditor.hasFocus():
+            self.docEditor.insertText(content)
 
     @pyqtSlot()
     def forceSaveDocument(self) -> None:
