@@ -27,7 +27,7 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          uv sync --no-dev --group lint
+          uv sync --no-dev --group lint --group test
 
       - name: Ruff Check
         run: |
