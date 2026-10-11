@@ -25,6 +25,7 @@ import pytest
 
 from PyQt6.QtCore import QEvent, QPointF
 from PyQt6.QtGui import QEnterEvent, QMouseEvent
+from pytestqt.qtbot import QtBot
 
 from novelwriter.extensions.switch import NSwitch
 from novelwriter.types import QtModNone, QtMouseLeft
@@ -33,7 +34,7 @@ from tests.helpers import SimpleDialog
 
 
 @pytest.mark.gui
-def testNSwitch_Main(qtbot):
+def testNSwitch_Main(qtbot: QtBot):
     """Test the NSwitch class. This is mostly a check that all the calls
     work as the result is visual.
     """

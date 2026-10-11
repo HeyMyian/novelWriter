@@ -24,14 +24,16 @@ from __future__ import annotations
 import pytest
 
 from PyQt6.QtWidgets import QLabel
+from pytestqt.qtbot import QtBot
 
 from novelwriter.extensions.configlayout import NScrollableForm
 
 from tests.helpers import SimpleDialog
+from tests.mocked import MockGuiMain
 
 
 @pytest.mark.gui
-def testNScrollableForm_Main(qtbot, mockGUI):
+def testNScrollableForm_Main(qtbot: QtBot, mockGUI: MockGuiMain):
     """Test the NScrollableForm class."""
     dialog = SimpleDialog()
     form = NScrollableForm(dialog)

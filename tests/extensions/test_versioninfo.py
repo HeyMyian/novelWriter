@@ -26,12 +26,14 @@ from urllib.error import HTTPError
 import pytest
 
 from PyQt6.QtCore import QObject, QUrl, pyqtSignal
+from pytestqt.qtbot import QtBot
 
 from novelwriter import SHARED
 from novelwriter.constants import nwConst
 from novelwriter.extensions.versioninfo import VersionInfoWidget, _Retriever
 
 from tests.helpers import SimpleDialog
+from tests.mocked import MockGuiMain
 
 
 class MockSignalHolder(QObject):
@@ -100,7 +102,7 @@ class MockException:
 
 
 @pytest.mark.gui
-def testVersionInfoWidget_Main(qtbot, monkeypatch, mockGUI):
+def testVersionInfoWidget_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain):
     """Test the VersionInfoWidget class."""
     version = VersionInfoWidget(None)  # type: ignore
     dialog = SimpleDialog(version)
@@ -138,7 +140,7 @@ def testVersionInfoWidget_Main(qtbot, monkeypatch, mockGUI):
 
 
 @pytest.mark.gui
-def testVersionInfoWidget_Retriever(qtbot, monkeypatch):
+def testVersionInfoWidget_Retriever(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch):
     """Test the _Retriever class."""
     holder = MockSignalHolder()
     task = _Retriever(holder.dataReady)

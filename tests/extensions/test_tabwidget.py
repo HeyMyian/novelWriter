@@ -26,8 +26,10 @@ import pytest
 from PyQt6.QtCore import QEvent, QPointF, Qt
 from PyQt6.QtGui import QMouseEvent, QPixmap
 from PyQt6.QtWidgets import QWidget
+from pytestqt.qtbot import QtBot
 
 from novelwriter.extensions.tabwidget import NTabBar, NTabWidget
+from novelwriter.guimain import GuiMain
 from novelwriter.types import QtModNone, QtMouseLeft, QtMouseMiddle
 
 
@@ -37,7 +39,7 @@ def mouseEvent(kind: QEvent.Type, x: int, button: Qt.MouseButton, buttons: Qt.Mo
 
 
 @pytest.mark.gui
-def testNTabWidget_Paint(qtbot, nwGUI):
+def testNTabWidget_Paint(qtbot: QtBot, nwGUI: GuiMain):
     """Test the NTabWidget and NTabBar paint logic."""
     tabs = NTabWidget(None)  # type: ignore
     qtbot.addWidget(tabs)
@@ -61,7 +63,7 @@ def testNTabWidget_Paint(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testNTabWidget_Drag(qtbot, nwGUI):
+def testNTabWidget_Drag(qtbot: QtBot, nwGUI: GuiMain):
     """Test dragging tabs on the NTabBar."""
     tabs = NTabWidget(None)  # type: ignore
     qtbot.addWidget(tabs)
