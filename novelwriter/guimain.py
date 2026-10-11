@@ -51,9 +51,7 @@ from novelwriter.dialogs.about import GuiAbout
 from novelwriter.dialogs.preferences import GuiNeedsUpdate, GuiPreferences
 from novelwriter.dialogs.projectsettings import GuiProjectSettings
 from novelwriter.dialogs.wordlist import GuiWordList
-from novelwriter.editor.editor import GuiDocEditor
-from novelwriter.editor.viewer import GuiDocViewer
-from novelwriter.editor.viewerpanel import GuiDocViewerPanel
+from novelwriter.editor.docpanes import GuiDocPanes
 from novelwriter.enum import nwDocAction, nwDocInsert, nwDocMode, nwFocus, nwView
 from novelwriter.extensions.progressbars import NProgressSimple
 from novelwriter.gui.itemdetails import GuiItemDetails
@@ -126,9 +124,12 @@ class GuiMain(QMainWindow):
         self.projView = GuiProjectView(self)
         self.projSearch = GuiProjectSearch(self)
         self.novelView = GuiNovelView(self)
-        self.docEditor = GuiDocEditor(self)
-        self.docViewer = GuiDocViewer(self)
-        self.docViewerPanel = GuiDocViewerPanel(self)
+        self.docPanes = GuiDocPanes(self)
+
+        self.docEditor = self.docPanes.docEditor
+        self.docViewer = self.docPanes.docViewer
+        self.docViewerPanel = self.docPanes.docViewerPanel
+
         self.itemDetails = GuiItemDetails(self)
         self.storyView = GuiStoryView(self)
         self.mainMenu = GuiMainMenu(self)
@@ -151,29 +152,16 @@ class GuiMain(QMainWindow):
         self.treePane.setLayout(self.treeBox)
 
         # Splitter : Document Viewer / Document Meta
-        self.splitView = QSplitter(Qt.Orientation.Vertical, self)
-        self.splitView.addWidget(self.docViewer)
-        self.splitView.addWidget(self.docViewerPanel)
-        self.splitView.setHandleWidth(4)
-        self.splitView.setOpaqueResize(False)
-        self.splitView.setSizes(CONFIG.viewPanePos)
-        self.splitView.setCollapsible(0, False)
-        self.splitView.setCollapsible(1, False)
+        self.splitView = self.docPanes.splitView
 
         # Splitter : Document Editor / Document Viewer
-        self.splitDocs = QSplitter(Qt.Orientation.Horizontal, self)
-        self.splitDocs.addWidget(self.docEditor)
-        self.splitDocs.addWidget(self.splitView)
-        self.splitDocs.setOpaqueResize(False)
-        self.splitDocs.setHandleWidth(4)
-        self.splitDocs.setCollapsible(0, False)
-        self.splitDocs.setCollapsible(1, False)
+        self.splitDocs = self.docPanes.splitMain
 
         # Splitter : Project Tree / Document Area
         self.splitMain = QSplitter(Qt.Orientation.Horizontal)
         self.splitMain.setContentsMargins(0, 0, 0, 0)
         self.splitMain.addWidget(self.treePane)
-        self.splitMain.addWidget(self.splitDocs)
+        self.splitMain.addWidget(self.docPanes)
         self.splitMain.setOpaqueResize(False)
         self.splitMain.setHandleWidth(4)
         self.splitMain.setSizes([max(s, 100) for s in CONFIG.mainPanePos])
