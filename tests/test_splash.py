@@ -31,7 +31,7 @@ from novelwriter.splash import NSplashScreen
 
 
 @pytest.mark.gui
-def testSplash_Main(caplog, monkeypatch):
+def testSplash_Main(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch):
     """Check the splash screen's initial state, status updates, and painting."""
     monkeypatch.setattr("novelwriter.splash.sleep", lambda *a: None)
     splash = NSplashScreen()

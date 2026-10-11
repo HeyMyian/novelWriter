@@ -25,13 +25,16 @@ import sys
 
 import pytest
 
+from pytestqt.qtbot import QtBot
+
 from novelwriter.error import ErrorMessage, exceptionHandler, logException
+from novelwriter.guimain import GuiMain
 
 from tests.mocked import causeException
 
 
 @pytest.mark.base
-def testError_LogException(caplog):
+def testError_LogException(caplog: pytest.LogCaptureFixture):
     """Test that logging an exception outside of an except block, where
     there is no active exception, does nothing.
     """
@@ -41,7 +44,7 @@ def testError_LogException(caplog):
 
 
 @pytest.mark.base
-def testError_Dialog(qtbot, monkeypatch, nwGUI):
+def testError_Dialog(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain):
     """Test the error dialog."""
     nwErr = ErrorMessage(nwGUI)
     qtbot.addWidget(nwErr)
@@ -83,7 +86,7 @@ def testError_Dialog(qtbot, monkeypatch, nwGUI):
 
 
 @pytest.mark.base
-def testError_Handler(qtbot, monkeypatch, nwGUI):
+def testError_Handler(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain):
     """Test the error handler. This test doesn't have any asserts, but
     it checks that the error handler handles potential exceptions. The
     test will fail if exceptions are not handled.
