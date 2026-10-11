@@ -53,7 +53,7 @@ def testGuiProjectSearch_Interaction(qtbot, nwGUI, fncPath, mockRnd, ipsumText):
     project.storage.getDocument(C.hChapterDoc).writeDocument("## New Chapter\n\n" + ipsumText[0])
     project.storage.getDocument(C.hSceneDoc).writeDocument("### New Scene\n\n" + ipsumText[1])
 
-    nwGUI._changeView(nwView.SEARCH)
+    nwGUI.changeView(nwView.SEARCH)
     search = nwGUI.projSearch
     model = search._model
     root = QModelIndex()
@@ -140,7 +140,7 @@ def testGuiProjectSearch_Options(qtbot, nwGUI, fncPath, mockRnd, ipsumText):
     sceneText = ipsumText[0] + "\n\n" + ipsumText[1]
     project.storage.getDocument(C.hSceneDoc).writeDocument("### New Scene\n\n" + sceneText)
 
-    nwGUI._changeView(nwView.SEARCH)
+    nwGUI.changeView(nwView.SEARCH)
     search = nwGUI.projSearch
     model = search._model
     root = QModelIndex()
@@ -203,7 +203,7 @@ def testGuiProjectSearch_AutoReplace(qtbot, nwGUI, fncPath, mockRnd):
     buildTestProject(NWProject(), fncPath)
     nwGUI.openProject(fncPath)
 
-    nwGUI._changeView(nwView.SEARCH)
+    nwGUI.changeView(nwView.SEARCH)
     search = nwGUI.projSearch
 
     # Auto-replace is off by default, so typed text is left untouched
@@ -239,7 +239,7 @@ def testGuiProjectSearch_FilterPanel(nwGUI, fncPath, mockRnd, ipsumText):
     # building the list of root folder filters
     project.newRoot(nwItemClass.TRASH)
 
-    nwGUI._changeView(nwView.SEARCH)
+    nwGUI.changeView(nwView.SEARCH)
     search = nwGUI.projSearch
     search.openProjectTasks()
 
@@ -298,7 +298,7 @@ def testGuiProjectSearch_LiveRefresh(nwGUI, fncPath, mockRnd, ipsumText):
     project = SHARED.project
     project.storage.getDocument(C.hSceneDoc).writeDocument("### New Scene\n\n" + ipsumText[0])
 
-    nwGUI._changeView(nwView.SEARCH)
+    nwGUI.changeView(nwView.SEARCH)
     search = nwGUI.projSearch
     model = search._model
     root = QModelIndex()
@@ -313,7 +313,7 @@ def testGuiProjectSearch_LiveRefresh(nwGUI, fncPath, mockRnd, ipsumText):
     assert firstEntry is not None
 
     # Open the document and add another occurrence, but don't save it
-    assert nwGUI.openDocument(C.hSceneDoc)
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc)
     nwGUI.docEditor.setPlainText(nwGUI.docEditor.getText() + "\n\nLorem again.")
 
     # An older timestamp is considered stale and is ignored
@@ -345,7 +345,7 @@ def testGuiProjectSearch_EdgeCases(nwGUI, fncPath, mockRnd, ipsumText):
     project = SHARED.project
     project.storage.getDocument(C.hSceneDoc).writeDocument("### New Scene\n\n" + ipsumText[0])
 
-    nwGUI._changeView(nwView.SEARCH)
+    nwGUI.changeView(nwView.SEARCH)
     search = nwGUI.projSearch
     model = search._model
     root = QModelIndex()
@@ -392,7 +392,7 @@ def testGuiProjectSearch_ReentrancyGuard(nwGUI, fncPath, mockRnd, ipsumText, mon
     project.storage.getDocument(C.hChapterDoc).writeDocument("## New Chapter\n\n" + ipsumText[0])
     project.storage.getDocument(C.hSceneDoc).writeDocument("### New Scene\n\n" + ipsumText[1])
 
-    nwGUI._changeView(nwView.SEARCH)
+    nwGUI.changeView(nwView.SEARCH)
     search = nwGUI.projSearch
     model = search._model
     root = QModelIndex()
@@ -432,7 +432,7 @@ def testGuiProjectSearch_DelegatePaint(nwGUI, fncPath, mockRnd):
     item = SHARED.project.tree[C.hSceneDoc]
     assert item is not None
 
-    nwGUI._changeView(nwView.SEARCH)
+    nwGUI.changeView(nwView.SEARCH)
     search = nwGUI.projSearch
     model = search._model
     delegate = search._matchDelegate

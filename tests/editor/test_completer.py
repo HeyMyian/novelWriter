@@ -90,15 +90,15 @@ def testCompleter_KeywordAndTagOptions(qtbot, nwGUI, projPath, mockRnd):
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     completer = nwGUI.docEditor._completer
 
     # Register two characters so they show up as taggable values
     text = "# Jane Doe\n\n@tag: Jane\n\n# John Doe\n\n@tag: John\n\n"
     cHandle = SHARED.project.newFile("People", C.hCharRoot)
-    assert nwGUI.openDocument(cHandle) is True
+    assert nwGUI.docPanes.openDocument(cHandle) is True
     nwGUI.docEditor.replaceText(text)
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
 
     def labels() -> list[str]:
         # completionModel(), not model(): filtering by the typed prefix
@@ -159,7 +159,7 @@ def testCompleter_CommentOptions(qtbot, nwGUI, projPath, mockRnd):
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     completer = nwGUI.docEditor._completer
     SHARED.project.index._itemIndex._cache.story.add("Resolution")
     SHARED.project.index._itemIndex._cache.note.add("Consistency")
@@ -218,7 +218,7 @@ def testGuiDocEditor_CompleterKeyRouting(qtbot, nwGUI, projPath, mockRnd):
     """
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     docEditor = nwGUI.docEditor
     docEditor.replaceText("")
     docEditor.setFocus()

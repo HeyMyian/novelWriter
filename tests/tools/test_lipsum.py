@@ -61,7 +61,7 @@ def testGuiLipsum_Main(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     nwLipsum.close()
 
     # Trigger insertion in document
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     nwGUI.docEditor.setCursorLine(3)
     with monkeypatch.context() as mp:
         mp.setattr(GuiLipsum, "exec", lambda *a: None)

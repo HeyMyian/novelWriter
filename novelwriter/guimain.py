@@ -34,7 +34,6 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSlot
 from PyQt6.QtGui import QCloseEvent, QCursor, QGuiApplication, QIcon
 from PyQt6.QtWidgets import (
     QApplication,
-    QFileDialog,
     QHBoxLayout,
     QMainWindow,
     QMessageBox,
@@ -45,7 +44,7 @@ from PyQt6.QtWidgets import (
 )
 
 from novelwriter import CONFIG, SHARED, __hexversion__, __version__
-from novelwriter.common import formatFileFilter, formatVersion, hexToInt, minmax, safeIsFile
+from novelwriter.common import formatVersion, hexToInt, minmax, safeIsFile
 from novelwriter.constants import nwConst
 from novelwriter.dialogs.about import GuiAbout
 from novelwriter.dialogs.preferences import GuiNeedsUpdate, GuiPreferences
@@ -101,7 +100,6 @@ class GuiMain(QMainWindow):
 
         # Internal Variables
         self._lastTotalCount = 0
-        self._switchingDocument = False
         self._treePaneHidden = False
 
         # Initialise UserData Instance
@@ -175,10 +173,6 @@ class GuiMain(QMainWindow):
         self.mainStack.addWidget(self.splitMain)
         self.mainStack.addWidget(self.storyView)
 
-        # Editor / Viewer Default State
-        self.splitView.setVisible(False)
-        self.docEditor.closeSearch()
-
         # Progress Bar
         self.mainProgress = NProgressSimple(self)
         self.mainProgress.setFixedHeight(2)
@@ -236,9 +230,9 @@ class GuiMain(QMainWindow):
         self.mainMenu.requestDocInsertText.connect(self._passDocumentInsert)
         self.mainMenu.requestDocKeyWordInsert.connect(self.docEditor.insertKeyWord)
         self.mainMenu.requestFocusChange.connect(self._switchFocus)
-        self.mainMenu.requestViewChange.connect(self._changeView)
+        self.mainMenu.requestViewChange.connect(self.changeView)
 
-        self.sideBar.requestViewChange.connect(self._changeView)
+        self.sideBar.requestViewChange.connect(self.changeView)
 
         self.projView.openDocumentRequest.connect(self._openDocument)
         self.projView.projectSettingsRequest.connect(self.showProjectSettingsDialog)
@@ -259,7 +253,7 @@ class GuiMain(QMainWindow):
         self.docEditor.loadDocumentTagRequest.connect(self._followTag)
         self.docEditor.openDocumentRequest.connect(self._openDocument)
         self.docEditor.requestNewNoteCreation.connect(SHARED.createNewNote)
-        self.docEditor.requestNextDocument.connect(self.openNextDocument)
+        self.docEditor.requestNextDocument.connect(self.docPanes.openNextDocument)
         self.docEditor.requestProjectItemRenamed.connect(self.projView.renameTreeItem)
         self.docEditor.requestProjectItemSelected.connect(self.projView.setSelectedHandle)
         self.docEditor.spellCheckStateChanged.connect(self.mainMenu.setSpellCheckState)
@@ -384,7 +378,7 @@ class GuiMain(QMainWindow):
             if not msgYes:
                 return False
 
-        self.saveDocument()
+        self.docPanes.saveDocument()
         saveOK = self.saveProject()
         doBackup = False
         if SHARED.project.data.doBackup and CONFIG.backupOnClose:
@@ -396,9 +390,9 @@ class GuiMain(QMainWindow):
             SHARED.project.backupProject(False)
 
         if saveOK:
-            self.closeDocument()
+            self.docPanes.closeDocument()
             self.docViewer.clearNavHistory()
-            self.closeViewerPanel(byUser=False)
+            self.docPanes.closeViewerPanel(byUser=False)
 
             self.docViewerPanel.closeProjectTasks()
             self.storyView.closeProjectTasks()
@@ -411,7 +405,7 @@ class GuiMain(QMainWindow):
             SHARED.closeProject()
 
             self._updateWindowTitle()
-            self._changeView(nwView.PROJECT)
+            self.changeView(nwView.PROJECT)
 
         return saveOK
 
@@ -425,7 +419,7 @@ class GuiMain(QMainWindow):
             return False
 
         # Switch main tab to editor view
-        self._changeView(nwView.PROJECT)
+        self.changeView(nwView.PROJECT)
 
         # Try to open the project
         tStart = time()
@@ -489,10 +483,10 @@ class GuiMain(QMainWindow):
                     break
 
         if lastEdited is not None:
-            self.openDocument(lastEdited, doScroll=True)
+            self.docPanes.openDocument(lastEdited, doScroll=True)
 
         if lastViewed := SHARED.project.data.getLastHandle("viewer"):
-            self.viewDocument(lastViewed)
+            self.docPanes.viewDocument(lastViewed)
 
         # Check if we need to rebuild the index
         if SHARED.project.index.indexRebuild:
@@ -514,186 +508,6 @@ class GuiMain(QMainWindow):
         if SHARED.hasProject:
             return SHARED.saveProject(autoSave=autoSave)
         return False
-
-    ##
-    #  Document Actions
-    ##
-
-    def closeDocument(self) -> None:
-        """Close the document and clear the editor and title field."""
-        if SHARED.hasProject:
-            # Disable focus mode if it is active
-            if SHARED.focusMode:
-                SHARED.setFocusMode(False)
-            self.saveDocument()
-            self.docEditor.clearEditor()
-
-    def openDocument(
-        self,
-        tHandle: str | None,
-        tLine: int | None = None,
-        sTitle: str | None = None,
-        changeFocus: bool = True,
-        doScroll: bool = False,
-    ) -> bool:
-        """Open a specific document, optionally at a given line."""
-        if not (SHARED.hasProject and tHandle):
-            logger.error("Nothing to open")
-            return False
-
-        if self._switchingDocument:
-            logger.debug("Ignoring re-entrant request to open '%s'", tHandle)
-            return False
-
-        if sTitle and tLine is None and (hItem := SHARED.project.index.getItemHeading(tHandle, sTitle)):
-            tLine = hItem.line
-
-        self._changeView(nwView.EDITOR)
-        if tHandle == self.docEditor.docHandle:
-            self.docEditor.setCursorLine(tLine)
-        else:
-            self._switchingDocument = True
-            try:
-                self.closeDocument()
-                if self.docEditor.loadText(tHandle, tLine):
-                    self.projView.setSelectedHandle(tHandle, doScroll=doScroll)
-                else:
-                    return False
-            finally:
-                self._switchingDocument = False
-
-        if changeFocus:
-            self.docEditor.setFocus()
-
-        return True
-
-    @pyqtSlot(str, bool, bool)
-    def openNextDocument(self, tHandle: str, wrapAround: bool, goBack: bool) -> None:
-        """Open the next (or previous) document in the project tree,
-        next to the document with the given handle. Stop when reaching
-        the edge unless the wrapAround flag is set.
-        """
-        if SHARED.hasProject and (allDocs := SHARED.project.tree.allDocs()):
-            try:
-                currIdx = allDocs.index(tHandle)
-                nHandle = (
-                    ((allDocs[-1] if wrapAround else None) if currIdx == 0 else allDocs[currIdx - 1])
-                    if goBack
-                    else ((allDocs[0] if wrapAround else None) if currIdx == len(allDocs) - 1 else allDocs[currIdx + 1])
-                )
-                if nHandle is not None:
-                    self.openDocument(nHandle, tLine=(-1 if goBack else 1), doScroll=True)
-            except Exception:
-                logger.error("Could not find next document for '%s'", tHandle)
-
-    def saveDocument(self, force: bool = False) -> None:
-        """Save the current documents."""
-        if SHARED.hasProject:
-            self.docEditor.saveCursorPosition()
-            if force or self.docEditor.docChanged:
-                self.docEditor.saveText()
-
-    @pyqtSlot()
-    def forceSaveDocument(self) -> None:
-        """Save document even of it has not changed."""
-        self.saveDocument(force=True)
-
-    def viewDocument(self, tHandle: str | None = None, sTitle: str | None = None) -> bool:
-        """Load a document for viewing in the view panel."""
-        if not SHARED.hasProject:
-            logger.error("No project open")
-            return False
-
-        if tHandle is None:
-            logger.debug("Viewing document, but no handle provided")
-
-            if self.docEditor.hasFocus():
-                tHandle = self.docEditor.docHandle
-
-            if tHandle is not None:
-                self.saveDocument()
-            else:
-                tHandle = self.projView.getSelectedHandle()
-
-            if tHandle is None:
-                tHandle = SHARED.project.data.getLastHandle("viewer")
-
-            if tHandle is None:
-                logger.debug("No document to view, giving up")
-                return False
-
-        # Make sure main tab is in Editor view
-        self._changeView(nwView.EDITOR)
-
-        # If we're loading the document in the editor, it may need to be saved
-        if tHandle == self.docEditor.docHandle and self.docEditor.docChanged:
-            self.saveDocument()
-
-        logger.debug("Viewing document with handle '%s'", tHandle)
-        updateHistory = tHandle != self.docViewer.docHandle
-        if self.docViewer.loadText(tHandle, updateHistory=updateHistory):
-            if not self.splitView.isVisible():
-                cursorVisible = self.docEditor.cursorIsVisible()
-                bPos = self.splitMain.sizes()
-                self.splitView.setVisible(True)
-                vPos = [0, 0]
-                vPos[0] = int(bPos[1] / 2)
-                vPos[1] = bPos[1] - vPos[0]
-                self.splitDocs.setSizes(vPos)
-                self.docViewerPanel.setVisible(CONFIG.showViewerPanel)
-
-                # Since editor width changes, we need to make sure we
-                # restore cursor visibility in the editor. See #1302
-                if cursorVisible:
-                    self.docEditor.ensureCursorVisible(centre=False)
-
-            if sTitle:
-                self.docViewer.navigateTo(f"#{tHandle}:{sTitle}")
-
-        return True
-
-    def importDocument(self) -> bool:
-        """Import the text contained in an out-of-project text file, and
-        insert the text into the currently open document.
-        """
-        if not SHARED.hasProject:
-            logger.error("No project open")
-            return False
-
-        lastPath = CONFIG.lastPath("import")
-        ffilter = formatFileFilter(["*.txt", "*.md", "*"])
-        loadFile, _ = QFileDialog.getOpenFileName(self, self.tr("Import File"), str(lastPath), filter=ffilter)
-        if not loadFile:
-            return False
-
-        if loadFile.strip() == "":
-            return False
-
-        text = None
-        try:
-            with open(loadFile, mode="rt", encoding="utf-8") as inFile:
-                text = inFile.read()
-            CONFIG.setLastPath("import", loadFile)
-        except Exception as exc:
-            SHARED.error(self.tr("Could not read file. The file must be an existing text file."), exc=exc)
-            return False
-
-        if self.docEditor.docHandle is None:
-            SHARED.error(self.tr("Please open a document to import the text file into."))
-            return False
-
-        if not self.docEditor.isEmpty:
-            msgYes = SHARED.question(
-                self.tr(
-                    "Importing the file will overwrite the current content of the document. Do you want to proceed?"
-                )
-            )
-            if not msgYes:
-                return False
-
-        self.docEditor.replaceText(text)
-
-        return True
 
     ##
     #  Tree Item Actions
@@ -836,7 +650,7 @@ class GuiMain(QMainWindow):
                 CONFIG.mainPanePos = self.splitMain.sizes()
             CONFIG.searchPanePos = self.projSearch.splitSizes()
             if self.docViewerPanel.isVisible():
-                CONFIG.viewPanePos = self.splitView.sizes()
+                CONFIG.viewPanePos = self.docPanes.splitView.sizes()
 
         CONFIG.showDetailsPanel = self.itemDetails.isExpanded()
         CONFIG.showViewerPanel = self.docViewerPanel.isVisible()
@@ -855,27 +669,6 @@ class GuiMain(QMainWindow):
         QApplication.quit()
 
         return True
-
-    def closeViewerPanel(self, byUser: bool = True) -> bool:
-        """Close the document view panel."""
-        self.docViewer.clearViewer()
-        if byUser:
-            # Only reset the last handle if the user called this
-            SHARED.project.data.setLastHandle(None, "viewer")
-
-        cursorVisible = self.docEditor.cursorIsVisible()
-
-        # Hide the panel
-        bPos = self.splitMain.sizes()
-        self.splitView.setVisible(False)
-        self.splitDocs.setSizes([bPos[1], 0])
-
-        # Since editor width changes, we need to make sure we restore
-        # cursor visibility in the editor. See #1302
-        if cursorVisible:
-            self.docEditor.ensureCursorVisible(centre=False)
-
-        return not self.splitView.isVisible()
 
     def checkThemeUpdate(self, *, schemeHint: Any | None = None) -> None:
         """Load theme if mode changed."""
@@ -945,13 +738,13 @@ class GuiMain(QMainWindow):
     @pyqtSlot()
     def closeDocEditor(self) -> None:
         """Close the document editor. This does not hide the editor."""
-        self.closeDocument()
+        self.docPanes.closeDocument()
         SHARED.project.data.setLastHandle(None, "editor")
 
     @pyqtSlot()
     def closeDocViewer(self) -> None:
         """Close the document viewer."""
-        self.closeViewerPanel()
+        self.docPanes.closeViewerPanel()
         SHARED.project.data.setLastHandle(None, "viewer")
 
     @pyqtSlot()
@@ -985,7 +778,7 @@ class GuiMain(QMainWindow):
         if focusMode:
             logger.debug("Activating Focus Mode")
             self._treePaneHidden = self.treePane.isHidden()
-            self._changeView(nwView.EDITOR)
+            self.changeView(nwView.EDITOR)
             self.docEditor.setFocus()
         else:
             logger.debug("Deactivating Focus Mode")
@@ -1032,16 +825,16 @@ class GuiMain(QMainWindow):
             fP = self.projView.treeHasFocus()
             fN = self.novelView.treeHasFocus()
 
-            self._changeView(nwView.EDITOR, exitFocus=True)
+            self.changeView(nwView.EDITOR, exitFocus=True)
             if (vM and ((vP and fP) or (vN and not fN))) or (not vM and vN):
-                self._changeView(nwView.NOVEL, exitFocus=True, forceVisible=True)
+                self.changeView(nwView.NOVEL, exitFocus=True, forceVisible=True)
                 self.novelView.setTreeFocus()
             else:
-                self._changeView(nwView.PROJECT, exitFocus=True, forceVisible=True)
+                self.changeView(nwView.PROJECT, exitFocus=True, forceVisible=True)
                 self.projView.setTreeFocus()
 
         elif paneNo == nwFocus.DOCUMENT:
-            self._changeView(nwView.EDITOR, exitFocus=True)
+            self.changeView(nwView.EDITOR, exitFocus=True)
             hasViewer = self.splitView.isVisible()
             if hasViewer and self.docEditor.anyFocus():
                 self.docViewer.setFocus()
@@ -1051,14 +844,14 @@ class GuiMain(QMainWindow):
                 self.docEditor.setFocus()
 
         elif paneNo == nwFocus.STORY:
-            self._changeView(nwView.STORY, exitFocus=True)
+            self.changeView(nwView.STORY, exitFocus=True)
 
     @pyqtSlot(GuiNeedsUpdate)
     def _processConfigChanges(self, update: GuiNeedsUpdate) -> None:
         """Refresh GUI based on flags from the Preferences dialog."""
         logger.debug("Applying new preferences")
         self.initMain()
-        self.saveDocument()
+        self.docPanes.saveDocument()
 
         if update.tree and not update.theme:
             # These are also updated by a theme refresh
@@ -1128,9 +921,9 @@ class GuiMain(QMainWindow):
             )
         else:
             if mode == nwDocMode.EDIT:
-                self.openDocument(tHandle, sTitle=sTitle)
+                self.docPanes.openDocument(tHandle, sTitle=sTitle)
             elif mode == nwDocMode.VIEW:
-                self.viewDocument(tHandle=tHandle, sTitle=sTitle)
+                self.docPanes.viewDocument(tHandle=tHandle, sTitle=sTitle)
             else:  # pragma: no cover
                 pass
 
@@ -1147,16 +940,16 @@ class GuiMain(QMainWindow):
         """Handle an open document request."""
         if tHandle is not None:
             if mode == nwDocMode.EDIT:
-                self.openDocument(tHandle, sTitle=sTitle, changeFocus=setFocus)
+                self.docPanes.openDocument(tHandle, sTitle=sTitle, changeFocus=setFocus)
             elif mode == nwDocMode.VIEW:
-                self.viewDocument(tHandle=tHandle, sTitle=sTitle)
+                self.docPanes.viewDocument(tHandle=tHandle, sTitle=sTitle)
             else:  # pragma: no cover
                 pass
 
     @pyqtSlot(str, int, int, bool)
     def _openDocumentSelection(self, tHandle: str, selStart: int, selLength: int, changeFocus: bool) -> None:
         """Open a document and select a section of the text."""
-        if self.openDocument(tHandle, changeFocus=changeFocus):
+        if self.docPanes.openDocument(tHandle, changeFocus=changeFocus):
             self.docEditor.setCursorSelection(selStart, selLength)
 
     @pyqtSlot()
@@ -1164,12 +957,12 @@ class GuiMain(QMainWindow):
         """Reload the document in the viewer."""
         if self.docEditor.docHandle == self.docViewer.docHandle:
             # If the two panels have the same document, save any changes in the editor
-            self.saveDocument()
+            self.docPanes.saveDocument()
         self.docViewer.reloadText()
 
     @pyqtSlot(nwView)
     @pyqtSlot(nwView, bool)
-    def _changeView(
+    def changeView(
         self,
         view: nwView,
         isSideBar: bool = False,
@@ -1276,7 +1069,7 @@ class GuiMain(QMainWindow):
         """Autosave of the document. This is a timer-activated slot."""
         if SHARED.hasProject and self.docEditor.docChanged:
             logger.debug("Auto-saving document")
-            self.saveDocument()
+            self.docPanes.saveDocument()
 
     @pyqtSlot()
     def _runGarbageCollect(self) -> None:

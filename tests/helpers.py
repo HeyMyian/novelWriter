@@ -26,7 +26,8 @@ import gc
 import weakref
 import xml.etree.ElementTree as ET
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -36,6 +37,8 @@ from PyQt6.QtWidgets import QDialog, QVBoxLayout, QWidget
 from novelwriter import logger
 
 if TYPE_CHECKING:
+    import pytest
+
     from novelwriter.core.project import NWProject
 
 XML_IGNORE = ("<novelWriterXML ", "<project ", "<dailyTarget ")
@@ -69,6 +72,34 @@ class C:
     hChapterDir = "000000000000d"
     hChapterDoc = "000000000000e"
     hSceneDoc = "000000000000f"
+
+
+@dataclass(frozen=True)
+class TstPaths:
+    """Paths used by the test suite."""
+
+    testDir: Path
+    filesDir: Path
+    refDir: Path
+    outDir: Path
+    tmpDir: Path
+    cnfDir: Path
+
+
+class MockRnd:
+    """Mock random generator counting upwards from 0 for predictable handles."""
+
+    def __init__(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        self._monkeypatch = monkeypatch
+        self.reset()
+
+    def _rnd(self, n: int) -> Iterator[int]:
+        yield from range(n)
+
+    def reset(self) -> None:
+        """Restart the sequence from 0."""
+        gen = self._rnd(1000)
+        self._monkeypatch.setattr("random.getrandbits", lambda *a: next(gen))
 
 
 def cmpFiles(

@@ -211,9 +211,9 @@ class SharedData(QObject):
     def closeDocument(self, tHandle: str | None = None) -> None:
         """Close the document editor, optionally a specific document."""
         if tHandle is None or tHandle == self.mainGui.docEditor.docHandle:
-            self.mainGui.closeDocument()
+            self.mainGui.docPanes.closeDocument()
         if tHandle is None or tHandle == self.mainGui.docViewer.docHandle:
-            self.mainGui.closeViewerPanel()
+            self.mainGui.docPanes.closeViewerPanel()
 
     def saveEditor(self, tHandle: str | None = None) -> None:
         """Save the editor content, optionally a specific document."""

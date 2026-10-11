@@ -154,13 +154,13 @@ def testGuiDocHoverCard_TagContent(qtbot, nwGUI, projPath, mockRnd):
 
     cHandle = SHARED.project.newFile("People", C.hCharRoot)
     assert cHandle is not None
-    assert nwGUI.openDocument(cHandle) is True
+    assert nwGUI.docPanes.openDocument(cHandle) is True
     nwGUI.docEditor.replaceText(
         "# Jane Doe\n\n@tag: Jane | Janey\n\n%Synopsis: A short synopsis.\n\n"
         "# Solo Person\n\n@tag: Solo\n\n"
         "# Multi Person\n\n@tag: Multi\n\n%Synopsis: First part.\n\n%Synopsis: Second part.\n\n"
     )
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
 
     parent = QWidget()
     qtbot.addWidget(parent)
@@ -238,9 +238,9 @@ def testGuiDocHoverCard_NoHeadingTitle(monkeypatch, qtbot, nwGUI, projPath, mock
     nwGUI.openProject(projPath)
     cHandle = SHARED.project.newFile("People", C.hCharRoot)
     assert cHandle is not None
-    assert nwGUI.openDocument(cHandle) is True
+    assert nwGUI.docPanes.openDocument(cHandle) is True
     nwGUI.docEditor.replaceText("# Jane Doe\n\n@tag: Jane\n\n")
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
 
     _, _, _, hItem = SHARED.project.index.getSingleTag("Jane")
     assert hItem is not None
@@ -270,9 +270,9 @@ def testGuiDocHoverCard_NoHeadingItem(monkeypatch, qtbot, nwGUI, projPath, mockR
     nwGUI.openProject(projPath)
     cHandle = SHARED.project.newFile("People", C.hCharRoot)
     assert cHandle is not None
-    assert nwGUI.openDocument(cHandle) is True
+    assert nwGUI.docPanes.openDocument(cHandle) is True
     nwGUI.docEditor.replaceText("# Jane Doe\n\n@tag: Jane\n\n")
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
 
     name, tClass, iItem, hItem = SHARED.project.index.getSingleTag("Jane")
     assert hItem is not None

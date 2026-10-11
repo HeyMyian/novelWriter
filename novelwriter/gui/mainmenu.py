@@ -248,7 +248,7 @@ class GuiMainMenu(QMenuBar):
         # Document > Save
         self.aSaveDoc = qtAddAction(self.docuMenu, self.tr("Save Document"))
         self.aSaveDoc.setShortcut("Ctrl+S")
-        self.aSaveDoc.triggered.connect(self.mainGui.forceSaveDocument)
+        self.aSaveDoc.triggered.connect(self.mainGui.docPanes.forceSaveDocument)
         self.mainGui.addAction(self.aSaveDoc)
 
         # Document > Close
@@ -263,7 +263,7 @@ class GuiMainMenu(QMenuBar):
         # Document > Preview
         self.aViewDoc = qtAddAction(self.docuMenu, self.tr("View Document"))
         self.aViewDoc.setShortcut("Ctrl+R")
-        self.aViewDoc.triggered.connect(qtWeakLambda(self.mainGui.viewDocument, None))
+        self.aViewDoc.triggered.connect(qtWeakLambda(self.mainGui.docPanes.viewDocument, None))
 
         # Document > Close Preview
         self.aCloseView = qtAddAction(self.docuMenu, self.tr("Close Document View"))
@@ -279,7 +279,7 @@ class GuiMainMenu(QMenuBar):
 
         # Document > Import From File
         self.aImportFile = qtAddAction(self.docuMenu, self.tr("Import Text from File"))
-        self.aImportFile.triggered.connect(qtWeakLambda(self.mainGui.importDocument))
+        self.aImportFile.triggered.connect(qtWeakLambda(self.mainGui.docPanes.importDocument))
 
         # Document > Move Text
         self.aMoveText = qtAddAction(self.docuMenu, self.tr("Move Text to New Document"))

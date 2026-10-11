@@ -91,7 +91,7 @@ def testGuiMainMenu_EditFormat(qtbot, monkeypatch, nwGUI, prjLipsum):
     x = 72
 
     # Split By Chapter
-    assert nwGUI.openDocument("4c4f28287af27") is True
+    assert nwGUI.docPanes.openDocument("4c4f28287af27") is True
     docEditor.setCursorPosition(x + 3)
     cleanText = docEditor.getText()[x : x + 47]
 
@@ -402,7 +402,7 @@ def testGuiMainMenu_Insert(qtbot, monkeypatch, nwGUI, fncPath, projPath, mockRnd
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
 
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     mainMenu = nwGUI.mainMenu
     docEditor = nwGUI.docEditor
     docEditor.clear()
@@ -576,34 +576,34 @@ def testGuiMainMenu_Insert(qtbot, monkeypatch, nwGUI, fncPath, projPath, mockRnd
     # Insert Text from File
     # =====================
 
-    nwGUI.closeDocument()
+    nwGUI.docPanes.closeDocument()
 
     # First, with no path
     monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: ("", ""))
-    assert not nwGUI.importDocument()
+    assert not nwGUI.docPanes.importDocument()
 
     # Then with a path, but an invalid one
     monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (" ", ""))
-    assert not nwGUI.importDocument()
+    assert not nwGUI.docPanes.importDocument()
 
     # Then a valid path, but bot a file that exists
     iFile = fncPath / "import.txt"
     monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: (str(iFile), ""))
-    assert not nwGUI.importDocument()
+    assert not nwGUI.docPanes.importDocument()
 
     # Create the file and try again, but with no target document open
     writeFile(iFile, "Foo")
-    assert not nwGUI.importDocument()
+    assert not nwGUI.docPanes.importDocument()
 
     # Open the document from before, and add some text to it
-    nwGUI.openDocument(C.hSceneDoc)
+    nwGUI.docPanes.openDocument(C.hSceneDoc)
     docEditor.setPlainText("Bar")
     assert docEditor.getText() == "Bar"
 
     # The document isn't empty, so the message box should pop
     with monkeypatch.context() as mp:
         mp.setattr(_GuiAlert, "finalState", False)
-        assert not nwGUI.importDocument()
+        assert not nwGUI.docPanes.importDocument()
         assert docEditor.getText() == "Bar"
 
     # Finally, accept the replaced text, this time we use the menu entry to trigger it
