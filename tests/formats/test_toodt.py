@@ -24,6 +24,7 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 import zipfile
 
+from pathlib import Path
 from shutil import copyfile
 
 import pytest
@@ -45,11 +46,12 @@ from novelwriter.formats.toodt import (
     _mkTag,
 )
 
-from tests.helpers import ODT_IGNORE, cmpFiles, xmlToText
+from tests.helpers import ODT_IGNORE, TstPaths, cmpFiles, xmlToText
+from tests.mocked import MockGuiMain
 
 
 @pytest.mark.core
-def testToOdt_Init(mockGUI):
+def testToOdt_Init(mockGUI: MockGuiMain):
     """Test initialisation of the ODT document."""
     project = NWProject()
 
@@ -101,7 +103,7 @@ def testToOdt_Init(mockGUI):
 
 
 @pytest.mark.core
-def testToOdt_TextFormatting(mockGUI):
+def testToOdt_TextFormatting(mockGUI: MockGuiMain):
     """Test formatting of paragraphs."""
     project = NWProject()
     odt = ToOdt(project, isFlat=True)
@@ -226,7 +228,7 @@ def testToOdt_TextFormatting(mockGUI):
 
 
 @pytest.mark.core
-def testToOdt_Fields(mockGUI):
+def testToOdt_Fields(mockGUI: MockGuiMain):
     """Test formatting of footnotes."""
     project = NWProject()
     odt = ToOdt(project, True)
@@ -261,7 +263,7 @@ def testToOdt_Fields(mockGUI):
 
 
 @pytest.mark.core
-def testToOdt_DialogueFormatting(mockGUI):
+def testToOdt_DialogueFormatting(mockGUI: MockGuiMain):
     """Test formatting of dialogue."""
     project = NWProject()
     odt = ToOdt(project, isFlat=True)
@@ -297,7 +299,7 @@ def testToOdt_DialogueFormatting(mockGUI):
 
 
 @pytest.mark.core
-def testToOdt_ConvertNovelHeadings(mockGUI):
+def testToOdt_ConvertNovelHeadings(mockGUI: MockGuiMain):
     """Test the novel heading converter of the ToOdt class."""
     project = NWProject()
     odt = ToOdt(project, isFlat=True)
@@ -394,7 +396,7 @@ def testToOdt_ConvertNovelHeadings(mockGUI):
 
 
 @pytest.mark.core
-def testToOdt_ConvertNotesHeadings(mockGUI):
+def testToOdt_ConvertNotesHeadings(mockGUI: MockGuiMain):
     """Test the notes headings converter of the ToOdt class."""
     project = NWProject()
     odt = ToOdt(project, isFlat=True)
@@ -446,7 +448,7 @@ def testToOdt_ConvertNotesHeadings(mockGUI):
 
 
 @pytest.mark.core
-def testToOdt_ConvertParagraphs(mockGUI):
+def testToOdt_ConvertParagraphs(mockGUI: MockGuiMain):
     """Test the converter of the ToOdt class."""
     project = NWProject()
     odt = ToOdt(project, isFlat=True)
@@ -826,7 +828,7 @@ def testToOdt_ConvertParagraphs(mockGUI):
 
 
 @pytest.mark.core
-def testToOdt_ConvertDirect(mockGUI):
+def testToOdt_ConvertDirect(mockGUI: MockGuiMain):
     """Test the converter directly using the ToOdt class to reach some
     otherwise hard to reach conditions.
     """
@@ -873,7 +875,7 @@ def testToOdt_ConvertDirect(mockGUI):
 
 
 @pytest.mark.core
-def testToOdt_SaveFlat(mockGUI, fncPath, tstPaths, ipsumText):
+def testToOdt_SaveFlat(mockGUI: MockGuiMain, fncPath: Path, tstPaths: TstPaths, ipsumText: list[str]):
     """Test the document save functions."""
     project = NWProject()
     project.data.setAuthor("Jane Smith")
@@ -925,7 +927,7 @@ def testToOdt_SaveFlat(mockGUI, fncPath, tstPaths, ipsumText):
 
 
 @pytest.mark.core
-def testToOdt_SaveFlatWithEmptyLines(mockGUI, fncPath, tstPaths, ipsumText):
+def testToOdt_SaveFlatWithEmptyLines(mockGUI: MockGuiMain, fncPath: Path, tstPaths: TstPaths, ipsumText: list[str]):
     """Test the document save functions."""
     project = NWProject()
     project.data.setAuthor("Jane Smith")
@@ -979,7 +981,7 @@ def testToOdt_SaveFlatWithEmptyLines(mockGUI, fncPath, tstPaths, ipsumText):
 
 
 @pytest.mark.core
-def testToOdt_SaveFull(mockGUI, fncPath, tstPaths, ipsumText):
+def testToOdt_SaveFull(mockGUI: MockGuiMain, fncPath: Path, tstPaths: TstPaths, ipsumText: list[str]):
     """Test the document save functions."""
     project = NWProject()
     project.data.setAuthor("Jane Smith")

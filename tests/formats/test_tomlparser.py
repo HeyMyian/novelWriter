@@ -32,7 +32,7 @@ from tests.helpers import writeFile
 
 
 @pytest.mark.base
-def testTomlParser_NTomlParser(fncPath):
+def testTomlParser_NTomlParser(fncPath: Path):
     """Test the NTomlParser class."""
     conf = fncPath / "test.toml"
     writeFile(
@@ -128,7 +128,7 @@ def testTomlParser_NTomlParser(fncPath):
 
 
 @pytest.mark.base
-def testTomlParser_Flat(fncPath):
+def testTomlParser_Flat(fncPath: Path):
     """Test reading and writing a flat, section-less structure using
     a parser constructed with flat=True.
     """
@@ -157,7 +157,7 @@ def testTomlParser_Flat(fncPath):
 
 
 @pytest.mark.base
-def testTomlParser_NTomlParserInvalid(fncPath, caplog):
+def testTomlParser_NTomlParserInvalid(fncPath: Path, caplog: pytest.LogCaptureFixture):
     """Test that NTomlParser logs and drops entries nested deeper than
     the supported structure for each mode, for both write and read.
     """
@@ -192,7 +192,7 @@ def testTomlParser_NTomlParserInvalid(fncPath, caplog):
 
 
 @pytest.mark.base
-def testTomlParser_ReadWriteString(fncPath):
+def testTomlParser_ReadWriteString(fncPath: Path):
     """Test the readString and writeString methods, and that they
     produce output identical to the file-based read and write.
     """
@@ -228,7 +228,7 @@ def testTomlParser_ReadWriteString(fncPath):
 
 
 @pytest.mark.base
-def testTomlParser_ReadWriteStringInvalid(caplog):
+def testTomlParser_ReadWriteStringInvalid(caplog: pytest.LogCaptureFixture):
     """Test that readString and writeString log and drop entries
     nested deeper than the supported structure, mirroring the
     file-based test but through strings.

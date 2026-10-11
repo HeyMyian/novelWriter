@@ -21,6 +21,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from PyQt6.QtGui import QFont
@@ -33,7 +35,8 @@ from novelwriter.formats.shared import BlockFmt, BlockTyp, TextFmt, stripEscape
 from novelwriter.formats.tokenizer import COMMENT_STYLE, HeadingFormatter, Tokenizer
 from novelwriter.formats.tomarkdown import ToMarkdown
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, MockRnd, TstPaths, buildTestProject
+from tests.mocked import MockGuiMain
 
 TMH = "0123456789abc"
 TM1 = f"{TMH}:T0001"
@@ -52,7 +55,7 @@ class BareTokenizer(Tokenizer):
 
 
 @pytest.mark.core
-def testTokenizer_Abstracts(mockGUI, tstPaths):
+def testTokenizer_Abstracts(mockGUI: MockGuiMain, tstPaths: TstPaths):
     """Test all the abstract methods of the Tokenizer class."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -64,11 +67,11 @@ def testTokenizer_Abstracts(mockGUI, tstPaths):
         tokens.closeDocument()
 
     with pytest.raises(NotImplementedError):
-        tokens.saveDocument(tstPaths)
+        tokens.saveDocument(tstPaths.tmpDir)
 
 
 @pytest.mark.core
-def testTokenizer_Setters(mockGUI):
+def testTokenizer_Setters(mockGUI: MockGuiMain):
     """Test all the setters for the Tokenizer class."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -191,7 +194,7 @@ def testTokenizer_Setters(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_TextOps(monkeypatch, mockGUI, mockRnd, fncPath):
+def testTokenizer_TextOps(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, mockRnd: MockRnd, fncPath: Path):
     """Test handling files and text in the Tokenizer class."""
     project = NWProject()
     mockRnd.reset()
@@ -286,7 +289,7 @@ def testTokenizer_StripEscape():
 
 
 @pytest.mark.core
-def testTokenizer_HeaderFormat(mockGUI):
+def testTokenizer_HeaderFormat(mockGUI: MockGuiMain):
     """Test the tokenization of header formats in the Tokenizer class."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -447,7 +450,7 @@ def testTokenizer_HeaderFormat(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_HeaderStyleNone(mockGUI):
+def testTokenizer_HeaderStyleNone(mockGUI: MockGuiMain):
     """Test header styling disabled."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -508,7 +511,7 @@ def testTokenizer_HeaderStyleNone(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_HeaderStyleCenter(mockGUI):
+def testTokenizer_HeaderStyleCenter(mockGUI: MockGuiMain):
     """Test header styling centred."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -569,7 +572,7 @@ def testTokenizer_HeaderStyleCenter(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_HeaderStylePageBreak(mockGUI):
+def testTokenizer_HeaderStylePageBreak(mockGUI: MockGuiMain):
     """Test header styling page break."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -630,7 +633,7 @@ def testTokenizer_HeaderStylePageBreak(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_HeaderStylePageBreakCenter(mockGUI):
+def testTokenizer_HeaderStylePageBreakCenter(mockGUI: MockGuiMain):
     """Test header styling page break and centred."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -691,7 +694,7 @@ def testTokenizer_HeaderStylePageBreakCenter(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_HeaderStyleSeparation(mockGUI):
+def testTokenizer_HeaderStyleSeparation(mockGUI: MockGuiMain):
     """Test header styling separation."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -778,7 +781,7 @@ def testTokenizer_HeaderStyleSeparation(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_HeaderStyleHorizontalRule(mockGUI):
+def testTokenizer_HeaderStyleHorizontalRule(mockGUI: MockGuiMain):
     """Test header style processing with static horizontal rule format."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -831,7 +834,7 @@ def testTokenizer_HeaderStyleHorizontalRule(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_MetaFormat(mockGUI):
+def testTokenizer_MetaFormat(mockGUI: MockGuiMain):
     """Test the tokenization of meta formats in the Tokenizer class."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -1089,7 +1092,7 @@ def testTokenizer_MetaFormat(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_MarginFormat(mockGUI):
+def testTokenizer_MarginFormat(mockGUI: MockGuiMain):
     """Test the tokenization of margin formats in the Tokenizer class."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -1122,7 +1125,7 @@ def testTokenizer_MarginFormat(mockGUI):
 
 @pytest.mark.core
 @pytest.mark.parametrize("singleBold", [True, False])
-def testTokenizer_ExtractFormats(mockGUI, singleBold):
+def testTokenizer_ExtractFormats(mockGUI: MockGuiMain, singleBold: bool):
     """Test the extraction of formats in the Tokenizer class.
     This test is run twice, with single and with double asterisk support
     for bold.
@@ -1317,7 +1320,7 @@ def testTokenizer_ExtractFormats(mockGUI, singleBold):
 
 
 @pytest.mark.core
-def testTokenizer_Paragraphs(mockGUI):
+def testTokenizer_Paragraphs(mockGUI: MockGuiMain):
     """Test the splitting of paragraphs."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -1399,7 +1402,7 @@ def testTokenizer_Paragraphs(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_BreakAlignIndent(mockGUI):
+def testTokenizer_BreakAlignIndent(mockGUI: MockGuiMain):
     """Test the splitting of paragraphs with alignment."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -1448,7 +1451,7 @@ def testTokenizer_BreakAlignIndent(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_BreakJustify(mockGUI):
+def testTokenizer_BreakJustify(mockGUI: MockGuiMain):
     """Test the of processing of justify with breaks."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -1473,7 +1476,7 @@ def testTokenizer_BreakJustify(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_Lists(mockGUI):
+def testTokenizer_Lists(mockGUI: MockGuiMain):
     """Test the tokenization of lists."""
     CONFIG.fmtDQuoteOpen = "“"
     CONFIG.fmtDQuoteClose = "”"
@@ -1688,7 +1691,7 @@ def testTokenizer_Lists(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_TextFormat(mockGUI):
+def testTokenizer_TextFormat(mockGUI: MockGuiMain):
     """Test the tokenization of text formats in the Tokenizer class."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -1790,7 +1793,7 @@ def testTokenizer_TextFormat(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_LineBreak(mockGUI):
+def testTokenizer_LineBreak(mockGUI: MockGuiMain):
     """Test processing of forced line breaks in the Tokenizer class."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -1848,7 +1851,7 @@ def testTokenizer_LineBreak(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_LineForMargin(mockGUI):
+def testTokenizer_LineForMargin(mockGUI: MockGuiMain):
     """Test using empty lines between blocks in the Tokenizer class."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -1908,7 +1911,7 @@ def testTokenizer_LineForMargin(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_ShortcodeValue(mockGUI):
+def testTokenizer_ShortcodeValue(mockGUI: MockGuiMain):
     """Test processing of shortcodes with values."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -1946,7 +1949,7 @@ def testTokenizer_ShortcodeValue(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_Dialogue(mockGUI):
+def testTokenizer_Dialogue(mockGUI: MockGuiMain):
     """Test the tokenization of dialogue in the Tokenizer class."""
     CONFIG.fmtDQuoteOpen = "\u201c"
     CONFIG.fmtDQuoteClose = "\u201d"
@@ -2083,7 +2086,7 @@ def testTokenizer_Dialogue(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_DialogueDisabled(monkeypatch, mockGUI):
+def testTokenizer_DialogueDisabled(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain):
     """The dialogue parser is disabled when no dialogue settings are
     active, even if highlighting is otherwise turned on.
     """
@@ -2113,7 +2116,7 @@ def testTokenizer_DialogueDisabled(monkeypatch, mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_SpecialFormat(mockGUI):
+def testTokenizer_SpecialFormat(mockGUI: MockGuiMain):
     """Test the tokenization of special formats in the Tokenizer class."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -2229,7 +2232,7 @@ def testTokenizer_SpecialFormat(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_TextIndent(mockGUI):
+def testTokenizer_TextIndent(mockGUI: MockGuiMain):
     """Test the handling of text indent in the Tokenizer class."""
     project = NWProject()
     tokens = BareTokenizer(project)
@@ -2322,7 +2325,7 @@ def testTokenizer_TextIndent(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_ProcessHeaders(mockGUI):
+def testTokenizer_ProcessHeaders(mockGUI: MockGuiMain):
     """Test the header and page parser of the Tokenizer class."""
     project = NWProject()
     project.data.setLanguage("en")
@@ -2512,7 +2515,7 @@ def testTokenizer_ProcessHeaders(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_FormatComment(mockGUI):
+def testTokenizer_FormatComment(mockGUI: MockGuiMain):
     """Test note and comment formatting."""
     project = NWProject()
     project.data.setLanguage("en")
@@ -2549,7 +2552,7 @@ def testTokenizer_FormatComment(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_FormatMeta(mockGUI):
+def testTokenizer_FormatMeta(mockGUI: MockGuiMain):
     """Test meta formatting."""
     project = NWProject()
     project.data.setLanguage("en")
@@ -2606,7 +2609,7 @@ def testTokenizer_FormatMeta(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_BuildOutline(mockGUI, ipsumText):
+def testTokenizer_BuildOutline(mockGUI: MockGuiMain, ipsumText: list[str]):
     """Test stats counter of the Tokenizer class."""
     project = NWProject()
     project.data.setLanguage("en")
@@ -2662,7 +2665,7 @@ def testTokenizer_BuildOutline(mockGUI, ipsumText):
 
 
 @pytest.mark.core
-def testTokenizer_CountStats(mockGUI, ipsumText):
+def testTokenizer_CountStats(mockGUI: MockGuiMain, ipsumText: list[str]):
     """Test stats counter of the Tokenizer class."""
     project = NWProject()
     project.data.setLanguage("en")
@@ -2943,7 +2946,7 @@ def testTokenizer_CountStats(mockGUI, ipsumText):
 
 
 @pytest.mark.core
-def testTokenizer_CountStats_Dialogue(mockGUI):
+def testTokenizer_CountStats_Dialogue(mockGUI: MockGuiMain):
     """Test the dialogue character counter of the Tokenizer class."""
     CONFIG.fmtDQuoteOpen = "\u201c"
     CONFIG.fmtDQuoteClose = "\u201d"
@@ -3022,7 +3025,7 @@ def testTokenizer_CountStats_Dialogue(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_SceneSeparators(mockGUI):
+def testTokenizer_SceneSeparators(mockGUI: MockGuiMain):
     """Test the section and scene separators of the Tokenizer class."""
     project = NWProject()
     project.data.setLanguage("en")
@@ -3154,7 +3157,7 @@ def testTokenizer_SceneSeparators(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_HeaderVisibility(mockGUI):
+def testTokenizer_HeaderVisibility(mockGUI: MockGuiMain):
     """Test the heading visibility settings of the Tokenizer class."""
     project = NWProject()
     project.data.setLanguage("en")
@@ -3264,7 +3267,7 @@ def testTokenizer_HeaderVisibility(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_CounterHandling(mockGUI):
+def testTokenizer_CounterHandling(mockGUI: MockGuiMain):
     """Test the heading counter of the Tokenizer class."""
     project = NWProject()
     project.data.setLanguage("en")
@@ -3347,7 +3350,7 @@ def testTokenizer_CounterHandling(mockGUI):
 
 
 @pytest.mark.core
-def testTokenizer_HeadingFormatter(fncPath, mockGUI, mockRnd):
+def testTokenizer_HeadingFormatter(fncPath: Path, mockGUI: MockGuiMain, mockRnd: MockRnd):
     """Check the HeadingFormatter class."""
     project = NWProject()
     project.setProjectLang("en_GB")
@@ -3451,7 +3454,7 @@ def testTokenizer_HeadingFormatter(fncPath, mockGUI, mockRnd):
 
 
 @pytest.mark.core
-def testTokenizer_FirstPageAllEmpty(mockGUI):
+def testTokenizer_FirstPageAllEmpty(mockGUI: MockGuiMain):
     """A first page consisting only of blank lines has no non-empty
     block to strip a leading page break from.
     """

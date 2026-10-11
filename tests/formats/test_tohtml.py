@@ -23,6 +23,8 @@ from __future__ import annotations
 
 import json
 
+from pathlib import Path
+
 import pytest
 
 from novelwriter import CONFIG
@@ -32,9 +34,11 @@ from novelwriter.enum import nwComment
 from novelwriter.formats.shared import BlockFmt, BlockTyp
 from novelwriter.formats.tohtml import ToHtml
 
+from tests.mocked import MockGuiMain
+
 
 @pytest.mark.core
-def testToHtml_ConvertNovelHeaders(mockGUI):
+def testToHtml_ConvertNovelHeaders(mockGUI: MockGuiMain):
     """Test header formats in the ToHtml class."""
     project = NWProject()
     html = ToHtml(project)
@@ -91,7 +95,7 @@ def testToHtml_ConvertNovelHeaders(mockGUI):
 
 
 @pytest.mark.core
-def testToHtml_ConvertNotesHeaders(mockGUI):
+def testToHtml_ConvertNotesHeaders(mockGUI: MockGuiMain):
     """Test header formats in the ToHtml class."""
     project = NWProject()
     html = ToHtml(project)
@@ -149,7 +153,7 @@ def testToHtml_ConvertNotesHeaders(mockGUI):
 
 
 @pytest.mark.core
-def testToHtml_ConvertParagraphs(mockGUI):
+def testToHtml_ConvertParagraphs(mockGUI: MockGuiMain):
     """Test paragraph formats in the ToHtml class."""
     project = NWProject()
     html = ToHtml(project)
@@ -260,7 +264,7 @@ def testToHtml_ConvertParagraphs(mockGUI):
 
 
 @pytest.mark.core
-def testToHtml_ConvertMeta(mockGUI):
+def testToHtml_ConvertMeta(mockGUI: MockGuiMain):
     """Test meta data formats in the ToHtml class."""
     project = NWProject()
     html = ToHtml(project)
@@ -359,7 +363,7 @@ def testToHtml_ConvertMeta(mockGUI):
 
 
 @pytest.mark.core
-def testToHtml_Alignment(mockGUI):
+def testToHtml_Alignment(mockGUI: MockGuiMain):
     """Test paragraph alignment in the ToHtml class."""
     project = NWProject()
     html = ToHtml(project)
@@ -397,7 +401,7 @@ def testToHtml_Alignment(mockGUI):
 
 
 @pytest.mark.core
-def testToHtml_Dialog(mockGUI):
+def testToHtml_Dialog(mockGUI: MockGuiMain):
     """Test paragraph formats in the ToHtml class."""
     CONFIG.altDialogOpen = "::"
     CONFIG.altDialogClose = "::"
@@ -429,7 +433,7 @@ def testToHtml_Dialog(mockGUI):
 
 
 @pytest.mark.core
-def testToHtml_Footnotes(mockGUI):
+def testToHtml_Footnotes(mockGUI: MockGuiMain):
     """Test paragraph formats in the ToHtml class."""
     project = NWProject()
     html = ToHtml(project)
@@ -457,7 +461,7 @@ def testToHtml_Footnotes(mockGUI):
 
 
 @pytest.mark.core
-def testToHtml_Fields(mockGUI):
+def testToHtml_Fields(mockGUI: MockGuiMain):
     """Test field substitution in the ToHtml class."""
     project = NWProject()
     html = ToHtml(project)
@@ -474,7 +478,7 @@ def testToHtml_Fields(mockGUI):
 
 
 @pytest.mark.core
-def testToHtml_CloseTags(mockGUI):
+def testToHtml_CloseTags(mockGUI: MockGuiMain):
     """Test automatic closing of HTML tags for shortcodes."""
     project = NWProject()
     html = ToHtml(project)
@@ -509,7 +513,7 @@ def testToHtml_CloseTags(mockGUI):
 
 
 @pytest.mark.core
-def testToHtml_ConvertDirect(mockGUI):
+def testToHtml_ConvertDirect(mockGUI: MockGuiMain):
     """Test the converter directly using the ToHtml class."""
     project = NWProject()
     html = ToHtml(project)
@@ -639,7 +643,7 @@ def testToHtml_ConvertDirect(mockGUI):
 
 
 @pytest.mark.core
-def testToHtml_SpecialCases(mockGUI):
+def testToHtml_SpecialCases(mockGUI: MockGuiMain):
     """Test some special cases that have caused errors in the past."""
     project = NWProject()
     html = ToHtml(project)
@@ -702,7 +706,7 @@ def testToHtml_SpecialCases(mockGUI):
 
 
 @pytest.mark.core
-def testToHtml_Save(mockGUI, fncPath):
+def testToHtml_Save(mockGUI: MockGuiMain, fncPath: Path):
     """Test the save method of the ToHtml class."""
     project = NWProject()
     html = ToHtml(project)
@@ -802,7 +806,7 @@ def testToHtml_Save(mockGUI, fncPath):
 
 
 @pytest.mark.core
-def testToHtml_Methods(mockGUI):
+def testToHtml_Methods(mockGUI: MockGuiMain):
     """Test all the other methods of the ToHtml class."""
     project = NWProject()
     html = ToHtml(project)
