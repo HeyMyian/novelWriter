@@ -51,7 +51,7 @@ from novelwriter.core.projectxml import ProjectXMLReader, ProjectXMLWriter, XMLR
 from novelwriter.core.sessions import SessionLog
 from novelwriter.core.storage import ProjectStorage, ProjectStorageOpen
 from novelwriter.core.tree import ProjectTree
-from novelwriter.enum import nwItemClass, nwItemLayout, nwItemType
+from novelwriter.enum import nwItemClass, nwItemLayout, nwItemType, nwProjectKind
 from novelwriter.error import logException
 
 if TYPE_CHECKING:
@@ -403,9 +403,21 @@ class NWProject:
         self._session.startSession()
         self.setProjectChanged(False)
 
-        # Update recent projects
+        # Check for copies and update recent projects
         if storePath := self._storage.storagePath:
-            if (other := CONFIG.recentProjects.findCopy(storePath, self._data.uuid)) and SHARED.question(
+            if self._storage.kind == nwProjectKind.BACKUP:
+                stamp = self._storage.timeStamp
+                if SHARED.question(
+                    self.tr(
+                        "This project is a backup copy. Do you want to give it a new ID so it "
+                        "can be used separately from the original project?"
+                    ),
+                    info=self.tr("Backup from: {0}").format(CONFIG.localDateTime(stamp)) if stamp else "",
+                ):
+                    self._data.setUuid("")
+                # The manifest must be saved as a regular project
+                self.setProjectChanged(True)
+            elif (other := CONFIG.recentProjects.findCopy(storePath, self._data.uuid)) and SHARED.question(
                 self.tr(
                     "This project has the same ID as another project. "
                     "It was either copied outside of novelWriter, or is a backup copy. "

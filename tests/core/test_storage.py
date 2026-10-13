@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import logging
 
+from datetime import datetime
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -298,10 +299,13 @@ def testProjectStorage_Manifest(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     storage = ProjectStorage(MockProject())  # type: ignore
     manifestPath = fncPath / nwFiles.MANIFEST_FILE
 
-    # Project not open, so no manifest is written
+    # Project not open, so no manifest is written or read
     assert storage.runPostSaveTasks(1000.0) is True
     storage._writeManifest(nwProjectKind.PROJECT, 1000.0)
     assert not manifestPath.exists()
+    storage._readManifest()
+    assert storage.kind == nwProjectKind.PROJECT
+    assert storage.timeStamp is None
 
     # Set a path to work with
     storage._manifestPath = manifestPath
@@ -325,6 +329,43 @@ def testProjectStorage_Manifest(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
         "appVersion": __version__,
         "hexVersion": __hexversion__,
     }
+
+    # Read a backup manifest
+    storage._writeManifest(nwProjectKind.BACKUP, 1000.0)
+    storage._readManifest()
+    assert storage.kind == nwProjectKind.BACKUP
+    assert storage.timeStamp == datetime.fromtimestamp(1000.0)
+
+    # Saving turns it into a project
+    assert storage.runPostSaveTasks(1000.0) is True
+    assert storage.kind == nwProjectKind.PROJECT
+    storage._readManifest()
+    assert storage.kind == nwProjectKind.PROJECT
+
+    # Invalid manifests are read as a project
+    manifestPath.write_text("{", encoding="utf-8")
+    storage._readManifest()
+    assert storage.kind == nwProjectKind.PROJECT
+    assert storage.timeStamp is None
+
+    manifestPath.write_text('{"kind": "foo", "timeStamp": "bar"}', encoding="utf-8")
+    storage._readManifest()
+    assert storage.kind == nwProjectKind.PROJECT
+    assert storage.timeStamp is None
+
+    # An invalid time stamp keeps the kind
+    manifestPath.write_text('{"kind": "backup"}', encoding="utf-8")
+    storage._readManifest()
+    assert storage.kind == nwProjectKind.BACKUP
+    assert storage.timeStamp is None
+
+    # Clearing resets the values
+    storage._writeManifest(nwProjectKind.BACKUP, 1000.0)
+    storage._readManifest()
+    assert storage.kind == nwProjectKind.BACKUP
+    storage.clear()
+    assert storage.kind == nwProjectKind.PROJECT
+    assert storage.timeStamp is None
 
 
 @pytest.mark.core

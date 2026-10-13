@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import logging
 
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from time import time
@@ -97,6 +98,8 @@ class ProjectStorage:
         self._ready = False
         self._exception = None
         self._oldDocuments = []
+        self._kind = nwProjectKind.PROJECT
+        self._timeStamp = None
 
     def clear(self) -> None:
         """Reset internal variables."""
@@ -107,6 +110,8 @@ class ProjectStorage:
         self._openMode = self.MODE_INACTIVE
         self._ready = False
         self._oldDocuments = []
+        self._kind = nwProjectKind.PROJECT
+        self._timeStamp = None
 
     ##
     #  Properties
@@ -121,6 +126,16 @@ class ProjectStorage:
     def runtimePath(self) -> Path | None:
         """Return the path where the project is stored at runtime."""
         return self._runtimePath
+
+    @property
+    def kind(self) -> nwProjectKind:
+        """Return the project kind recorded in the manifest."""
+        return self._kind
+
+    @property
+    def timeStamp(self) -> datetime | None:
+        """Return the time stamp recorded in the manifest."""
+        return self._timeStamp
 
     @property
     def contentPath(self) -> Path | None:
@@ -236,6 +251,8 @@ class ProjectStorage:
         else:
             logger.debug("Project is not locked")
 
+        self._readManifest()
+
         # Prepare Folder
         # ==============
 
@@ -281,6 +298,7 @@ class ProjectStorage:
     def runPostSaveTasks(self, saveTime: float, autoSave: bool = False) -> bool:
         """Run tasks after the project has been saved."""
         if self._openMode == self.MODE_INPLACE:
+            self._kind = nwProjectKind.PROJECT
             self._writeManifest(nwProjectKind.PROJECT, saveTime)
         return True
 
@@ -442,6 +460,19 @@ class ProjectStorage:
             },
             indent=2,
         )
+
+    def _readManifest(self) -> None:
+        """Read the manifest file, if it exists."""
+        self._kind = nwProjectKind.PROJECT
+        self._timeStamp = None
+        if self._manifestPath is not None and safeIsFile(self._manifestPath):
+            try:
+                data = json.loads(self._manifestPath.read_text(encoding="utf-8"))
+                self._kind = nwProjectKind(data.get("kind"))
+                self._timeStamp = datetime.fromisoformat(data.get("timeStamp"))
+            except Exception:
+                logger.error("Failed to read manifest")
+                logException()
 
     def _writeManifest(self, kind: nwProjectKind, saveTime: float) -> None:
         """Write the manifest file."""
