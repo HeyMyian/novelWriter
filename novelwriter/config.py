@@ -59,6 +59,7 @@ from novelwriter.common import (
     processDialogSymbols,
     safeExists,
     safeIsDir,
+    safeIsFile,
     simplified,
     uniqueCompact,
 )
@@ -1130,6 +1131,10 @@ class RecentProjects:
         self._data: dict[str, dict[str, str | int]] = {}
         self._map: dict[str, str] = {}
 
+    ##
+    #  Methods
+    ##
+
     def loadCache(self) -> bool:
         """Load the cache file for recent projects."""
         self._data = {}
@@ -1173,11 +1178,19 @@ class RecentProjects:
             (str(k), str(e["title"]), checkInt(e["words"], 0), checkInt(e["time"], 0)) for k, e in self._data.items()
         ]
 
+    def findCopy(self, path: str | Path, puuid: str) -> str | None:
+        """Return the path of another existing project with the same UUID."""
+        if (other := self._otherPath(str(path), puuid)) and safeIsFile(Path(other) / nwFiles.PROJ_FILE):
+            return other
+        return None
+
     def update(self, path: str | Path, data: ProjectData, saved: float | int) -> None:
         """Add or update recent cache information on a given project."""
         try:
-            if (remove := self._map.get(data.uuid)) and (remove != str(path)):
-                self.remove(remove)
+            # A project with the same UUID at another path has been moved, unless it still exists
+            if (other := self._otherPath(str(path), data.uuid)) and not safeIsFile(Path(other) / nwFiles.PROJ_FILE):
+                self.remove(other)
+
             self._setEntry(
                 data.uuid,
                 str(path),
@@ -1186,6 +1199,7 @@ class RecentProjects:
                 sum(data.currCounts[2:]),
                 int(saved),
             )
+
             self.saveCache()
         except Exception:
             pass
@@ -1195,6 +1209,16 @@ class RecentProjects:
         if self._data.pop(str(path), None) is not None:
             logger.debug("Removed recent: %s", path)
             self.saveCache()
+
+    ##
+    #  Internal Functions
+    ##
+
+    def _otherPath(self, path: str, puuid: str) -> str | None:
+        """Return another recorded path for the same project UUID."""
+        if (other := self._map.get(puuid)) and other != path and self._data.get(other, {}).get("uuid") == puuid:
+            return other
+        return None
 
     def _setEntry(self, puuid: str, path: str, title: str, words: int, chars: int, saved: int) -> None:
         """Set an entry in the recent projects record."""

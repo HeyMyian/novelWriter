@@ -32,7 +32,7 @@ from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwFiles
 from novelwriter.core.project import NWProject, NWProjectState
 from novelwriter.core.projectxml import ProjectXMLReader, ProjectXMLWriter, XMLReadState
-from novelwriter.enum import nwItemClass
+from novelwriter.enum import nwItemClass, nwProjectKind
 from novelwriter.shared import _GuiAlert
 
 from tests.helpers import XML_IGNORE, C, MockRnd, TstPaths, buildTestProject, cmpFiles
@@ -349,6 +349,49 @@ def testNWProject_Open(
         mp.setattr("novelwriter.core.storage.ProjectStorage.storagePath", property(lambda *a: None))
         assert project.openProject(fncPath, clearLock=True) is True
 
+    # A copied project keeps its ID if the user declines
+    copyPath = fncPath / "copy"
+    copyPath.mkdir()
+    (copyPath / nwFiles.PROJ_FILE).touch()
+    oldUuid = project.data.uuid
+    CONFIG.recentProjects.update(copyPath, project.data, 0)
+    with monkeypatch.context() as mp:
+        mp.setattr(_GuiAlert, "finalState", False)
+        assert project.openProject(fncPath, clearLock=True) is True
+        assert "This project has the same ID as another project" in SHARED.lastAlert[0]
+        assert project.data.uuid == oldUuid
+        assert project.projChanged is False
+
+    # A copied project gets a new ID if the user accepts
+    CONFIG.recentProjects.update(copyPath, project.data, 0)
+    assert project.openProject(fncPath, clearLock=True) is True
+    assert project.data.uuid != oldUuid
+    assert project.projChanged is True
+
+    # A backup keeps its ID if the user declines, and skips the copy check
+    manifest = fncPath / nwFiles.MANIFEST_FILE
+    manifest.write_text(project.storage._generateManifest(nwProjectKind.BACKUP, 1000.0), encoding="utf-8")
+    CONFIG.recentProjects.update(copyPath, project.data, 0)
+    with monkeypatch.context() as mp:
+        mp.setattr(_GuiAlert, "finalState", False)
+        assert project.openProject(fncPath, clearLock=True) is True
+        assert "This project is a backup copy" in SHARED.lastAlert[0]
+        assert project.data.uuid == oldUuid
+        assert project.projChanged is True
+
+    # A backup gets a new ID if the user accepts
+    assert project.openProject(fncPath, clearLock=True) is True
+    assert "This project is a backup copy" in SHARED.lastAlert[0]
+    assert project.data.uuid != oldUuid
+    assert project.projChanged is True
+    CONFIG.recentProjects.remove(copyPath)
+
+    # Once saved, the backup is a regular project
+    assert project.saveProject() is True
+    assert project.openProject(fncPath, clearLock=True) is True
+    assert project.storage.kind == nwProjectKind.PROJECT
+    assert project.projChanged is False
+
     # Fail checking items should still pass
     with monkeypatch.context() as mp:
         mp.setattr("novelwriter.core.tree.ProjectTree.checkConsistency", lambda *a: (1, 0))
@@ -429,6 +472,7 @@ def testNWProject_Save(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, mo
     # Save with and without autosave
     assert project.saveProject(autoSave=False) is True
     assert project.saveProject(autoSave=True) is True
+    assert (fncPath / nwFiles.MANIFEST_FILE).is_file()
 
     # If the storage path is unavailable, recent projects are not updated
     with monkeypatch.context() as mp:

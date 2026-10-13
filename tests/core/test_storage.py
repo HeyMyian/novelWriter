@@ -24,24 +24,27 @@ from __future__ import annotations
 import json
 import logging
 
+from datetime import datetime
 from pathlib import Path
 from zipfile import ZipFile
 
 import pytest
 
-from novelwriter import CONFIG
+from novelwriter import CONFIG, __hexversion__, __version__
+from novelwriter.common import formatTimeStamp
 from novelwriter.constants import nwFiles
 from novelwriter.core.document import ProjectDocument
 from novelwriter.core.project import NWProject
-from novelwriter.core.projectxml import ProjectXMLReader, ProjectXMLWriter
+from novelwriter.core.projectxml import FILE_REVISION, FILE_VERSION, ProjectXMLReader, ProjectXMLWriter
 from novelwriter.core.storage import (
+    MANIFEST_VERSION,
     ProjectStorage,
     ProjectStorageCreate,
     ProjectStorageOpen,
     _LegacyDocuments,
     _LegacyStorage,
 )
-from novelwriter.enum import nwItemClass, nwItemLayout
+from novelwriter.enum import nwItemClass, nwItemLayout, nwProjectKind
 
 from tests.helpers import C, MockRnd, TstPaths, buildTestProject
 from tests.mocked import MockGuiMain, causeOSError
@@ -234,10 +237,15 @@ def testProjectStorage_LockFile(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     storage = ProjectStorage(MockProject())  # type: ignore
     assert storage.isOpen() is False
 
-    # Project not open, so cannot read/write lock file
-    assert storage._readLockFile() is None
-    assert storage._writeLockFile() is False
-    assert storage._clearLockFile() is False
+    # Project not open, so cannot read/write/clear lock file
+    storage._readLockFile()
+    assert storage.lockStatus is None
+    storage._writeLockFile()
+    storage._lockedBy = ["a", "b", "c", "d"]
+    storage._clearLockFile()
+    assert storage.lockStatus == ["a", "b", "c", "d"]
+    assert not (fncPath / nwFiles.PROJ_LOCK).exists()
+    storage._lockedBy = None
 
     # Set a path to work with
     lockFilePath = fncPath / nwFiles.PROJ_LOCK
@@ -250,11 +258,11 @@ def testProjectStorage_LockFile(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     # Write lockfile fails
     with monkeypatch.context() as mp:
         mp.setattr("pathlib.Path.write_text", causeOSError)
-        assert storage._writeLockFile() is False
+        storage._writeLockFile()
         assert not lockFilePath.exists()
 
     # Successful write
-    assert storage._writeLockFile() is True
+    storage._writeLockFile()
     assert lockFilePath.exists()
     assert lockFilePath.read_text().split(";")[3] == "1000"
 
@@ -282,12 +290,87 @@ def testProjectStorage_LockFile(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     # Fail to remove lockfile
     with monkeypatch.context() as mp:
         mp.setattr("pathlib.Path.unlink", causeOSError)
-        assert storage._clearLockFile() is False
+        storage._clearLockFile()
         assert lockFilePath.exists()
 
     # Successful remove
-    assert storage._clearLockFile() is True
+    storage._clearLockFile()
     assert not lockFilePath.exists()
+
+
+@pytest.mark.core
+def testProjectStorage_Manifest(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
+    """Test the project manifest file."""
+    storage = ProjectStorage(MockProject())  # type: ignore
+    manifestPath = fncPath / nwFiles.MANIFEST_FILE
+
+    # Project not open, so no manifest is written or read
+    assert storage.runPostSaveTasks(1000.0) is True
+    storage._writeManifest(nwProjectKind.PROJECT, 1000.0)
+    assert not manifestPath.exists()
+    storage._readManifest()
+    assert storage.kind == nwProjectKind.PROJECT
+    assert storage.timeStamp is None
+
+    # Set a path to work with
+    storage._manifestPath = manifestPath
+    storage._openMode = ProjectStorage.MODE_INPLACE
+
+    # Write manifest fails
+    with monkeypatch.context() as mp:
+        mp.setattr("pathlib.Path.write_text", causeOSError)
+        assert storage.runPostSaveTasks(1000.0) is True
+        assert not manifestPath.exists()
+
+    # Successful write
+    assert storage.runPostSaveTasks(1000.0) is True
+    manifest = json.loads(manifestPath.read_text(encoding="utf-8"))
+    assert manifest == {
+        "format": "novelWriter Project",
+        "formatVersion": MANIFEST_VERSION,
+        "projectVersion": f"{FILE_VERSION}-{FILE_REVISION}",
+        "kind": "project",
+        "timeStamp": formatTimeStamp(1000.0),
+        "appVersion": __version__,
+        "hexVersion": __hexversion__,
+    }
+
+    # Read a backup manifest
+    storage._writeManifest(nwProjectKind.BACKUP, 1000.0)
+    storage._readManifest()
+    assert storage.kind == nwProjectKind.BACKUP
+    assert storage.timeStamp == datetime.fromtimestamp(1000.0)
+
+    # Saving turns it into a project
+    assert storage.runPostSaveTasks(1000.0) is True
+    assert storage.kind == nwProjectKind.PROJECT
+    storage._readManifest()
+    assert storage.kind == nwProjectKind.PROJECT
+
+    # Invalid manifests are read as a project
+    manifestPath.write_text("{", encoding="utf-8")
+    storage._readManifest()
+    assert storage.kind == nwProjectKind.PROJECT
+    assert storage.timeStamp is None
+
+    manifestPath.write_text('{"kind": "foo", "timeStamp": "bar"}', encoding="utf-8")
+    storage._readManifest()
+    assert storage.kind == nwProjectKind.PROJECT
+    assert storage.timeStamp is None
+
+    # An invalid time stamp keeps the kind
+    manifestPath.write_text('{"kind": "backup"}', encoding="utf-8")
+    storage._readManifest()
+    assert storage.kind == nwProjectKind.BACKUP
+    assert storage.timeStamp is None
+
+    # Clearing resets the values
+    storage._writeManifest(nwProjectKind.BACKUP, 1000.0)
+    storage._readManifest()
+    assert storage.kind == nwProjectKind.BACKUP
+    storage.clear()
+    assert storage.kind == nwProjectKind.PROJECT
+    assert storage.timeStamp is None
 
 
 @pytest.mark.core
@@ -303,7 +386,7 @@ def testProjectStorage_ZipIt(
 
     project = NWProject()
     storage = project.storage
-    assert storage.zipIt(zipFile) is False
+    assert storage.zipIt(zipFile, 1000.0) is False
 
     # Make a project
     mockRnd.reset()
@@ -312,18 +395,21 @@ def testProjectStorage_ZipIt(
     # Fail to create archive
     with monkeypatch.context() as mp:
         mp.setattr("novelwriter.core.storage.ZipFile.write", causeOSError)
-        assert storage.zipIt(zipFile) is False
+        assert storage.zipIt(zipFile, 1000.0) is False
 
     # Add a stray file that should not be included
     strayFile = fncPath / "content" / "not-a-handle.txt"
     strayFile.write_text("stray")
 
     # Create archive
-    assert storage.zipIt(zipFile) is True
+    assert storage.zipIt(zipFile, 1000.0) is True
 
     # Check content
     with ZipFile(zipFile, mode="r") as archive:
         names = archive.namelist()
+        manifest = json.loads(archive.read(nwFiles.MANIFEST_FILE))
+        assert manifest["kind"] == "backup"
+        assert manifest["timeStamp"] == formatTimeStamp(1000.0)
         assert nwFiles.PROJ_FILE in names
         assert f"meta/{nwFiles.OPTS_FILE}" in names
         assert f"meta/{nwFiles.INDEX_FILE}" in names

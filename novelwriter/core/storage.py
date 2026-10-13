@@ -21,21 +21,32 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+import json
 import logging
 
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from time import time
 from typing import TYPE_CHECKING
 from zipfile import ZIP_DEFLATED, ZIP_STORED, ZipFile
 
-from novelwriter import CONFIG
-from novelwriter.common import isHandle, minmax, safeExists, safeIsDir, safeIsFile, safeIterDir, simplified
+from novelwriter import CONFIG, __hexversion__, __version__
+from novelwriter.common import (
+    formatTimeStamp,
+    isHandle,
+    minmax,
+    safeExists,
+    safeIsDir,
+    safeIsFile,
+    safeIterDir,
+    simplified,
+)
 from novelwriter.constants import nwFiles
 from novelwriter.core.document import ProjectDocument
-from novelwriter.core.projectxml import ProjectXMLReader, ProjectXMLWriter
+from novelwriter.core.projectxml import FILE_REVISION, FILE_VERSION, ProjectXMLReader, ProjectXMLWriter
 from novelwriter.core.spellcheck import UserDictionary
-from novelwriter.enum import nwItemClass, nwItemLayout
+from novelwriter.enum import nwItemClass, nwItemLayout, nwProjectKind
 from novelwriter.error import logException
 from novelwriter.formats.tomlparser import NTomlParser
 
@@ -44,6 +55,8 @@ if TYPE_CHECKING:
     from novelwriter.formats.tomlparser import T_TomlObject
 
 logger = logging.getLogger(__name__)
+
+MANIFEST_VERSION = "1.0"
 
 
 class ProjectStorageOpen(Enum):
@@ -79,20 +92,26 @@ class ProjectStorage:
         self._storagePath = None
         self._runtimePath = None
         self._lockFilePath = None
+        self._manifestPath = None
         self._lockedBy = None
         self._openMode = self.MODE_INACTIVE
         self._ready = False
         self._exception = None
         self._oldDocuments = []
+        self._kind = nwProjectKind.PROJECT
+        self._timeStamp = None
 
     def clear(self) -> None:
         """Reset internal variables."""
         self._storagePath = None
         self._runtimePath = None
         self._lockFilePath = None
+        self._manifestPath = None
         self._openMode = self.MODE_INACTIVE
         self._ready = False
         self._oldDocuments = []
+        self._kind = nwProjectKind.PROJECT
+        self._timeStamp = None
 
     ##
     #  Properties
@@ -107,6 +126,16 @@ class ProjectStorage:
     def runtimePath(self) -> Path | None:
         """Return the path where the project is stored at runtime."""
         return self._runtimePath
+
+    @property
+    def kind(self) -> nwProjectKind:
+        """Return the project kind recorded in the manifest."""
+        return self._kind
+
+    @property
+    def timeStamp(self) -> datetime | None:
+        """Return the time stamp recorded in the manifest."""
+        return self._timeStamp
 
     @property
     def contentPath(self) -> Path | None:
@@ -154,6 +183,7 @@ class ProjectStorage:
         self._storagePath = inPath
         self._runtimePath = inPath
         self._lockFilePath = inPath / nwFiles.PROJ_LOCK
+        self._manifestPath = inPath / nwFiles.MANIFEST_FILE
         self._openMode = self.MODE_INPLACE
 
         basePath = self._runtimePath
@@ -205,6 +235,7 @@ class ProjectStorage:
         self._storagePath = nwxPath
         self._runtimePath = nwxPath
         self._lockFilePath = nwxPath / nwFiles.PROJ_LOCK
+        self._manifestPath = nwxPath / nwFiles.MANIFEST_FILE
         self._openMode = self.MODE_INPLACE
 
         # Check Project Lock
@@ -219,6 +250,8 @@ class ProjectStorage:
             return ProjectStorageOpen.LOCKED
         else:
             logger.debug("Project is not locked")
+
+        self._readManifest()
 
         # Prepare Folder
         # ==============
@@ -262,13 +295,11 @@ class ProjectStorage:
                 return False
         return True
 
-    def runPostSaveTasks(self, autoSave: bool = False) -> bool:  # pragma: no cover
-        """Run tasks after the project has been saved.
-        Placeholder for later implementation. See #977.
-        """
+    def runPostSaveTasks(self, saveTime: float, autoSave: bool = False) -> bool:
+        """Run tasks after the project has been saved."""
         if self._openMode == self.MODE_INPLACE:
-            # Nothing to do, so we just return
-            return True
+            self._kind = nwProjectKind.PROJECT
+            self._writeManifest(nwProjectKind.PROJECT, saveTime)
         return True
 
     def lockSession(self) -> None:
@@ -326,7 +357,7 @@ class ProjectStorage:
             else []
         )
 
-    def zipIt(self, target: str | Path, compression: int | None = None) -> bool:
+    def zipIt(self, target: str | Path, saveTime: float, compression: int | None = None) -> bool:
         """Zip the content of the project at its runtime location into a
         zip file. This process will only grab files that are supposed to
         be in the project. All non-project files will be left out.
@@ -355,6 +386,7 @@ class ProjectStorage:
             level = minmax(compression, 0, 9) if isinstance(compression, int) else None
             with ZipFile(target, mode="w", compression=comp, compresslevel=level) as zipObj:
                 logger.info("Creating archive: %s", target)
+                zipObj.writestr(nwFiles.MANIFEST_FILE, self._generateManifest(nwProjectKind.BACKUP, saveTime))
                 for srcPath, zipPath in files:
                     if srcPath.is_file():
                         zipObj.write(srcPath, zipPath)
@@ -385,34 +417,70 @@ class ProjectStorage:
                 return
         return
 
-    def _writeLockFile(self) -> bool:
+    def _writeLockFile(self) -> None:
         """Write the project lock file."""
-        if self._lockFilePath is None:
-            return False
-        try:
-            self._lockFilePath.write_text(
-                f"{CONFIG.hostName};{CONFIG.osType};{CONFIG.kernelVer};{int(time())}",
-                encoding="utf-8",
-            )
-        except Exception:
-            logger.error("Failed to write project lockfile")
-            logException()
-            return False
-        return True
+        if self._lockFilePath is not None:
+            try:
+                self._lockFilePath.write_text(
+                    f"{CONFIG.hostName};{CONFIG.osType};{CONFIG.kernelVer};{int(time())}",
+                    encoding="utf-8",
+                )
+            except Exception:
+                logger.error("Failed to write project lockfile")
+                logException()
 
-    def _clearLockFile(self) -> bool:
+    def _clearLockFile(self) -> None:
         """Remove the lock file, if it exists."""
         if self._lockFilePath is None:
-            return False
+            return
         if safeExists(self._lockFilePath):
             try:
                 self._lockFilePath.unlink()
             except Exception:
                 logger.error("Failed to remove project lockfile")
                 logException()
-                return False
+                return
         self._lockedBy = None
-        return True
+
+    def _generateManifest(self, kind: nwProjectKind, saveTime: float) -> str:
+        """Generate the manifest JSON content."""
+        return json.dumps(
+            {
+                "format": "novelWriter Project",
+                "formatVersion": MANIFEST_VERSION,
+                "projectVersion": f"{FILE_VERSION}-{FILE_REVISION}",
+                "kind": kind,
+                "timeStamp": formatTimeStamp(saveTime),
+                "appVersion": __version__,
+                "hexVersion": __hexversion__,
+            },
+            indent=2,
+        )
+
+    def _readManifest(self) -> None:
+        """Read the manifest file, if it exists."""
+        self._kind = nwProjectKind.PROJECT
+        self._timeStamp = None
+        if self._manifestPath is not None and safeIsFile(self._manifestPath):
+            try:
+                data = json.loads(self._manifestPath.read_text(encoding="utf-8"))
+                self._kind = nwProjectKind(data.get("kind"))
+                self._timeStamp = datetime.fromisoformat(data.get("timeStamp"))
+            except Exception:
+                logger.error("Failed to read manifest")
+                logException()
+
+    def _writeManifest(self, kind: nwProjectKind, saveTime: float) -> None:
+        """Write the manifest file."""
+        if self._manifestPath is not None:
+            try:
+                self._manifestPath.write_text(
+                    self._generateManifest(kind, saveTime),
+                    encoding="utf-8",
+                )
+            except Exception:
+                logger.error("Failed to write manifest")
+                logException()
 
 
 class _LegacyStorage:

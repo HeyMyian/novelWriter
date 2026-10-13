@@ -978,7 +978,7 @@ def testProjectTree_ToCFile(
 
     # Allow writing
     assert tree.writeToCFile() is True
-    assert (fncPath / nwFiles.TOC_TXT).read_text() == (
+    assert (fncPath / nwFiles.TOC_FILE).read_text() == (
         "\n"
         "Table of Contents\n"
         "=================\n"
