@@ -29,19 +29,21 @@ from zipfile import ZipFile
 
 import pytest
 
-from novelwriter import CONFIG
+from novelwriter import CONFIG, __hexversion__, __version__
+from novelwriter.common import formatTimeStamp
 from novelwriter.constants import nwFiles
 from novelwriter.core.document import ProjectDocument
 from novelwriter.core.project import NWProject
-from novelwriter.core.projectxml import ProjectXMLReader, ProjectXMLWriter
+from novelwriter.core.projectxml import FILE_REVISION, FILE_VERSION, ProjectXMLReader, ProjectXMLWriter
 from novelwriter.core.storage import (
+    MANIFEST_VERSION,
     ProjectStorage,
     ProjectStorageCreate,
     ProjectStorageOpen,
     _LegacyDocuments,
     _LegacyStorage,
 )
-from novelwriter.enum import nwItemClass, nwItemLayout
+from novelwriter.enum import nwItemClass, nwItemLayout, nwProjectKind
 
 from tests.helpers import C, MockRnd, TstPaths, buildTestProject
 from tests.mocked import MockGuiMain, causeOSError
@@ -291,6 +293,41 @@ def testProjectStorage_LockFile(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
 
 
 @pytest.mark.core
+def testProjectStorage_Manifest(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
+    """Test the project manifest file."""
+    storage = ProjectStorage(MockProject())  # type: ignore
+    manifestPath = fncPath / nwFiles.MANIFEST_FILE
+
+    # Project not open, so no manifest is written
+    assert storage.runPostSaveTasks(1000.0) is True
+    storage._writeManifest(nwProjectKind.PROJECT, 1000.0)
+    assert not manifestPath.exists()
+
+    # Set a path to work with
+    storage._manifestPath = manifestPath
+    storage._openMode = ProjectStorage.MODE_INPLACE
+
+    # Write manifest fails
+    with monkeypatch.context() as mp:
+        mp.setattr("pathlib.Path.write_text", causeOSError)
+        assert storage.runPostSaveTasks(1000.0) is True
+        assert not manifestPath.exists()
+
+    # Successful write
+    assert storage.runPostSaveTasks(1000.0) is True
+    manifest = json.loads(manifestPath.read_text(encoding="utf-8"))
+    assert manifest == {
+        "format": "novelWriter Project",
+        "formatVersion": MANIFEST_VERSION,
+        "projectVersion": f"{FILE_VERSION}-{FILE_REVISION}",
+        "kind": "project",
+        "timeStamp": formatTimeStamp(1000.0),
+        "appVersion": __version__,
+        "hexVersion": __hexversion__,
+    }
+
+
+@pytest.mark.core
 def testProjectStorage_ZipIt(
     monkeypatch: pytest.MonkeyPatch,
     mockGUI: MockGuiMain,
@@ -303,7 +340,7 @@ def testProjectStorage_ZipIt(
 
     project = NWProject()
     storage = project.storage
-    assert storage.zipIt(zipFile) is False
+    assert storage.zipIt(zipFile, 1000.0) is False
 
     # Make a project
     mockRnd.reset()
@@ -312,18 +349,21 @@ def testProjectStorage_ZipIt(
     # Fail to create archive
     with monkeypatch.context() as mp:
         mp.setattr("novelwriter.core.storage.ZipFile.write", causeOSError)
-        assert storage.zipIt(zipFile) is False
+        assert storage.zipIt(zipFile, 1000.0) is False
 
     # Add a stray file that should not be included
     strayFile = fncPath / "content" / "not-a-handle.txt"
     strayFile.write_text("stray")
 
     # Create archive
-    assert storage.zipIt(zipFile) is True
+    assert storage.zipIt(zipFile, 1000.0) is True
 
     # Check content
     with ZipFile(zipFile, mode="r") as archive:
         names = archive.namelist()
+        manifest = json.loads(archive.read(nwFiles.MANIFEST_FILE))
+        assert manifest["kind"] == "backup"
+        assert manifest["timeStamp"] == formatTimeStamp(1000.0)
         assert nwFiles.PROJ_FILE in names
         assert f"meta/{nwFiles.OPTS_FILE}" in names
         assert f"meta/{nwFiles.INDEX_FILE}" in names

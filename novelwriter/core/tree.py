@@ -418,7 +418,7 @@ class ProjectTree:
                 maxLen = max(maxLen, len(tocLine))
 
         try:
-            with open(runtimePath / nwFiles.TOC_TXT, mode="w", encoding="utf-8") as toc:
+            with open(runtimePath / nwFiles.TOC_FILE, mode="w", encoding="utf-8") as toc:
                 toc.write("\n")
                 toc.write("Table of Contents\n")
                 toc.write("=================\n")

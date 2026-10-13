@@ -38,6 +38,7 @@ __pycache__
 /sample/**/*.bak
 /sample/*.lock
 /sample/ToC.txt
+/sample/manifest.json
 
 # PyTest
 /prof/

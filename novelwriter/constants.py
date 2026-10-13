@@ -177,7 +177,8 @@ class nwFiles:
     # Project Root Files
     PROJ_FILE = "nwProject.nwx"
     PROJ_LOCK = "nwProject.lock"
-    TOC_TXT = "ToC.txt"
+    MANIFEST_FILE = "manifest.json"
+    TOC_FILE = "ToC.txt"
 
     # Project Meta Files
     BUILDS_FILE = "builds.json"

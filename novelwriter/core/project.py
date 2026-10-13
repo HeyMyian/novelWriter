@@ -465,7 +465,7 @@ class NWProject:
             self._options.saveSettings()
             self._index.saveIndex()
 
-        self._storage.runPostSaveTasks(autoSave=autoSave)
+        self._storage.runPostSaveTasks(saveTime=saveTime, autoSave=autoSave)
 
         # Update recent projects
         if storagePath := self._storage.storagePath:
@@ -517,18 +517,19 @@ class NWProject:
             SHARED.error(self.tr("Could not create backup folder."), exc=exc)
             return False
 
+        saveTime = time()
         match CONFIG.backupInterval:
             case "day":
-                timeStamp = formatTimeStamp(time(), fileSafe=True, fmt="%Y-%m-%d")
+                timeStamp = formatTimeStamp(saveTime, fileSafe=True, fmt="%Y-%m-%d")
             case "week":
-                timeStamp = formatTimeStamp(time(), fileSafe=True, fmt="%G-W%V")
+                timeStamp = formatTimeStamp(saveTime, fileSafe=True, fmt="%G-W%V")
             case "month":
-                timeStamp = formatTimeStamp(time(), fileSafe=True, fmt="%Y-%m")
+                timeStamp = formatTimeStamp(saveTime, fileSafe=True, fmt="%Y-%m")
             case _:  # Option "session" falls through here
-                timeStamp = formatTimeStamp(time(), fileSafe=True)
+                timeStamp = formatTimeStamp(saveTime, fileSafe=True)
 
         archName = baseDir / f"{cleanName} {timeStamp}.zip"
-        if self._storage.zipIt(archName, compression=2):
+        if self._storage.zipIt(archName, saveTime, compression=2):
             if doNotify:
                 size = formatInt(getFileSize(archName))
                 SHARED.info(

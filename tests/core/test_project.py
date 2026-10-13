@@ -449,6 +449,7 @@ def testNWProject_Save(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, mo
     # Save with and without autosave
     assert project.saveProject(autoSave=False) is True
     assert project.saveProject(autoSave=True) is True
+    assert (fncPath / nwFiles.MANIFEST_FILE).is_file()
 
     # If the storage path is unavailable, recent projects are not updated
     with monkeypatch.context() as mp:
