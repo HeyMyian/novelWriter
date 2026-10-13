@@ -384,10 +384,6 @@ class NWProject:
         self._options.loadSettings()
         self._loadProjectLocalisation()
 
-        # Update recent projects
-        if storePath := self._storage.storagePath:
-            CONFIG.recentProjects.update(storePath, self._data, time())
-
         # Check the project tree consistency
         # This also handles any orphaned files found
         orphans, recovered = self._tree.checkConsistency(self.tr("Recovered"))
@@ -406,6 +402,21 @@ class NWProject:
         self.updateCounts()
         self._session.startSession()
         self.setProjectChanged(False)
+
+        # Update recent projects
+        if storePath := self._storage.storagePath:
+            if (other := CONFIG.recentProjects.findCopy(storePath, self._data.uuid)) and SHARED.question(
+                self.tr(
+                    "This project has the same ID as another project. "
+                    "It was either copied outside of novelWriter, or is a backup copy. "
+                    "Do you want to give it a new ID so both projects can be used separately?"
+                ),
+                info=self.tr("Path: {0}").format(other),
+            ):
+                self._data.setUuid("")
+                self.setProjectChanged(True)
+            CONFIG.recentProjects.update(storePath, self._data, time())
+
         self._valid = True
         self._state = NWProjectState.READY
         self._storage.lockSession()  # Lock only after a successful open. See issue #1977.

@@ -409,7 +409,7 @@ def testConfig_Internal(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
 
 
 @pytest.mark.base
-def testConfig_RecentCache(monkeypatch: pytest.MonkeyPatch, tstPaths: TstPaths, nwGUI: GuiMain):
+def testConfig_RecentCache(monkeypatch: pytest.MonkeyPatch, tstPaths: TstPaths, fncPath: Path, nwGUI: GuiMain):
     """Test recent cache file."""
     cacheFile = tstPaths.cnfDir / nwFiles.RECENT_FILE
     recent = RecentProjects(CONFIG)
@@ -501,6 +501,37 @@ def testConfig_RecentCache(monkeypatch: pytest.MonkeyPatch, tstPaths: TstPaths, 
     # Entries without a UUID are not mapped
     recent._setEntry("", str(pathOne), "No UUID", 10, 0, 0)
     assert recent._map.get("") is None
+    recent.remove(pathOne)
+
+    # A moved project replaces the old entry
+    pathOld = fncPath / "projOld"
+    pathNew = fncPath / "projNew"
+    recent.update(pathOld, prjTwo.data, 1600002000)
+    assert recent.findCopy(pathNew, prjTwo.data.uuid) is None
+    recent.update(pathNew, prjTwo.data, 1600005600)
+    assert recent.listEntries() == [
+        (str(pathNew), "Proj Two", 200, 1600005600),
+    ]
+    recent.remove(pathNew)
+
+    # A copied project keeps both entries
+    pathOld.mkdir()
+    (pathOld / nwFiles.PROJ_FILE).touch()
+    oldUuid = prjOne.data.uuid
+    recent.update(pathOld, prjOne.data, 1600002000)
+    assert recent.findCopy(pathOld, oldUuid) is None
+    assert recent.findCopy(pathNew, oldUuid) == str(pathOld)
+    recent.update(pathNew, prjOne.data, 1600005600)
+    assert recent.listEntries() == [
+        (str(pathOld), "Proj One", 100, 1600002000),
+        (str(pathNew), "Proj One", 100, 1600005600),
+    ]
+
+    # Once the copy has a new UUID, the original is no longer a copy
+    prjOne.data.setUuid("")
+    recent.update(pathNew, prjOne.data, 1600005600)
+    assert recent.findCopy(pathOld, oldUuid) is None
+    assert len(recent.listEntries()) == 2
 
 
 @pytest.mark.base

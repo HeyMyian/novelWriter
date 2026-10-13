@@ -349,6 +349,26 @@ def testNWProject_Open(
         mp.setattr("novelwriter.core.storage.ProjectStorage.storagePath", property(lambda *a: None))
         assert project.openProject(fncPath, clearLock=True) is True
 
+    # A copied project keeps its ID if the user declines
+    copyPath = fncPath / "copy"
+    copyPath.mkdir()
+    (copyPath / nwFiles.PROJ_FILE).touch()
+    oldUuid = project.data.uuid
+    CONFIG.recentProjects.update(copyPath, project.data, 0)
+    with monkeypatch.context() as mp:
+        mp.setattr(_GuiAlert, "finalState", False)
+        assert project.openProject(fncPath, clearLock=True) is True
+        assert "This project has the same ID as another project" in SHARED.lastAlert[0]
+        assert project.data.uuid == oldUuid
+        assert project.projChanged is False
+
+    # A copied project gets a new ID if the user accepts
+    CONFIG.recentProjects.update(copyPath, project.data, 0)
+    assert project.openProject(fncPath, clearLock=True) is True
+    assert project.data.uuid != oldUuid
+    assert project.projChanged is True
+    CONFIG.recentProjects.remove(copyPath)
+
     # Fail checking items should still pass
     with monkeypatch.context() as mp:
         mp.setattr("novelwriter.core.tree.ProjectTree.checkConsistency", lambda *a: (1, 0))
