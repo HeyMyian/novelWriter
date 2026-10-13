@@ -237,10 +237,15 @@ def testProjectStorage_LockFile(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     storage = ProjectStorage(MockProject())  # type: ignore
     assert storage.isOpen() is False
 
-    # Project not open, so cannot read/write lock file
-    assert storage._readLockFile() is None
-    assert storage._writeLockFile() is False
-    assert storage._clearLockFile() is False
+    # Project not open, so cannot read/write/clear lock file
+    storage._readLockFile()
+    assert storage.lockStatus is None
+    storage._writeLockFile()
+    storage._lockedBy = ["a", "b", "c", "d"]
+    storage._clearLockFile()
+    assert storage.lockStatus == ["a", "b", "c", "d"]
+    assert not (fncPath / nwFiles.PROJ_LOCK).exists()
+    storage._lockedBy = None
 
     # Set a path to work with
     lockFilePath = fncPath / nwFiles.PROJ_LOCK
@@ -253,11 +258,11 @@ def testProjectStorage_LockFile(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     # Write lockfile fails
     with monkeypatch.context() as mp:
         mp.setattr("pathlib.Path.write_text", causeOSError)
-        assert storage._writeLockFile() is False
+        storage._writeLockFile()
         assert not lockFilePath.exists()
 
     # Successful write
-    assert storage._writeLockFile() is True
+    storage._writeLockFile()
     assert lockFilePath.exists()
     assert lockFilePath.read_text().split(";")[3] == "1000"
 
@@ -285,11 +290,11 @@ def testProjectStorage_LockFile(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     # Fail to remove lockfile
     with monkeypatch.context() as mp:
         mp.setattr("pathlib.Path.unlink", causeOSError)
-        assert storage._clearLockFile() is False
+        storage._clearLockFile()
         assert lockFilePath.exists()
 
     # Successful remove
-    assert storage._clearLockFile() is True
+    storage._clearLockFile()
     assert not lockFilePath.exists()
 
 

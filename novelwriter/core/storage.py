@@ -417,34 +417,30 @@ class ProjectStorage:
                 return
         return
 
-    def _writeLockFile(self) -> bool:
+    def _writeLockFile(self) -> None:
         """Write the project lock file."""
-        if self._lockFilePath is None:
-            return False
-        try:
-            self._lockFilePath.write_text(
-                f"{CONFIG.hostName};{CONFIG.osType};{CONFIG.kernelVer};{int(time())}",
-                encoding="utf-8",
-            )
-        except Exception:
-            logger.error("Failed to write project lockfile")
-            logException()
-            return False
-        return True
+        if self._lockFilePath is not None:
+            try:
+                self._lockFilePath.write_text(
+                    f"{CONFIG.hostName};{CONFIG.osType};{CONFIG.kernelVer};{int(time())}",
+                    encoding="utf-8",
+                )
+            except Exception:
+                logger.error("Failed to write project lockfile")
+                logException()
 
-    def _clearLockFile(self) -> bool:
+    def _clearLockFile(self) -> None:
         """Remove the lock file, if it exists."""
         if self._lockFilePath is None:
-            return False
+            return
         if safeExists(self._lockFilePath):
             try:
                 self._lockFilePath.unlink()
             except Exception:
                 logger.error("Failed to remove project lockfile")
                 logException()
-                return False
+                return
         self._lockedBy = None
-        return True
 
     def _generateManifest(self, kind: nwProjectKind, saveTime: float) -> str:
         """Generate the manifest JSON content."""
