@@ -358,7 +358,7 @@ def testNWProject_Open(
     with monkeypatch.context() as mp:
         mp.setattr(_GuiAlert, "finalState", False)
         assert project.openProject(fncPath, clearLock=True) is True
-        assert "This project has the same ID as another project" in SHARED.lastAlert[0]
+        assert "This project appears to be a copy of another project" in SHARED.lastAlert[0]
         assert project.data.uuid == oldUuid
         assert project.projChanged is False
 

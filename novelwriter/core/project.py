@@ -409,24 +409,26 @@ class NWProject:
                 stamp = self._storage.timeStamp
                 if SHARED.question(
                     self.tr(
-                        "This project is a backup copy. Do you want to give it a new ID so it "
-                        "can be used separately from the original project?"
+                        "This project is a backup copy. Do you want to make it a separate "
+                        "project so novelWriter can tell it apart from the original?"
                     ),
                     info=self.tr("Backup from: {0}").format(CONFIG.localDateTime(stamp)) if stamp else "",
                 ):
                     self._data.setUuid("")
                 # The manifest must be saved as a regular project
                 self.setProjectChanged(True)
+
             elif (other := CONFIG.recentProjects.findCopy(storePath, self._data.uuid)) and SHARED.question(
                 self.tr(
-                    "This project has the same ID as another project. "
+                    "This project appears to be a copy of another project. "
                     "It was either copied outside of novelWriter, or is a backup copy. "
-                    "Do you want to give it a new ID so both projects can be used separately?"
+                    "Do you want to make it a separate project so novelWriter can tell them apart?"
                 ),
                 info=self.tr("Path: {0}").format(other),
             ):
                 self._data.setUuid("")
                 self.setProjectChanged(True)
+
             CONFIG.recentProjects.update(storePath, self._data, time())
 
         self._valid = True
