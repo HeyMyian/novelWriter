@@ -54,7 +54,7 @@ def trLabel(label: nwStdLabel) -> str:
 
 def trUnit(unit: nwStdUnit) -> str:
     """Return a translated standard unit."""
-    return QCoreApplication.translate("Unit", nwLabels.UNIT_LABELS.get(unit, ""))
+    return QCoreApplication.translate("Units", nwLabels.UNIT_LABELS.get(unit, ""))
 
 
 class nwConst:

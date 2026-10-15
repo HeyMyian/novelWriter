@@ -27,11 +27,11 @@ import math
 from typing import TYPE_CHECKING, NamedTuple
 
 from PyQt6.QtCore import QAbstractTableModel, QModelIndex, Qt
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QIcon
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import formatPercent
-from novelwriter.constants import nwLabels, nwStyles, nwUnicode, trConst, trLabel, trStats
+from novelwriter.constants import nwLabels, nwStyles, nwUnicode, trConst, trLabel, trUnit
 from novelwriter.enum import nwStdLabel, nwStdUnit
 from novelwriter.story.storysettings import COMMENT_SYNOPSIS
 from novelwriter.types import QtDisplayRole, QtTransparent
@@ -82,6 +82,7 @@ class OutlineNode:
         "_level",
         "_lists",
         "_progress",
+        "_status",
         "_style",
         "_title",
         "_tr",
@@ -109,6 +110,7 @@ class OutlineNode:
         self._words = ""
         self._chars = ""
         self._progress = ""
+        self._status: tuple[str, QIcon] | None = None
         self._lists: dict[str, list[str]] = {}
         self._entries: list[list[tuple[str, str, str, str]]] = []
         self._style = style
@@ -150,6 +152,11 @@ class OutlineNode:
         return self._progress
 
     @property
+    def status(self) -> tuple[str, QIcon] | None:
+        """The status label and icon of the heading's document, if set."""
+        return self._status
+
+    @property
     def style(self) -> NodeStyle:
         """The style for the heading's structural level."""
         return self._style
@@ -181,6 +188,10 @@ class OutlineNode:
     def setProgress(self, page: int, fraction: float) -> None:
         """Set the page number and word count progress fraction."""
         self._progress = f"{self._tr.sPage.format(f'{page:n}')} ({formatPercent(fraction, prec=1)})"
+
+    def setStatus(self, label: str, icon: QIcon) -> None:
+        """Set the status label and icon."""
+        self._status = (label, icon)
 
     def refresh(self) -> None:
         """Refresh data values."""
@@ -230,8 +241,8 @@ class OutlineModel(QAbstractTableModel):
         self._fixed = [trLabel(nwStdLabel.STORY)]
         self._headers = self._fixed.copy()
         self._labels = _TrCache(
-            sWords=trStats(nwLabels.UNIT_LABELS[nwStdUnit.WORDS]),
-            sChars=trStats(nwLabels.UNIT_LABELS[nwStdUnit.CHARS]),
+            sWords=trUnit(nwStdUnit.WORDS),
+            sChars=trUnit(nwStdUnit.CHARS),
             sPage=self.tr("Page {0}"),
             sSynopsis="",
             sStory="",
@@ -314,11 +325,13 @@ class OutlineModel(QAbstractTableModel):
         target: int = 0,
         useChars: bool = False,
         columns: list[tuple[str, tuple[str, ...]]] | None = None,
+        showStatus: bool = False,
     ) -> None:
         """Rebuild the outline for the given heading levels and columns.
         If count per page is set, the page and progress of each heading
         is added, with partitions and chapters starting on a new page.
         """
+        tree = SHARED.project.tree
         self.beginResetModel()
         columns = columns or []
         keys = [k for _, k in columns]
@@ -342,6 +355,8 @@ class OutlineModel(QAbstractTableModel):
                 style = self._styles.get(level, BLANK_STYLE)
                 node = OutlineNode(tHandle, sTitle, hItem, labels, style, keys)
                 nodes.append(node)
+                if showStatus and (item := tree[tHandle]):
+                    node.setStatus(*item.getImportStatus())
                 if countPerPage > 0:
                     progress.append((node, pages + 1 + (count - start) // countPerPage, count))
             count += hItem.charCount if useChars else hItem.wordCount

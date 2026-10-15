@@ -57,6 +57,7 @@ MAX_COLUMN_KEYS = 5
 SETTINGS_TEMPLATE: dict[str, tuple[type, T_ViewValue]] = {
     "outline.syntaxColors":    (bool, False),
     "outline.rowLines":        (int, 3),
+    "outline.showStatus":      (bool, False),
     "outline.commentIcons":    (bool, False),
     "outline.referenceIcons":  (bool, False),
 
@@ -77,6 +78,7 @@ SETTINGS_LABELS = {
     "outline.grpAppearance":   QT_TRANSLATE_NOOP("StoryViews", "Appearance"),
     "outline.syntaxColors":    QT_TRANSLATE_NOOP("StoryViews", "Use syntax colours"),
     "outline.rowLines":        QT_TRANSLATE_NOOP("StoryViews", "Row height"),
+    "outline.showStatus":      QT_TRANSLATE_NOOP("StoryViews", "Show document status"),
     "outline.commentIcons":    QT_TRANSLATE_NOOP("StoryViews", "Show icons for comment types"),
     "outline.referenceIcons":  QT_TRANSLATE_NOOP("StoryViews", "Show icons for reference types"),
 
