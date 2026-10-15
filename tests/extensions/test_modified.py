@@ -39,6 +39,7 @@ from novelwriter.extensions.modified import (
     NFlatIconButton,
     NFlatIconTextButton,
     NFontDialog,
+    NIconButton,
     NNonBlockingDialog,
     NSpinBox,
     NSplitterHandle,
@@ -335,6 +336,22 @@ def testNFlatButtons_Main(qtbot: QtBot, mockGUI: MockGuiMain):
     assert button1.isCheckable() is True
     button1.setCheckable(False)
     assert button1.isCheckable() is False
+
+    # Tooltips are used as accessible names, without the shortcut
+    button1.setToolTip("Project Tree View", "Ctrl+T")
+    assert button1.toolTip() == "Project Tree View [Ctrl+T]"
+    assert button1.accessibleName() == "Project Tree View"
+    button1.setToolTip("Settings")
+    assert button1.toolTip() == "Settings"
+    assert button1.accessibleName() == "Settings"
+    button1.setToolTip(None)
+    assert button1.toolTip() == ""
+    assert button1.accessibleName() == ""
+
+    button3 = NIconButton(dialog, size, "add:add")
+    button3.setToolTip("Add", "Ctrl+N")
+    assert button3.toolTip() == "Add [Ctrl+N]"
+    assert button3.accessibleName() == "Add"
 
 
 @pytest.mark.gui

@@ -150,6 +150,7 @@ class GuiProjectSearch(QWidget):
 
         self.searchText = QLineEdit(self)
         self.searchText.setPlaceholderText(self.tr("Search for"))
+        self.searchText.setAccessibleName(self.searchText.placeholderText())
         self.searchText.addAction(self.searchAction, QLineEdit.ActionPosition.TrailingPosition)
         self.searchText.returnPressed.connect(self._processSearch)
         self.searchText.textEdited.connect(self._editSearchText)

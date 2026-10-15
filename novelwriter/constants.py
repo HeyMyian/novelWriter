@@ -382,6 +382,10 @@ class nwLabels:
         True: QT_TRANSLATE_NOOP("Constant", "Active"),
         False: QT_TRANSLATE_NOOP("Constant", "Inactive"),
     }
+    SAVED_NAME: ClassVar[dict[bool, str]] = {
+        True: QT_TRANSLATE_NOOP("Constant", "Saved"),
+        False: QT_TRANSLATE_NOOP("Constant", "Unsaved"),
+    }
     KEY_NAME: ClassVar[dict[str, str]] = {
         nwKeyWords.TAG_KEY: QT_TRANSLATE_NOOP("Constant", "Tag"),
         nwKeyWords.POV_KEY: QT_TRANSLATE_NOOP("Constant", "Point of View"),

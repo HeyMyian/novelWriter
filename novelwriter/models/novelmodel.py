@@ -56,7 +56,7 @@ T_NodeData = str | tuple[int, int] | QIcon | QPixmap | Qt.AlignmentFlag | None
 class NovelModel(QAbstractTableModel):
     """Core: Novel Model Class."""
 
-    __slots__ = ("_columns", "_extraKey", "_extraLabel", "_more", "_rows")
+    __slots__ = ("_columns", "_extraKey", "_extraLabel", "_levels", "_more", "_rows")
 
     def __init__(self) -> None:
         super().__init__()
@@ -65,6 +65,7 @@ class NovelModel(QAbstractTableModel):
         self._columns = 3
         self._extraKey = ""
         self._extraLabel = ""
+        self._levels = {k: trConst(v) for k, v in nwStyles.T_LABEL.items()}
 
     def __del__(self) -> None:  # pragma: no cover
         """Class destructor."""
@@ -227,6 +228,7 @@ class NovelModel(QAbstractTableModel):
         data: dict[int, T_NodeData] = {}
         data[C_FACTOR * 0 | QtToolTipRole] = head.title
         data[C_FACTOR * 0 | QtDisplayRole] = head.title
+        data[C_FACTOR * 0 | QtAccessibleTextRole] = f"{self._levels.get(head.level, '')}: {head.title}"
         data[C_FACTOR * 0 | QtDecorationRole] = SHARED.theme.getHeaderDecoration(iLevel)
         data[C_FACTOR * 1 | QtTextAlignmentRole] = QtAlignRight
         self._setCount(data, head.mainCount)
