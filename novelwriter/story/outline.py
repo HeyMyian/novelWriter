@@ -207,11 +207,13 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.showChapters = NSwitch(self, height=iPx)
         self.showScenes = NSwitch(self, height=iPx)
         self.showSections = NSwitch(self, height=iPx)
+        self.inactiveParts = NSwitch(self, height=iPx)
 
         self.form.addRow(settings.getLabel("outline.showParts"), self.showParts)
         self.form.addRow(settings.getLabel("outline.showChapters"), self.showChapters)
         self.form.addRow(settings.getLabel("outline.showScenes"), self.showScenes)
         self.form.addRow(settings.getLabel("outline.showSections"), self.showSections)
+        self.form.addRow(settings.getLabel("outline.inactiveParts"), self.inactiveParts)
 
         # Progression
         # ===========
@@ -251,6 +253,7 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.showChapters.setChecked(settings.getBool("outline.showChapters"))
         self.showScenes.setChecked(settings.getBool("outline.showScenes"))
         self.showSections.setChecked(settings.getBool("outline.showSections"))
+        self.inactiveParts.setChecked(settings.getBool("outline.inactiveParts"))
 
         # Progression
         self.showProgress.setChecked(settings.getBool("outline.showProgress"))
@@ -281,6 +284,7 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         settings.setValue("outline.showChapters", self.showChapters.isChecked())
         settings.setValue("outline.showScenes", self.showScenes.isChecked())
         settings.setValue("outline.showSections", self.showSections.isChecked())
+        settings.setValue("outline.inactiveParts", self.inactiveParts.isChecked())
 
         # Progression
         settings.setValue("outline.showProgress", self.showProgress.isChecked())
@@ -662,6 +666,7 @@ class GuiStoryOutlineTree(NTreeView):
                 data.targetCountChars,
                 [(c.name, c.keys) for c in columns],
                 settings.getBool("outline.showStatus"),
+                settings.getBool("outline.inactiveParts"),
             )
             if columnIDs != self._columnIDs:
                 self._columnIDs = columnIDs

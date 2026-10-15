@@ -326,10 +326,12 @@ class OutlineModel(QAbstractTableModel):
         useChars: bool = False,
         columns: list[tuple[str, tuple[str, ...]]] | None = None,
         showStatus: bool = False,
+        inactiveParts: bool = False,
     ) -> None:
         """Rebuild the outline for the given heading levels and columns.
         If count per page is set, the page and progress of each heading
         is added, with partitions and chapters starting on a new page.
+        Inactive partitions are not counted.
         """
         tree = SHARED.project.tree
         self.beginResetModel()
@@ -345,9 +347,13 @@ class OutlineModel(QAbstractTableModel):
         count = 0
         pages = 0
         start = 0
-        for tHandle, sTitle, hItem in index.iterNovelStructure(rHandle=rootHandle):
+        for tHandle, sTitle, hItem in index.iterNovelStructure(rHandle=rootHandle, activeOnly=not inactiveParts):
             level = nwStyles.H_LEVEL.get(hItem.level, 0)
-            if countPerPage > 0 and level <= 2:
+            item = tree[tHandle]
+            active = bool(item and item.isActive)
+            if not (active or level == 1):
+                continue
+            if active and countPerPage > 0 and level <= 2:
                 span = math.ceil((count - start) / countPerPage)
                 pages += span + span % 2 if clearDouble else span
                 start = count
@@ -355,11 +361,12 @@ class OutlineModel(QAbstractTableModel):
                 style = self._styles.get(level, BLANK_STYLE)
                 node = OutlineNode(tHandle, sTitle, hItem, labels, style, keys)
                 nodes.append(node)
-                if showStatus and (item := tree[tHandle]):
+                if showStatus and item:
                     node.setStatus(*item.getImportStatus())
-                if countPerPage > 0:
+                if active and countPerPage > 0:
                     progress.append((node, pages + 1 + (count - start) // countPerPage, count))
-            count += hItem.charCount if useChars else hItem.wordCount
+            if active:
+                count += hItem.charCount if useChars else hItem.wordCount
 
         total = max(count, target)
         for node, page, before in progress:

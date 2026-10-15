@@ -189,7 +189,7 @@ def testOutlineModel_Progress(nwGUI: GuiMain, prjLipsum: Path):
 
     # Without titles and chapters, pages run on and clear double is ignored
     scenes = [e for e in index.iterNovelStructure() if e[2].level == "H3"]
-    scenesOnly = SimpleNamespace(iterNovelStructure=lambda rHandle: iter(scenes))
+    scenesOnly = SimpleNamespace(iterNovelStructure=lambda rHandle, activeOnly: iter(scenes))
     expected = [
         "Page 1 (0.0\u202f%)",
         "Page 2 (8.6\u202f%)",
@@ -219,3 +219,17 @@ def testOutlineModel_Progress(nwGUI: GuiMain, prjLipsum: Path):
     model.buildOutline(index, None, {2}, 1000, False, 100000, True)
     progress = [model.node(model.index(r, 0)).progress for r in range(3)]  # type: ignore
     assert progress == ["Page 4 (1.3\u202f%)", "Page 6 (2.0\u202f%)", "Page 14 (9.2\u202f%)"]
+
+    # Inactive partitions can be shown, but are not counted, and other inactive headings are still skipped
+    actOne = SHARED.project.tree["db7e733775d4d"]
+    assert actOne is not None
+    actOne.setActive(False)
+    model.buildOutline(index, None, {1, 2, 3, 4}, 100)
+    expected = [model.node(model.index(r, 0)).progress for r in range(10)]  # type: ignore
+    model.buildOutline(index, None, {1, 2, 3, 4}, 100, inactiveParts=True)
+    titles = [model.node(model.index(r, 0)).title for r in range(11)]  # type: ignore
+    progress = [model.node(model.index(r, 0)).progress for r in range(11)]  # type: ignore
+    assert titles[1] == "Act One"
+    assert "Why do we use it?" not in titles
+    assert progress[1] == ""
+    assert progress[:1] + progress[2:] == expected

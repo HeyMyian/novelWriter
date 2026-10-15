@@ -65,6 +65,7 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_ViewValue]] = {
     "outline.showScenes":      (bool, True),
     "outline.showChapters":    (bool, True),
     "outline.showSections":    (bool, False),
+    "outline.inactiveParts":   (bool, False),
 
     "outline.showProgress":    (bool, True),
     "outline.countPerPage":    (int, 350),
@@ -87,6 +88,7 @@ SETTINGS_LABELS = {
     "outline.showChapters":    QT_TRANSLATE_NOOP("StoryViews", "Show chapters"),
     "outline.showScenes":      QT_TRANSLATE_NOOP("StoryViews", "Show scenes"),
     "outline.showSections":    QT_TRANSLATE_NOOP("StoryViews", "Show sections"),
+    "outline.inactiveParts":   QT_TRANSLATE_NOOP("StoryViews", "Show inactive partitions"),
 
     "outline.grpProgress":     QT_TRANSLATE_NOOP("StoryViews", "Progression"),
     "outline.showProgress":    QT_TRANSLATE_NOOP("StoryViews", "Show story progression"),
