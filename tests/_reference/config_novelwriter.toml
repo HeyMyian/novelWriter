@@ -1,5 +1,5 @@
 [Meta]
-timeStamp = "2026-08-08 17:58:45"
+timeStamp = "2026-10-15 18:01:15"
 
 [Main]
 font = "Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0"
@@ -87,6 +87,7 @@ stopWhenIdle = true
 userIdleTime = 300
 
 [State]
+novelViewSubCounts = true
 showDetailsPanel = true
 showViewerPanel = true
 showEditToolBar = false
@@ -105,3 +106,4 @@ searchProjAuto = false
 searchProjCase = false
 searchProjWord = false
 searchProjRegEx = false
+

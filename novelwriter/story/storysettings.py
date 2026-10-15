@@ -80,7 +80,7 @@ SETTINGS_LABELS = {
     "outline.grpAppearance":   QT_TRANSLATE_NOOP("StoryViews", "Appearance"),
     "outline.syntaxColors":    QT_TRANSLATE_NOOP("StoryViews", "Use syntax colours"),
     "outline.rowLines":        QT_TRANSLATE_NOOP("StoryViews", "Row height"),
-    "outline.subCounts":       QT_TRANSLATE_NOOP("StoryViews", "Include counts from child documents"),
+    "outline.subCounts":       QT_TRANSLATE_NOOP("StoryViews", "Include sub-heading counts"),
     "outline.showStatus":      QT_TRANSLATE_NOOP("StoryViews", "Show document status"),
     "outline.commentIcons":    QT_TRANSLATE_NOOP("StoryViews", "Show icons for comment types"),
     "outline.referenceIcons":  QT_TRANSLATE_NOOP("StoryViews", "Show icons for reference types"),
