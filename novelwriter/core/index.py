@@ -29,7 +29,7 @@ from pathlib import Path
 from time import time
 from typing import TYPE_CHECKING
 
-from novelwriter import SHARED, __hexversion__
+from novelwriter import CONFIG, SHARED, __hexversion__
 from novelwriter.common import (
     checkInt,
     formatTimeStamp,
@@ -297,7 +297,7 @@ class Index:
                 "timestamp": formatTimeStamp(start),
                 "revision": self._indexRevision,
             }
-            with open(indexFile, mode="w+", encoding="utf-8") as outFile:
+            with open(indexFile, mode="w+", encoding="utf-8", newline=CONFIG.lineEnding) as outFile:
                 outFile.write(
                     jsonCombine({
                         "novelWriter.meta": jsonEncode(meta, n=1),

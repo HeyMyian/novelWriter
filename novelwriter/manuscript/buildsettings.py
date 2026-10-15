@@ -677,7 +677,7 @@ class BuildCollection:
                 "defaultBuild": self._defaultBuild,
             }
             data.update({k: b.pack() for k, b in self._builds.items()})
-            with open(buildsFile, mode="w+", encoding="utf-8") as outFile:
+            with open(buildsFile, mode="w+", encoding="utf-8", newline=CONFIG.lineEnding) as outFile:
                 outFile.write(jsonEncode({"novelWriter.builds": data}, nmax=4))
         except Exception:
             logger.error("Failed to save builds file")

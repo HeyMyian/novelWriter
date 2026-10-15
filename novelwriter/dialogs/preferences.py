@@ -1019,6 +1019,25 @@ class GuiPreferences(NDialog):
             self.tr("Switch the editor to use Vim editor commands."),
         )
 
+        # Label
+        self.sidebar.addLabel(self.tr("More"))
+
+        # Advanced
+        # ========
+
+        title = self.tr("Advanced")
+        section += 1
+        self.sidebar.addButton(title, section)
+        self.mainForm.addGroupLabel(title, section)
+
+        # Force Unix Line Endings
+        self.forceUnixLineEndings = NSwitch(self)
+        self.forceUnixLineEndings.setChecked(CONFIG.forceUnixLineEndings)
+        self.mainForm.addRow(
+            self.tr("Use Unix line endings for all files"),
+            self.forceUnixLineEndings,
+        )
+
         self.mainForm.finalise()
         self.sidebar.setSelected(1)
 
@@ -1347,6 +1366,9 @@ class GuiPreferences(NDialog):
         updateVimMode |= CONFIG.vimMode != vimMode
 
         CONFIG.vimMode = vimMode
+
+        # Advanced
+        CONFIG.forceUnixLineEndings = self.forceUnixLineEndings.isChecked()
 
         # Finalise
         CONFIG.saveConfig()
