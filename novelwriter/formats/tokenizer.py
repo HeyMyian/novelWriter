@@ -284,10 +284,10 @@ class Tokenizer(ABC):
 
         # Format RegEx
         self._rxMarkdown = [
-            (REGEX_PATTERNS.markdownItalic, [0, TextFmt.I_B, 0, TextFmt.I_E]),
-            (REGEX_PATTERNS.markdownBold, [0, TextFmt.B_B, 0, TextFmt.B_E]),
-            (REGEX_PATTERNS.markdownStrike, [0, TextFmt.D_B, 0, TextFmt.D_E]),
-            (REGEX_PATTERNS.markdownMark, [0, TextFmt.M_B, 0, TextFmt.M_E]),
+            (REGEX_PATTERNS.markdownItalic, [TextFmt.NONE, TextFmt.I_B, TextFmt.NONE, TextFmt.I_E]),
+            (REGEX_PATTERNS.markdownBold, [TextFmt.NONE, TextFmt.B_B, TextFmt.NONE, TextFmt.B_E]),
+            (REGEX_PATTERNS.markdownStrike, [TextFmt.NONE, TextFmt.D_B, TextFmt.NONE, TextFmt.D_E]),
+            (REGEX_PATTERNS.markdownMark, [TextFmt.NONE, TextFmt.M_B, TextFmt.NONE, TextFmt.M_E]),
         ]
 
         self._shortCodeFmt = {
@@ -1255,12 +1255,12 @@ class Tokenizer(ABC):
 
         return tag, "".join(txt), fmt
 
-    def _extractFormats(self, text: str, skip: int = 0, hDialog: bool = False) -> tuple[str, T_Formats]:
+    def _extractFormats(self, text: str, skip: TextFmt = TextFmt.NONE, hDialog: bool = False) -> tuple[str, T_Formats]:
         """Extract format markers from a text paragraph. In order to
         also process dialogue highlighting, the hDialog flag must be set
         to True. See issues #2011 and #2013.
         """
-        temp: list[tuple[int, int, int, str]] = []
+        temp: list[tuple[int, int, TextFmt, str]] = []
 
         # Match Markdown
         for regEx, fmts in self._rxMarkdown:
@@ -1284,14 +1284,14 @@ class Tokenizer(ABC):
 
         # Match Shortcodes
         temp.extend(
-            (res.start(1), res.end(1), self._shortCodeFmt.get(res.group(1).lower(), 0), "")
+            (res.start(1), res.end(1), self._shortCodeFmt.get(res.group(1).lower(), TextFmt.NONE), "")
             for res in REGEX_PATTERNS.shortcodePlain.finditer(text)
         )
 
         # Match Shortcode w/Values
         tHandle = self._handle or ""
         for res in REGEX_PATTERNS.shortcodeValue.finditer(text):
-            kind = self._shortCodeVals.get(res.group(1).lower(), 0)
+            kind = self._shortCodeVals.get(res.group(1).lower(), TextFmt.NONE)
             temp.append((
                 res.start(0),
                 res.end(0),

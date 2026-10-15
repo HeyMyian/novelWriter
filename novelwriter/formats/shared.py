@@ -77,6 +77,7 @@ class TextFmt(IntEnum):
     text block.
     """
 
+    NONE = 0  # No format
     B_B = 1  # Begin bold
     B_E = 2  # End bold
     I_B = 3  # Begin italics
