@@ -31,8 +31,8 @@ from PyQt6.QtGui import QColor
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import formatPercent
-from novelwriter.constants import nwLabels, nwStats, nwStyles, nwUnicode, trConst, trLabel, trStats
-from novelwriter.enum import nwStdLabel
+from novelwriter.constants import nwLabels, nwStyles, nwUnicode, trConst, trLabel, trStats
+from novelwriter.enum import nwStdLabel, nwStdUnit
 from novelwriter.story.storysettings import COMMENT_SYNOPSIS
 from novelwriter.types import QtDisplayRole, QtTransparent
 
@@ -230,8 +230,8 @@ class OutlineModel(QAbstractTableModel):
         self._fixed = [trLabel(nwStdLabel.STORY)]
         self._headers = self._fixed.copy()
         self._labels = _TrCache(
-            sWords=trStats(nwLabels.STATS_NAME[nwStats.WORDS]),
-            sChars=trStats(nwLabels.STATS_NAME[nwStats.CHARS]),
+            sWords=trStats(nwLabels.UNIT_LABELS[nwStdUnit.WORDS]),
+            sChars=trStats(nwLabels.UNIT_LABELS[nwStdUnit.CHARS]),
             sPage=self.tr("Page {0}"),
             sSynopsis="",
             sStory="",
