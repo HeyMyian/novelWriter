@@ -634,6 +634,7 @@ class GuiStoryOutlineTree(NTreeView):
         index = SHARED.project.index
         if force or not self._built or rootHandle != self._lastHandle or index.indexRevision != self._lastRevision:
             logger.info("Building story view '%s'", self._settings.name)
+            self.setAccessibleName(self._settings.name)
 
             start = time.perf_counter()
             data = SHARED.project.data

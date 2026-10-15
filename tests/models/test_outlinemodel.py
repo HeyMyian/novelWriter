@@ -27,6 +27,7 @@ from types import SimpleNamespace
 import pytest
 
 from PyQt6.QtCore import QModelIndex, Qt
+from PyQt6.QtGui import QIcon
 from PyQt6.QtTest import QAbstractItemModelTester
 
 from novelwriter import CONFIG, SHARED
@@ -136,6 +137,7 @@ def testOutlineModel_Interface(nwGUI: GuiMain, prjLipsum: Path):
     assert blank.level == 0
     assert blank.title == ""
     assert blank.entries(0) == []
+    assert blank.accessibleTitle() == ""
 
     # Clear the model
     model.clear()
@@ -176,6 +178,24 @@ def testOutlineModel_Columns(nwGUI: GuiMain, prjLipsum: Path):
     assert commented.entries(1) == [("note.consistency", "Note (Consistency)", "Consistency", "Check")]
     assert commented.entries(2) == [("@pov", "Point of View", "", "Bod")]
     assert commented.entries(3) == []
+
+    # Accessible text holds the full content of each column
+    access = Qt.ItemDataRole.AccessibleTextRole
+    assert model.data(model.index(1, 0), access) == "Heading 2 (Chapter): Chapter One, 67 words"
+    text = model.data(model.index(1, OutlineModel.C_COLUMNS), access)
+    assert isinstance(text, str)
+    assert text.startswith("Synopsis: Lorem ipsum dolor sit amet")
+    assert text.endswith(", Story Structure (Goal): Find the key")
+    assert model.data(model.index(1, OutlineModel.C_COLUMNS + 1), access) == "Note (Consistency): Check"
+    assert model.data(model.index(1, OutlineModel.C_COLUMNS + 2), access) == "Point of View: Bod"
+    assert model.data(QModelIndex(), access) is None
+
+    # Entries without labels, and status and progress
+    commented._entries[0] = [("@pov", "", "", "Bod")]
+    assert commented.accessibleEntries(0) == "Bod"
+    commented.setProgress(4, 0.5)
+    commented.setStatus("Draft", QIcon())
+    assert commented.accessibleTitle() == "Heading 2 (Chapter): Chapter One, 67 words, Page 4 (50.0\u202f%), Draft"
 
 
 @pytest.mark.core

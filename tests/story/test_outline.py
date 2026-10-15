@@ -80,6 +80,7 @@ def testStoryOutline_Settings(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
 
     # Default settings
     view.refresh(None)
+    assert tree.accessibleName() == settings.name
     assert model.rowCount(root) == 9
     assert model.columnCount(root) == 5
     assert not any(tree.isColumnHidden(c) for c in range(5))

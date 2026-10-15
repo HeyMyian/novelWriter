@@ -34,7 +34,7 @@ from novelwriter.common import formatPercent
 from novelwriter.constants import nwLabels, nwStyles, nwUnicode, trConst, trLabel, trUnit
 from novelwriter.enum import nwStdLabel, nwStdUnit
 from novelwriter.story.storysettings import COMMENT_SYNOPSIS
-from novelwriter.types import QtDisplayRole, QtTransparent
+from novelwriter.types import QtAccessibleTextRole, QtDisplayRole, QtTransparent
 
 if TYPE_CHECKING:
     from novelwriter.core.index import Index
@@ -53,6 +53,7 @@ class _TrCache(NamedTuple):
     sStory: str
     sNote: str
     sKeys: dict[str, str]
+    sLevels: dict[str, str]
 
 
 class NodeStyle(NamedTuple):
@@ -185,6 +186,18 @@ class OutlineNode:
         """
         return self._entries[column] if 0 <= column < len(self._entries) else []
 
+    def accessibleTitle(self) -> str:
+        """Return the title column content as plain text."""
+        level = self._tr.sLevels.get(self._heading.level, "") if self._heading else ""
+        title = f"{level}: {self._title}" if level else self._title
+        status = self._status[0] if self._status else ""
+        return ", ".join(t for t in (title, self.counts, self._progress, status) if t)
+
+    def accessibleEntries(self, column: int) -> str:
+        """Return the entries of a column as plain text, with full labels."""
+        entries = (f"{label}: {text}" if label else text for _, label, _, text in self.entries(column))
+        return ", ".join(entries).replace(nwUnicode.U_LSEP, " ")
+
     ##
     #  Data Maintenance
     ##
@@ -268,6 +281,7 @@ class OutlineModel(QAbstractTableModel):
             sStory="",
             sNote="",
             sKeys={k: trConst(v) for k, v in nwLabels.KEY_NAME.items()},
+            sLevels={k: trConst(v) for k, v in nwStyles.T_LABEL.items()},
         )
 
         # Colours
@@ -301,9 +315,13 @@ class OutlineModel(QAbstractTableModel):
         """Return the number of columns."""
         return 0 if parent.isValid() else len(self._headers)
 
-    def data(self, index: QModelIndex, role: Qt.ItemDataRole) -> None:
-        """Return display data for a node."""
-        return
+    def data(self, index: QModelIndex, role: Qt.ItemDataRole) -> str | None:
+        """Return accessible text for a node, as the delegate paints the rest."""
+        if role == QtAccessibleTextRole and (node := self.node(index)):
+            if index.column() == self.C_TITLE:
+                return node.accessibleTitle()
+            return node.accessibleEntries(index.column() - self.C_COLUMNS)
+        return None
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: Qt.ItemDataRole) -> str | None:
         """Return the header labels for the outline columns."""
