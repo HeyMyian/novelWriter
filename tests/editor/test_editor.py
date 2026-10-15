@@ -2906,6 +2906,10 @@ def testGuiDocEditor_HoverCard(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, moc
     docEditor.updateChangedTags([], [])
     assert docEditor._hoverCard._cache == {"jane": "<p>Cached</p>"}
 
+    # A new or rebuilt index clears the whole cache
+    docEditor.indexHasAppeared()
+    assert docEditor._hoverCard._cache == {}
+
 
 @pytest.mark.gui
 def testGuiDocEditor_ProcessTagEdgeCases(

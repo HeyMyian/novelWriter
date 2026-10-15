@@ -409,6 +409,11 @@ class GuiDocViewer(QTextBrowser):
         if updated or deleted:
             self._hoverCard.pruneCache(updated + deleted)
 
+    @pyqtSlot()
+    def indexHasAppeared(self) -> None:
+        """Clear cached tag data after the index has been loaded or rebuilt."""
+        self._hoverCard.clearCache()
+
     ##
     #  Private Slots
     ##
