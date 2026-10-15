@@ -97,6 +97,7 @@ class GuiPreferences(NDialog):
 
         self.searchText = QLineEdit(self)
         self.searchText.setPlaceholderText(self.tr("Search"))
+        self.searchText.setAccessibleName(self.searchText.placeholderText())
         self.searchText.setMinimumWidth(200)
         self.searchText.addAction(self.searchAction, QLineEdit.ActionPosition.TrailingPosition)
 
