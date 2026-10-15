@@ -34,7 +34,7 @@ from novelwriter.core.project import NWProject
 from novelwriter.enum import nwNovelExtra
 from novelwriter.guimain import GuiMain
 from novelwriter.models.novelmodel import NovelModel
-from novelwriter.types import QtDisplayRole
+from novelwriter.types import QtAccessibleTextRole, QtDisplayRole
 
 from tests.helpers import C, MockRnd, buildTestProject
 
@@ -188,6 +188,7 @@ def testNovelModel_Data(nwGUI: GuiMain, fncPath: Path, mockRnd: MockRnd):
         "A Section",
         "Another Section",
     ]
+    assert model.data(model.createIndex(1, 0), QtAccessibleTextRole) == "Heading 2 (Chapter): New Chapter"
 
     # Section counts are added to the scene and chapter
     CONFIG.useCharCount = False

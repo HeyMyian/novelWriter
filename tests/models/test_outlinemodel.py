@@ -34,7 +34,7 @@ from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwKeyWords
 from novelwriter.guimain import GuiMain
 from novelwriter.models.outlinemodel import BLANK_STYLE, NODE_FLAGS, OutlineModel, OutlineNode
-from novelwriter.types import QtDisplayRole
+from novelwriter.types import QtAccessibleTextRole, QtDisplayRole
 
 
 @pytest.mark.core
@@ -180,7 +180,7 @@ def testOutlineModel_Columns(nwGUI: GuiMain, prjLipsum: Path):
     assert commented.entries(3) == []
 
     # Accessible text holds the full content of each column
-    access = Qt.ItemDataRole.AccessibleTextRole
+    access = QtAccessibleTextRole
     assert model.data(model.index(1, 0), access) == "Heading 2 (Chapter): Chapter One, 67 words"
     text = model.data(model.index(1, OutlineModel.C_COLUMNS), access)
     assert isinstance(text, str)
