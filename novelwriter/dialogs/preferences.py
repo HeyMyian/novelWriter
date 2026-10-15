@@ -1034,7 +1034,7 @@ class GuiPreferences(NDialog):
         self.forceUnixLineEndings = NSwitch(self)
         self.forceUnixLineEndings.setChecked(CONFIG.forceUnixLineEndings)
         self.mainForm.addRow(
-            self.tr("Use Unix line endings for all files"),
+            self.tr("Use Unix line endings for all project files"),
             self.forceUnixLineEndings,
         )
 
