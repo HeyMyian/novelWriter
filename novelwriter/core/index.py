@@ -684,6 +684,14 @@ class Index:
 
         return tRefs
 
+    def getTagUseCounts(self) -> dict[str, int]:
+        """Return the number of headings referencing each tag."""
+        counts: dict[str, int] = {}
+        for _, _, hItem in self._itemIndex.iterAllHeaders():
+            for tag in hItem.references:
+                counts[tag] = counts.get(tag, 0) + 1
+        return counts
+
     def getTagSource(self, tagKey: str) -> tuple[str | None, str]:
         """Return the source location of a given tag."""
         tHandle = self._tagsIndex.tagHandle(tagKey)
