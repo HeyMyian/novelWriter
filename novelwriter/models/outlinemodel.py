@@ -73,6 +73,7 @@ class OutlineNode:
     """
 
     __slots__ = (
+        "_cCount",
         "_chars",
         "_columns",
         "_entries",
@@ -86,6 +87,7 @@ class OutlineNode:
         "_style",
         "_title",
         "_tr",
+        "_wCount",
         "_words",
     )
 
@@ -107,6 +109,8 @@ class OutlineNode:
         # Parsed Data
         self._level = 0
         self._title = ""
+        self._cCount = 0
+        self._wCount = 0
         self._words = ""
         self._chars = ""
         self._progress = ""
@@ -193,14 +197,21 @@ class OutlineNode:
         """Set the status label and icon."""
         self._status = (label, icon)
 
+    def addCounts(self, chars: int, words: int) -> None:
+        """Add the character and word counts of a child heading."""
+        self._cCount += chars
+        self._wCount += words
+        self._formatCounts()
+
     def refresh(self) -> None:
         """Refresh data values."""
         tr = self._tr
         if h := self._heading:
             self._level = nwStyles.H_LEVEL.get(h.level, 0)
             self._title = h.title
-            self._words = f"{h.wordCount:n} {tr.sWords}"
-            self._chars = f"{h.charCount:n} {tr.sChars}"
+            self._cCount = h.charCount
+            self._wCount = h.wordCount
+            self._formatCounts()
 
             self._lists = {k: v for k, v in h.getReferences().items() if v}
 
@@ -223,6 +234,15 @@ class OutlineNode:
                     if text:
                         entries.append((key, label, short, nwUnicode.U_LSEP.join(t for t in text.split("\n") if t)))
                 self._entries.append(entries)
+
+    ##
+    #  Internal Functions
+    ##
+
+    def _formatCounts(self) -> None:
+        """Format the count labels."""
+        self._words = f"{self._wCount:n} {self._tr.sWords}"
+        self._chars = f"{self._cCount:n} {self._tr.sChars}"
 
 
 class OutlineModel(QAbstractTableModel):
@@ -327,11 +347,13 @@ class OutlineModel(QAbstractTableModel):
         columns: list[tuple[str, tuple[str, ...]]] | None = None,
         showStatus: bool = False,
         inactiveParts: bool = False,
+        subCounts: bool = False,
     ) -> None:
         """Rebuild the outline for the given heading levels and columns.
         If count per page is set, the page and progress of each heading
         is added, with partitions and chapters starting on a new page.
-        Inactive partitions are not counted.
+        Inactive partitions are not counted. Sub counts add the counts
+        of the following lower level headings to each heading.
         """
         tree = SHARED.project.tree
         self.beginResetModel()
@@ -344,6 +366,7 @@ class OutlineModel(QAbstractTableModel):
         )
         nodes: list[OutlineNode] = []
         progress: list[tuple[OutlineNode, int, int]] = []
+        scopes: list[tuple[int, OutlineNode | None]] = []
         count = 0
         pages = 0
         start = 0
@@ -357,6 +380,7 @@ class OutlineModel(QAbstractTableModel):
                 span = math.ceil((count - start) / countPerPage)
                 pages += span + span % 2 if clearDouble else span
                 start = count
+            node = None
             if level in levels and not (level == 1 and hItem.modified):
                 style = self._styles.get(level, BLANK_STYLE)
                 node = OutlineNode(tHandle, sTitle, hItem, labels, style, keys)
@@ -365,6 +389,13 @@ class OutlineModel(QAbstractTableModel):
                     node.setStatus(*item.getImportStatus())
                 if active and countPerPage > 0:
                     progress.append((node, pages + 1 + (count - start) // countPerPage, count))
+            if active and subCounts:
+                while scopes and scopes[-1][0] >= level:
+                    scopes.pop()
+                for _, parent in scopes:
+                    if parent:
+                        parent.addCounts(hItem.charCount, hItem.wordCount)
+                scopes.append((level, node))
             if active:
                 count += hItem.charCount if useChars else hItem.wordCount
 

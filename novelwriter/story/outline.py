@@ -184,6 +184,7 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
 
         self.rowLines = NSpinBox(self, minVal=MIN_LINES, maxVal=MAX_LINES)
         self.rowLines.setFixedNumbersWidth(3)
+        self.subCounts = NSwitch(self, height=iPx)
 
         self.showStatus = NSwitch(self, height=iPx)
         self.commentIcons = NSwitch(self, height=iPx)
@@ -191,6 +192,7 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
 
         self.form.addRow(settings.getLabel("outline.syntaxColors"), self.syntaxColors)
         self.form.addRow(settings.getLabel("outline.rowLines"), self.rowLines, unit=trUnit(nwStdUnit.LINES))
+        self.form.addRow(settings.getLabel("outline.subCounts"), self.subCounts)
         self.form.addRow(settings.getLabel("outline.showStatus"), self.showStatus)
         self.form.addRow(settings.getLabel("outline.commentIcons"), self.commentIcons)
         self.form.addRow(settings.getLabel("outline.referenceIcons"), self.referenceIcons)
@@ -244,6 +246,7 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         # General
         self.syntaxColors.setChecked(settings.getBool("outline.syntaxColors"))
         self.rowLines.setValue(settings.getInt("outline.rowLines"))
+        self.subCounts.setChecked(settings.getBool("outline.subCounts"))
         self.commentIcons.setChecked(settings.getBool("outline.commentIcons"))
         self.referenceIcons.setChecked(settings.getBool("outline.referenceIcons"))
         self.showStatus.setChecked(settings.getBool("outline.showStatus"))
@@ -275,6 +278,7 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         # General
         settings.setValue("outline.syntaxColors", self.syntaxColors.isChecked())
         settings.setValue("outline.rowLines", self.rowLines.value())
+        settings.setValue("outline.subCounts", self.subCounts.isChecked())
         settings.setValue("outline.commentIcons", self.commentIcons.isChecked())
         settings.setValue("outline.referenceIcons", self.referenceIcons.isChecked())
         settings.setValue("outline.showStatus", self.showStatus.isChecked())
@@ -667,6 +671,7 @@ class GuiStoryOutlineTree(NTreeView):
                 [(c.name, c.keys) for c in columns],
                 settings.getBool("outline.showStatus"),
                 settings.getBool("outline.inactiveParts"),
+                settings.getBool("outline.subCounts"),
             )
             if columnIDs != self._columnIDs:
                 self._columnIDs = columnIDs

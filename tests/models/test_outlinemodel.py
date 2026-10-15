@@ -108,6 +108,22 @@ def testOutlineModel_Interface(nwGUI: GuiMain, prjLipsum: Path):
     assert status is not None
     assert status[0] == "Draft"
 
+    # Sub counts include the following lower level headings, also when
+    # the levels in between are hidden
+    CONFIG.useCharCount = False
+
+    def total(*handles: str) -> int:
+        return sum(h.wordCount for t, _, h in index.iterNovelStructure() if t in handles)
+
+    chapter = total("fb609cd8319dc", "88243afbe5ed8", "f96ec11c6a3da")
+    model.buildOutline(index, None, {2}, subCounts=True)
+    assert model.node(model.index(1, 0)).counts == f"{chapter:n} words"  # type: ignore
+    model.buildOutline(index, None, {2, 3}, subCounts=True)
+    nodes = {n.title: n for n in model._nodes}
+    assert nodes["Chapter One"].counts == f"{chapter:n} words"
+    assert nodes["Scene One"].counts == f"{total('88243afbe5ed8'):n} words"
+    assert nodes["Chapter One"].counts != "67 words"
+
     # Spans of tag keys in the references
     node._lists[nwKeyWords.CHAR_KEY] = ["Jane", "John", "Jack"]
     assert node.refSpans(nwKeyWords.CHAR_KEY, {"john", "jack"}) == [(6, 4), (12, 4)]

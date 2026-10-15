@@ -152,6 +152,7 @@ def testStoryViewSettings_Values():
     assert view.pack()["settings"] == {
         "outline.syntaxColors": False,
         "outline.rowLines": 3,
+        "outline.subCounts": True,
         "outline.showStatus": False,
         "outline.commentIcons": False,
         "outline.referenceIcons": False,
@@ -206,6 +207,7 @@ def testStoryViewSettings_Values():
     assert skipped.pack()["settings"] == {
         "outline.syntaxColors": False,
         "outline.rowLines": 3,
+        "outline.subCounts": True,
         "outline.showStatus": False,
         "outline.commentIcons": False,
         "outline.referenceIcons": False,
