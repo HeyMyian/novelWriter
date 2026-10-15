@@ -26,7 +26,7 @@ import xml.etree.ElementTree as ET
 
 from datetime import datetime
 from hashlib import sha256
-from typing import TYPE_CHECKING, ClassVar, Literal, NamedTuple
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, NamedTuple
 from zipfile import ZIP_DEFLATED, ZipFile
 
 from PyQt6.QtGui import QColor, QFont
@@ -1247,7 +1247,7 @@ class ODTParagraphStyle:
         self._name = name
 
         # Attributes
-        self._mAttr = {
+        self._mAttr: dict[str, list[Any]] = {
             "display-name": ["style", None],
             "parent-style-name": ["style", None],
             "next-style-name": ["style", None],
@@ -1256,7 +1256,7 @@ class ODTParagraphStyle:
         }
 
         # Paragraph Attributes
-        self._pAttr = {
+        self._pAttr: dict[str, list[Any]] = {
             "margin-top": ["fo", None],
             "margin-bottom": ["fo", None],
             "margin-left": ["fo", None],
@@ -1273,7 +1273,7 @@ class ODTParagraphStyle:
         }
 
         # Text Attributes
-        self._tAttr = {
+        self._tAttr: dict[str, list[Any]] = {
             "font-name": ["style", None],
             "font-family": ["fo", None],
             "font-size": ["fo", None],
@@ -1493,7 +1493,7 @@ class ODTTextStyle:
 
     def __init__(self, name: str) -> None:
         self._name = name
-        self._tAttr = {
+        self._tAttr: dict[str, list[Any]] = {
             "font-weight": ["fo", None],
             "font-style": ["fo", None],
             "color": ["fo", None],

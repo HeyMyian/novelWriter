@@ -196,7 +196,7 @@ class DocSplitter:
         """Write each document in the buffer and yield if successful."""
         if self._srcHandle and self._srcItem and self._parHandle:
             pHandle = self._parHandle
-            hHandle = [self._parHandle, None, None, None, None]
+            hHandle = [self._parHandle, "", "", "", ""]
             pLevel = 0
             for docText, hLevel, docLabel in self._rawData:
                 hLevel = minmax(hLevel, 1, 4)
