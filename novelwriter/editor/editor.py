@@ -1509,6 +1509,12 @@ class GuiDocEditor(QTextEdit):
             self._qDocument.syntaxHighlighter.rehighlightByType(BLOCK_META)
             self._hoverCard.pruneCache(updated + deleted)
 
+    @pyqtSlot()
+    def indexHasAppeared(self) -> None:
+        """Rehighlight tags after the index has been loaded or rebuilt."""
+        self._qDocument.syntaxHighlighter.rehighlightByType(BLOCK_META)
+        self._hoverCard.clearCache()
+
     @pyqtSlot(str, str)
     def processSpellCheckChange(self, language: str, provider: str) -> None:
         """Process a change in the spell check language or provider."""

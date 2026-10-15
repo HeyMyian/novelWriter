@@ -89,6 +89,8 @@ class GuiDocPanes(QWidget):
         self.setLayout(self.outerBox)
 
         # Connect Signals
+        SHARED.indexAvailable.connect(self.docEditor.indexHasAppeared)
+        SHARED.indexAvailable.connect(self.docViewer.indexHasAppeared)
         SHARED.indexAvailable.connect(self.docViewerPanel.indexHasAppeared)
         SHARED.indexChangedRefs.connect(self.docViewerPanel.updateChangedRefs)
         SHARED.indexChangedTags.connect(self.docEditor.updateChangedTags)

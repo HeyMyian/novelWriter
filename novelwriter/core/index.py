@@ -358,7 +358,7 @@ class Index:
         if tItem.isInactiveClass():
             self._scanInactive(tItem, text)
         else:
-            self._scanActive(tHandle, tItem, text, itemTags)
+            self._scanActive(tHandle, tItem, text, itemTags, blockSignal)
 
         if tItem.itemClass == nwItemClass.NOVEL and not blockSignal and not self.updateNovelModelData(tItem):
             self.refreshNovelModel(tItem.itemRoot)
@@ -375,7 +375,14 @@ class Index:
     #  Internal Indexer Helpers
     ##
 
-    def _scanActive(self, tHandle: str, nwItem: ProjectItem, text: str, tags: dict[str, bool]) -> None:
+    def _scanActive(
+        self,
+        tHandle: str,
+        nwItem: ProjectItem,
+        text: str,
+        tags: dict[str, bool],
+        blockSignal: bool,
+    ) -> None:
         """Scan an active document for meta data."""
         nTitle = 0  # Line Number of the previous title
         cTitle = TT_NONE  # Tag of the current title
@@ -426,9 +433,9 @@ class Index:
             self._indexWordCounts(tHandle, text, cTitle)
 
         # Prune no longer used tags
+        updated = []
+        deleted = []
         for tTag, isActive in tags.items():
-            updated = []
-            deleted = []
             if isActive:
                 logger.debug("Added/updated tag '%s'", tTag)
                 updated.append(tTag)
@@ -436,8 +443,8 @@ class Index:
                 logger.debug("Removed tag '%s'", tTag)
                 del self._tagsIndex[tTag]
                 deleted.append(tTag)
-            if updated or deleted:  # pragma: no branch
-                SHARED.emitIndexChangedTags(self._project, updated, deleted)
+        if not blockSignal and (updated or deleted):
+            SHARED.emitIndexChangedTags(self._project, updated, deleted)
 
     def _scanInactive(self, nwItem: ProjectItem, text: str) -> None:
         """Scan an inactive document for meta data."""
