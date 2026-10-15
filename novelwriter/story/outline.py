@@ -60,7 +60,7 @@ from PyQt6.QtWidgets import (
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import simplified
-from novelwriter.constants import nwKeyWords, nwLabels, trConst, trLabel, trUnit
+from novelwriter.constants import nwKeyWords, nwLabels, nwUnicode, trConst, trLabel, trUnit
 from novelwriter.enum import nwComment, nwStdLabel, nwStdUnit, nwToolButton
 from novelwriter.extensions.configlayout import NFixedPage
 from novelwriter.extensions.modified import NComboBox, NSpinBox, NTreeView
@@ -181,13 +181,19 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.form.addGroupLabel(title, section)
 
         self.syntaxColors = NSwitch(self, height=iPx)
+
         self.rowLines = NSpinBox(self, minVal=MIN_LINES, maxVal=MAX_LINES)
         self.rowLines.setFixedNumbersWidth(3)
+        self.subCounts = NSwitch(self, height=iPx)
+
+        self.showStatus = NSwitch(self, height=iPx)
         self.commentIcons = NSwitch(self, height=iPx)
         self.referenceIcons = NSwitch(self, height=iPx)
 
         self.form.addRow(settings.getLabel("outline.syntaxColors"), self.syntaxColors)
         self.form.addRow(settings.getLabel("outline.rowLines"), self.rowLines, unit=trUnit(nwStdUnit.LINES))
+        self.form.addRow(settings.getLabel("outline.subCounts"), self.subCounts)
+        self.form.addRow(settings.getLabel("outline.showStatus"), self.showStatus)
         self.form.addRow(settings.getLabel("outline.commentIcons"), self.commentIcons)
         self.form.addRow(settings.getLabel("outline.referenceIcons"), self.referenceIcons)
 
@@ -203,11 +209,13 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         self.showChapters = NSwitch(self, height=iPx)
         self.showScenes = NSwitch(self, height=iPx)
         self.showSections = NSwitch(self, height=iPx)
+        self.inactiveParts = NSwitch(self, height=iPx)
 
         self.form.addRow(settings.getLabel("outline.showParts"), self.showParts)
         self.form.addRow(settings.getLabel("outline.showChapters"), self.showChapters)
         self.form.addRow(settings.getLabel("outline.showScenes"), self.showScenes)
         self.form.addRow(settings.getLabel("outline.showSections"), self.showSections)
+        self.form.addRow(settings.getLabel("outline.inactiveParts"), self.inactiveParts)
 
         # Progression
         # ===========
@@ -238,14 +246,17 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         # General
         self.syntaxColors.setChecked(settings.getBool("outline.syntaxColors"))
         self.rowLines.setValue(settings.getInt("outline.rowLines"))
+        self.subCounts.setChecked(settings.getBool("outline.subCounts"))
         self.commentIcons.setChecked(settings.getBool("outline.commentIcons"))
         self.referenceIcons.setChecked(settings.getBool("outline.referenceIcons"))
+        self.showStatus.setChecked(settings.getBool("outline.showStatus"))
 
         # Documents
         self.showParts.setChecked(settings.getBool("outline.showParts"))
         self.showChapters.setChecked(settings.getBool("outline.showChapters"))
         self.showScenes.setChecked(settings.getBool("outline.showScenes"))
         self.showSections.setChecked(settings.getBool("outline.showSections"))
+        self.inactiveParts.setChecked(settings.getBool("outline.inactiveParts"))
 
         # Progression
         self.showProgress.setChecked(settings.getBool("outline.showProgress"))
@@ -267,14 +278,17 @@ class GuiOutlineViewSettings(GuiStorySettingsBase):
         # General
         settings.setValue("outline.syntaxColors", self.syntaxColors.isChecked())
         settings.setValue("outline.rowLines", self.rowLines.value())
+        settings.setValue("outline.subCounts", self.subCounts.isChecked())
         settings.setValue("outline.commentIcons", self.commentIcons.isChecked())
         settings.setValue("outline.referenceIcons", self.referenceIcons.isChecked())
+        settings.setValue("outline.showStatus", self.showStatus.isChecked())
 
         # Documents
         settings.setValue("outline.showParts", self.showParts.isChecked())
         settings.setValue("outline.showChapters", self.showChapters.isChecked())
         settings.setValue("outline.showScenes", self.showScenes.isChecked())
         settings.setValue("outline.showSections", self.showSections.isChecked())
+        settings.setValue("outline.inactiveParts", self.inactiveParts.isChecked())
 
         # Progression
         settings.setValue("outline.showProgress", self.showProgress.isChecked())
@@ -655,6 +669,9 @@ class GuiStoryOutlineTree(NTreeView):
                 target,
                 data.targetCountChars,
                 [(c.name, c.keys) for c in columns],
+                settings.getBool("outline.showStatus"),
+                settings.getBool("outline.inactiveParts"),
+                settings.getBool("outline.subCounts"),
             )
             if columnIDs != self._columnIDs:
                 self._columnIDs = columnIDs
@@ -919,12 +936,23 @@ class _OutlineDelegate(QStyledItemDelegate):
 
                 painter.setFont(SHARED.theme.guiFont)
                 painter.setPen(self._helpCol)
-                counts = self._fm.elidedText(node.counts, QtElideRight, w)
-                painter.drawText(QRect(x, y + hTitle, w, hLine), LINE_FLAGS, counts)
+                info = [node.counts, node.progress] if node.progress else [node.counts]
+                if len(info) + bool(node.status) >= self._rowLines:
+                    # Not enough lines below the title, so share one
+                    info = [f" {nwUnicode.U_BULL} ".join(info)]
 
-                if node.progress:
-                    progress = self._fm.elidedText(node.progress, QtElideRight, w)
-                    painter.drawText(QRect(x, y + hTitle + hLine, w, hLine), LINE_FLAGS, progress)
+                yLine = y + hTitle
+                for text in info:
+                    text = self._fm.elidedText(text, QtElideRight, w)
+                    painter.drawText(QRect(x, yLine, w, hLine), LINE_FLAGS, text)
+                    yLine += hLine
+
+                if status := node.status:
+                    label, icon = status
+                    wText = max(0, w - self._iconIndent)
+                    icon.paint(painter, QRect(x, yLine, hLine, hLine))
+                    label = self._fm.elidedText(label, QtElideRight, wText)
+                    painter.drawText(QRect(x + self._iconIndent, yLine, wText, hLine), LINE_FLAGS, label)
 
             case column:
                 entries = node.entries(column - OutlineModel.C_COLUMNS)

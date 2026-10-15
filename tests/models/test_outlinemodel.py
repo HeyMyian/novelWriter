@@ -95,11 +95,34 @@ def testOutlineModel_Interface(nwGUI: GuiMain, prjLipsum: Path):
     assert node.key == "T0001"
     assert node.title == "Chapter One"
     assert node.level == 2
-    assert node.counts == "67 Words"
+    assert node.counts == "67 words"
     CONFIG.useCharCount = True
-    assert node.counts == "419 Characters"
+    assert node.counts == "419 characters"
     assert node.style is not BLANK_STYLE
     assert node.progress == ""
+    assert node.status is None
+
+    # Status of the heading's document
+    model.buildOutline(index, None, {2}, showStatus=True)
+    status = model.node(model.index(1, 0)).status  # type: ignore
+    assert status is not None
+    assert status[0] == "Draft"
+
+    # Sub counts include the following lower level headings, also when
+    # the levels in between are hidden
+    CONFIG.useCharCount = False
+
+    def total(*handles: str) -> int:
+        return sum(h.wordCount for t, _, h in index.iterNovelStructure() if t in handles)
+
+    chapter = total("fb609cd8319dc", "88243afbe5ed8", "f96ec11c6a3da")
+    model.buildOutline(index, None, {2}, subCounts=True)
+    assert model.node(model.index(1, 0)).counts == f"{chapter:n} words"  # type: ignore
+    model.buildOutline(index, None, {2, 3}, subCounts=True)
+    nodes = {n.title: n for n in model._nodes}
+    assert nodes["Chapter One"].counts == f"{chapter:n} words"
+    assert nodes["Scene One"].counts == f"{total('88243afbe5ed8'):n} words"
+    assert nodes["Chapter One"].counts != "67 words"
 
     # Spans of tag keys in the references
     node._lists[nwKeyWords.CHAR_KEY] = ["Jane", "John", "Jack"]
@@ -182,7 +205,7 @@ def testOutlineModel_Progress(nwGUI: GuiMain, prjLipsum: Path):
 
     # Without titles and chapters, pages run on and clear double is ignored
     scenes = [e for e in index.iterNovelStructure() if e[2].level == "H3"]
-    scenesOnly = SimpleNamespace(iterNovelStructure=lambda rHandle: iter(scenes))
+    scenesOnly = SimpleNamespace(iterNovelStructure=lambda rHandle, activeOnly: iter(scenes))
     expected = [
         "Page 1 (0.0\u202f%)",
         "Page 2 (8.6\u202f%)",
@@ -212,3 +235,17 @@ def testOutlineModel_Progress(nwGUI: GuiMain, prjLipsum: Path):
     model.buildOutline(index, None, {2}, 1000, False, 100000, True)
     progress = [model.node(model.index(r, 0)).progress for r in range(3)]  # type: ignore
     assert progress == ["Page 4 (1.3\u202f%)", "Page 6 (2.0\u202f%)", "Page 14 (9.2\u202f%)"]
+
+    # Inactive partitions can be shown, but are not counted, and other inactive headings are still skipped
+    actOne = SHARED.project.tree["db7e733775d4d"]
+    assert actOne is not None
+    actOne.setActive(False)
+    model.buildOutline(index, None, {1, 2, 3, 4}, 100)
+    expected = [model.node(model.index(r, 0)).progress for r in range(10)]  # type: ignore
+    model.buildOutline(index, None, {1, 2, 3, 4}, 100, inactiveParts=True)
+    titles = [model.node(model.index(r, 0)).title for r in range(11)]  # type: ignore
+    progress = [model.node(model.index(r, 0)).progress for r in range(11)]  # type: ignore
+    assert titles[1] == "Act One"
+    assert "Why do we use it?" not in titles
+    assert progress[1] == ""
+    assert progress[:1] + progress[2:] == expected

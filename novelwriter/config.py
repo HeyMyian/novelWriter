@@ -181,6 +181,7 @@ class Config:
         "narratorBreak",
         "narratorDialog",
         "nativeFont",
+        "novelViewSubCounts",
         "osDarwin",
         "osLinux",
         "osType",
@@ -397,6 +398,7 @@ class Config:
         self.spellLanguage = "en"
 
         # State
+        self.novelViewSubCounts = True  # Count notes of sub elements in novel view
         self.showDetailsPanel = True  # The panel for the item details is visible
         self.showViewerPanel = True  # The panel for the viewer is visible
         self.showEditToolBar = False  # The document editor toolbar visibility
@@ -896,6 +898,7 @@ class Config:
 
         # State
         sec = "State"
+        self.novelViewSubCounts = parser.getBool(sec, "novelViewSubCounts", self.novelViewSubCounts)
         self.showDetailsPanel = parser.getBool(sec, "showDetailsPanel", self.showDetailsPanel)
         self.showViewerPanel = parser.getBool(sec, "showViewerPanel", self.showViewerPanel)
         self.showEditToolBar = parser.getBool(sec, "showEditToolBar", self.showEditToolBar)
@@ -1040,6 +1043,7 @@ class Config:
         }
 
         config["State"] = {
+            "novelViewSubCounts": self.novelViewSubCounts,
             "showDetailsPanel": self.showDetailsPanel,
             "showViewerPanel": self.showViewerPanel,
             "showEditToolBar": self.showEditToolBar,

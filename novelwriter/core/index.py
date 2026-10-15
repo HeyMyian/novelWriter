@@ -500,6 +500,7 @@ class Index:
         for handle in self._project.tree.subTree(tHandle):
             if (node := self._itemIndex[handle]) and node.item.isDocumentLayout() and node.item.isActive:
                 model.append(node)
+        model.updateCounts()
 
     def _itemRefHandles(self, tHandle: str) -> set[str]:
         """Get the handles referenced by an indexed item."""
