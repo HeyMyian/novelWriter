@@ -30,7 +30,7 @@ from pathlib import Path
 from time import time
 from typing import TYPE_CHECKING
 
-from novelwriter import SHARED, __hexversion__, __version__
+from novelwriter import CONFIG, SHARED, __hexversion__, __version__
 from novelwriter.common import (
     checkBool,
     checkInt,
@@ -579,7 +579,8 @@ class ProjectXMLWriter:
         try:
             xml = ET.ElementTree(xRoot)
             xmlIndent(xml)
-            xml.write(tmp, encoding="utf-8", xml_declaration=True)
+            with open(tmp, mode="w", encoding="utf-8", errors="xmlcharrefreplace", newline=CONFIG.lineEnding) as fObj:
+                xml.write(fObj, encoding="unicode", xml_declaration=True)
             tmp.replace(self._path)
         except Exception as exc:
             SHARED.appendErrorMessage(exc)

@@ -404,6 +404,11 @@ def testGuiPreferences_Settings(
 
     prefs.vimMode.setChecked(True)
 
+    # Advanced
+    assert CONFIG.forceUnixLineEndings is False
+
+    prefs.forceUnixLineEndings.setChecked(True)
+
     # Save Settings
     with monkeypatch.context() as mp:
         mp.setattr(QFontDatabase, "families", lambda *a: ["TestFont"])
@@ -519,6 +524,9 @@ def testGuiPreferences_Settings(
         "Are you sure you want to enable Vim mode?",
         "This changes how the editor accepts input.",
     ]
+
+    # Advanced
+    assert CONFIG.forceUnixLineEndings is True
 
     # qtbot.stop()
 

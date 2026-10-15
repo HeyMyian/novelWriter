@@ -155,6 +155,7 @@ class Config:
         "fmtSQuoteOpen",
         "focusWidth",
         "fontWinSize",
+        "forceUnixLineEndings",
         "guiFont",
         "guiLocale",
         "hasEnchant",
@@ -335,6 +336,7 @@ class Config:
         self.backupInterval = "session"  # Backup interval
         self.askBeforeBackup = True  # Flag for asking before running automatic backup
         self.askBeforeExit = True  # Flag for asking before exiting the app
+        self.forceUnixLineEndings = False  # Always use LF line endings, never CRLF
 
         # Text Editor Settings
         self.textFont = QFont()  # Editor font
@@ -496,6 +498,11 @@ class Config:
     def lastAuthor(self) -> str:
         """Return the last author name used."""
         return self._lastAuthor
+
+    @property
+    def lineEnding(self) -> str | None:
+        """Return the project file line ending."""
+        return "\n" if self.forceUnixLineEndings else None
 
     ##
     #  Getters
@@ -846,6 +853,7 @@ class Config:
         self.backupInterval = parser.getStr(sec, "backupInterval", self.backupInterval)
         self.askBeforeBackup = parser.getBool(sec, "askBeforeBackup", self.askBeforeBackup)
         self.askBeforeExit = parser.getBool(sec, "askBeforeExit", self.askBeforeExit)
+        self.forceUnixLineEndings = parser.getBool(sec, "forceUnixLineEndings", self.forceUnixLineEndings)
         self._lastAuthor = simplified(parser.getStr(sec, "lastAuthor", self._lastAuthor))
 
         # Editor
@@ -991,6 +999,7 @@ class Config:
             "backupInterval": self.backupInterval,
             "askBeforeBackup": self.askBeforeBackup,
             "askBeforeExit": self.askBeforeExit,
+            "forceUnixLineEndings": self.forceUnixLineEndings,
             "lastAuthor": self._lastAuthor,
         }
 

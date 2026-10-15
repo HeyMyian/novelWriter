@@ -31,6 +31,7 @@ from typing import TYPE_CHECKING, Any, NamedTuple, Self
 
 from PyQt6.QtCore import QT_TRANSLATE_NOOP, QCoreApplication
 
+from novelwriter import CONFIG
 from novelwriter.common import checkUuid, jsonEncode, safeExists
 from novelwriter.constants import nwFiles, nwKeyWords
 from novelwriter.enum import nwComment
@@ -571,7 +572,7 @@ class StoryViewCollection:
             }
             data.update(self._unknown)
             data.update({k: v.pack() for k, v in self._views.items()})
-            with open(viewsFile, mode="w+", encoding="utf-8") as outFile:
+            with open(viewsFile, mode="w+", encoding="utf-8", newline=CONFIG.lineEnding) as outFile:
                 outFile.write(jsonEncode({"novelWriter.storyViews": data}, nmax=4))
         except Exception:
             logger.error("Failed to save story views file")

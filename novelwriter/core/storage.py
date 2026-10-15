@@ -477,6 +477,7 @@ class ProjectStorage:
                 self._manifestPath.write_text(
                     self._generateManifest(kind, saveTime),
                     encoding="utf-8",
+                    newline=CONFIG.lineEnding,
                 )
             except Exception:
                 logger.error("Failed to write manifest")
@@ -627,7 +628,7 @@ class _LegacyStorage:
                             )
                         )
 
-            with open(sessJson, mode="a+", encoding="utf-8") as fObj:
+            with open(sessJson, mode="a+", encoding="utf-8", newline=CONFIG.lineEnding) as fObj:
                 fObj.write(session.createInitial(offset))
                 fObj.write("".join(data))
 
@@ -668,7 +669,7 @@ class _LegacyDocuments:
                     parser = NTomlParser(flat=True)
                     toml = parser.writeString(self._parseOldDocumentMeta(meta)).strip()
                     output = item.with_suffix(".md")
-                    output.write_text(f"+++\n{toml}\n+++\n{text}", encoding="utf-8")
+                    output.write_text(f"+++\n{toml}\n+++\n{text}", encoding="utf-8", newline=CONFIG.lineEnding)
                     logger.info("Converted file: %s -> %s", item.name, output.name)
 
                 except Exception:
