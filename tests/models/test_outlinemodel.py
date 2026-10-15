@@ -95,11 +95,18 @@ def testOutlineModel_Interface(nwGUI: GuiMain, prjLipsum: Path):
     assert node.key == "T0001"
     assert node.title == "Chapter One"
     assert node.level == 2
-    assert node.counts == "67 Words"
+    assert node.counts == "67 words"
     CONFIG.useCharCount = True
-    assert node.counts == "419 Characters"
+    assert node.counts == "419 characters"
     assert node.style is not BLANK_STYLE
     assert node.progress == ""
+    assert node.status is None
+
+    # Status of the heading's document
+    model.buildOutline(index, None, {2}, showStatus=True)
+    status = model.node(model.index(1, 0)).status  # type: ignore
+    assert status is not None
+    assert status[0] == "Draft"
 
     # Spans of tag keys in the references
     node._lists[nwKeyWords.CHAR_KEY] = ["Jane", "John", "Jack"]

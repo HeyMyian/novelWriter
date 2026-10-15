@@ -25,7 +25,7 @@ from pathlib import Path
 
 import pytest
 
-from PyQt6.QtCore import QEvent, QModelIndex, QPoint, QPointF, Qt
+from PyQt6.QtCore import QEvent, QModelIndex, QPoint, QPointF, QRect, Qt
 from PyQt6.QtGui import QDropEvent, QHelpEvent, QPainter, QPixmap, QTextLayout, QWheelEvent
 from PyQt6.QtWidgets import QApplication, QStyleOptionViewItem, QToolTip
 from pytestqt.qtbot import QtBot
@@ -45,6 +45,7 @@ ALL_SETTINGS = (
     "outline.showScenes",
     "outline.showSections",
     "outline.showProgress",
+    "outline.showStatus",
 )
 
 
@@ -93,6 +94,7 @@ def testStoryOutline_Settings(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
     assert tree._delegate._noteCol == SHARED.theme.syntaxTheme.note
     assert tree._delegate._modCol == SHARED.theme.syntaxTheme.mod
     assert model.node(model.index(10, 0)).progress == "Page 16 (81.9\u202f%)"  # type: ignore
+    assert model.node(model.index(10, 0)).status is not None  # type: ignore
 
     # Progress follows the page settings
     settings.setValue("outline.countPerPage", 100)
@@ -130,6 +132,7 @@ def testStoryOutline_Settings(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
     assert tree._delegate._noteCol == tree._delegate._textCol
     assert tree._delegate._modCol == tree._delegate._textCol
     assert model.node(model.index(0, 0)).progress == ""  # type: ignore
+    assert model.node(model.index(0, 0)).status is None  # type: ignore
 
     # Columns without content are hidden
     settings.setColumns([*settings.columns, OutlineColumn("empty", "Empty", ())])
@@ -341,10 +344,33 @@ def testStoryOutline_Paint(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI:
         node._entries[-1].append(("synopsis", "Synopsis", "", "Text"))
         if i % 2:
             node._progress = ""
+        if i % 3:
+            node._status = None
 
     # Paint all rows with one selected
     tree.setCurrentIndex(model.index(3, 0))
     assert not view.grab().isNull()
+
+    # Counts and progress share a line when there is no room for status
+    node = model._nodes[6]
+    assert node.level > 1
+    assert node.progress
+    assert node.status
+    texts = []
+    option = QStyleOptionViewItem()
+    option.rect = QRect(0, 0, 400, delegate._rowHeight)
+    pixmap = QPixmap(400, 400)
+    painter = QPainter(pixmap)
+    with monkeypatch.context() as mp:
+        mp.setattr(QPainter, "drawText", lambda self, rect, flags, text: texts.append(text))
+        delegate.paint(painter, option, model.index(6, 0))
+        assert texts == [node.title, f"{node.counts} • {node.progress}", node.status[0]]
+        texts.clear()
+        delegate.setRowLines(4)
+        delegate.paint(painter, option, model.index(6, 0))
+        assert texts == [node.title, node.counts, node.progress, node.status[0]]
+        delegate.setRowLines(3)
+    painter.end()
 
     # Paint with icons, which show their full labels as tooltips
     delegate.setIcons(True, True)
