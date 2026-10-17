@@ -3282,6 +3282,25 @@ def testGuiDocEditor_UpdateDocMargins(qtbot: QtBot, nwGUI: GuiMain, projPath: Pa
     SHARED.setFocusMode(False)
     docEditor.updateDocMargins()
 
+    # Tool bar and search box are placed on opposite sides
+    docEditor.beginSearch()
+    assert docEditor.docSearch.isVisible()
+    tB = docEditor.frameWidth()
+    vBar = docEditor.verticalScrollBar()
+    sW = vBar.width() if vBar and vBar.isVisible() else 0
+
+    CONFIG.rtlMode = False
+    docEditor.updateDocMargins()
+    assert docEditor.docToolBar.x() == 0
+    assert docEditor.docSearch.x() == docEditor.width() - sW - docEditor.docSearch.width() - 2 * tB
+
+    # In RTL, the tool bar position uses its size hint, also while hidden
+    CONFIG.rtlMode = True
+    docEditor.docToolBar.setVisible(False)
+    docEditor.updateDocMargins()
+    assert docEditor.docToolBar.x() == docEditor.width() - docEditor.docToolBar.sizeHint().width()
+    assert docEditor.docSearch.x() == 2
+
 
 @pytest.mark.gui
 def testGuiDocEditor_ScrollPastEnd(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd: MockRnd):

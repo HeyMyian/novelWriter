@@ -849,14 +849,21 @@ class GuiDocEditor(QTextEdit):
         fY = wH - fH - tB - sH
         self.docHeader.setGeometry(tB, tB, tW, tH)
         self.docFooter.setGeometry(tB, fY, tW, fH)
-        self.docToolBar.move(0, tH)
+        if CONFIG.rtlMode:
+            dW = self.docToolBar.sizeHint().width()
+            self.docToolBar.move(wW - dW, tH)
+        else:
+            self.docToolBar.move(0, tH)
 
         rH = 0
         if self.docSearch.isVisible():
             rH = self.docSearch.height()
             rW = self.docSearch.width()
-            rL = wW - sW - rW - 2 * tB
-            self.docSearch.move(rL, 2 * tB)
+            if CONFIG.rtlMode:
+                self.docSearch.move(2, 2 * tB)
+            else:
+                rL = wW - sW - rW - 2 * tB
+                self.docSearch.move(rL, 2 * tB)
 
         uM = max(self._vpMargin, tH, rH)
         lM = max(self._vpMargin, fH)
