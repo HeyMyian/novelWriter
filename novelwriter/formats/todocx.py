@@ -1096,6 +1096,7 @@ class ToDocX(Tokenizer):
         xmlSubElem(xSect, _wTag("titlePg"))
         if self._isRTL:
             xmlSubElem(xSect, _wTag("bidi"))
+            xmlSubElem(xSect, _wTag("rtlGutter"))
 
         return rId
 

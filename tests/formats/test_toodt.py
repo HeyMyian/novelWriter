@@ -832,6 +832,7 @@ def testToOdt_ConvertParagraphs(mockGUI: MockGuiMain):
 
     odt = ToOdt(project, isFlat=True)
     odt.setLanguage(None, True)
+    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, False)
     odt._text = "English text\n\nمتن\n\n1234\n\n"
     odt.tokenizeText()
     odt.initDocument()
@@ -847,9 +848,12 @@ def testToOdt_ConvertParagraphs(mockGUI: MockGuiMain):
     assert getStyle("P1")._pAttr["writing-mode"] == ["style", "lr-tb"]  # type: ignore
     assert odt._mainPara["Text_20_body"]._pAttr["text-align"] == ["fo", "start"]
 
-    # The page sets the document direction, and the header is mirrored
+    # The page sets the document direction, the gutter is on the right,
+    # and the header is mirrored
     pageLayout = xmlToText(odt._xAuto)
     assert 'style:writing-mode="rl-tb"' in pageLayout
+    assert 'fo:margin-left="1.700cm" fo:margin-right="2.600cm"' in pageLayout
+    assert 'loext:rtl-gutter="true"' in pageLayout
     assert odt._mainPara["Header"]._pAttr["text-align"] == ["fo", "left"]
 
     # Footnotes follow the same rule
@@ -928,13 +932,14 @@ def testToOdt_SaveFlat(mockGUI: MockGuiMain, fncPath: Path, tstPaths: TstPaths, 
     assert odt._headerFormat == nwHeadFmt.DOC_AUTO
 
     odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, False)
-    assert odt._mDocWidth == "14.800cm"
-    assert odt._mDocHeight == "21.000cm"
-    assert odt._mDocTop == "2.000cm"
-    assert odt._mDocBtm == "1.800cm"
-    assert odt._mDocLeft == "2.800cm"
-    assert odt._mDocRight == "1.500cm"
-    assert odt._mDocGutter == "1.100cm"
+    assert odt._mDocWidth == 148.0
+    assert odt._mDocHeight == 210.0
+    assert odt._mDocTop == 20.0
+    assert odt._mDocBtm == 18.0
+    assert odt._mDocLeft == 17.0
+    assert odt._mDocRight == 15.0
+    assert odt._mDocGutter == 11.0
+    assert odt._mHorLine == 105.0
     assert odt._mMirrored is False
 
     odt._text = (
@@ -982,13 +987,14 @@ def testToOdt_SaveFlatWithEmptyLines(mockGUI: MockGuiMain, fncPath: Path, tstPat
     assert odt._headerFormat == nwHeadFmt.DOC_AUTO
 
     odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, True)
-    assert odt._mDocWidth == "14.800cm"
-    assert odt._mDocHeight == "21.000cm"
-    assert odt._mDocTop == "2.000cm"
-    assert odt._mDocBtm == "1.800cm"
-    assert odt._mDocLeft == "2.800cm"
-    assert odt._mDocRight == "1.500cm"
-    assert odt._mDocGutter == "1.100cm"
+    assert odt._mDocWidth == 148.0
+    assert odt._mDocHeight == 210.0
+    assert odt._mDocTop == 20.0
+    assert odt._mDocBtm == 18.0
+    assert odt._mDocLeft == 17.0
+    assert odt._mDocRight == 15.0
+    assert odt._mDocGutter == 11.0
+    assert odt._mHorLine == 105.0
     assert odt._mMirrored is True
 
     odt._text = (

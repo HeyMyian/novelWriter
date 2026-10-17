@@ -829,6 +829,7 @@ def testToHtml_Save(mockGUI: MockGuiMain, fncPath: Path):
     assert data["meta"]["novelAuthor"] == ""
     assert data["meta"]["buildTime"] > 0
     assert data["meta"]["buildTimeStr"] != ""
+    assert data["meta"]["direction"] == "ltr"
     assert data["text"]["css"] == hStyle
     assert len(data["text"]["html"]) == len(resText)
 
@@ -837,6 +838,11 @@ def testToHtml_Save(mockGUI: MockGuiMain, fncPath: Path):
     saveFile = fncPath / "outFile.htm"
     html.saveDocument(saveFile)
     assert "<html lang='en-GB' dir='rtl'>\n" in saveFile.read_text(encoding="utf-8")
+
+    saveFile = fncPath / "outFile.json"
+    html.saveDocument(saveFile)
+    data = json.loads(saveFile.read_text(encoding="utf-8"))
+    assert data["meta"]["direction"] == "rtl"
 
 
 @pytest.mark.core

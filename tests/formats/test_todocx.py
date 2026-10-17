@@ -835,12 +835,12 @@ def testToDocX_RightToLeft(mockGUI: MockGuiMain):
     doc._footnotesXml()
     assert '<w:pStyle w:val="FootnoteText" /><w:bidi w:val="0" />' in xmlToText(doc._files["footnotes.xml"].xml)
 
-    # The document defaults and the section are RTL
+    # The document defaults and the section are RTL, with the gutter on the right
     doc.closeDocument()
     styles = xmlToText(doc._files["styles.xml"].xml)
     assert "<w:pPrDefault><w:pPr><w:bidi /><w:spacing " in styles
     assert '<w:lang w:val="en_GB" w:bidi="en_GB" />' in styles
-    assert "<w:titlePg /><w:bidi /></w:sectPr>" in xmlToText(doc._files["document.xml"].xml)
+    assert "<w:titlePg /><w:bidi /><w:rtlGutter /></w:sectPr>" in xmlToText(doc._files["document.xml"].xml)
 
 
 @pytest.mark.core

@@ -225,6 +225,7 @@ class ToHtml(Tokenizer):
                     "novelAuthor": self._project.data.author,
                     "buildTime": int(ts),
                     "buildTimeStr": formatTimeStamp(ts),
+                    "direction": "rtl" if self._isRTL else "ltr",
                 },
                 "text": {
                     "css": self._generateStyleSheet(),
