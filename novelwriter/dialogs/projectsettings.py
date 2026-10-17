@@ -200,12 +200,13 @@ class GuiProjectSettings(NDialog):
         projName = self.settingsPage.projName.text()
         projAuthor = self.settingsPage.projAuthor.text()
         projLang = self.settingsPage.projLang.currentData()
+        isRTL = self.settingsPage.isRTL.isChecked()
         spellLang = self.settingsPage.spellLang.currentData()
         doBackup = not self.settingsPage.noBackup.isChecked()
 
         project.data.setName(projName)
         project.data.setAuthor(projAuthor)
-        project.setProjectLang(projLang)
+        project.setProjectLang(projLang, isRTL)
         project.data.setSpellLang(spellLang)
         project.data.setDoBackup(doBackup)
 
@@ -301,6 +302,13 @@ class _SettingsPage(NScrollableForm):
             self.projLang,
             self.tr("Only used when building the manuscript."),
             stretch=(3, 2),
+        )
+
+        self.isRTL = NSwitch(self)
+        self.isRTL.setChecked(data.isRTL)
+        self.addRow(
+            self.tr("Use right-to-left text layout"),
+            self.isRTL,
         )
 
         # Spell Check Language

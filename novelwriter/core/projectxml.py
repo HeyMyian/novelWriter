@@ -278,7 +278,7 @@ class ProjectXMLReader:
             if xItem.tag == "doBackup":
                 data.setDoBackup(xItem.text)
             elif xItem.tag == "language":
-                data.setLanguage(xItem.text)
+                data.setLanguage(xItem.text, xItem.attrib.get("rtl"))
             elif xItem.tag == "spellChecking":
                 data.setSpellLang(xItem.text)
                 data.setSpellCheck(xItem.attrib.get("auto"))
@@ -540,7 +540,7 @@ class ProjectXMLWriter:
 
         xSettings = ET.SubElement(xRoot, "settings")
         self._packSingleValue(xSettings, "doBackup", yesNo(data.doBackup))
-        self._packSingleValue(xSettings, "language", data.language)
+        self._packSingleValue(xSettings, "language", data.language, attrib={"rtl": yesNo(data.isRTL)})
         self._packSingleValue(xSettings, "spellChecking", data.spellLang, attrib={"auto": yesNo(data.spellCheck)})
         self._packSingleValue(xSettings, "projectTarget", str(data.targetCount), attrib=targetAttr)
         self._packSingleValue(xSettings, "dailyTarget", str(data.dailyGoal), attrib=dailyAttr)

@@ -42,6 +42,7 @@ from PyQt6.QtCore import (
     QRect,
     QStandardPaths,
     QSysInfo,
+    Qt,
     QTranslator,
 )
 from PyQt6.QtGui import QFont, QFontDatabase, QFontMetrics
@@ -189,6 +190,7 @@ class Config:
         "osUnknown",
         "osWindows",
         "prefsWinSize",
+        "rtlMode",
         "scaleHeadings",
         "scrollPastEnd",
         "searchAuto",
@@ -300,6 +302,7 @@ class Config:
 
         # General GUI Settings
         self.guiLocale = self._qLocale.name()
+        self.rtlMode = False  # Right-to-left text layout as default
         self.lightTheme = DEF_GUI_LIGHT  # Light GUI theme
         self.darkTheme = DEF_GUI_DARK  # Dark GUI theme
         self.themeMode = nwTheme.AUTO  # Colour theme mode
@@ -781,6 +784,7 @@ class Config:
 
         # Refresh translated values
         self.setPrimaryCount(self.useCharCount)
+        self.rtlMode = nwApp.layoutDirection() == Qt.LayoutDirection.RightToLeft
 
     def loadConfig(self, splash: NSplashScreen | None = None) -> bool:
         """Load preferences from file and replace default settings."""
