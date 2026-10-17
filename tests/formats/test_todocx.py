@@ -758,7 +758,7 @@ def testToDocX_Fields(mockGUI: MockGuiMain):
     doc.tokenizeText()
     doc.doConvert()
     doc.countStats()
-    doc._documentXml(None, None)
+    doc._documentXml(None, None, None)
     assert xmlToText(doc._files["document.xml"].xml) == (
         '<w:document><w:body><w:p><w:pPr><w:pStyle w:val="Normal" /></w:pPr>'
         '<w:r><w:rPr /><w:t xml:space="preserve">Word Count: </w:t></w:r>'
@@ -893,6 +893,71 @@ def testToDocX_MinimalClose(mockGUI: MockGuiMain):
         "<w:r><w:t>Just Text</w:t></w:r>"
         "</w:p></w:hdr>"
     )
+
+
+@pytest.mark.core
+def testToDocX_DoublePages(mockGUI: MockGuiMain):
+    """Test odd page sections and even page headers."""
+    project = NWProject()
+    doc = ToDocX(project)
+    doc.setPageLayout(210.0, 297.0, 20.0, 20.0, 20.0, 20.0, 10.0, True)
+    doc.setHeaderFormat("Odd", "Even", 1)
+    doc.initDocument()
+    doc._blocks = [
+        (BlockTyp.TEXT, "", "Title page", [], BlockFmt.NONE),
+        (BlockTyp.HEAD1, "", "Chapter One", [], BlockFmt.HBB),
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.PBB),
+        (BlockTyp.HEAD1, "", "Chapter Two", [], BlockFmt.PBB | BlockFmt.HBB),
+    ]
+    doc.doConvert()
+    doc.closeDocument()
+
+    xBody = doc._files["document.xml"].xml.find(_wTag("body"))
+    assert xBody is not None
+    page = (
+        '<w:pgSz w:w="11905" w:h="16837" w:orient="portrait" />'
+        '<w:pgMar w:top="1133" w:right="1133" w:bottom="1133" w:left="1133" '
+        'w:header="748" w:footer="0" w:gutter="566" />'
+    )
+    notes = '<w:footnotePr><w:numFmt w:val="decimal" /></w:footnotePr>'
+    heads = '<w:headerReference w:type="default" r:id="rId5" /><w:headerReference w:type="even" r:id="rId7" />'
+    oddSection = f'<w:sectPr>{heads}{notes}<w:type w:val="oddPage" />{page}<w:pgNumType w:fmt="decimal" /></w:sectPr>'
+
+    # The first section ends before the first odd page break, and
+    # the following sections start on odd pages and continue numbering
+    assert [xmlToText(x) for x in xBody] == [
+        (
+            '<w:p><w:pPr><w:pStyle w:val="Normal" />'
+            f'<w:sectPr><w:headerReference w:type="first" r:id="rId6" />{heads}{notes}{page}'
+            '<w:pgNumType w:start="0" w:fmt="decimal" /><w:titlePg /></w:sectPr>'
+            "</w:pPr><w:r><w:rPr /><w:t>Title page</w:t></w:r></w:p>"
+        ),
+        '<w:p><w:pPr><w:pStyle w:val="Heading1" /></w:pPr><w:r><w:rPr /><w:t>Chapter One</w:t></w:r></w:p>',
+        (
+            f'<w:p><w:pPr><w:pStyle w:val="Normal" /><w:pageBreakBefore />{oddSection}'
+            "</w:pPr><w:r><w:rPr /><w:t>Text</w:t></w:r></w:p>"
+        ),
+        '<w:p><w:pPr><w:pStyle w:val="Heading1" /></w:pPr><w:r><w:rPr /><w:t>Chapter Two</w:t></w:r></w:p>',
+        oddSection,
+    ]
+
+    # The even page header is mirrored
+    assert xmlToText(doc._files["header3.xml"].xml) == (
+        '<w:hdr><w:p><w:pPr><w:pStyle w:val="Header" /><w:jc w:val="left" /><w:rPr /></w:pPr>'
+        "<w:r><w:t>Even</w:t></w:r></w:p></w:hdr>"
+    )
+
+    # Even and odd headers are enabled
+    xSett = doc._files["settings.xml"].xml
+    assert xSett[0].tag == _wTag("mirrorMargins")
+    assert xSett[1].tag == _wTag("evenAndOddHeaders")
+
+    # Single pages have no even page header
+    doc.setPageLayout(210.0, 297.0, 20.0, 20.0, 20.0, 20.0, 10.0, False)
+    doc._files = {}
+    doc.closeDocument()
+    assert "header3.xml" not in doc._files
+    assert doc._files["settings.xml"].xml.find(_wTag("evenAndOddHeaders")) is None
 
 
 @pytest.mark.core
