@@ -25,7 +25,7 @@ import logging
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtGui import QFont, QTextCharFormat, QTextDocument
+from PyQt6.QtGui import QFont, QTextCharFormat, QTextDocument, QTextListFormat
 
 from novelwriter import CONFIG
 from novelwriter.constants import nwShortcode, nwUnicode
@@ -53,6 +53,12 @@ MARKDOWN_TAGS = {
     "italic": "_",
     "strike": "~~",
 }
+
+UNORDERED_LISTS = (
+    QTextListFormat.Style.ListDisc,
+    QTextListFormat.Style.ListCircle,
+    QTextListFormat.Style.ListSquare,
+)
 
 
 def _markdownTag(name: str) -> str:
@@ -104,6 +110,8 @@ class FromQTextDocument:
         while block.isValid():
             if (level := block.blockFormat().headingLevel()) > 0:
                 self._addHeading(block, level)
+            elif block.textList():
+                self._addListItem(block)
             else:
                 self._addParagraph(block)
             block = block.next()
@@ -130,6 +138,23 @@ class FromQTextDocument:
         if text.strip():
             self._result.append(self._applyAlignment(block, text))
         self._result.append("")
+
+    def _addListItem(self, block: QTextBlock) -> None:
+        """Add a list item block to the result. Nested lists are
+        flattened, and a list only ends when the list type changes.
+        """
+        marker = self._listMarker(block)
+        text = self._formatBlock(block)
+        if text.strip():
+            self._result.append(f"{marker}{text.strip()}")
+        if self._listMarker(block.next()) != marker:
+            self._result.append("")
+
+    def _listMarker(self, block: QTextBlock) -> str:
+        """Return the list marker for a block, if it is a list item."""
+        if block.isValid() and (qList := block.textList()):
+            return "* " if qList.format().style() in UNORDERED_LISTS else "#. "
+        return ""
 
     def _applyAlignment(self, block: QTextBlock, text: str) -> str:
         """Wrap right-aligned or centred paragraphs in novelWriter's

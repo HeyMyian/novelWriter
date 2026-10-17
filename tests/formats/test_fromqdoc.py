@@ -88,6 +88,30 @@ def testFromQTextDocument_General():
 
 
 @pytest.mark.core
+def testFromQTextDocument_Lists():
+    """Test conversion of unordered and ordered lists."""
+    html = (
+        "<p>Before</p>"
+        "<ul><li>One</li><li><b>Two</b></li><li><br></li></ul>"
+        "<ol><li>First</li><li>Second</li></ol>"
+        '<ul style="list-style-type:square"><li>Outer'
+        '<ol style="list-style-type:lower-alpha"><li>Inner</li></ol></li>'
+        "<li>Last</li></ul>"
+        "<p>After</p>"
+    )
+    document = QTextDocument()
+    document.setHtml(html)
+    assert FromQTextDocument(document).convertText() == (
+        "Before\n\n* One\n* **Two**\n\n#. First\n#. Second\n\n* Outer\n\n#. Inner\n\n* Last\n\nAfter\n"
+    )
+
+    # A list at the end of the document
+    document = QTextDocument()
+    document.setHtml("<ol><li>Only</li></ol>")
+    assert FromQTextDocument(document).convertText() == "#. Only\n"
+
+
+@pytest.mark.core
 def testFromQTextDocument_MergeSplitFragments():
     """Test that adjacent Qt fragments with identical Markdown-relevant
     formatting are merged before being wrapped. See issue #2978.
@@ -275,6 +299,12 @@ def testFromQTextDocument_DocumentRoundTrip(mockGUI: MockGuiMain):
         ">> Right aligned text.\n"
         "\n"
         ">> Centered text. <<\n"
+        "\n"
+        "* Bullet one\n"
+        "* Bullet two\n"
+        "\n"
+        "#. Number one\n"
+        "#. Number two\n"
     )
 
     toDoc._text = text
