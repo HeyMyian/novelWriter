@@ -87,6 +87,7 @@ from novelwriter.common import (
     safeIsFile,
     safeIterDir,
     simplified,
+    textDirection,
     transferCase,
     uniqueCompact,
     utf16CharMap,
@@ -543,6 +544,19 @@ def testCommon_elide():
     assert elide("Hello World!", 2) == " ..."
     assert elide("Hello World!", 1) == " ..."
     assert elide("Hello World!", 0) == " ..."
+
+
+@pytest.mark.base
+def testCommon_textDirection():
+    """Test the textDirection function."""
+    assert textDirection("") == ""
+    assert textDirection("1234 - !?") == ""
+    assert textDirection("Text") == "ltr"
+    assert textDirection("12 Text") == "ltr"
+    assert textDirection("متن") == "rtl"
+    assert textDirection("שלום") == "rtl"
+    assert textDirection("12 متن Text") == "rtl"
+    assert textDirection("[i]متن") == "ltr"
 
 
 @pytest.mark.base

@@ -27,7 +27,7 @@ import logging
 from time import time
 from typing import TYPE_CHECKING
 
-from novelwriter.common import formatTimeStamp
+from novelwriter.common import formatTimeStamp, textDirection
 from novelwriter.constants import nwHtmlUnicode
 from novelwriter.formats.shared import BlockFmt, BlockTyp, T_Formats, TextFmt, stripEscape
 from novelwriter.formats.tokenizer import COMMENT_BLOCKS, LIST_BLOCKS, Tokenizer
@@ -127,9 +127,12 @@ class ToHtml(Tokenizer):
     def doConvert(self) -> None:
         """Convert the list of text tokens into an HTML document."""
         lines = []
+        isRTL = self._project.data.isRTL
         for tType, tMeta, tText, tFmt, tStyle in self._blocks:
+            # In RTL documents, blocks without strong characters inherit RTL
+            hDir = " dir='ltr'" if isRTL and textDirection(tText) == "ltr" else ""
             tText, tFmt = self._processHtmlEntities(tText, tFmt)
-            hStyle = self._genInlineStyles(tStyle)
+            hStyle = hDir + self._genInlineStyles(tStyle)
 
             if tStyle & BlockFmt.LIST_S:
                 lines.append("<ol>\n" if tType == BlockTyp.LIST_O else "<ul>\n")
@@ -235,7 +238,8 @@ class ToHtml(Tokenizer):
         else:
             html = []
             html.append("<!DOCTYPE html>")
-            html.append(f"<html lang='{self._dLocale.bcp47Name()}'>")
+            hDir = " dir='rtl'" if self._project.data.isRTL else ""
+            html.append(f"<html lang='{self._dLocale.bcp47Name()}'{hDir}>")
             html.append("<head>")
             html.append(f"<title>{self._project.data.name:s}</title>")
             html.append("<meta charset='utf-8'>")
@@ -270,6 +274,7 @@ class ToHtml(Tokenizer):
         if not self._cssStyles:
             return []
 
+        defaultAlign = "start" if self._project.data.isRTL else self._defaultAlign
         tColor = self._theme.text.name(QtHexRgb)
         lColor = self._theme.head.name(QtHexRgb)
         mColor = self._theme.highlight.name(QtHexRgb)
@@ -315,7 +320,7 @@ class ToHtml(Tokenizer):
                 "font-style": fS,
             },
             "p": {
-                "text-align": self._defaultAlign,
+                "text-align": defaultAlign,
                 "line-height": f"{lHeight}%",
                 "margin-top": f"{mtTT:.2f}em",
                 "margin-bottom": f"{mbTT:.2f}em",
@@ -364,7 +369,7 @@ class ToHtml(Tokenizer):
                 "margin-bottom": f"{mbTT:.2f}em",
             },
             "li": {
-                "text-align": self._defaultAlign,
+                "text-align": defaultAlign,
                 "line-height": f"{lHeight}%",
             },
             ".title": {

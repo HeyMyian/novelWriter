@@ -399,6 +399,21 @@ def testToHtml_Alignment(mockGUI: MockGuiMain):
     html.doConvert()
     assert html._pages[-1] == ("<p style='text-align: right;'>This is text<br>spanning multiple<br>lines</p>\n")
 
+    # In RTL projects, LTR blocks are marked, and the rest inherit RTL
+    project.setProjectLang(None, True)
+    html = ToHtml(project)
+    html.initDocument()
+    html._text = "English text\n\nمتن\n\n1234\n\n>> Right\n"
+    html.tokenizeText()
+    html.doConvert()
+    assert html._pages[-1] == (
+        "<p dir='ltr'>English text</p>\n<p>متن</p>\n<p>1234</p>\n<p dir='ltr' style='text-align: right;'>Right</p>\n"
+    )
+
+    # The default alignment follows the direction of each block
+    css = html._generateStyleSheet()
+    assert any(line.startswith("p {text-align: start;") for line in css)
+
 
 @pytest.mark.core
 def testToHtml_Dialog(mockGUI: MockGuiMain):
@@ -803,6 +818,12 @@ def testToHtml_Save(mockGUI: MockGuiMain, fncPath: Path):
     assert data["meta"]["buildTimeStr"] != ""
     assert data["text"]["css"] == hStyle
     assert len(data["text"]["html"]) == len(resText)
+
+    # RTL projects set the document direction
+    project.setProjectLang(None, True)
+    saveFile = fncPath / "outFile.htm"
+    html.saveDocument(saveFile)
+    assert "<html lang='en-GB' dir='rtl'>\n" in saveFile.read_text(encoding="utf-8")
 
 
 @pytest.mark.core

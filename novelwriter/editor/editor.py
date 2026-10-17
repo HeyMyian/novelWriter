@@ -26,7 +26,6 @@ import logging
 
 from enum import Enum, IntFlag
 from time import time
-from unicodedata import bidirectional
 
 from PyQt6 import sip
 from PyQt6.QtCore import (
@@ -73,6 +72,7 @@ from novelwriter.common import (
     qtLambda,
     qtWeakLambda,
     stripUnsafe,
+    textDirection,
     transferCase,
 )
 from novelwriter.constants import nwConst, nwKeyWords, nwShortcode, nwStyles, nwUnicode
@@ -2332,7 +2332,7 @@ class GuiDocEditor(QTextEdit):
         if rtlMark and SHARED.project.data.isRTL:
             # Qt picks the paragraph direction from the first strong character
             prefix = blockS.text()[: posS - blockS.position()]
-            if not any(bidirectional(c) in ("L", "R", "AL") for c in prefix):
+            if not textDirection(prefix):
                 before = nwUnicode.U_RLM + before
 
         cursor.clearSelection()

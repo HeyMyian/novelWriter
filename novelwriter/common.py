@@ -384,6 +384,18 @@ def elide(text: str, length: int) -> str:
     return text
 
 
+def textDirection(text: str) -> Literal["ltr", "rtl", ""]:
+    """Return the direction of the first strong character in a text,
+    or an empty string if there is none.
+    """
+    for c in text:
+        if (bidi := unicodedata.bidirectional(c)) == "L":
+            return "ltr"
+        elif bidi in ("R", "AL"):
+            return "rtl"
+    return ""
+
+
 def yesNo(value: int | bool | None) -> Literal["yes", "no"]:
     """Convert a boolean evaluated variable to a yes or no."""
     return "yes" if value else "no"

@@ -24,7 +24,6 @@ from __future__ import annotations
 import logging
 
 from typing import TYPE_CHECKING
-from unicodedata import bidirectional
 
 from PyQt6.QtCore import QMarginsF, QSizeF
 from PyQt6.QtGui import (
@@ -46,6 +45,7 @@ from PyQt6.QtGui import (
 from PyQt6.QtPrintSupport import QPrinter
 
 from novelwriter import __version__
+from novelwriter.common import textDirection
 from novelwriter.constants import nwUnicode
 from novelwriter.formats.shared import BlockFmt, BlockTyp, T_Formats, TextFmt, stripEscape
 from novelwriter.formats.tokenizer import HEADING_BLOCKS, LIST_BLOCKS, META_BLOCKS, Tokenizer
@@ -446,7 +446,7 @@ class ToQTextDocument(Tokenizer):
             bFmt.setLayoutDirection(QtLayoutRTL)
             block = self._document.firstBlock()
             while block.isValid():
-                if not any(bidirectional(c) in ("L", "R", "AL") for c in block.text()):
+                if not textDirection(block.text()):
                     cursor.setPosition(block.position())
                     cursor.mergeBlockFormat(bFmt)
                 block = block.next()
