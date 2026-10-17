@@ -26,6 +26,7 @@ import logging
 
 from enum import Enum, IntFlag
 from time import time
+from unicodedata import bidirectional
 
 from PyQt6 import sip
 from PyQt6.QtCore import (
@@ -1084,19 +1085,19 @@ class GuiDocEditor(QTextEdit):
         elif action in BLOCK_TEXT_ONLY and not (noFormat and len(self._selectedBlocks(cursor)) < 2):
             self._iterFormatBlocks(action)
         elif action == nwDocAction.SC_ITALIC and not noFormat:
-            self._wrapSelection(nwShortcode.ITALIC_O, nwShortcode.ITALIC_C)
+            self._wrapSelection(nwShortcode.ITALIC_O, nwShortcode.ITALIC_C, rtlMark=True)
         elif action == nwDocAction.SC_BOLD and not noFormat:
-            self._wrapSelection(nwShortcode.BOLD_O, nwShortcode.BOLD_C)
+            self._wrapSelection(nwShortcode.BOLD_O, nwShortcode.BOLD_C, rtlMark=True)
         elif action == nwDocAction.SC_STRIKE and not noFormat:
-            self._wrapSelection(nwShortcode.STRIKE_O, nwShortcode.STRIKE_C)
+            self._wrapSelection(nwShortcode.STRIKE_O, nwShortcode.STRIKE_C, rtlMark=True)
         elif action == nwDocAction.SC_ULINE and not noFormat:
-            self._wrapSelection(nwShortcode.ULINE_O, nwShortcode.ULINE_C)
+            self._wrapSelection(nwShortcode.ULINE_O, nwShortcode.ULINE_C, rtlMark=True)
         elif action == nwDocAction.SC_MARK and not noFormat:
-            self._wrapSelection(nwShortcode.MARK_O, nwShortcode.MARK_C)
+            self._wrapSelection(nwShortcode.MARK_O, nwShortcode.MARK_C, rtlMark=True)
         elif action == nwDocAction.SC_SUP and not noFormat:
-            self._wrapSelection(nwShortcode.SUP_O, nwShortcode.SUP_C)
+            self._wrapSelection(nwShortcode.SUP_O, nwShortcode.SUP_C, rtlMark=True)
         elif action == nwDocAction.SC_SUB and not noFormat:
-            self._wrapSelection(nwShortcode.SUB_O, nwShortcode.SUB_C)
+            self._wrapSelection(nwShortcode.SUB_O, nwShortcode.SUB_C, rtlMark=True)
         elif action == nwDocAction.MOVE_TEXT:
             self._moveTextToNewDocument()
         elif action == nwDocAction.ZOOM_IN:
@@ -2289,11 +2290,14 @@ class GuiDocEditor(QTextEdit):
         after: str | None = None,
         pos: int | None = None,
         select: _SelectAction = _SelectAction.NO_DECISION,
+        rtlMark: bool = False,
     ) -> None:
         """Wrap the selected text in whatever is in tBefore and tAfter.
         If there is no selection, the autoSelect setting decides the
         action. AutoSelect will select the word under the cursor before
-        wrapping it. If this feature is disabled, nothing is done.
+        wrapping it. If this feature is disabled, nothing is done. If
+        rtlMark is set, an RTL mark is added in RTL projects when the
+        wrapping would otherwise set the paragraph direction.
         """
         if after is None:
             after = before
@@ -2317,6 +2321,12 @@ class GuiDocEditor(QTextEdit):
         blockE = self._qDocument.findBlock(posE)
         if blockS != blockE:
             posE = blockS.position() + blockS.length() - 1
+
+        if rtlMark and SHARED.project.data.isRTL:
+            # Qt picks the paragraph direction from the first strong character
+            prefix = blockS.text()[: posS - blockS.position()]
+            if not any(bidirectional(c) in ("L", "R", "AL") for c in prefix):
+                before = nwUnicode.U_RLM + before
 
         cursor.clearSelection()
         cursor.beginEditBlock()

@@ -1357,6 +1357,28 @@ def testGuiDocEditor_Actions(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, ipsum
     docEditor.setCursorPosition(0)  # Blocked on headings
     assert docEditor.docAction(nwDocAction.SC_SUB) is False
 
+    # RTL projects get an RTL mark when a shortcode would set the direction
+    SHARED.project.setProjectLang(None, True)
+    word = "متن"
+    text = f"### A Scene\n\n{word} {word}\n\n% {word}"
+    docEditor.replaceText(text)
+
+    docEditor.setCursorPosition(14)
+    assert docEditor.docAction(nwDocAction.SC_ITALIC) is True
+    assert docEditor.getText() == f"### A Scene\n\n\u200f[i]{word}[/i] {word}\n\n% {word}"
+    assert docEditor.docAction(nwDocAction.UNDO) is True
+
+    docEditor.setCursorPosition(18)  # Not needed after a strong character
+    assert docEditor.docAction(nwDocAction.SC_ITALIC) is True
+    assert docEditor.getText() == f"### A Scene\n\n{word} [i]{word}[/i]\n\n% {word}"
+    assert docEditor.docAction(nwDocAction.UNDO) is True
+
+    docEditor.setCursorPosition(25)  # Goes after the comment prefix
+    assert docEditor.docAction(nwDocAction.SC_ITALIC) is True
+    assert docEditor.getText() == f"### A Scene\n\n{word} {word}\n\n% \u200f[i]{word}[/i]"
+    assert docEditor.docAction(nwDocAction.UNDO) is True
+    SHARED.project.setProjectLang(None, False)
+
     # Quotes
     # ======
 
