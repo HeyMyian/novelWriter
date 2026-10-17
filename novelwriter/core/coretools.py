@@ -336,7 +336,7 @@ class ProjectBuilder:
         project.data.setUuid(None)
         project.data.setName(data.get("name", trName))
         project.data.setAuthor(data.get("author", trAuthor))
-        project.data.setLanguage(CONFIG.guiLocale)
+        project.data.setLanguage(CONFIG.guiLocale, CONFIG.rtlMode)
         project.setDefaultStatusImport()
         project.session.startSession()
 

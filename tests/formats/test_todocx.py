@@ -783,6 +783,67 @@ def testToDocX_Fields(mockGUI: MockGuiMain):
 
 
 @pytest.mark.core
+def testToDocX_RightToLeft(mockGUI: MockGuiMain):
+    """Test RTL documents."""
+    project = NWProject()
+    doc = ToDocX(project)
+    doc.setLanguage(None, True)
+    doc.initDocument()
+    word = "متن"
+
+    # LTR blocks are marked, and keep physical alignment and indents
+    xTest = ET.Element(_wTag("body"))
+    doc._blocks = [(BlockTyp.TEXT, "", "Hello World", [], BlockFmt.LEFT | BlockFmt.IND_L)]
+    doc.doConvert()
+    doc._pars[-1].toXml(xTest)
+    assert xmlToText(xTest) == (
+        '<w:body><w:p><w:pPr><w:pStyle w:val="Normal" /><w:bidi w:val="0" />'
+        '<w:ind w:left="880" /><w:jc w:val="left" /></w:pPr>'
+        "<w:r><w:rPr /><w:t>Hello World</w:t></w:r></w:p></w:body>"
+    )
+
+    # RTL blocks inherit the direction, and swap left and right, which
+    # Word treats as start and end
+    xTest = ET.Element(_wTag("body"))
+    doc._blocks = [(BlockTyp.TEXT, "", word, [], BlockFmt.LEFT | BlockFmt.IND_L)]
+    doc.doConvert()
+    doc._pars[-1].toXml(xTest)
+    assert xmlToText(xTest) == (
+        '<w:body><w:p><w:pPr><w:pStyle w:val="Normal" />'
+        '<w:ind w:right="880" /><w:jc w:val="right" /></w:pPr>'
+        f"<w:r><w:rPr /><w:t>{word}</w:t></w:r></w:p></w:body>"
+    )
+
+    # Bold and italic also apply to complex scripts
+    xTest = ET.Element(_wTag("body"))
+    doc._text = f"**{word}** _{word}_"
+    doc.tokenizeText()
+    doc.doConvert()
+    doc._pars[-1].toXml(xTest)
+    assert xmlToText(xTest) == (
+        '<w:body><w:p><w:pPr><w:pStyle w:val="Normal" /></w:pPr>'
+        f"<w:r><w:rPr><w:b /><w:bCs /></w:rPr><w:t>{word}</w:t></w:r>"
+        '<w:r><w:rPr /><w:t xml:space="preserve"> </w:t></w:r>'
+        f"<w:r><w:rPr><w:i /><w:iCs /></w:rPr><w:t>{word}</w:t></w:r>"
+        "</w:p></w:body>"
+    )
+
+    # Footnotes follow the same rule
+    doc._text = f"{word}[footnote:a]\n\n%footnote.a: English note.\n\n"
+    doc.tokenizeText()
+    doc.doConvert()
+    doc._footnotesXml()
+    assert '<w:pStyle w:val="FootnoteText" /><w:bidi w:val="0" />' in xmlToText(doc._files["footnotes.xml"].xml)
+
+    # The document defaults and the section are RTL, with the gutter on the right
+    doc.closeDocument()
+    styles = xmlToText(doc._files["styles.xml"].xml)
+    assert "<w:pPrDefault><w:pPr><w:bidi /><w:spacing " in styles
+    assert '<w:lang w:val="en_GB" w:bidi="en_GB" />' in styles
+    assert "<w:titlePg /><w:bidi /><w:rtlGutter /></w:sectPr>" in xmlToText(doc._files["document.xml"].xml)
+
+
+@pytest.mark.core
 def testToDocX_MinimalClose(mockGUI: MockGuiMain):
     """Test closing a document with no header format and no counts."""
     project = NWProject()

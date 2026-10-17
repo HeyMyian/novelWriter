@@ -736,6 +736,7 @@ class nwUnicode:
     U_DIVIDE = "\u00f7"  # Division sign
 
     # Special
+    U_RLM = "\u200f"  # Right-to-left mark
     U_UNKN = "\ufffd"  # Unknown character
     U_NAC1 = "\ufffe"  # Not a character
     U_NAC2 = "\uffff"  # Not a character

@@ -25,7 +25,7 @@ import logging
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QEvent, QModelIndex, QSize, Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QEvent, QModelIndex, QRect, QSize, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QKeySequence, QPainter, QPaintEvent, QPalette
 from PyQt6.QtWidgets import (
     QApplication,
@@ -39,6 +39,7 @@ from PyQt6.QtWidgets import (
     QSpinBox,
     QSplitter,
     QSplitterHandle,
+    QStyle,
     QStyleOptionToolButton,
     QToolButton,
     QTreeView,
@@ -502,9 +503,11 @@ class NFlatIconTextButton(QToolButton):
             margin = (rect.height() - size.height()) // 2
             x = rect.x() + margin
             y = rect.y() + margin
+            direction = self.layoutDirection()
             if not icon.isNull():  # pragma: no branch
-                icon.paint(painter, x, y, size.width(), size.height(), QtAlignCenter, mode, state)
-            textRect = rect.adjusted(x + size.width() + margin, 0, -margin, 0)
+                iconRect = QStyle.visualRect(direction, rect, QRect(x, y, size.width(), size.height()))
+                icon.paint(painter, iconRect, QtAlignCenter, mode, state)
+            textRect = QStyle.visualRect(direction, rect, rect.adjusted(x + size.width() + margin, 0, -margin, 0))
             painter.setPen(opt.palette.color(QPalette.ColorRole.ButtonText))
             painter.drawText(textRect, QtAlignLeftMiddle, text)
 

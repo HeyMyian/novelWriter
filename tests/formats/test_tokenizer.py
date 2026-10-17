@@ -205,7 +205,7 @@ def testTokenizer_TextOps(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain,
     mockRnd.reset()
     buildTestProject(project, fncPath)
 
-    project.data.setLanguage("en")
+    project.data.setLanguage("en", False)
     project._loadProjectLocalisation()
 
     tokens = BareTokenizer(project)
@@ -2333,7 +2333,7 @@ def testTokenizer_TextIndent(mockGUI: MockGuiMain):
 def testTokenizer_ProcessHeaders(mockGUI: MockGuiMain):
     """Test the header and page parser of the Tokenizer class."""
     project = NWProject()
-    project.data.setLanguage("en")
+    project.data.setLanguage("en", False)
     project._loadProjectLocalisation()
     tokens = BareTokenizer(project)
     tokens._isNovel = True
@@ -2523,7 +2523,7 @@ def testTokenizer_ProcessHeaders(mockGUI: MockGuiMain):
 def testTokenizer_FormatComment(mockGUI: MockGuiMain):
     """Test note and comment formatting."""
     project = NWProject()
-    project.data.setLanguage("en")
+    project.data.setLanguage("en", False)
     project._loadProjectLocalisation()
     tokens = BareTokenizer(project)
 
@@ -2560,7 +2560,7 @@ def testTokenizer_FormatComment(mockGUI: MockGuiMain):
 def testTokenizer_FormatMeta(mockGUI: MockGuiMain):
     """Test meta formatting."""
     project = NWProject()
-    project.data.setLanguage("en")
+    project.data.setLanguage("en", False)
     project._loadProjectLocalisation()
     tokens = BareTokenizer(project)
 
@@ -2617,7 +2617,7 @@ def testTokenizer_FormatMeta(mockGUI: MockGuiMain):
 def testTokenizer_BuildOutline(mockGUI: MockGuiMain, ipsumText: list[str]):
     """Test stats counter of the Tokenizer class."""
     project = NWProject()
-    project.data.setLanguage("en")
+    project.data.setLanguage("en", False)
     project._loadProjectLocalisation()
     tokens = BareTokenizer(project)
 
@@ -2673,7 +2673,7 @@ def testTokenizer_BuildOutline(mockGUI: MockGuiMain, ipsumText: list[str]):
 def testTokenizer_CountStats(mockGUI: MockGuiMain, ipsumText: list[str]):
     """Test stats counter of the Tokenizer class."""
     project = NWProject()
-    project.data.setLanguage("en")
+    project.data.setLanguage("en", False)
     project._loadProjectLocalisation()
     tokens = BareTokenizer(project)
     tokens._isNovel = True
@@ -2962,7 +2962,7 @@ def testTokenizer_CountStats_Dialogue(mockGUI: MockGuiMain):
     CONFIG.altDialogClose = "::"
 
     project = NWProject()
-    project.data.setLanguage("en")
+    project.data.setLanguage("en", False)
     project._loadProjectLocalisation()
     tokens = BareTokenizer(project)
     tokens._isNovel = True
@@ -3033,7 +3033,7 @@ def testTokenizer_CountStats_Dialogue(mockGUI: MockGuiMain):
 def testTokenizer_SceneSeparators(mockGUI: MockGuiMain):
     """Test the section and scene separators of the Tokenizer class."""
     project = NWProject()
-    project.data.setLanguage("en")
+    project.data.setLanguage("en", False)
     project._loadProjectLocalisation()
     md = ToMarkdown(project, False)
     md._isNovel = True
@@ -3165,7 +3165,7 @@ def testTokenizer_SceneSeparators(mockGUI: MockGuiMain):
 def testTokenizer_HeaderVisibility(mockGUI: MockGuiMain):
     """Test the heading visibility settings of the Tokenizer class."""
     project = NWProject()
-    project.data.setLanguage("en")
+    project.data.setLanguage("en", False)
     project._loadProjectLocalisation()
     md = ToMarkdown(project, False)
 
@@ -3275,7 +3275,7 @@ def testTokenizer_HeaderVisibility(mockGUI: MockGuiMain):
 def testTokenizer_CounterHandling(mockGUI: MockGuiMain):
     """Test the heading counter of the Tokenizer class."""
     project = NWProject()
-    project.data.setLanguage("en")
+    project.data.setLanguage("en", False)
     project._loadProjectLocalisation()
     md = ToMarkdown(project, False)
     md._isNovel = True
@@ -3358,7 +3358,7 @@ def testTokenizer_CounterHandling(mockGUI: MockGuiMain):
 def testTokenizer_HeadingFormatter(fncPath: Path, mockGUI: MockGuiMain, mockRnd: MockRnd):
     """Check the HeadingFormatter class."""
     project = NWProject()
-    project.setProjectLang("en_GB")
+    project.setProjectLang("en_GB", False)
     mockRnd.reset()
     buildTestProject(project, fncPath)
 

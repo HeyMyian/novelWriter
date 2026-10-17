@@ -97,7 +97,8 @@ class NSwitch(QAbstractButton):
 
         painter.setPen(QtNoPen)
         painter.setBrush(palette.highlightedText())
-        painter.drawEllipse(self._offset - self._rR, 2, self._rH, self._rH)
+        xPos = self._xW - self._offset if self.isRightToLeft() else self._offset
+        painter.drawEllipse(xPos - self._rR, 2, self._rH, self._rH)
 
         painter.end()
 

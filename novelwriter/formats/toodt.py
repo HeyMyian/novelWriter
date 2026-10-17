@@ -32,7 +32,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from PyQt6.QtGui import QColor, QFont
 
 from novelwriter import __version__
-from novelwriter.common import xmlElement, xmlIndent, xmlSubElem
+from novelwriter.common import textDirection, xmlElement, xmlIndent, xmlSubElem
 from novelwriter.constants import nwHeadFmt, nwStyles, nwUnicode
 from novelwriter.formats.shared import BlockFmt, BlockTyp, TextFmt, stripEscape
 from novelwriter.formats.tokenizer import COMMENT_BLOCKS, LIST_BLOCKS, META_BLOCKS, Tokenizer
@@ -238,18 +238,18 @@ class ToOdt(Tokenizer):
         self._dLanguage = "en"
         self._dCountry = "GB"
 
-        # Document Size and Margins
-        self._mDocWidth = "21.0cm"
-        self._mDocHeight = "29.7cm"
-        self._mDocTop = "2.000cm"
-        self._mDocBtm = "2.000cm"
-        self._mDocLeft = "2.000cm"
-        self._mDocRight = "2.000cm"
-        self._mDocGutter = "0.000cm"
+        # Document Size and Margins (Millimetres)
+        self._mDocWidth = 210.0
+        self._mDocHeight = 297.0
+        self._mDocTop = 20.0
+        self._mDocBtm = 20.0
+        self._mDocLeft = 20.0
+        self._mDocRight = 20.0
+        self._mDocGutter = 0.0
         self._mMirrored = False
 
         # Horizontal Line Margin
-        self._mHorLine = "4.250cm"  # Quarter of the text width
+        self._mHorLine = 42.5  # Text width divided by 4
 
     ##
     #  Setters
@@ -267,15 +267,15 @@ class ToOdt(Tokenizer):
         mirrored: bool,
     ) -> None:
         """Set the document page size and margins in millimetres."""
-        self._mDocWidth = f"{width / 10.0:.3f}cm"
-        self._mDocHeight = f"{height / 10.0:.3f}cm"
-        self._mDocTop = f"{top / 10.0:.3f}cm"
-        self._mDocBtm = f"{bottom / 10.0:.3f}cm"
-        self._mDocLeft = f"{(left + gutter) / 10.0:.3f}cm"
-        self._mDocRight = f"{right / 10.0:.3f}cm"
-        self._mDocGutter = f"{gutter / 10.0:.3f}cm"
+        self._mDocWidth = width
+        self._mDocHeight = height
+        self._mDocTop = top
+        self._mDocBtm = bottom
+        self._mDocLeft = left
+        self._mDocRight = right
+        self._mDocGutter = gutter
         self._mMirrored = mirrored
-        self._mHorLine = f"{(width - left - right - gutter) / 40.0:.3f}cm"  # Quarter of the text width
+        self._mHorLine = (width - left - right - gutter) / 4.0
 
     def setHeaderFormat(self, value: str, offset: int) -> None:
         """Set the document header format."""
@@ -422,6 +422,8 @@ class ToOdt(Tokenizer):
         for tType, _, tText, tFormat, tStyle in self._blocks:
             # Styles
             oStyle = ODTParagraphStyle("New")
+            if self._isRTL and textDirection(tText) == "ltr":
+                oStyle.setWritingMode("lr-tb")
             if tStyle & BlockFmt.LEFT:
                 oStyle.setTextAlign("left")
             elif tStyle & BlockFmt.RIGHT:
@@ -737,6 +739,8 @@ class ToOdt(Tokenizer):
         if content := self._footnotes.get(key):
             self._nNote += 1
             nStyle = ODTParagraphStyle("New")
+            if self._isRTL and textDirection(content[0]) == "ltr":
+                nStyle.setWritingMode("lr-tb")
             xNote = xmlElement(
                 _mkTag("text", "note"),
                 attrib={
@@ -799,19 +803,21 @@ class ToOdt(Tokenizer):
                 _mkTag("style", "page-usage"): "mirrored" if self._mMirrored else "all",
             },
         )
-        ET.SubElement(
-            xPage,
-            _mkTag("style", "page-layout-properties"),
-            attrib={
-                _mkTag("fo", "page-width"): self._mDocWidth,
-                _mkTag("fo", "page-height"): self._mDocHeight,
-                _mkTag("fo", "margin-top"): self._mDocTop,
-                _mkTag("fo", "margin-bottom"): self._mDocBtm,
-                _mkTag("fo", "margin-left"): self._mDocLeft,
-                _mkTag("fo", "margin-right"): self._mDocRight,
-                _mkTag("loext", "margin-gutter"): self._mDocGutter,
-            },
-        )
+        mLeft = self._mDocLeft + (0.0 if self._isRTL else self._mDocGutter)
+        mRight = self._mDocRight + (self._mDocGutter if self._isRTL else 0.0)
+        pAttr = {
+            _mkTag("fo", "page-width"): f"{self._mDocWidth / 10.0:.3f}cm",
+            _mkTag("fo", "page-height"): f"{self._mDocHeight / 10.0:.3f}cm",
+            _mkTag("fo", "margin-top"): f"{self._mDocTop / 10.0:.3f}cm",
+            _mkTag("fo", "margin-bottom"): f"{self._mDocBtm / 10.0:.3f}cm",
+            _mkTag("fo", "margin-left"): f"{mLeft / 10.0:.3f}cm",
+            _mkTag("fo", "margin-right"): f"{mRight / 10.0:.3f}cm",
+            _mkTag("loext", "margin-gutter"): f"{self._mDocGutter / 10.0:.3f}cm",
+        }
+        if self._isRTL:
+            pAttr[_mkTag("style", "writing-mode")] = "rl-tb"
+            pAttr[_mkTag("loext", "rtl-gutter")] = "true"
+        ET.SubElement(xPage, _mkTag("style", "page-layout-properties"), attrib=pAttr)
 
         xHead = ET.SubElement(xPage, _mkTag("style", "header-style"))
         ET.SubElement(
@@ -959,7 +965,7 @@ class ToOdt(Tokenizer):
         style.setMarginTop(self._emToCm(self._marginText[0]))
         style.setMarginBottom(self._emToCm(self._marginText[1]))
         style.setLineHeight(lineHeight)
-        style.setTextAlign(self._defaultAlign)
+        style.setTextAlign("start" if self._isRTL else self._defaultAlign)
         style.setFontName(self._fontFamily)
         style.setFontFamily(self._fontFamily)
         style.setFontSize(textSize)
@@ -1040,8 +1046,8 @@ class ToOdt(Tokenizer):
         style.setClass("html")
         style.setMarginTop(self._emToCm(0))
         style.setMarginBottom(self._emToCm(self._marginSep[1]))
-        style.setMarginLeft(self._mHorLine)
-        style.setMarginRight(self._mHorLine)
+        style.setMarginLeft(f"{(self._mHorLine) / 10.0:.3f}cm")
+        style.setMarginRight(f"{(self._mHorLine) / 10.0:.3f}cm")
         style.setBorderLeft(ODTBorderStyle("none"))
         style.setBorderRight(ODTBorderStyle("none"))
         style.setBorderTop(ODTBorderStyle("none"))
@@ -1121,7 +1127,7 @@ class ToOdt(Tokenizer):
         style = ODTParagraphStyle("Header")
         style.setDisplayName("Header")
         style.setParentStyleName(S_HNF)
-        style.setTextAlign("right")
+        style.setTextAlign("left" if self._isRTL else "right")
         style.packXML(self._xStyl)
         self._mainPara[style.name] = style
 
@@ -1238,6 +1244,7 @@ class ODTParagraphStyle:
 
     VALID_ALIGN: ClassVar[list[str]] = ["start", "center", "end", "justify", "left", "right"]
     VALID_BREAK: ClassVar[list[str]] = ["auto", "page", "even-page", "odd-page", "inherit"]
+    VALID_WRITE: ClassVar[list[str]] = ["lr-tb", "rl-tb", "page"]
     VALID_LEVEL: ClassVar[list[str]] = ["1", "2", "3", "4"]
     VALID_CLASS: ClassVar[list[str]] = ["text", "chapter", "extra", "html", "list"]
     VALID_WEIGHT: ClassVar[list[str]] = ["normal", "bold", *FONT_WEIGHT_NUM]
@@ -1268,6 +1275,7 @@ class ODTParagraphStyle:
             "text-indent": ["fo", None],
             "line-height": ["fo", None],
             "text-align": ["fo", None],
+            "writing-mode": ["style", None],
             "break-before": ["fo", None],
             "break-after": ["fo", None],
         }
@@ -1374,6 +1382,13 @@ class ODTParagraphStyle:
             self._pAttr["text-align"][1] = value
         else:
             self._pAttr["text-align"][1] = None
+
+    def setWritingMode(self, value: str | None) -> None:
+        """Set paragraph writing mode."""
+        if value in self.VALID_WRITE:
+            self._pAttr["writing-mode"][1] = value
+        else:
+            self._pAttr["writing-mode"][1] = None
 
     def setBreakBefore(self, value: str | None) -> None:
         """Set page break before policy."""

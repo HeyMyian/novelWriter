@@ -136,6 +136,7 @@ class Tokenizer(ABC):
         "_indentFirst",
         "_isFirst",
         "_isNovel",
+        "_isRTL",
         "_justifyOnBreak",
         "_keepBreaks",
         "_keepRaw",
@@ -200,6 +201,7 @@ class Tokenizer(ABC):
 
         # User Settings
         self._dLocale = CONFIG.locale  # The document locale
+        self._isRTL = False  # Right-to-left document
         self._textFont = QFont("Serif", 11)  # Output text font
         self._lineHeight = 1.15  # Line height in units of em
         self._colorHeads = True  # Colourise headings
@@ -340,10 +342,11 @@ class Tokenizer(ABC):
     #  Setters
     ##
 
-    def setLanguage(self, language: str | None) -> None:
-        """Set language for the document."""
+    def setLanguage(self, language: str | None, rtl: bool) -> None:
+        """Set language and text direction for the document."""
         if language:
             self._dLocale = QLocale(language)
+        self._isRTL = rtl
 
     def setTheme(self, theme: TextDocumentTheme) -> None:
         """Set the document colour theme."""
