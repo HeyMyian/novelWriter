@@ -422,12 +422,16 @@ def testStoryOutline_Paint(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI:
         text: str,
         formats: list[QTextLayout.FormatRange],
         indent: int = 0,
+        rtl: bool = False,
     ) -> int:
-        used = drawLayout(self, painter, x, y, w, h, text, formats, indent)
-        calls.append((y, h, text, used, painter.pen().color(), formats, indent))
+        used = drawLayout(self, painter, x, y, w, h, text, formats, indent, rtl)
+        calls.append((y, h, text, used, painter.pen().color(), formats, indent, rtl))
         return used
 
     hLine = delegate._fm.height()
+    box = QRect(0, 0, 150, 3 * hLine)
+    ltr = Qt.LayoutDirection.LeftToRight
+    rtl = Qt.LayoutDirection.RightToLeft
     pixmap = QPixmap(200, 200)
     painter = QPainter(pixmap)
     entries = [
@@ -436,7 +440,7 @@ def testStoryOutline_Paint(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI:
     ]
     with monkeypatch.context() as mp:
         mp.setattr(_OutlineDelegate, "_drawLayout", recordLayout)
-        delegate._paintEntries(painter, 0, 0, 150, 3 * hLine, node, entries)
+        delegate._paintEntries(painter, box, ltr, node, entries)
         world, note = calls
         assert world[:2] == (0, 2 * hLine)
         assert world[2].startswith("Locations: World0, World1")
@@ -452,7 +456,7 @@ def testStoryOutline_Paint(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI:
         # Icons replace the labels, and the first line is indented
         calls.clear()
         delegate.setIcons(True, True)
-        delegate._paintEntries(painter, 0, 0, 150, 3 * hLine, node, entries)
+        delegate._paintEntries(painter, box, ltr, node, entries)
         world, note = calls
         assert world[2].startswith("World0, World1")
         assert world[5] == []
@@ -464,16 +468,31 @@ def testStoryOutline_Paint(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI:
         # Highlights start at the text when there is no label
         tree.setHighlight({"europe"})
         calls.clear()
-        delegate._paintEntries(painter, 0, 0, 150, 3 * hLine, node, [(nwKeyWords.WORLD_KEY, "Location", "", "Europe")])
+        delegate._paintEntries(painter, box, ltr, node, [(nwKeyWords.WORLD_KEY, "Location", "", "Europe")])
         assert [(f.start, f.length) for f in calls[0][5]] == [(0, 6)]
 
         # No icon is drawn if there is no room
         calls.clear()
-        delegate._paintEntries(painter, 0, 0, 150, hLine, node, entries)
+        delegate._paintEntries(painter, QRect(0, 0, 150, hLine), ltr, node, entries)
         assert [c[3] for c in calls] == [0, hLine]
+
+        # In RTL, icons and the first line indent are on the right
+        calls.clear()
+        tips = delegate._paintEntries(painter, box, ltr, node, entries)
+        assert tips[0][0] == QRect(0, 0, hLine, hLine)
+        assert calls[0][7] is False
+        calls.clear()
+        tips = delegate._paintEntries(painter, box, rtl, node, entries)
+        assert tips[0][0] == QRect(150 - hLine, 0, hLine, hLine)
+        assert calls[0][7] is True
         delegate.setIcons(False, False)
 
     painter.end()
+
+    # The whole view also paints in RTL
+    view.setLayoutDirection(rtl)
+    assert not view.grab().isNull()
+    view.setLayoutDirection(ltr)
 
     # Partition rows are a single line
     option = QStyleOptionViewItem()

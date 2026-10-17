@@ -49,6 +49,7 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QStyle,
     QStyledItemDelegate,
     QStyleOptionViewItem,
     QToolTip,
@@ -76,9 +77,11 @@ from novelwriter.story.storysettings import (
 from novelwriter.story.storyviewbase import GuiStorySettingsBase, GuiStoryViewBase
 from novelwriter.text.formats import MODIFIERS
 from novelwriter.types import (
+    QtAlignLeft,
     QtAlignLeftMiddle,
     QtElideRight,
     QtHeaderInteractive,
+    QtLayoutRTL,
     QtModCtrl,
     QtModShift,
     QtScrollAlwaysOff,
@@ -93,7 +96,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-LINE_FLAGS = int(Qt.TextFlag.TextSingleLine) | int(QtAlignLeftMiddle)
 
 COLUMN_FLAGS = (
     Qt.ItemFlag.ItemIsEnabled
@@ -739,11 +741,16 @@ class GuiStoryOutlineTree(NTreeView):
         if node := self._model.node(index):  # pragma: no branch
             first = index.sibling(index.row(), OutlineModel.C_TITLE)
             selected = self._isRowSelected(first)
-            block = option.rect.adjusted(0, ROW_PAD, -ROW_PAD, -ROW_PAD)
-            block.setLeft(self.visualRect(first).left() + ROW_PAD)
+            block = option.rect.adjusted(ROW_PAD, ROW_PAD, -ROW_PAD, -ROW_PAD)
+            if self.isRightToLeft():
+                block.setRight(self.visualRect(first).right() - ROW_PAD)
+                edge = block.adjusted(block.width() - ROW_EDGE, 0, 0, 0)
+            else:
+                block.setLeft(self.visualRect(first).left() + ROW_PAD)
+                edge = block.adjusted(0, 0, ROW_EDGE - block.width(), 0)
             painter.fillRect(option.rect, self.palette().base())
             painter.fillRect(block, node.style.highlight if selected else node.style.background)
-            painter.fillRect(block.adjusted(0, 0, ROW_EDGE - block.width(), 0), node.style.border)
+            painter.fillRect(edge, node.style.border)
 
         super().drawRow(painter, option, index)
 
@@ -908,21 +915,28 @@ class _OutlineDelegate(QStyledItemDelegate):
         painter.setClipRect(rect)
         painter.setPen(self._textCol)
 
+        direction = option.direction
         pad = ROW_PAD + self._margin
         x = rect.x() + pad
         y = rect.y() + pad
         w = max(0, rect.width() - 2 * pad)
         h = max(0, rect.height() - 2 * pad)
         if index.column() == OutlineModel.C_TITLE:
-            # The row box is also padded on the left of the first column
-            x += ROW_PAD
+            # The row box is also padded on the outer side of the first column
+            if direction != QtLayoutRTL:
+                x += ROW_PAD
             w = max(0, w - ROW_PAD)
+
+        # Rects are computed for LTR, and mirrored within the box for RTL
+        box = QRect(x, y, w, h)
+        flags = int(Qt.TextFlag.TextSingleLine) | int(QStyle.visualAlignment(direction, QtAlignLeftMiddle))
+        self._wrapOption.setAlignment(QStyle.visualAlignment(direction, QtAlignLeft))
 
         if node.level == 1:
             if index.column() == OutlineModel.C_TITLE:
                 painter.setFont(SHARED.theme.guiFontB)
                 title = self._fmB.elidedText(node.title, QtElideRight, w)
-                painter.drawText(QRect(x, y, w, h), LINE_FLAGS, title)
+                painter.drawText(box, flags, title)
             painter.restore()
             return
 
@@ -933,7 +947,7 @@ class _OutlineDelegate(QStyledItemDelegate):
 
                 painter.setFont(SHARED.theme.guiFontB)
                 title = self._fmB.elidedText(node.title, QtElideRight, w)
-                painter.drawText(QRect(x, y, w, hTitle), LINE_FLAGS, title)
+                painter.drawText(QStyle.visualRect(direction, box, QRect(x, y, w, hTitle)), flags, title)
 
                 painter.setFont(SHARED.theme.guiFont)
                 painter.setPen(self._helpCol)
@@ -945,19 +959,20 @@ class _OutlineDelegate(QStyledItemDelegate):
                 yLine = y + hTitle
                 for text in info:
                     text = self._fm.elidedText(text, QtElideRight, w)
-                    painter.drawText(QRect(x, yLine, w, hLine), LINE_FLAGS, text)
+                    painter.drawText(QStyle.visualRect(direction, box, QRect(x, yLine, w, hLine)), flags, text)
                     yLine += hLine
 
                 if status := node.status:
                     label, icon = status
                     wText = max(0, w - self._iconIndent)
-                    icon.paint(painter, QRect(x, yLine, hLine, hLine))
+                    icon.paint(painter, QStyle.visualRect(direction, box, QRect(x, yLine, hLine, hLine)))
                     label = self._fm.elidedText(label, QtElideRight, wText)
-                    painter.drawText(QRect(x + self._iconIndent, yLine, wText, hLine), LINE_FLAGS, label)
+                    lRect = QRect(x + self._iconIndent, yLine, wText, hLine)
+                    painter.drawText(QStyle.visualRect(direction, box, lRect), flags, label)
 
             case column:
                 entries = node.entries(column - OutlineModel.C_COLUMNS)
-                if tips := self._paintEntries(painter, x, y, w, h, node, entries):
+                if tips := self._paintEntries(painter, box, direction, node, entries):
                     self._tips[(index.row(), column)] = tips
 
         painter.restore()
@@ -1015,16 +1030,16 @@ class _OutlineDelegate(QStyledItemDelegate):
     def _paintEntries(
         self,
         painter: QPainter,
-        x: int,
-        y: int,
-        w: int,
-        h: int,
+        box: QRect,
+        direction: Qt.LayoutDirection,
         node: OutlineNode,
         entries: list[tuple[str, str, str, str]],
     ) -> list[tuple[QRect, str]]:
         """Paint wrapped entries, leaving a line for each following one,
         and return the icon areas with their full labels.
         """
+        x, y, w, h = box.x(), box.y(), box.width(), box.height()
+        rtl = direction == QtLayoutRTL
         hLine = self._fm.height()
         used = 0
         tips = []
@@ -1047,9 +1062,9 @@ class _OutlineDelegate(QStyledItemDelegate):
                 painter.setPen(self._noteCol)
 
             indent = self._iconIndent if icon else 0
-            height = self._drawLayout(painter, x, y + used, w, h - used - reserved, full, formats, indent)
+            height = self._drawLayout(painter, x, y + used, w, h - used - reserved, full, formats, indent, rtl)
             if icon and height:
-                area = QRect(x, y + used, hLine, hLine)
+                area = QStyle.visualRect(direction, box, QRect(x, y + used, hLine, hLine))
                 icon.paint(painter, area)
                 tips.append((area, tip))
             used += height
@@ -1086,23 +1101,25 @@ class _OutlineDelegate(QStyledItemDelegate):
         text: str,
         formats: list[QTextLayout.FormatRange],
         indent: int = 0,
+        rtl: bool = False,
     ) -> int:
         """Draw wrapped text in the whole lines that fit, and return the
-        height used. The indent only applies to the first line.
+        height used. The indent only applies to the first line, on the
+        leading side.
         """
         layout = QTextLayout(text, SHARED.theme.guiFont)
         layout.setFormats(formats)
         layout.setTextOption(self._wrapOption)
         layout.beginLayout()
-        xPos = float(indent)
+        lead = float(indent)
         yPos = 0.0
         for _ in range(h // self._fm.height()):
             if not (line := layout.createLine()).isValid():
                 break
-            line.setLineWidth(w - xPos)
-            line.setPosition(QPointF(xPos, yPos))
+            line.setLineWidth(w - lead)
+            line.setPosition(QPointF(0.0 if rtl else lead, yPos))
             yPos += line.height()
-            xPos = 0.0
+            lead = 0.0
         layout.endLayout()
         layout.draw(painter, QPointF(x, y))
         return math.ceil(yPos)
