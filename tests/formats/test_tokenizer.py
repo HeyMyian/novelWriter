@@ -267,6 +267,16 @@ def testTokenizer_TextOps(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain,
         BlockFmt.CENTRE | BlockFmt.PBB,
     )
 
+    # Odd page break if the title style uses it
+    tokens.setTitleStyle(True, 2)
+    tokens.addRootHeading(C.hPlotRoot)
+    assert tokens._blocks[-1][4] == BlockFmt.CENTRE | BlockFmt.HBB
+
+    # Otherwise always any page break
+    tokens.setTitleStyle(True, 0)
+    tokens.addRootHeading(C.hPlotRoot)
+    assert tokens._blocks[-1][4] == BlockFmt.CENTRE | BlockFmt.PBB
+
     # Set Text
     tokens.setText("stuff")
     assert tokens._text == ""
@@ -466,10 +476,21 @@ def testTokenizer_HeaderStyleNone(mockGUI: MockGuiMain):
         tokens.tokenizeText()
         return tokens._blocks[0][4]
 
-    tokens.setTitleStyle(False, False)
-    tokens.setPartitionStyle(False, False)
-    tokens.setChapterStyle(False, False)
-    tokens.setSceneStyle(False, False)
+    # Invalid break types are ignored
+    tokens.setTitleStyle(False, 9)
+    tokens.setPartitionStyle(False, 9)
+    tokens.setChapterStyle(False, 9)
+    tokens.setSceneStyle(False, 9)
+
+    assert tokens._titleStyle == BlockFmt.NONE
+    assert tokens._partStyle == BlockFmt.NONE
+    assert tokens._chapterStyle == BlockFmt.NONE
+    assert tokens._sceneStyle == BlockFmt.NONE
+
+    tokens.setTitleStyle(False, 0)
+    tokens.setPartitionStyle(False, 0)
+    tokens.setChapterStyle(False, 0)
+    tokens.setSceneStyle(False, 0)
 
     assert tokens._titleStyle == BlockFmt.NONE
     assert tokens._partStyle == BlockFmt.NONE
@@ -527,10 +548,10 @@ def testTokenizer_HeaderStyleCenter(mockGUI: MockGuiMain):
         tokens.tokenizeText()
         return tokens._blocks[0][4]
 
-    tokens.setTitleStyle(True, False)
-    tokens.setPartitionStyle(True, False)
-    tokens.setChapterStyle(True, False)
-    tokens.setSceneStyle(True, False)
+    tokens.setTitleStyle(True, 0)
+    tokens.setPartitionStyle(True, 0)
+    tokens.setChapterStyle(True, 0)
+    tokens.setSceneStyle(True, 0)
 
     assert tokens._titleStyle == BlockFmt.CENTRE
     assert tokens._partStyle == BlockFmt.CENTRE
@@ -588,10 +609,10 @@ def testTokenizer_HeaderStylePageBreak(mockGUI: MockGuiMain):
         tokens.tokenizeText()
         return tokens._blocks[0][4]
 
-    tokens.setTitleStyle(False, True)
-    tokens.setPartitionStyle(False, True)
-    tokens.setChapterStyle(False, True)
-    tokens.setSceneStyle(False, True)
+    tokens.setTitleStyle(False, 1)
+    tokens.setPartitionStyle(False, 1)
+    tokens.setChapterStyle(False, 1)
+    tokens.setSceneStyle(False, 1)
 
     assert tokens._titleStyle == BlockFmt.PBB
     assert tokens._partStyle == BlockFmt.PBB
@@ -639,7 +660,7 @@ def testTokenizer_HeaderStylePageBreak(mockGUI: MockGuiMain):
 
 @pytest.mark.core
 def testTokenizer_HeaderStylePageBreakCenter(mockGUI: MockGuiMain):
-    """Test header styling page break and centred."""
+    """Test header styling odd page break and centred."""
     project = NWProject()
     tokens = BareTokenizer(project)
 
@@ -649,26 +670,26 @@ def testTokenizer_HeaderStylePageBreakCenter(mockGUI: MockGuiMain):
         tokens.tokenizeText()
         return tokens._blocks[0][4]
 
-    tokens.setTitleStyle(True, True)
-    tokens.setPartitionStyle(True, True)
-    tokens.setChapterStyle(True, True)
-    tokens.setSceneStyle(True, True)
+    tokens.setTitleStyle(True, 2)
+    tokens.setPartitionStyle(True, 2)
+    tokens.setChapterStyle(True, 2)
+    tokens.setSceneStyle(True, 2)
 
-    assert tokens._titleStyle == BlockFmt.CENTRE | BlockFmt.PBB
-    assert tokens._partStyle == BlockFmt.CENTRE | BlockFmt.PBB
-    assert tokens._chapterStyle == BlockFmt.CENTRE | BlockFmt.PBB
-    assert tokens._sceneStyle == BlockFmt.CENTRE | BlockFmt.PBB
+    assert tokens._titleStyle == BlockFmt.CENTRE | BlockFmt.HBB
+    assert tokens._partStyle == BlockFmt.CENTRE | BlockFmt.HBB
+    assert tokens._chapterStyle == BlockFmt.CENTRE | BlockFmt.HBB
+    assert tokens._sceneStyle == BlockFmt.CENTRE | BlockFmt.HBB
 
     # Novel Docs
     tokens._isNovel = True
 
     # First Document is False
-    assert processStyle("# Title\n", False) == BlockFmt.CENTRE | BlockFmt.PBB
-    assert processStyle("## Chapter\n", False) == BlockFmt.CENTRE | BlockFmt.PBB
-    assert processStyle("### Scene\n", False) == BlockFmt.CENTRE | BlockFmt.PBB
+    assert processStyle("# Title\n", False) == BlockFmt.CENTRE | BlockFmt.HBB
+    assert processStyle("## Chapter\n", False) == BlockFmt.CENTRE | BlockFmt.HBB
+    assert processStyle("### Scene\n", False) == BlockFmt.CENTRE | BlockFmt.HBB
     assert processStyle("#### Section\n", False) == BlockFmt.NONE
-    assert processStyle("#! My Novel\n", False) == BlockFmt.CENTRE | BlockFmt.PBB
-    assert processStyle("##! Prologue\n", False) == BlockFmt.CENTRE | BlockFmt.PBB
+    assert processStyle("#! My Novel\n", False) == BlockFmt.CENTRE | BlockFmt.HBB
+    assert processStyle("##! Prologue\n", False) == BlockFmt.CENTRE | BlockFmt.HBB
 
     # First Document is True
     assert processStyle("# Title\n", True) == BlockFmt.CENTRE
@@ -686,7 +707,7 @@ def testTokenizer_HeaderStylePageBreakCenter(mockGUI: MockGuiMain):
     assert processStyle("## Chapter\n", False) == BlockFmt.NONE
     assert processStyle("### Scene\n", False) == BlockFmt.NONE
     assert processStyle("#### Section\n", False) == BlockFmt.NONE
-    assert processStyle("#! My Novel\n", False) == BlockFmt.CENTRE | BlockFmt.PBB
+    assert processStyle("#! My Novel\n", False) == BlockFmt.CENTRE | BlockFmt.HBB
     assert processStyle("##! Prologue\n", False) == BlockFmt.NONE
 
     # First Document is True
@@ -713,10 +734,10 @@ def testTokenizer_HeaderStyleSeparation(mockGUI: MockGuiMain):
     tokens._isNovel = True
 
     # Title Styles
-    tokens.setTitleStyle(True, True)
-    tokens.setPartitionStyle(False, False)
-    tokens.setChapterStyle(False, False)
-    tokens.setSceneStyle(False, False)
+    tokens.setTitleStyle(True, 1)
+    tokens.setPartitionStyle(False, 0)
+    tokens.setChapterStyle(False, 0)
+    tokens.setSceneStyle(False, 0)
 
     assert tokens._titleStyle == BlockFmt.CENTRE | BlockFmt.PBB
     assert tokens._partStyle == BlockFmt.NONE
@@ -731,10 +752,10 @@ def testTokenizer_HeaderStyleSeparation(mockGUI: MockGuiMain):
     assert processStyle("##! Prologue\n", False) == BlockFmt.NONE
 
     # Partition Styles
-    tokens.setTitleStyle(False, False)
-    tokens.setPartitionStyle(True, True)
-    tokens.setChapterStyle(False, False)
-    tokens.setSceneStyle(False, False)
+    tokens.setTitleStyle(False, 0)
+    tokens.setPartitionStyle(True, 1)
+    tokens.setChapterStyle(False, 0)
+    tokens.setSceneStyle(False, 0)
 
     assert tokens._titleStyle == BlockFmt.NONE
     assert tokens._partStyle == BlockFmt.CENTRE | BlockFmt.PBB
@@ -749,10 +770,10 @@ def testTokenizer_HeaderStyleSeparation(mockGUI: MockGuiMain):
     assert processStyle("##! Prologue\n", False) == BlockFmt.NONE
 
     # Chapter Styles
-    tokens.setTitleStyle(False, False)
-    tokens.setPartitionStyle(False, False)
-    tokens.setChapterStyle(True, True)
-    tokens.setSceneStyle(False, False)
+    tokens.setTitleStyle(False, 0)
+    tokens.setPartitionStyle(False, 0)
+    tokens.setChapterStyle(True, 1)
+    tokens.setSceneStyle(False, 0)
 
     assert tokens._titleStyle == BlockFmt.NONE
     assert tokens._partStyle == BlockFmt.NONE
@@ -767,10 +788,10 @@ def testTokenizer_HeaderStyleSeparation(mockGUI: MockGuiMain):
     assert processStyle("##! Prologue\n", False) == BlockFmt.CENTRE | BlockFmt.PBB
 
     # Scene Styles
-    tokens.setTitleStyle(False, False)
-    tokens.setPartitionStyle(False, False)
-    tokens.setChapterStyle(False, False)
-    tokens.setSceneStyle(True, True)
+    tokens.setTitleStyle(False, 0)
+    tokens.setPartitionStyle(False, 0)
+    tokens.setChapterStyle(False, 0)
+    tokens.setSceneStyle(True, 1)
 
     assert tokens._titleStyle == BlockFmt.NONE
     assert tokens._partStyle == BlockFmt.NONE
@@ -1863,7 +1884,7 @@ def testTokenizer_LineForMargin(mockGUI: MockGuiMain):
     tokens._handle = TMH
     tokens._isNovel = True
     tokens.setLineForMargin(True)
-    tokens.setChapterStyle(False, True)
+    tokens.setChapterStyle(False, 1)
 
     # Between paragraphs
     tokens._text = "Line one\n\nLine two"
@@ -1909,6 +1930,33 @@ def testTokenizer_LineForMargin(mockGUI: MockGuiMain):
         (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
         (BlockTyp.SKIP, "", "", [], BlockFmt.PBB),
         (BlockTyp.HEAD1, f"{TMH}:T0002", "Chapter Two", [], BlockFmt.NONE),
+        (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
+        (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
+    ]
+
+    # Both page breaks are moved to the empty line
+    tokens.setChapterStyle(False, 2)
+    tokens._text = "## Chapter One\n\nText"
+    tokens._isFirst = False
+    tokens.setBreakNext()
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.SKIP, "", "", [], BlockFmt.PBB | BlockFmt.HBB),
+        (BlockTyp.HEAD1, f"{TMH}:T0001", "Chapter One", [], BlockFmt.NONE),
+        (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
+        (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
+        (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
+    ]
+
+    # Both page breaks are removed from the first block
+    tokens._text = "## Chapter One\n\nText"
+    tokens._isFirst = True
+    tokens.setBreakNext()
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
+        (BlockTyp.HEAD1, f"{TMH}:T0001", "Chapter One", [], BlockFmt.NONE),
         (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),
         (BlockTyp.TEXT, "", "Text", [], BlockFmt.NONE),
         (BlockTyp.SKIP, "", "", [], BlockFmt.NONE),

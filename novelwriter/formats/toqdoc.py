@@ -191,7 +191,7 @@ class ToQTextDocument(Tokenizer):
         left: float,
         right: float,
         gutter: float,
-        mirrored: bool,
+        doublePages: bool,
     ) -> None:
         """Set the document page size and margins in millimetres."""
         self._pageSize = QPageSize(QSizeF(width, height), QPageSize.Unit.Millimeter)
@@ -336,7 +336,7 @@ class ToQTextDocument(Tokenizer):
             elif tStyle & BlockFmt.JUSTIFY:
                 bFmt.setAlignment(QtAlignJustify)
 
-            if tStyle & BlockFmt.PBB:
+            if tStyle & BlockFmt.BREAK_B:
                 self._insertNewPageMarker(cursor)
                 bFmt.setPageBreakPolicy(QtPageBreakBefore)
             if tStyle & BlockFmt.PBA:

@@ -376,6 +376,8 @@ def testGuiBuildSettings_Headings(qtbot: QtBot, nwGUI: GuiMain):
     build.setValue("headings.fmtSection", sxTitle)
     build.setValue("headings.hideScene", False)
     build.setValue("headings.hideSection", False)
+    build.setValue("headings.breakTitle", 2)
+    build.setValue("headings.breakScene", 9)
 
     # Create the dialog and populate it
     bSettings = GuiBuildSettings(nwGUI, build)
@@ -397,6 +399,10 @@ def testGuiBuildSettings_Headings(qtbot: QtBot, nwGUI: GuiMain):
     assert headTab.fmtSection.text() == sxTitle
     assert headTab.swtScene.isChecked() is False
     assert headTab.swtSection.isChecked() is False
+    assert headTab.breakTitle.checkedId() == 2
+    assert headTab.breakPart.checkedId() == 1
+    assert headTab.breakChapter.checkedId() == 1
+    assert headTab.breakScene.checkedId() == -1  # Invalid value
 
     # Edit in Turn
     # ============
@@ -544,6 +550,18 @@ def testGuiBuildSettings_Headings(qtbot: QtBot, nwGUI: GuiMain):
     assert sBuild.getBool("headings.hideScene") is True
     assert sBuild.getBool("headings.hideAltScene") is True
     assert sBuild.getBool("headings.hideSection") is True
+
+    # Check page break buttons
+    headTab.breakTitle.setCheckedId(0)
+    headTab.breakPart.setCheckedId(2)
+    headTab.breakChapter.setCheckedId(2)
+    headTab.breakScene.setCheckedId(1)
+    headTab.saveContent()
+
+    assert sBuild.getInt("headings.breakTitle") == 0
+    assert sBuild.getInt("headings.breakPart") == 2
+    assert sBuild.getInt("headings.breakChapter") == 2
+    assert sBuild.getInt("headings.breakScene") == 1
 
     # Finish
     bSettings._dialogButtonClicked(bSettings.btnClose)
@@ -1051,7 +1069,8 @@ def testGuiBuildSettings_FormatOutput(qtbot: QtBot, nwGUI: GuiMain):
     """Test the format-specific settings."""
     build = BuildSettings()
 
-    build.setValue("doc.pageHeader", nwHeadFmt.DOC_AUTO)
+    build.setValue("doc.pageHeader", nwHeadFmt.DOC_AUTO_ODD)
+    build.setValue("doc.pageHeaderEven", nwHeadFmt.DOC_AUTO_EVEN)
     build.setValue("doc.pageCountOffset", 0)
 
     build.setValue("html.addStyles", False)
@@ -1069,8 +1088,16 @@ def testGuiBuildSettings_FormatOutput(qtbot: QtBot, nwGUI: GuiMain):
     assert bSettings.toolStack.currentWidget() is fmtTab
 
     # Check initial values
-    assert fmtTab.pageHeader.text() == nwHeadFmt.DOC_AUTO
+    assert fmtTab.pageHeader.text() == nwHeadFmt.DOC_AUTO_ODD
+    assert fmtTab.pageHeaderEven.text() == nwHeadFmt.DOC_AUTO_EVEN
     assert fmtTab.pageCountOffset.value() == 0
+
+    # The even page header is only enabled for double pages
+    assert fmtTab.pageHeaderEven.isEnabled() is False
+    assert fmtTab.btnPageHeaderEven.isEnabled() is False
+    fmtTab.doublePages.click()
+    assert fmtTab.pageHeaderEven.isEnabled() is True
+    assert fmtTab.btnPageHeaderEven.isEnabled() is True
 
     assert fmtTab.htmlAddStyles.isChecked() is False
     assert fmtTab.htmlPreserveTabs.isChecked() is False
@@ -1078,6 +1105,7 @@ def testGuiBuildSettings_FormatOutput(qtbot: QtBot, nwGUI: GuiMain):
     # Change Values
     fmtTab.pageCountOffset.setValue(1)
     fmtTab.pageHeader.setText("Stuff")
+    fmtTab.pageHeaderEven.setText("Even Stuff")
     fmtTab.metaLanguage.setText("en-gb")
 
     fmtTab._refreshMetaLang()
@@ -1093,6 +1121,7 @@ def testGuiBuildSettings_FormatOutput(qtbot: QtBot, nwGUI: GuiMain):
     assert sBuild.buildID == build.buildID
 
     assert sBuild.getStr("doc.pageHeader") == "Stuff"
+    assert sBuild.getStr("doc.pageHeaderEven") == "Even Stuff"
     assert sBuild.getInt("doc.pageCountOffset") == 1
     assert sBuild.getStr("doc.metaLanguage") == "en-GB"
 
@@ -1101,7 +1130,9 @@ def testGuiBuildSettings_FormatOutput(qtbot: QtBot, nwGUI: GuiMain):
 
     # Reset header format
     fmtTab.btnPageHeader.click()
-    assert fmtTab.pageHeader.text() == nwHeadFmt.DOC_AUTO
+    assert fmtTab.pageHeader.text() == nwHeadFmt.DOC_AUTO_ODD
+    fmtTab.btnPageHeaderEven.click()
+    assert fmtTab.pageHeaderEven.text() == nwHeadFmt.DOC_AUTO_EVEN
 
     # Finish
     bSettings._dialogButtonClicked(bSettings.btnClose)

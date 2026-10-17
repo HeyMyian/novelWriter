@@ -578,6 +578,11 @@ class nwLabels:
         "meta": QT_TRANSLATE_NOOP("Constant", "Tags and references"),
         "comments": QT_TRANSLATE_NOOP("Constant", "Comments and footnotes"),
     }
+    BREAK_TYPES: ClassVar[dict[int, str]] = {
+        0: QT_TRANSLATE_NOOP("Constant", "No Break"),
+        1: QT_TRANSLATE_NOOP("Constant", "Any Page"),
+        2: QT_TRANSLATE_NOOP("Constant", "Odd Page"),
+    }
 
 
 class nwHeadFmt:
@@ -611,7 +616,8 @@ class nwHeadFmt:
     DOC_PROJECT = "{Project}"
     DOC_AUTHOR = "{Author}"
     DOC_PAGE = "{Page}"
-    DOC_AUTO = "{Project} / {Author} / {Page}"
+    DOC_AUTO_ODD = "{Project} / {Author} / {Page}"
+    DOC_AUTO_EVEN = "{Page} / {Author} / {Project}"
 
 
 class nwQuotes:

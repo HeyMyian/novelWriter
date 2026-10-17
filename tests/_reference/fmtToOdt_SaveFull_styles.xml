@@ -183,9 +183,11 @@
       <style:header>
         <text:p text:style-name="Header">Test Project - Jane Smith</text:p>
       </style:header>
-      <style:header-first>
+    </style:master-page>
+    <style:master-page style:name="First_20_Page" style:display-name="First Page" style:page-layout-name="PM1" style:next-style-name="Standard">
+      <style:header>
         <text:p text:style-name="Header" />
-      </style:header-first>
+      </style:header>
     </style:master-page>
   </office:master-styles>
 </office:document-styles>
