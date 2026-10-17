@@ -69,8 +69,7 @@ def testToDocX_NovelHeadingStyles(mockGUI: MockGuiMain):
     doc.doConvert()
     doc._pars[-1].toXml(xTest)
     assert xmlToText(xTest) == (
-        '<w:body><w:p><w:pPr><w:pStyle w:val="Title" /><w:jc w:val="center" /></w:pPr>'
-        '<w:r><w:br w:type="page" /></w:r>'
+        '<w:body><w:p><w:pPr><w:pStyle w:val="Title" /><w:pageBreakBefore /><w:jc w:val="center" /></w:pPr>'
         "<w:r><w:rPr /><w:t>Hello World</w:t></w:r></w:p></w:body>"
     )
 
@@ -82,8 +81,7 @@ def testToDocX_NovelHeadingStyles(mockGUI: MockGuiMain):
     doc.doConvert()
     doc._pars[-1].toXml(xTest)
     assert xmlToText(xTest) == (
-        '<w:body><w:p><w:pPr><w:pStyle w:val="Title" /><w:jc w:val="center" /></w:pPr>'
-        '<w:r><w:br w:type="page" /></w:r>'
+        '<w:body><w:p><w:pPr><w:pStyle w:val="Title" /><w:pageBreakBefore /><w:jc w:val="center" /></w:pPr>'
         "<w:r><w:rPr /><w:t>Part</w:t><w:br /><w:t>Hello World</w:t></w:r></w:p></w:body>"
     )
 
@@ -94,8 +92,7 @@ def testToDocX_NovelHeadingStyles(mockGUI: MockGuiMain):
     doc.doConvert()
     doc._pars[-1].toXml(xTest)
     assert xmlToText(xTest) == (
-        '<w:body><w:p><w:pPr><w:pStyle w:val="Heading1" /></w:pPr>'
-        '<w:r><w:br w:type="page" /></w:r>'
+        '<w:body><w:p><w:pPr><w:pStyle w:val="Heading1" /><w:pageBreakBefore /></w:pPr>'
         "<w:r><w:rPr /><w:t>Hello World</w:t></w:r></w:p></w:body>"
     )
 
@@ -107,8 +104,7 @@ def testToDocX_NovelHeadingStyles(mockGUI: MockGuiMain):
     doc.doConvert()
     doc._pars[-1].toXml(xTest)
     assert xmlToText(xTest) == (
-        '<w:body><w:p><w:pPr><w:pStyle w:val="Heading1" /></w:pPr>'
-        '<w:r><w:br w:type="page" /></w:r>'
+        '<w:body><w:p><w:pPr><w:pStyle w:val="Heading1" /><w:pageBreakBefore /></w:pPr>'
         "<w:r><w:rPr /><w:t>Chapter 2</w:t><w:br /><w:t>Hello World</w:t></w:r></w:p></w:body>"
     )
 
@@ -439,8 +435,7 @@ def testToDocX_ParagraphFormatting(mockGUI: MockGuiMain):
     doc.doConvert()
     doc._pars[-1].toXml(xTest)
     assert xmlToText(xTest) == (
-        '<w:body><w:p><w:pPr><w:pStyle w:val="Normal" /></w:pPr>'
-        '<w:r><w:br w:type="page" /></w:r>'
+        '<w:body><w:p><w:pPr><w:pStyle w:val="Normal" /><w:pageBreakBefore /></w:pPr>'
         "<w:r><w:rPr /><w:t>Hello World</w:t></w:r>"
         "</w:p></w:body>"
     )

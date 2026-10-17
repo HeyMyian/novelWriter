@@ -1014,16 +1014,6 @@ class ToDocX(Tokenizer):
             contentType=f"{WORD_BASE}.document.main+xml",
         )
 
-        # Map all Page Break Before to After where possible
-        pars: list[DocXParagraph] = []
-        for i, par in enumerate(self._pars):
-            if i > 0 and par.pageBreakBefore:
-                prev = self._pars[i - 1]
-                par.setPageBreakBefore(False)
-                prev.setPageBreakAfter(True)
-
-            pars.append(par)
-
         # Replace fields if there are stats available
         if self._usedFields and self._counts:
             for xField, field in self._usedFields:
@@ -1031,7 +1021,7 @@ class ToDocX(Tokenizer):
                     xField.text = self._formatInt(value)
 
         # Write Paragraphs
-        for par in pars:
+        for par in self._pars:
             par.toXml(xBody)
 
         # Write Settings
@@ -1289,15 +1279,6 @@ class DocXParagraph:
         self._bidi: bool | None = None
 
     ##
-    #  Properties
-    ##
-
-    @property
-    def pageBreakBefore(self) -> bool:
-        """Has page break before."""
-        return self._breakBefore
-
-    ##
     #  Setters
     ##
 
@@ -1379,6 +1360,8 @@ class DocXParagraph:
             # Paragraph
             pPr = xmlSubElem(xP, _wTag("pPr"))
             xmlSubElem(pPr, _wTag("pStyle"), attrib={W_VAL: style.styleId})
+            if self._breakBefore:
+                xmlSubElem(pPr, _wTag("pageBreakBefore"))
             if numbering := self._numbering:
                 xNum = xmlSubElem(pPr, _wTag("numPr"))
                 xmlSubElem(xNum, _wTag("ilvl"), attrib={W_VAL: str(numbering[1])})
@@ -1420,9 +1403,6 @@ class DocXParagraph:
                 rPr = xmlSubElem(xR, _wTag("rPr"))
                 xmlSubElem(rPr, _wTag("vertAlign"), attrib={W_VAL: "superscript"})
                 xmlSubElem(xR, _wTag("footnoteRef"))
-            if self._breakBefore:
-                xR = xmlSubElem(xP, _wTag("r"))
-                xmlSubElem(xR, _wTag("br"), attrib={_wTag("type"): "page"})
             for xR in self._content:
                 xP.append(xR)
             if self._breakAfter:
