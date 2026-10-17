@@ -1440,11 +1440,13 @@ class _FormattingTab(NScrollableForm):
             self.gutterMargin,
         )
 
-        # Mirror Margins
+        # Pages
         self.doublePages = NSwitch(self, height=iPx)
         self.doublePages.clicked.connect(self._updateMirrorMarginsState)
+        self.doublePageBreak = NSwitch(self, height=iPx)
 
         self.addRow(self._build.getLabel("format.doublePages"), self.doublePages)
+        self.addRow(self._build.getLabel("format.doublePageBreak"), self.doublePageBreak)
 
         # Document Style
         # ==============
@@ -1642,6 +1644,7 @@ class _FormattingTab(NScrollableForm):
         self.rightMargin.setValue(self._build.getFloat("format.rightMargin"))
         self.gutterMargin.setValue(self._build.getFloat("format.gutterMargin"))
         self.doublePages.setChecked(self._build.getBool("format.doublePages"))
+        self.doublePageBreak.setChecked(self._build.getBool("format.doublePageBreak"))
 
         self._updateMirrorMarginsState()
 
@@ -1736,6 +1739,7 @@ class _FormattingTab(NScrollableForm):
         self._build.setValue("format.rightMargin", self.rightMargin.value())
         self._build.setValue("format.gutterMargin", self.gutterMargin.value())
         self._build.setValue("format.doublePages", self.doublePages.isChecked())
+        self._build.setValue("format.doublePageBreak", self.doublePageBreak.isChecked())
 
         # Documents
         metaLanguage = processLangCode(self.metaLanguage.text())

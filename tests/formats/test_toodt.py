@@ -141,7 +141,7 @@ def testToOdt_TextFormatting(mockGUI: MockGuiMain):
         "Footnote",
     ]
 
-    key = "004ca3f3ad2a6c893a9b5865f7f48265e430645ca13bc2600247e714597d6110"
+    key = "12fb8f092455dd209106599a0eaaa75e8956d1714a5796f0bc7e0eadb0402c3f"
     assert key in odt._autoPara
     assert isinstance(odt._autoPara[key], ODTParagraphStyle)
     assert odt._autoPara[key].name == "P1"
@@ -832,7 +832,7 @@ def testToOdt_ConvertParagraphs(mockGUI: MockGuiMain):
 
     odt = ToOdt(project, isFlat=True)
     odt.setLanguage(None, True)
-    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, False)
+    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, False, False)
     odt._text = "English text\n\nمتن\n\n1234\n\n"
     odt.tokenizeText()
     odt.initDocument()
@@ -931,7 +931,7 @@ def testToOdt_SaveFlat(mockGUI: MockGuiMain, fncPath: Path, tstPaths: TstPaths, 
     odt.setHeaderFormat(nwHeadFmt.DOC_AUTO, 1)
     assert odt._headerFormat == nwHeadFmt.DOC_AUTO
 
-    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, False)
+    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, False, False)
     assert odt._mDocWidth == 148.0
     assert odt._mDocHeight == 210.0
     assert odt._mDocTop == 20.0
@@ -940,7 +940,8 @@ def testToOdt_SaveFlat(mockGUI: MockGuiMain, fncPath: Path, tstPaths: TstPaths, 
     assert odt._mDocRight == 15.0
     assert odt._mDocGutter == 11.0
     assert odt._mHorLine == 26.25
-    assert odt._mDblPages is False
+    assert odt._dblPages is False
+    assert odt._dblPageBreak is False
 
     odt._text = (
         "#! My Novel\n\n"
@@ -986,7 +987,7 @@ def testToOdt_SaveFlatWithEmptyLines(mockGUI: MockGuiMain, fncPath: Path, tstPat
     odt.setJustify(True, False)
     assert odt._headerFormat == nwHeadFmt.DOC_AUTO
 
-    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, True)
+    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, True, True)
     assert odt._mDocWidth == 148.0
     assert odt._mDocHeight == 210.0
     assert odt._mDocTop == 20.0
@@ -995,7 +996,8 @@ def testToOdt_SaveFlatWithEmptyLines(mockGUI: MockGuiMain, fncPath: Path, tstPat
     assert odt._mDocRight == 15.0
     assert odt._mDocGutter == 11.0
     assert odt._mHorLine == 26.25
-    assert odt._mDblPages is True
+    assert odt._dblPages is True
+    assert odt._dblPageBreak is True
 
     odt._text = (
         "#! My Novel\n\n"
@@ -1155,6 +1157,13 @@ def testToOdt_ODTParagraphStyle():
     assert parStyle._mAttr["class"] == ["style", "chapter"]
     parStyle.setClass("stuff")
     assert parStyle._mAttr["class"] == ["style", None]
+
+    # Master Page
+    assert parStyle._mAttr["master-page-name"] == ["style", None]
+    parStyle.setMasterPageName("Right_20_Page")
+    assert parStyle._mAttr["master-page-name"] == ["style", "Right_20_Page"]
+    parStyle.setMasterPageName(None)
+    assert parStyle._mAttr["master-page-name"] == ["style", None]
 
     # Set Paragraph Style
     # ===================

@@ -249,14 +249,15 @@ class ToDocX(Tokenizer):
         left: float,
         right: float,
         gutter: float,
-        double: bool,
+        doublePages: bool,
+        doublePageBreak: bool,
     ) -> None:
         """Set the document page size and margins in millimetres."""
         self._pageSize = QSize(_mmToSz(width), _mmToSz(height))
         self._pageMargins = QMargins(_mmToSz(left), _mmToSz(top), _mmToSz(right), _mmToSz(bottom))
         self._pageGutter = _mmToSz(gutter)
         self._mHorLine = _mmToSz((width - left - right - gutter) / 80.0)
-        self._doublePages = double
+        self._doublePages = doublePages
 
     def setHeaderFormat(self, value: str, offset: int) -> None:
         """Set the document header format."""

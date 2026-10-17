@@ -361,6 +361,7 @@ class DocumentBuilder:
                 scale * self._build.getFloat("format.rightMargin"),
                 scale * self._build.getFloat("format.gutterMargin"),
                 self._build.getBool("format.doublePages"),
+                self._build.getBool("format.doublePageBreak"),
             )
             bldObj.setLineForMargin(self._build.getBool("format.lineForMargin"))
 
