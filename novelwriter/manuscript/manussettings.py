@@ -1441,10 +1441,10 @@ class _FormattingTab(NScrollableForm):
         )
 
         # Mirror Margins
-        self.mirrorMargins = NSwitch(self, height=iPx)
-        self.mirrorMargins.clicked.connect(self._updateMirrorMarginsState)
+        self.doublePages = NSwitch(self, height=iPx)
+        self.doublePages.clicked.connect(self._updateMirrorMarginsState)
 
-        self.addRow(self._build.getLabel("format.mirrorMargins"), self.mirrorMargins)
+        self.addRow(self._build.getLabel("format.doublePages"), self.doublePages)
 
         # Document Style
         # ==============
@@ -1641,7 +1641,7 @@ class _FormattingTab(NScrollableForm):
         self.leftMargin.setValue(self._build.getFloat("format.leftMargin"))
         self.rightMargin.setValue(self._build.getFloat("format.rightMargin"))
         self.gutterMargin.setValue(self._build.getFloat("format.gutterMargin"))
-        self.mirrorMargins.setChecked(self._build.getBool("format.mirrorMargins"))
+        self.doublePages.setChecked(self._build.getBool("format.doublePages"))
 
         self._updateMirrorMarginsState()
 
@@ -1735,7 +1735,7 @@ class _FormattingTab(NScrollableForm):
         self._build.setValue("format.leftMargin", self.leftMargin.value())
         self._build.setValue("format.rightMargin", self.rightMargin.value())
         self._build.setValue("format.gutterMargin", self.gutterMargin.value())
-        self._build.setValue("format.mirrorMargins", self.mirrorMargins.isChecked())
+        self._build.setValue("format.doublePages", self.doublePages.isChecked())
 
         # Documents
         metaLanguage = processLangCode(self.metaLanguage.text())
@@ -1852,7 +1852,7 @@ class _FormattingTab(NScrollableForm):
     @pyqtSlot()
     def _updateMirrorMarginsState(self) -> None:
         """Update horizontal margin label and icons."""
-        state = self.mirrorMargins.isChecked()
+        state = self.doublePages.isChecked()
         iPx = SHARED.theme.baseIconHeight
         self.pixPML.setPixmap(SHARED.theme.getPixmap("margin_inner" if state else "margin_left", iPx, iPx))
         self.pixPMR.setPixmap(SHARED.theme.getPixmap("margin_outer" if state else "margin_right", iPx, iPx))

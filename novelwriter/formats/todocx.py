@@ -193,12 +193,12 @@ class ToDocX(Tokenizer):
     """
 
     __slots__ = (
+        "_doublePages",
         "_files",
         "_fontFamily",
         "_fontSize",
         "_headerFormat",
         "_mHorLine",
-        "_mirrorMargins",
         "_numLists",
         "_pageGutter",
         "_pageMargins",
@@ -224,7 +224,7 @@ class ToDocX(Tokenizer):
         self._pageSize = QSize(_mmToSz(210.0), _mmToSz(297.0))
         self._pageMargins = QMargins(_mmToSz(20.0), _mmToSz(20.0), _mmToSz(20.0), _mmToSz(20.0))
         self._pageGutter = 0
-        self._mirrorMargins = False
+        self._doublePages = False
         self._mHorLine = _mmToSz(42.5 / 20.0)
         self._numLists: list[bool] = []
 
@@ -249,14 +249,14 @@ class ToDocX(Tokenizer):
         left: float,
         right: float,
         gutter: float,
-        mirrored: bool,
+        double: bool,
     ) -> None:
         """Set the document page size and margins in millimetres."""
         self._pageSize = QSize(_mmToSz(width), _mmToSz(height))
         self._pageMargins = QMargins(_mmToSz(left), _mmToSz(top), _mmToSz(right), _mmToSz(bottom))
         self._pageGutter = _mmToSz(gutter)
         self._mHorLine = _mmToSz((width - left - right - gutter) / 80.0)
-        self._mirrorMargins = mirrored
+        self._doublePages = double
 
     def setHeaderFormat(self, value: str, offset: int) -> None:
         """Set the document header format."""
@@ -1215,7 +1215,7 @@ class ToDocX(Tokenizer):
             contentType=f"{WORD_BASE}.settings+xml",
         )
 
-        if self._mirrorMargins:
+        if self._doublePages:
             xSet = xmlSubElem(xRoot, _wTag("mirrorMargins"))
 
         xSet = xmlSubElem(xRoot, _wTag("footnotePr"))

@@ -191,7 +191,7 @@ class ToQTextDocument(Tokenizer):
         left: float,
         right: float,
         gutter: float,
-        mirrored: bool,
+        double: bool,
     ) -> None:
         """Set the document page size and margins in millimetres."""
         self._pageSize = QPageSize(QSizeF(width, height), QPageSize.Unit.Millimeter)

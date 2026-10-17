@@ -127,7 +127,7 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "format.leftMargin":       (float, 2.0),
     "format.rightMargin":      (float, 2.0),
     "format.gutterMargin":     (float, 0.0),
-    "format.mirrorMargins":    (bool, False),
+    "format.doublePages":      (bool, False),
 
     "doc.pageHeader":          (str, nwHeadFmt.DOC_AUTO),
     "doc.pageCountOffset":     (int, 0),
@@ -197,7 +197,7 @@ SETTINGS_LABELS = {
     "format.pageMarginsLR":    QT_TRANSLATE_NOOP("Builds", "Left and right margins"),
     "format.pageMarginsIO":    QT_TRANSLATE_NOOP("Builds", "Inner and outer margins"),
     "format.gutterMargin":     QT_TRANSLATE_NOOP("Builds", "Gutter margin"),
-    "format.mirrorMargins":    QT_TRANSLATE_NOOP("Builds", "Mirror margins"),
+    "format.doublePages":      QT_TRANSLATE_NOOP("Builds", "Double-sided pages"),
 
     "doc":                     QT_TRANSLATE_NOOP("Builds", "Document Style"),
     "doc.pageHeader":          QT_TRANSLATE_NOOP("Builds", "Page header"),

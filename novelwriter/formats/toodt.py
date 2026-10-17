@@ -166,6 +166,7 @@ class ToOdt(Tokenizer):
         "_headWeight",
         "_headerFormat",
         "_isFlat",
+        "_mDblPages",
         "_mDocBtm",
         "_mDocGutter",
         "_mDocHeight",
@@ -174,7 +175,6 @@ class ToOdt(Tokenizer):
         "_mDocTop",
         "_mDocWidth",
         "_mHorLine",
-        "_mMirrored",
         "_mainPara",
         "_nNote",
         "_pageOffset",
@@ -246,7 +246,7 @@ class ToOdt(Tokenizer):
         self._mDocLeft = 20.0
         self._mDocRight = 20.0
         self._mDocGutter = 0.0
-        self._mMirrored = False
+        self._mDblPages = False
 
         # Horizontal Line Margin
         self._mHorLine = 42.5  # Text width divided by 4
@@ -264,7 +264,7 @@ class ToOdt(Tokenizer):
         left: float,
         right: float,
         gutter: float,
-        mirrored: bool,
+        double: bool,
     ) -> None:
         """Set the document page size and margins in millimetres."""
         self._mDocWidth = width
@@ -274,7 +274,7 @@ class ToOdt(Tokenizer):
         self._mDocLeft = left
         self._mDocRight = right
         self._mDocGutter = gutter
-        self._mMirrored = mirrored
+        self._mDblPages = double
         self._mHorLine = (width - left - right - gutter) / 4.0
 
     def setHeaderFormat(self, value: str, offset: int) -> None:
@@ -800,7 +800,7 @@ class ToOdt(Tokenizer):
             _mkTag("style", "page-layout"),
             attrib={
                 _mkTag("style", "name"): "PM1",
-                _mkTag("style", "page-usage"): "mirrored" if self._mMirrored else "all",
+                _mkTag("style", "page-usage"): "mirrored" if self._mDblPages else "all",
             },
         )
         mLeft = self._mDocLeft + (0.0 if self._isRTL else self._mDocGutter)

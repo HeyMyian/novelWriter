@@ -940,7 +940,7 @@ def testToOdt_SaveFlat(mockGUI: MockGuiMain, fncPath: Path, tstPaths: TstPaths, 
     assert odt._mDocRight == 15.0
     assert odt._mDocGutter == 11.0
     assert odt._mHorLine == 26.25
-    assert odt._mMirrored is False
+    assert odt._mDblPages is False
 
     odt._text = (
         "#! My Novel\n\n"
@@ -995,7 +995,7 @@ def testToOdt_SaveFlatWithEmptyLines(mockGUI: MockGuiMain, fncPath: Path, tstPat
     assert odt._mDocRight == 15.0
     assert odt._mDocGutter == 11.0
     assert odt._mHorLine == 26.25
-    assert odt._mMirrored is True
+    assert odt._mDblPages is True
 
     odt._text = (
         "#! My Novel\n\n"
