@@ -1069,7 +1069,8 @@ def testGuiBuildSettings_FormatOutput(qtbot: QtBot, nwGUI: GuiMain):
     """Test the format-specific settings."""
     build = BuildSettings()
 
-    build.setValue("doc.pageHeader", nwHeadFmt.DOC_AUTO)
+    build.setValue("doc.pageHeader", nwHeadFmt.DOC_AUTO_ODD)
+    build.setValue("doc.pageHeaderEven", nwHeadFmt.DOC_AUTO_EVEN)
     build.setValue("doc.pageCountOffset", 0)
 
     build.setValue("html.addStyles", False)
@@ -1087,8 +1088,16 @@ def testGuiBuildSettings_FormatOutput(qtbot: QtBot, nwGUI: GuiMain):
     assert bSettings.toolStack.currentWidget() is fmtTab
 
     # Check initial values
-    assert fmtTab.pageHeader.text() == nwHeadFmt.DOC_AUTO
+    assert fmtTab.pageHeader.text() == nwHeadFmt.DOC_AUTO_ODD
+    assert fmtTab.pageHeaderEven.text() == nwHeadFmt.DOC_AUTO_EVEN
     assert fmtTab.pageCountOffset.value() == 0
+
+    # The even page header is only enabled for double pages
+    assert fmtTab.pageHeaderEven.isEnabled() is False
+    assert fmtTab.btnPageHeaderEven.isEnabled() is False
+    fmtTab.doublePages.click()
+    assert fmtTab.pageHeaderEven.isEnabled() is True
+    assert fmtTab.btnPageHeaderEven.isEnabled() is True
 
     assert fmtTab.htmlAddStyles.isChecked() is False
     assert fmtTab.htmlPreserveTabs.isChecked() is False
@@ -1096,6 +1105,7 @@ def testGuiBuildSettings_FormatOutput(qtbot: QtBot, nwGUI: GuiMain):
     # Change Values
     fmtTab.pageCountOffset.setValue(1)
     fmtTab.pageHeader.setText("Stuff")
+    fmtTab.pageHeaderEven.setText("Even Stuff")
     fmtTab.metaLanguage.setText("en-gb")
 
     fmtTab._refreshMetaLang()
@@ -1111,6 +1121,7 @@ def testGuiBuildSettings_FormatOutput(qtbot: QtBot, nwGUI: GuiMain):
     assert sBuild.buildID == build.buildID
 
     assert sBuild.getStr("doc.pageHeader") == "Stuff"
+    assert sBuild.getStr("doc.pageHeaderEven") == "Even Stuff"
     assert sBuild.getInt("doc.pageCountOffset") == 1
     assert sBuild.getStr("doc.metaLanguage") == "en-GB"
 
@@ -1119,7 +1130,9 @@ def testGuiBuildSettings_FormatOutput(qtbot: QtBot, nwGUI: GuiMain):
 
     # Reset header format
     fmtTab.btnPageHeader.click()
-    assert fmtTab.pageHeader.text() == nwHeadFmt.DOC_AUTO
+    assert fmtTab.pageHeader.text() == nwHeadFmt.DOC_AUTO_ODD
+    fmtTab.btnPageHeaderEven.click()
+    assert fmtTab.pageHeaderEven.text() == nwHeadFmt.DOC_AUTO_EVEN
 
     # Finish
     bSettings._dialogButtonClicked(bSettings.btnClose)

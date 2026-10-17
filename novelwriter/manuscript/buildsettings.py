@@ -129,7 +129,8 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "format.gutterMargin":     (float, 0.0),
     "format.doublePages":      (bool, False),
 
-    "doc.pageHeader":          (str, nwHeadFmt.DOC_AUTO),
+    "doc.pageHeader":          (str, nwHeadFmt.DOC_AUTO_ODD),
+    "doc.pageHeaderEven":      (str, nwHeadFmt.DOC_AUTO_EVEN),
     "doc.pageCountOffset":     (int, 0),
     "doc.metaLanguage":        (str, ""),
 
@@ -201,6 +202,7 @@ SETTINGS_LABELS = {
 
     "doc":                     QT_TRANSLATE_NOOP("Builds", "Document Style"),
     "doc.pageHeader":          QT_TRANSLATE_NOOP("Builds", "Page header"),
+    "doc.pageHeaderEven":      QT_TRANSLATE_NOOP("Builds", "Page header (even pages)"),
     "doc.pageCountOffset":     QT_TRANSLATE_NOOP("Builds", "Page counter offset"),
     "doc.metaLanguage":        QT_TRANSLATE_NOOP("Builds", "Override document language"),
 

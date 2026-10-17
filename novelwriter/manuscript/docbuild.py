@@ -346,6 +346,7 @@ class DocumentBuilder:
         if isinstance(bldObj, ToOdt | ToDocX):
             bldObj.setHeaderFormat(
                 self._build.getStr("doc.pageHeader"),
+                self._build.getStr("doc.pageHeaderEven"),
                 self._build.getInt("doc.pageCountOffset"),
             )
 

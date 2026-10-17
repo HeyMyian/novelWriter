@@ -616,7 +616,8 @@ class nwHeadFmt:
     DOC_PROJECT = "{Project}"
     DOC_AUTHOR = "{Author}"
     DOC_PAGE = "{Page}"
-    DOC_AUTO = "{Project} / {Author} / {Page}"
+    DOC_AUTO_ODD = "{Project} / {Author} / {Page}"
+    DOC_AUTO_EVEN = "{Page} / {Author} / {Project}"
 
 
 class nwQuotes:

@@ -258,9 +258,9 @@ class ToDocX(Tokenizer):
         self._mHorLine = _mmToSz((width - left - right - gutter) / 80.0)
         self._doublePages = doublePages
 
-    def setHeaderFormat(self, value: str, offset: int) -> None:
-        """Set the document header format."""
-        self._headerFormat = value.strip()
+    def setHeaderFormat(self, odd: str, even: str, offset: int) -> None:
+        """Set the document header format. Even pages are not supported."""
+        self._headerFormat = odd.strip()
         self._pageOffset = offset
 
     ##

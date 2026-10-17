@@ -1459,7 +1459,7 @@ class _FormattingTab(NScrollableForm):
 
         # Double Pages
         self.doublePages = NSwitch(self, height=iPx)
-        self.doublePages.clicked.connect(self._updateMirrorMarginsState)
+        self.doublePages.clicked.connect(self._updateDoublePagesState)
 
         self.addRow(self._build.getLabel("format.doublePages"), self.doublePages)
 
@@ -1480,6 +1480,17 @@ class _FormattingTab(NScrollableForm):
             self._build.getLabel("doc.pageHeader"),
             self.pageHeader,
             button=self.btnPageHeader,
+            stretch=(1, 1),
+        )
+
+        self.pageHeaderEven = QLineEdit(self)
+        self.pageHeaderEven.setMinimumWidth(200)
+        self.btnPageHeaderEven = SHARED.theme.getIconButton(nwToolButton.REVERT, self)
+        self.btnPageHeaderEven.clicked.connect(self._resetPageHeaderEven)
+        self.addRow(
+            self._build.getLabel("doc.pageHeaderEven"),
+            self.pageHeaderEven,
+            button=self.btnPageHeaderEven,
             stretch=(1, 1),
         )
 
@@ -1562,7 +1573,7 @@ class _FormattingTab(NScrollableForm):
 
         self.pixPSH.setPixmap(SHARED.theme.getPixmap("fit_height", iPx, iPx))
         self.pixPSW.setPixmap(SHARED.theme.getPixmap("fit_width", iPx, iPx))
-        self._updateMirrorMarginsState()
+        self._updateDoublePagesState()
 
         self.pageSize.updateStyle()
         self.pageUnit.updateStyle()
@@ -1660,7 +1671,7 @@ class _FormattingTab(NScrollableForm):
         self.gutterMargin.setValue(self._build.getFloat("format.gutterMargin"))
         self.doublePages.setChecked(self._build.getBool("format.doublePages"))
 
-        self._updateMirrorMarginsState()
+        self._updateDoublePagesState()
 
         pageSize = self._build.getStr("format.pageSize")
         index = self.pageSize.findData(pageSize)
@@ -1676,8 +1687,10 @@ class _FormattingTab(NScrollableForm):
 
         self.metaLanguage.setText(processLangCode(self._build.getStr("doc.metaLanguage")))
         self.pageHeader.setText(self._build.getStr("doc.pageHeader"))
-        self.pageCountOffset.setValue(self._build.getInt("doc.pageCountOffset"))
         self.pageHeader.setCursorPosition(0)
+        self.pageHeaderEven.setText(self._build.getStr("doc.pageHeaderEven"))
+        self.pageHeaderEven.setCursorPosition(0)
+        self.pageCountOffset.setValue(self._build.getInt("doc.pageCountOffset"))
 
         # HTML Document
         # =============
@@ -1759,6 +1772,7 @@ class _FormattingTab(NScrollableForm):
 
         self._build.setValue("doc.metaLanguage", metaLanguage)
         self._build.setValue("doc.pageHeader", self.pageHeader.text())
+        self._build.setValue("doc.pageHeaderEven", self.pageHeaderEven.text())
         self._build.setValue("doc.pageCountOffset", self.pageCountOffset.value())
 
         self.metaLanguage.setText(metaLanguage)
@@ -1867,9 +1881,11 @@ class _FormattingTab(NScrollableForm):
             self.pageSize.setCurrentIndex(index)
 
     @pyqtSlot()
-    def _updateMirrorMarginsState(self) -> None:
-        """Update horizontal margin label and icons."""
+    def _updateDoublePagesState(self) -> None:
+        """Update widgets that depend on double-sided pages."""
         state = self.doublePages.isChecked()
+        self.pageHeaderEven.setEnabled(state)
+        self.btnPageHeaderEven.setEnabled(state)
         iPx = SHARED.theme.baseIconHeight
         self.pixPML.setPixmap(SHARED.theme.getPixmap("margin_inner" if state else "margin_left", iPx, iPx))
         self.pixPMR.setPixmap(SHARED.theme.getPixmap("margin_outer" if state else "margin_right", iPx, iPx))
@@ -1880,8 +1896,14 @@ class _FormattingTab(NScrollableForm):
     @pyqtSlot()
     def _resetPageHeader(self) -> None:
         """Reset the document header format to default."""
-        self.pageHeader.setText(nwHeadFmt.DOC_AUTO)
+        self.pageHeader.setText(nwHeadFmt.DOC_AUTO_ODD)
         self.pageHeader.setCursorPosition(0)
+
+    @pyqtSlot()
+    def _resetPageHeaderEven(self) -> None:
+        """Reset the document header format to default."""
+        self.pageHeaderEven.setText(nwHeadFmt.DOC_AUTO_EVEN)
+        self.pageHeaderEven.setCursorPosition(0)
 
     @pyqtSlot()
     def _resetTitleProps(self) -> None:

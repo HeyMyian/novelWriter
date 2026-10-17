@@ -877,7 +877,7 @@ def testToDocX_MinimalClose(mockGUI: MockGuiMain):
 
     # A header format consisting only of the page marker has no
     # leading or trailing text
-    doc.setHeaderFormat(nwHeadFmt.DOC_PAGE, 0)
+    doc.setHeaderFormat(nwHeadFmt.DOC_PAGE, "", 0)
     doc.closeDocument()
     assert xmlToText(doc._files["header1.xml"].xml) == (
         '<w:hdr><w:p><w:pPr><w:pStyle w:val="Header" /><w:jc w:val="right" />'
@@ -890,7 +890,7 @@ def testToDocX_MinimalClose(mockGUI: MockGuiMain):
     )
 
     # A header format without a page marker has no page field
-    doc.setHeaderFormat("Just Text", 0)
+    doc.setHeaderFormat("Just Text", "", 0)
     doc.closeDocument()
     assert xmlToText(doc._files["header1.xml"].xml) == (
         '<w:hdr><w:p><w:pPr><w:pStyle w:val="Header" /><w:jc w:val="right" />'
