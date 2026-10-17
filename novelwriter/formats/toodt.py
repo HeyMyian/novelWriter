@@ -156,7 +156,6 @@ class ToOdt(Tokenizer):
         "_dMeta",
         "_dSett",
         "_dStyl",
-        "_dblPageBreak",
         "_dblPages",
         "_errData",
         "_fBlockIndent",
@@ -181,6 +180,7 @@ class ToOdt(Tokenizer):
         "_nNote",
         "_pageOffset",
         "_textFont",
+        "_useRight",
         "_xAut2",
         "_xAuto",
         "_xBody",
@@ -249,7 +249,7 @@ class ToOdt(Tokenizer):
         self._mDocRight = 20.0
         self._mDocGutter = 0.0
         self._dblPages = False
-        self._dblPageBreak = False
+        self._useRight = False
 
         # Horizontal Line Margin
         self._mHorLine = 42.5  # Text width divided by 4
@@ -268,7 +268,6 @@ class ToOdt(Tokenizer):
         right: float,
         gutter: float,
         doublePages: bool,
-        doublePageBreak: bool,
     ) -> None:
         """Set the document page size and margins in millimetres."""
         self._mDocWidth = width
@@ -279,7 +278,6 @@ class ToOdt(Tokenizer):
         self._mDocRight = right
         self._mDocGutter = gutter
         self._dblPages = doublePages
-        self._dblPageBreak = doublePageBreak
         self._mHorLine = (width - left - right - gutter) / 4.0
 
     def setHeaderFormat(self, value: str, offset: int) -> None:
@@ -438,11 +436,11 @@ class ToOdt(Tokenizer):
             elif tStyle & BlockFmt.JUSTIFY:
                 oStyle.setTextAlign("justify")
 
-            if tStyle & BlockFmt.PBB:
-                if self._dblPageBreak:
-                    oStyle.setMasterPageName(S_RIGHT)
-                else:
-                    oStyle.setBreakBefore("page")
+            if tStyle & BlockFmt.HBB:
+                oStyle.setMasterPageName(S_RIGHT)
+                self._useRight = True
+            elif tStyle & BlockFmt.PBB:
+                oStyle.setBreakBefore("page")
             if tStyle & BlockFmt.PBA:
                 oStyle.setBreakAfter("page")
 
@@ -505,6 +503,8 @@ class ToOdt(Tokenizer):
 
     def closeDocument(self) -> None:
         """Add additional collected information to the XML."""
+        if self._useRight:
+            self._writeRightPageStyle()
         for style in self._autoPara.values():
             style.packXML(self._xAuto)
         for style in self._autoText.values():
@@ -802,10 +802,8 @@ class ToOdt(Tokenizer):
     ##
 
     def _pageStyles(self) -> None:
-        """Set the page layout styles."""
+        """Set the default page style."""
         self._addPageLayout("PM1", "mirrored" if self._dblPages else "all")
-        if self._dblPageBreak:
-            self._addPageLayout("PM2", "right")
 
     def _addPageLayout(self, name: str, usage: str) -> None:
         """Add a page layout style."""
@@ -1173,19 +1171,20 @@ class ToOdt(Tokenizer):
         xHead = ET.SubElement(xPage, _mkTag("style", "header-first"))
         ET.SubElement(xHead, _mkTag("text", "p"), attrib={_mkTag("text", "style-name"): "Header"})
 
-        # Right Page for Odd Page Breaks
-        if self._dblPageBreak:
-            xPage = ET.SubElement(
-                self._xMast,
-                _mkTag("style", "master-page"),
-                attrib={
-                    _mkTag("style", "name"): S_RIGHT,
-                    _mkTag("style", "display-name"): "Right Page",
-                    _mkTag("style", "page-layout-name"): "PM2",
-                    _mkTag("style", "next-style-name"): "Standard",
-                },
-            )
-            self._writePageHeader(xPage)
+    def _writeRightPageStyle(self) -> None:
+        """Write the right page style used for odd page breaks."""
+        self._addPageLayout("PM2", "right")
+        xPage = ET.SubElement(
+            self._xMast,
+            _mkTag("style", "master-page"),
+            attrib={
+                _mkTag("style", "name"): S_RIGHT,
+                _mkTag("style", "display-name"): "Right Page",
+                _mkTag("style", "page-layout-name"): "PM2",
+                _mkTag("style", "next-style-name"): "Standard",
+            },
+        )
+        self._writePageHeader(xPage)
 
     def _writePageHeader(self, xPage: ET.Element) -> None:
         """Write the standard page header to a master page."""

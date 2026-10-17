@@ -415,7 +415,7 @@ class ToHtml(Tokenizer):
         elif tStyle & BlockFmt.JUSTIFY:
             aStyle.append("text-align: justify;")
 
-        if tStyle & BlockFmt.PBB:
+        if tStyle & BlockFmt.BREAK_B:
             aStyle.append("page-break-before: always;")
         if tStyle & BlockFmt.PBA:
             aStyle.append("page-break-after: always;")

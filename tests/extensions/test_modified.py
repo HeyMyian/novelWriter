@@ -41,6 +41,7 @@ from novelwriter.extensions.modified import (
     NFontDialog,
     NIconButton,
     NNonBlockingDialog,
+    NRadioButton,
     NSpinBox,
     NSplitterHandle,
     NToolDialog,
@@ -352,6 +353,29 @@ def testNFlatButtons_Main(qtbot: QtBot, mockGUI: MockGuiMain):
     button3.setToolTip("Add", "Ctrl+N")
     assert button3.toolTip() == "Add [Ctrl+N]"
     assert button3.accessibleName() == "Add"
+
+
+@pytest.mark.gui
+def testNRadioButton_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain):
+    """Test the NRadioButton class."""
+    button = NRadioButton("Text", None)
+    dialog = SimpleDialog(button)
+    dialog.show()
+
+    # Paint unchecked and checked
+    assert button.isChecked() is False
+    assert button.grab().isNull() is False
+    button.setChecked(True)
+    assert button.grab().isNull() is False
+
+    # Disabled
+    button.setEnabled(False)
+    assert button.grab().isNull() is False
+
+    # No style
+    with monkeypatch.context() as mp:
+        mp.setattr(button, "style", lambda: None)
+        assert button.grab().isNull() is False
 
 
 @pytest.mark.gui

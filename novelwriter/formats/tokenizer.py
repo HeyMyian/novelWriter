@@ -87,6 +87,11 @@ META_BLOCKS = (BlockTyp.COMMENT, BlockTyp.SUMMARY, BlockTyp.NOTE, BlockTyp.KEYWO
 SKIP_INDENT = [*HEADING_BLOCKS, BlockTyp.SEP, BlockTyp.SKIP, BlockTyp.HRULE]
 LIST_BLOCKS = (BlockTyp.LIST_U, BlockTyp.LIST_O)
 B_EMPTY: T_Block = (BlockTyp.EMPTY, "", "", [], BlockFmt.NONE)
+PAGE_BREAKS = {
+    0: BlockFmt.NONE,
+    1: BlockFmt.PBB,
+    2: BlockFmt.HBB,
+}
 
 
 class Tokenizer(ABC):
@@ -382,25 +387,25 @@ class Tokenizer(ABC):
         self._fmtSection = hFormat.strip()
         self._hideSection = hide
 
-    def setTitleStyle(self, center: bool, pageBreak: bool) -> None:
+    def setTitleStyle(self, center: bool, pageBreak: int) -> None:
         """Set the title heading style."""
         self._titleStyle = BlockFmt.CENTRE if center else BlockFmt.NONE
-        self._titleStyle |= BlockFmt.PBB if pageBreak else BlockFmt.NONE
+        self._titleStyle |= PAGE_BREAKS.get(pageBreak, BlockFmt.NONE)
 
-    def setPartitionStyle(self, center: bool, pageBreak: bool) -> None:
+    def setPartitionStyle(self, center: bool, pageBreak: int) -> None:
         """Set the partition heading style."""
         self._partStyle = BlockFmt.CENTRE if center else BlockFmt.NONE
-        self._partStyle |= BlockFmt.PBB if pageBreak else BlockFmt.NONE
+        self._partStyle |= PAGE_BREAKS.get(pageBreak, BlockFmt.NONE)
 
-    def setChapterStyle(self, center: bool, pageBreak: bool) -> None:
+    def setChapterStyle(self, center: bool, pageBreak: int) -> None:
         """Set the chapter heading style."""
         self._chapterStyle = BlockFmt.CENTRE if center else BlockFmt.NONE
-        self._chapterStyle |= BlockFmt.PBB if pageBreak else BlockFmt.NONE
+        self._chapterStyle |= PAGE_BREAKS.get(pageBreak, BlockFmt.NONE)
 
-    def setSceneStyle(self, center: bool, pageBreak: bool) -> None:
+    def setSceneStyle(self, center: bool, pageBreak: int) -> None:
         """Set the scene heading style."""
         self._sceneStyle = BlockFmt.CENTRE if center else BlockFmt.NONE
-        self._sceneStyle |= BlockFmt.PBB if pageBreak else BlockFmt.NONE
+        self._sceneStyle |= PAGE_BREAKS.get(pageBreak, BlockFmt.NONE)
 
     def setTextFont(self, font: QFont) -> None:
         """Set the build font."""
@@ -561,7 +566,7 @@ class Tokenizer(ABC):
             if self._isFirst:
                 self._isFirst = False
             else:
-                style |= BlockFmt.PBB
+                style |= self._titleStyle & BlockFmt.HBB or BlockFmt.PBB
 
             title = item.itemName
             if not self._isNovel:
@@ -926,8 +931,8 @@ class Tokenizer(ABC):
             # on the very first block, adding a blank first page.
             for n, cBlock in enumerate(tBlocks):
                 if cBlock[0] != BlockTyp.EMPTY:
-                    if cBlock[4] & BlockFmt.PBB:
-                        tBlocks[n] = (cBlock[0], cBlock[1], cBlock[2], cBlock[3], cBlock[4] & ~BlockFmt.PBB)
+                    if cBlock[4] & BlockFmt.BREAK_B:
+                        tBlocks[n] = (cBlock[0], cBlock[1], cBlock[2], cBlock[3], cBlock[4] & ~BlockFmt.BREAK_B)
                     break
 
         # Always add an empty line at the end of the file
@@ -1036,12 +1041,10 @@ class Tokenizer(ABC):
                     self._noIndent = False
 
             elif addEmptyLine and cBlock[0] in HEADING_BLOCKS:
-                if cBlock[4] & BlockFmt.PBB:
-                    sBlocks.append((BlockTyp.SKIP, "", "", [], BlockFmt.PBB))
-                    sBlocks.append((cBlock[0], cBlock[1], cBlock[2], cBlock[3], cBlock[4] & ~BlockFmt.PBB))
-                else:
-                    sBlocks.append((BlockTyp.SKIP, "", "", [], BlockFmt.NONE))
-                    sBlocks.append(cBlock)
+                # Move the page break to the empty line before the heading
+                pBreak = cBlock[4] & BlockFmt.BREAK_B
+                sBlocks.append((BlockTyp.SKIP, "", "", [], pBreak))
+                sBlocks.append((cBlock[0], cBlock[1], cBlock[2], cBlock[3], cBlock[4] & ~pBreak))
 
             else:
                 sBlocks.append(cBlock)

@@ -250,7 +250,6 @@ class ToDocX(Tokenizer):
         right: float,
         gutter: float,
         doublePages: bool,
-        doublePageBreak: bool,
     ) -> None:
         """Set the document page size and margins in millimetres."""
         self._pageSize = QSize(_mmToSz(width), _mmToSz(height))
@@ -303,7 +302,7 @@ class ToDocX(Tokenizer):
             elif tStyle & BlockFmt.JUSTIFY:
                 par.setAlignment("both")
 
-            if tStyle & BlockFmt.PBB:
+            if tStyle & BlockFmt.BREAK_B:
                 par.setPageBreakBefore(True)
             if tStyle & BlockFmt.PBA:
                 par.setPageBreakAfter(True)

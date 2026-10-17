@@ -263,19 +263,19 @@ class DocumentBuilder:
         )
         bldObj.setTitleStyle(
             self._build.getBool("headings.centerTitle"),
-            self._build.getBool("headings.breakTitle"),
+            self._build.getInt("headings.breakTitle"),
         )
         bldObj.setPartitionStyle(
             self._build.getBool("headings.centerPart"),
-            self._build.getBool("headings.breakPart"),
+            self._build.getInt("headings.breakPart"),
         )
         bldObj.setChapterStyle(
             self._build.getBool("headings.centerChapter"),
-            self._build.getBool("headings.breakChapter"),
+            self._build.getInt("headings.breakChapter"),
         )
         bldObj.setSceneStyle(
             self._build.getBool("headings.centerScene"),
-            self._build.getBool("headings.breakScene"),
+            self._build.getInt("headings.breakScene"),
         )
 
         bldObj.setJustify(
@@ -361,7 +361,6 @@ class DocumentBuilder:
                 scale * self._build.getFloat("format.rightMargin"),
                 scale * self._build.getFloat("format.gutterMargin"),
                 self._build.getBool("format.doublePages"),
-                self._build.getBool("format.doublePageBreak"),
             )
             bldObj.setLineForMargin(self._build.getBool("format.lineForMargin"))
 

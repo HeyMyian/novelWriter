@@ -30,6 +30,7 @@ from PyQt6.QtGui import QAction, QFont, QIcon, QSyntaxHighlighter, QTextCharForm
 from PyQt6.QtWidgets import (
     QAbstractButton,
     QAbstractItemView,
+    QButtonGroup,
     QDialogButtonBox,
     QFrame,
     QGridLayout,
@@ -52,7 +53,14 @@ from novelwriter.common import describeFont, fontMatcher, languageName, processL
 from novelwriter.constants import nwHeadFmt, nwKeyWords, nwLabels, nwStyles, nwUnicode, trConst
 from novelwriter.enum import nwStandardButton, nwToolButton
 from novelwriter.extensions.configlayout import NColorLabel, NFixedPage, NScrollableForm, NScrollablePage
-from novelwriter.extensions.modified import NComboBox, NDoubleSpinBox, NIconButton, NSpinBox, NToolDialog
+from novelwriter.extensions.modified import (
+    NComboBox,
+    NDoubleSpinBox,
+    NIconButton,
+    NRadioButton,
+    NSpinBox,
+    NToolDialog,
+)
 from novelwriter.extensions.pagedsidebar import NPagedSideBar
 from novelwriter.extensions.switch import NSwitch
 from novelwriter.extensions.switchbox import NSwitchBox
@@ -794,48 +802,40 @@ class _HeadingsTab(NScrollablePage):
         self.lblTitle = QLabel(trLabel, self)
         self.centerTitle = NSwitch(self, height=iPx)
         self.centerTitle.setAccessibleName(f"{trLabel}: {trCentre}")
-        self.breakTitle = NSwitch(self, height=iPx)
-        self.breakTitle.setAccessibleName(f"{trLabel}: {trBreak}")
 
         self.layoutMatrix.addWidget(self.lblTitle, 1, 0)
         self.layoutMatrix.addWidget(self.centerTitle, 1, 1, QtAlignCenter)
-        self.layoutMatrix.addWidget(self.breakTitle, 1, 2, QtAlignCenter)
+        self.breakTitle = self._breakGroup(trLabel, 1)
 
         # Partition Layout
         trLabel = self._build.getLabel("headings.stylePart")
         self.lblPart = QLabel(trLabel, self)
         self.centerPart = NSwitch(self, height=iPx)
         self.centerPart.setAccessibleName(f"{trLabel}: {trCentre}")
-        self.breakPart = NSwitch(self, height=iPx)
-        self.breakPart.setAccessibleName(f"{trLabel}: {trBreak}")
 
         self.layoutMatrix.addWidget(self.lblPart, 2, 0)
         self.layoutMatrix.addWidget(self.centerPart, 2, 1, QtAlignCenter)
-        self.layoutMatrix.addWidget(self.breakPart, 2, 2, QtAlignCenter)
+        self.breakPart = self._breakGroup(trLabel, 2)
 
         # Chapter Layout
         trLabel = self._build.getLabel("headings.styleChapter")
         self.lblChapter = QLabel(trLabel, self)
         self.centerChapter = NSwitch(self, height=iPx)
         self.centerChapter.setAccessibleName(f"{trLabel}: {trCentre}")
-        self.breakChapter = NSwitch(self, height=iPx)
-        self.breakChapter.setAccessibleName(f"{trLabel}: {trBreak}")
 
         self.layoutMatrix.addWidget(self.lblChapter, 3, 0)
         self.layoutMatrix.addWidget(self.centerChapter, 3, 1, QtAlignCenter)
-        self.layoutMatrix.addWidget(self.breakChapter, 3, 2, QtAlignCenter)
+        self.breakChapter = self._breakGroup(trLabel, 3)
 
         # Scene Layout
         trLabel = self._build.getLabel("headings.styleScene")
         self.lblScene = QLabel(trLabel, self)
         self.centerScene = NSwitch(self, height=iPx)
         self.centerScene.setAccessibleName(f"{trLabel}: {trCentre}")
-        self.breakScene = NSwitch(self, height=iPx)
-        self.breakScene.setAccessibleName(f"{trLabel}: {trBreak}")
 
         self.layoutMatrix.addWidget(self.lblScene, 4, 0)
         self.layoutMatrix.addWidget(self.centerScene, 4, 1, QtAlignCenter)
-        self.layoutMatrix.addWidget(self.breakScene, 4, 2, QtAlignCenter)
+        self.breakScene = self._breakGroup(trLabel, 4)
 
         self.layoutMatrix.setColumnStretch(3, 1)
 
@@ -893,10 +893,10 @@ class _HeadingsTab(NScrollablePage):
         self.centerChapter.setChecked(self._build.getBool("headings.centerChapter"))
         self.centerScene.setChecked(self._build.getBool("headings.centerScene"))
 
-        self.breakTitle.setChecked(self._build.getBool("headings.breakTitle"))
-        self.breakPart.setChecked(self._build.getBool("headings.breakPart"))
-        self.breakChapter.setChecked(self._build.getBool("headings.breakChapter"))
-        self.breakScene.setChecked(self._build.getBool("headings.breakScene"))
+        self._setBreak(self.breakTitle, self._build.getInt("headings.breakTitle"))
+        self._setBreak(self.breakPart, self._build.getInt("headings.breakPart"))
+        self._setBreak(self.breakChapter, self._build.getInt("headings.breakChapter"))
+        self._setBreak(self.breakScene, self._build.getInt("headings.breakScene"))
 
     def saveContent(self) -> None:
         """Save choices back into build object."""
@@ -912,14 +912,31 @@ class _HeadingsTab(NScrollablePage):
         self._build.setValue("headings.centerChapter", self.centerChapter.isChecked())
         self._build.setValue("headings.centerScene", self.centerScene.isChecked())
 
-        self._build.setValue("headings.breakTitle", self.breakTitle.isChecked())
-        self._build.setValue("headings.breakPart", self.breakPart.isChecked())
-        self._build.setValue("headings.breakChapter", self.breakChapter.isChecked())
-        self._build.setValue("headings.breakScene", self.breakScene.isChecked())
+        self._build.setValue("headings.breakTitle", max(self.breakTitle.checkedId(), 0))
+        self._build.setValue("headings.breakPart", max(self.breakPart.checkedId(), 0))
+        self._build.setValue("headings.breakChapter", max(self.breakChapter.checkedId(), 0))
+        self._build.setValue("headings.breakScene", max(self.breakScene.checkedId(), 0))
 
     ##
     #  Internal Functions
     ##
+
+    def _breakGroup(self, label: str, row: int) -> QButtonGroup:
+        """Add a row of page break radio buttons to the layout matrix."""
+        group = QButtonGroup(self)
+        box = QHBoxLayout()
+        for i, text in nwLabels.BREAK_TYPES.items():
+            trText = trConst(text)
+            button = NRadioButton(trText, self)
+            button.setAccessibleName(f"{label}: {trText}")
+            group.addButton(button, i)
+            box.addWidget(button)
+        self.layoutMatrix.addLayout(box, row, 2)
+        return group
+
+    def _setBreak(self, group: QButtonGroup, value: int) -> None:
+        """Check the page break radio button matching value."""
+        (group.button(value) or group.buttons()[0]).setChecked(True)
 
     def _insertIntoForm(self, text: str, replace: bool = False) -> None:
         """Insert formatting text from the dropdown menu."""
@@ -1440,13 +1457,11 @@ class _FormattingTab(NScrollableForm):
             self.gutterMargin,
         )
 
-        # Pages
+        # Double Pages
         self.doublePages = NSwitch(self, height=iPx)
         self.doublePages.clicked.connect(self._updateMirrorMarginsState)
-        self.doublePageBreak = NSwitch(self, height=iPx)
 
         self.addRow(self._build.getLabel("format.doublePages"), self.doublePages)
-        self.addRow(self._build.getLabel("format.doublePageBreak"), self.doublePageBreak)
 
         # Document Style
         # ==============
@@ -1644,7 +1659,6 @@ class _FormattingTab(NScrollableForm):
         self.rightMargin.setValue(self._build.getFloat("format.rightMargin"))
         self.gutterMargin.setValue(self._build.getFloat("format.gutterMargin"))
         self.doublePages.setChecked(self._build.getBool("format.doublePages"))
-        self.doublePageBreak.setChecked(self._build.getBool("format.doublePageBreak"))
 
         self._updateMirrorMarginsState()
 
@@ -1739,7 +1753,6 @@ class _FormattingTab(NScrollableForm):
         self._build.setValue("format.rightMargin", self.rightMargin.value())
         self._build.setValue("format.gutterMargin", self.gutterMargin.value())
         self._build.setValue("format.doublePages", self.doublePages.isChecked())
-        self._build.setValue("format.doublePageBreak", self.doublePageBreak.isChecked())
 
         # Documents
         metaLanguage = processLangCode(self.metaLanguage.text())

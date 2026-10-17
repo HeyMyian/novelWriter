@@ -866,7 +866,7 @@ def testToDocX_MinimalClose(mockGUI: MockGuiMain):
     assert doc._files["settings.xml"].xml.find(_wTag("mirrorMargins")) is None
 
     # Gutter and mirrored margins
-    doc.setPageLayout(210.0, 297.0, 20.0, 20.0, 20.0, 20.0, 10.0, True, False)
+    doc.setPageLayout(210.0, 297.0, 20.0, 20.0, 20.0, 20.0, 10.0, True)
     doc.closeDocument()
     assert doc._files["settings.xml"].xml[0].tag == _wTag("mirrorMargins")
 

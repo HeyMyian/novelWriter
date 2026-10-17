@@ -25,7 +25,7 @@ import logging
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import QEvent, QModelIndex, QRect, QSize, Qt, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QEvent, QModelIndex, QRect, QRectF, QSize, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QKeySequence, QPainter, QPaintEvent, QPalette
 from PyQt6.QtWidgets import (
     QApplication,
@@ -36,11 +36,14 @@ from PyQt6.QtWidgets import (
     QFontDialog,
     QLabel,
     QPushButton,
+    QRadioButton,
     QSpinBox,
     QSplitter,
     QSplitterHandle,
     QStyle,
+    QStyleOptionButton,
     QStyleOptionToolButton,
+    QStylePainter,
     QToolButton,
     QTreeView,
     QWidget,
@@ -58,6 +61,7 @@ from novelwriter.types import (
     QtMouseLeft,
     QtMouseMiddle,
     QtMouseOver,
+    QtPaintAntiAlias,
     QtRoleAccept,
     QtRoleReject,
     QtToolButtonTextIcon,
@@ -343,6 +347,37 @@ class NPushButton(QPushButton):
         """Update the theme icon."""
         if self._icon:
             self.setIcon(SHARED.theme.getIcon(self._icon))
+
+
+class NRadioButton(QRadioButton):
+    """Custom: Modified QRadioButton.
+
+    Draws the radio indicator in the same style as NSwitch.
+    """
+
+    def paintEvent(self, event: QPaintEvent) -> None:
+        """Draw the label with the style, and the indicator directly."""
+        if not (style := self.style()):
+            return
+
+        opt = QStyleOptionButton()
+        self.initStyleOption(opt)
+        rect = QRectF(style.subElementRect(QStyle.SubElement.SE_RadioButtonIndicator, opt, self))
+        opt.rect = style.subElementRect(QStyle.SubElement.SE_RadioButtonContents, opt, self)
+
+        painter = QStylePainter(self)
+        painter.drawControl(QStyle.ControlElement.CE_RadioButtonLabel, opt)
+
+        palette = self.palette()
+        centre = rect.center()
+        radius = 0.5 * min(rect.width(), rect.height()) - 0.5
+
+        painter.setRenderHint(QtPaintAntiAlias, True)
+        painter.setOpacity(1.0 if self.isEnabled() else 0.5)
+        painter.setPen(palette.highlight().color() if self.hasFocus() else palette.mid().color())
+        painter.setBrush(SHARED.theme.accentCol if self.isChecked() else palette.alternateBase())
+        painter.drawEllipse(centre, radius, radius)
+        painter.end()
 
 
 class NIconButton(QToolButton):

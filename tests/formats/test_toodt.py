@@ -832,7 +832,7 @@ def testToOdt_ConvertParagraphs(mockGUI: MockGuiMain):
 
     odt = ToOdt(project, isFlat=True)
     odt.setLanguage(None, True)
-    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, False, False)
+    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, False)
     odt._text = "English text\n\nمتن\n\n1234\n\n"
     odt.tokenizeText()
     odt.initDocument()
@@ -916,6 +916,51 @@ def testToOdt_ConvertDirect(mockGUI: MockGuiMain):
         '<office:text><text:p text:style-name="P1">This is a paragraph</text:p></office:text>'
     )
 
+    # Any Page Break
+    # The right page style is only added when used
+    doc = ToOdt(project, isFlat=True)
+    doc._blocks = [
+        (BlockTyp.TEXT, "", "Page break", [], BlockFmt.PBB),
+    ]
+    doc.initDocument()
+    doc.doConvert()
+    doc.closeDocument()
+    assert 'style:name="PM2"' not in xmlToText(doc._xAuto)
+    assert "Right_20_Page" not in xmlToText(doc._xMast)
+
+    # Odd Page Break
+    # An odd page break overrides any page break
+    doc = ToOdt(project, isFlat=True)
+    doc._blocks = [
+        (BlockTyp.TEXT, "", "Page break", [], BlockFmt.PBB),
+        (BlockTyp.HEAD1, "", "Heading break", [], BlockFmt.HBB),
+        (BlockTyp.HEAD1, "", "Both breaks", [], BlockFmt.PBB | BlockFmt.HBB),
+    ]
+    doc.initDocument()
+    doc.doConvert()
+    doc.closeDocument()
+    xAuto = xmlToText(doc._xAuto)
+    assert (
+        '<style:style style:name="P1" style:family="paragraph" '
+        'style:parent-style-name="Text_20_body">'
+        '<style:paragraph-properties fo:break-before="page" />'
+        "</style:style>"
+    ) in xAuto
+    assert (
+        '<style:style style:name="P2" style:family="paragraph" '
+        'style:parent-style-name="Heading_20_1" style:master-page-name="Right_20_Page" />'
+    ) in xAuto
+    assert '<style:style style:name="P3"' not in xAuto
+    assert '<style:page-layout style:name="PM2" style:page-usage="right">' in xAuto
+    assert (
+        '<style:master-page style:name="Right_20_Page" style:display-name="Right Page" '
+        'style:page-layout-name="PM2" style:next-style-name="Standard" />'
+    ) in xmlToText(doc._xMast)
+    xText = xmlToText(doc._xText)
+    assert '<text:p text:style-name="P1">Page break</text:p>' in xText
+    assert 'text:style-name="P2" text:outline-level="1">Heading break</text:h>' in xText
+    assert 'text:style-name="P2" text:outline-level="1">Both breaks</text:h>' in xText
+
 
 @pytest.mark.core
 def testToOdt_SaveFlat(mockGUI: MockGuiMain, fncPath: Path, tstPaths: TstPaths, ipsumText: list[str]):
@@ -931,7 +976,7 @@ def testToOdt_SaveFlat(mockGUI: MockGuiMain, fncPath: Path, tstPaths: TstPaths, 
     odt.setHeaderFormat(nwHeadFmt.DOC_AUTO, 1)
     assert odt._headerFormat == nwHeadFmt.DOC_AUTO
 
-    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, False, False)
+    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, False)
     assert odt._mDocWidth == 148.0
     assert odt._mDocHeight == 210.0
     assert odt._mDocTop == 20.0
@@ -941,7 +986,6 @@ def testToOdt_SaveFlat(mockGUI: MockGuiMain, fncPath: Path, tstPaths: TstPaths, 
     assert odt._mDocGutter == 11.0
     assert odt._mHorLine == 26.25
     assert odt._dblPages is False
-    assert odt._dblPageBreak is False
 
     odt._text = (
         "#! My Novel\n\n"
@@ -987,7 +1031,7 @@ def testToOdt_SaveFlatWithEmptyLines(mockGUI: MockGuiMain, fncPath: Path, tstPat
     odt.setJustify(True, False)
     assert odt._headerFormat == nwHeadFmt.DOC_AUTO
 
-    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, True, True)
+    odt.setPageLayout(148, 210, 20, 18, 17, 15, 11, True)
     assert odt._mDocWidth == 148.0
     assert odt._mDocHeight == 210.0
     assert odt._mDocTop == 20.0
@@ -997,7 +1041,8 @@ def testToOdt_SaveFlatWithEmptyLines(mockGUI: MockGuiMain, fncPath: Path, tstPat
     assert odt._mDocGutter == 11.0
     assert odt._mHorLine == 26.25
     assert odt._dblPages is True
-    assert odt._dblPageBreak is True
+
+    odt.setChapterStyle(False, 2)
 
     odt._text = (
         "#! My Novel\n\n"

@@ -376,6 +376,8 @@ def testGuiBuildSettings_Headings(qtbot: QtBot, nwGUI: GuiMain):
     build.setValue("headings.fmtSection", sxTitle)
     build.setValue("headings.hideScene", False)
     build.setValue("headings.hideSection", False)
+    build.setValue("headings.breakTitle", 2)
+    build.setValue("headings.breakScene", 9)
 
     # Create the dialog and populate it
     bSettings = GuiBuildSettings(nwGUI, build)
@@ -397,6 +399,10 @@ def testGuiBuildSettings_Headings(qtbot: QtBot, nwGUI: GuiMain):
     assert headTab.fmtSection.text() == sxTitle
     assert headTab.swtScene.isChecked() is False
     assert headTab.swtSection.isChecked() is False
+    assert headTab.breakTitle.checkedId() == 2
+    assert headTab.breakPart.checkedId() == 1
+    assert headTab.breakChapter.checkedId() == 1
+    assert headTab.breakScene.checkedId() == 0  # Invalid value
 
     # Edit in Turn
     # ============
@@ -544,6 +550,18 @@ def testGuiBuildSettings_Headings(qtbot: QtBot, nwGUI: GuiMain):
     assert sBuild.getBool("headings.hideScene") is True
     assert sBuild.getBool("headings.hideAltScene") is True
     assert sBuild.getBool("headings.hideSection") is True
+
+    # Check page break buttons
+    headTab.breakTitle.button(0).click()  # type: ignore
+    headTab.breakPart.button(2).click()  # type: ignore
+    headTab.breakChapter.button(2).click()  # type: ignore
+    headTab.breakScene.button(1).click()  # type: ignore
+    headTab.saveContent()
+
+    assert sBuild.getInt("headings.breakTitle") == 0
+    assert sBuild.getInt("headings.breakPart") == 2
+    assert sBuild.getInt("headings.breakChapter") == 2
+    assert sBuild.getInt("headings.breakScene") == 1
 
     # Finish
     bSettings._dialogButtonClicked(bSettings.btnClose)
