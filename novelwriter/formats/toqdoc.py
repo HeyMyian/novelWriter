@@ -39,6 +39,7 @@ from PyQt6.QtGui import (
     QTextFrameFormat,
     QTextLength,
     QTextListFormat,
+    QTextOption,
     QTextTableCellFormat,
     QTextTableFormat,
 )
@@ -57,6 +58,7 @@ from novelwriter.types import (
     QtFontBold,
     QtFontNormal,
     QtKeepAnchor,
+    QtLayoutRTL,
     QtMoveAnchor,
     QtMoveEnd,
     QtPageBreakAfter,
@@ -291,7 +293,13 @@ class ToQTextDocument(Tokenizer):
         # Text Formats
         self._blockFmt.setTopMargin(self._mText[0])
         self._blockFmt.setBottomMargin(self._mText[1])
-        self._blockFmt.setAlignment(QtAlignAbsolute)
+        if self._project.data.isRTL:
+            options = QTextOption()
+            options.setTextDirection(QtLayoutRTL)
+            self._document.setDefaultTextOption(options)
+            self._blockFmt.setAlignment(QtAlignAbsolute | QtAlignRight)
+        else:
+            self._blockFmt.setAlignment(QtAlignAbsolute)
         self._blockFmt.setLineHeight(100.0 * self._lineHeight, QtPropLineHeight)
 
         self._charFmt.setBackground(QtTransparent)
@@ -325,9 +333,9 @@ class ToQTextDocument(Tokenizer):
                 bFmt.setBottomMargin(self._mSep[1])
 
             if tStyle & BlockFmt.LEFT:
-                bFmt.setAlignment(QtAlignLeft)
+                bFmt.setAlignment(QtAlignAbsolute | QtAlignLeft)
             elif tStyle & BlockFmt.RIGHT:
-                bFmt.setAlignment(QtAlignRight)
+                bFmt.setAlignment(QtAlignAbsolute | QtAlignRight)
             elif tStyle & BlockFmt.CENTRE:
                 bFmt.setAlignment(QtAlignCenter)
             elif tStyle & BlockFmt.JUSTIFY:

@@ -121,6 +121,7 @@ def testGuiDocEditor_Init(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, ipsumTex
     # Check Defaults
     qDoc = docEditor._qDocument
     assert qDoc.defaultTextOption().alignment() == QtAlignLeft
+    assert qDoc.defaultTextOption().textDirection() == Qt.LayoutDirection.LayoutDirectionAuto
     assert docEditor.verticalScrollBarPolicy() == QtScrollAsNeeded
     assert docEditor.horizontalScrollBarPolicy() == QtScrollAsNeeded
     assert CONFIG.fmtPadThin is False
@@ -144,12 +145,14 @@ def testGuiDocEditor_Init(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, ipsumTex
     CONFIG.hideHScroll = True
     CONFIG.fmtPadThin = True
     CONFIG.showFullPath = False
+    SHARED.project.setProjectLang(None, True)
 
     docEditor.initEditor()
 
     qDoc = docEditor._qDocument
     assert CONFIG.textFont == qDoc.defaultFont()
     assert qDoc.defaultTextOption().alignment() == QtAlignJustify
+    assert qDoc.defaultTextOption().textDirection() == Qt.LayoutDirection.LayoutDirectionAuto
     assert qDoc.defaultTextOption().flags() & QTextOption.Flag.ShowTabsAndSpaces
     assert qDoc.defaultTextOption().flags() & QTextOption.Flag.ShowLineAndParagraphSeparators
     assert docEditor.verticalScrollBarPolicy() == QtScrollAlwaysOff
@@ -230,6 +233,11 @@ def testGuiDocEditor_LoadText(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, ipsu
 
     # Regular open
     assert docEditor.loadText(C.hSceneDoc) is True
+
+    # RTL projects still use automatic direction in the editor
+    SHARED.project.setProjectLang(None, True)
+    assert docEditor.loadText(C.hSceneDoc) is True
+    assert docEditor._qDocument.defaultTextOption().textDirection() == Qt.LayoutDirection.LayoutDirectionAuto
 
     # Regular open, with line number (1 indexed)
     assert docEditor.loadText(C.hSceneDoc, tLine=4) is True

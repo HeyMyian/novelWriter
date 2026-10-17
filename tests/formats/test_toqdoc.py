@@ -38,6 +38,7 @@ from novelwriter.types import (
     QtAlignLeft,
     QtAlignRight,
     QtFontBold,
+    QtLayoutRTL,
     QtMoveEnd,
     QtPageBreakAfter,
     QtPageBreakAuto,
@@ -399,7 +400,7 @@ def testToQTextDocument_TextBlockFormats(mockGUI: MockGuiMain):
     block = doc.document.findBlockByNumber(1)
     assert block.text() == "Left"
     bFmt = block.blockFormat()
-    assert bFmt.alignment() == QtAlignLeft
+    assert bFmt.alignment() == QtAlignAbsolute | QtAlignLeft
 
     # 2: Center
     block = doc.document.findBlockByNumber(2)
@@ -411,7 +412,7 @@ def testToQTextDocument_TextBlockFormats(mockGUI: MockGuiMain):
     block = doc.document.findBlockByNumber(3)
     assert block.text() == "Right"
     bFmt = block.blockFormat()
-    assert bFmt.alignment() == QtAlignRight
+    assert bFmt.alignment() == QtAlignAbsolute | QtAlignRight
 
     # 4: Left Indent
     block = doc.document.findBlockByNumber(4)
@@ -445,6 +446,19 @@ def testToQTextDocument_TextBlockFormats(mockGUI: MockGuiMain):
     assert bFmt.textIndent() == doc._tIndent
     assert bFmt.leftMargin() == 0.0
     assert bFmt.rightMargin() == 0.0
+
+    # Right-to-Left
+    # =============
+    project.setProjectLang(None, True)
+    doc = ToQTextDocument(project)
+    doc.initDocument()
+    assert doc.document.defaultTextOption().textDirection() == QtLayoutRTL
+
+    doc._text = "Text\n\n"
+    doc.tokenizeText()
+    doc.doConvert()
+    bFmt = doc.document.findBlockByNumber(0).blockFormat()
+    assert bFmt.alignment() == QtAlignAbsolute | QtAlignRight
 
     # Unreachable
     # ===========
