@@ -195,11 +195,13 @@ def testGuiPreferences_Settings(
         prefs.nativeFont.setChecked(True)  # Use OS font dialog
         prefs.guiFontButton.click()
 
+    prefs.guiForceRTL.setChecked(True)
     prefs.hideVScroll.setChecked(True)
     prefs.hideHScroll.setChecked(True)
     prefs.useCharCount.setChecked(True)
 
     assert CONFIG.guiLocale != "en_US"
+    assert CONFIG.guiForceRTL is False
     assert CONFIG.lightTheme == "default_light"
     assert CONFIG.darkTheme == "default_dark"
     assert CONFIG.guiFont.family() != ""
@@ -436,6 +438,7 @@ def testGuiPreferences_Settings(
     assert CONFIG.lightTheme == "theme1"
     assert CONFIG.darkTheme == "theme3"
     assert CONFIG.guiFont == QFont()
+    assert CONFIG.guiForceRTL is True
     assert CONFIG.hideVScroll is True
     assert CONFIG.hideHScroll is True
     assert CONFIG.useCharCount is True

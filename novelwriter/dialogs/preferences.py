@@ -256,6 +256,15 @@ class GuiPreferences(NDialog):
             button=self.guiFontButton,
         )
 
+        # Force RTL Layout
+        self.guiForceRTL = NSwitch(self)
+        self.guiForceRTL.setChecked(CONFIG.guiForceRTL)
+        self.mainForm.addRow(
+            self.tr("Force right-to-left layout"),
+            self.guiForceRTL,
+            self.tr("If off, layout direction is determined by the display language."),
+        )
+
         # Vertical Scrollbars
         self.hideVScroll = NSwitch(self)
         self.hideVScroll.setChecked(CONFIG.hideVScroll)
@@ -1179,6 +1188,7 @@ class GuiPreferences(NDialog):
         lightTheme = self.lightTheme.currentData()
         darkTheme = self.darkTheme.currentData()
         iconTheme = self.iconTheme.currentData()
+        guiForceRTL = self.guiForceRTL.isChecked()
         hideVScroll = self.hideVScroll.isChecked()
         hideHScroll = self.hideHScroll.isChecked()
         useCharCount = self.useCharCount.isChecked()
@@ -1188,6 +1198,7 @@ class GuiPreferences(NDialog):
         updateTheme |= CONFIG.iconTheme != iconTheme
         needsRestart |= CONFIG.guiLocale != guiLocale
         needsRestart |= CONFIG.guiFont != self._guiFont
+        needsRestart |= CONFIG.guiForceRTL != guiForceRTL
         refreshTree |= CONFIG.useCharCount != useCharCount
         updateSyntax |= CONFIG.lightTheme != lightTheme
         updateSyntax |= CONFIG.darkTheme != darkTheme
@@ -1195,6 +1206,7 @@ class GuiPreferences(NDialog):
         initViewport |= CONFIG.hideHScroll != hideHScroll
 
         CONFIG.guiLocale = guiLocale
+        CONFIG.guiForceRTL = guiForceRTL
         CONFIG.lightTheme = lightTheme
         CONFIG.darkTheme = darkTheme
         CONFIG.iconTheme = iconTheme

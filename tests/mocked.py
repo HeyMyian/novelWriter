@@ -106,15 +106,19 @@ class MockApp:
     """Mock application."""
 
     def __init__(self):
-        return
+        self._direction = Qt.LayoutDirection.LeftToRight
 
     def installTranslator(self, language: QTranslator) -> None:
         """Ignore the translator."""
         return
 
+    def setLayoutDirection(self, direction: Qt.LayoutDirection) -> None:
+        """Store the layout direction."""
+        self._direction = direction
+
     def layoutDirection(self) -> Qt.LayoutDirection:
-        """Return a fixed layout direction."""
-        return Qt.LayoutDirection.LeftToRight
+        """Return the stored layout direction."""
+        return self._direction
 
 
 # Error Functions

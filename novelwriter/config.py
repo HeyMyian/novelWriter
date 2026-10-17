@@ -158,6 +158,7 @@ class Config:
         "fontWinSize",
         "forceUnixLineEndings",
         "guiFont",
+        "guiForceRTL",
         "guiLocale",
         "hasEnchant",
         "hideFocusFooter",
@@ -302,7 +303,7 @@ class Config:
 
         # General GUI Settings
         self.guiLocale = self._qLocale.name()
-        self.rtlMode = False  # Right-to-left text layout as default
+        self.guiForceRTL = False  # User setting to force RTL layout
         self.lightTheme = DEF_GUI_LIGHT  # Light GUI theme
         self.darkTheme = DEF_GUI_DARK  # Dark GUI theme
         self.themeMode = nwTheme.AUTO  # Colour theme mode
@@ -314,6 +315,7 @@ class Config:
         self.useCharCount = False  # Use character count as primary count
         self.countUnit = "words"  # Primary count unit
         self.vimMode = False  # Enable Vim mode
+        self.rtlMode = False  # RTL layout, from the language or the forced setting
 
         # Icons
         self.iconTheme = DEF_ICONS  # Icons theme
@@ -784,6 +786,8 @@ class Config:
 
         # Refresh translated values
         self.setPrimaryCount(self.useCharCount)
+        if self.guiForceRTL:
+            nwApp.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.rtlMode = nwApp.layoutDirection() == Qt.LayoutDirection.RightToLeft
 
     def loadConfig(self, splash: NSplashScreen | None = None) -> bool:
@@ -828,6 +832,7 @@ class Config:
         self.iconColTree = parser.getStr(sec, "iconColTree", self.iconColTree)
         self.iconColDocs = parser.getBool(sec, "iconColDocs", self.iconColDocs)
         self.guiLocale = parser.getStr(sec, "localisation", self.guiLocale)
+        self.guiForceRTL = parser.getBool(sec, "forceRTL", self.guiForceRTL)
         self.hideVScroll = parser.getBool(sec, "hideVScroll", self.hideVScroll)
         self.hideHScroll = parser.getBool(sec, "hideHScroll", self.hideHScroll)
         self.lastNotes = parser.getStr(sec, "lastNotes", self.lastNotes)
@@ -974,6 +979,7 @@ class Config:
             "iconColTree": self.iconColTree,
             "iconColDocs": self.iconColDocs,
             "localisation": self.guiLocale,
+            "forceRTL": self.guiForceRTL,
             "hideVScroll": self.hideVScroll,
             "hideHScroll": self.hideHScroll,
             "lastNotes": self.lastNotes,
