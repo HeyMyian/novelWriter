@@ -39,6 +39,7 @@ from novelwriter.extensions.modified import (
     NFlatIconButton,
     NFlatIconTextButton,
     NFontDialog,
+    NHRadioGroup,
     NIconButton,
     NNonBlockingDialog,
     NRadioButton,
@@ -376,6 +377,38 @@ def testNRadioButton_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, mockGUI
     with monkeypatch.context() as mp:
         mp.setattr(button, "style", lambda: None)
         assert button.grab().isNull() is False
+
+
+@pytest.mark.gui
+def testNHRadioGroup_Main(qtbot: QtBot, mockGUI: MockGuiMain):
+    """Test the NHRadioGroup class."""
+    dialog = SimpleDialog(None)
+    group = NHRadioGroup(dialog, "Label", {0: "None", 1: "One", 2: "Two"})
+    dialog.addWidget(group)
+    dialog.show()
+
+    # The buttons are labelled, and nothing is checked initially
+    buttons = group._group.buttons()
+    assert [b.text() for b in buttons] == ["None", "One", "Two"]
+    assert [b.accessibleName() for b in buttons] == ["Label: None", "Label: One", "Label: Two"]
+    assert group.checkedId() == -1
+
+    # Set by ID
+    group.setCheckedId(2)
+    assert group.checkedId() == 2
+
+    # An unknown ID is ignored
+    group.setCheckedId(9)
+    assert group.checkedId() == 2
+
+    # Clicking a button changes the checked ID
+    buttons[1].click()
+    assert group.checkedId() == 1
+
+    # An empty group has nothing to check
+    empty = NHRadioGroup(dialog, "Empty", {})
+    empty.setCheckedId(0)
+    assert empty.checkedId() == -1
 
 
 @pytest.mark.gui

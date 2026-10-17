@@ -402,7 +402,7 @@ def testGuiBuildSettings_Headings(qtbot: QtBot, nwGUI: GuiMain):
     assert headTab.breakTitle.checkedId() == 2
     assert headTab.breakPart.checkedId() == 1
     assert headTab.breakChapter.checkedId() == 1
-    assert headTab.breakScene.checkedId() == 0  # Invalid value
+    assert headTab.breakScene.checkedId() == -1  # Invalid value
 
     # Edit in Turn
     # ============
@@ -552,10 +552,10 @@ def testGuiBuildSettings_Headings(qtbot: QtBot, nwGUI: GuiMain):
     assert sBuild.getBool("headings.hideSection") is True
 
     # Check page break buttons
-    headTab.breakTitle.button(0).click()  # type: ignore
-    headTab.breakPart.button(2).click()  # type: ignore
-    headTab.breakChapter.button(2).click()  # type: ignore
-    headTab.breakScene.button(1).click()  # type: ignore
+    headTab.breakTitle.setCheckedId(0)
+    headTab.breakPart.setCheckedId(2)
+    headTab.breakChapter.setCheckedId(2)
+    headTab.breakScene.setCheckedId(1)
     headTab.saveContent()
 
     assert sBuild.getInt("headings.breakTitle") == 0

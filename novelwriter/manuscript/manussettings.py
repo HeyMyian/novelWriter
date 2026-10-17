@@ -30,7 +30,6 @@ from PyQt6.QtGui import QAction, QFont, QIcon, QSyntaxHighlighter, QTextCharForm
 from PyQt6.QtWidgets import (
     QAbstractButton,
     QAbstractItemView,
-    QButtonGroup,
     QDialogButtonBox,
     QFrame,
     QGridLayout,
@@ -56,8 +55,8 @@ from novelwriter.extensions.configlayout import NColorLabel, NFixedPage, NScroll
 from novelwriter.extensions.modified import (
     NComboBox,
     NDoubleSpinBox,
+    NHRadioGroup,
     NIconButton,
-    NRadioButton,
     NSpinBox,
     NToolDialog,
 )
@@ -797,45 +796,51 @@ class _HeadingsTab(NScrollablePage):
         self.layoutMatrix.addWidget(QLabel(trCentre, self), 0, 1)
         self.layoutMatrix.addWidget(QLabel(trBreak, self), 0, 2)
 
+        breakTypes = {k: trConst(v) for k, v in nwLabels.BREAK_TYPES.items()}
+
         # Title Layout
         trLabel = self._build.getLabel("headings.styleTitle")
         self.lblTitle = QLabel(trLabel, self)
         self.centerTitle = NSwitch(self, height=iPx)
         self.centerTitle.setAccessibleName(f"{trLabel}: {trCentre}")
+        self.breakTitle = NHRadioGroup(self, trLabel, breakTypes)
 
         self.layoutMatrix.addWidget(self.lblTitle, 1, 0)
         self.layoutMatrix.addWidget(self.centerTitle, 1, 1, QtAlignCenter)
-        self.breakTitle = self._breakGroup(trLabel, 1)
+        self.layoutMatrix.addWidget(self.breakTitle, 1, 2)
 
         # Partition Layout
         trLabel = self._build.getLabel("headings.stylePart")
         self.lblPart = QLabel(trLabel, self)
         self.centerPart = NSwitch(self, height=iPx)
         self.centerPart.setAccessibleName(f"{trLabel}: {trCentre}")
+        self.breakPart = NHRadioGroup(self, trLabel, breakTypes)
 
         self.layoutMatrix.addWidget(self.lblPart, 2, 0)
         self.layoutMatrix.addWidget(self.centerPart, 2, 1, QtAlignCenter)
-        self.breakPart = self._breakGroup(trLabel, 2)
+        self.layoutMatrix.addWidget(self.breakPart, 2, 2)
 
         # Chapter Layout
         trLabel = self._build.getLabel("headings.styleChapter")
         self.lblChapter = QLabel(trLabel, self)
         self.centerChapter = NSwitch(self, height=iPx)
         self.centerChapter.setAccessibleName(f"{trLabel}: {trCentre}")
+        self.breakChapter = NHRadioGroup(self, trLabel, breakTypes)
 
         self.layoutMatrix.addWidget(self.lblChapter, 3, 0)
         self.layoutMatrix.addWidget(self.centerChapter, 3, 1, QtAlignCenter)
-        self.breakChapter = self._breakGroup(trLabel, 3)
+        self.layoutMatrix.addWidget(self.breakChapter, 3, 2)
 
         # Scene Layout
         trLabel = self._build.getLabel("headings.styleScene")
         self.lblScene = QLabel(trLabel, self)
         self.centerScene = NSwitch(self, height=iPx)
         self.centerScene.setAccessibleName(f"{trLabel}: {trCentre}")
+        self.breakScene = NHRadioGroup(self, trLabel, breakTypes)
 
         self.layoutMatrix.addWidget(self.lblScene, 4, 0)
         self.layoutMatrix.addWidget(self.centerScene, 4, 1, QtAlignCenter)
-        self.breakScene = self._breakGroup(trLabel, 4)
+        self.layoutMatrix.addWidget(self.breakScene, 4, 2)
 
         self.layoutMatrix.setColumnStretch(3, 1)
 
@@ -893,10 +898,10 @@ class _HeadingsTab(NScrollablePage):
         self.centerChapter.setChecked(self._build.getBool("headings.centerChapter"))
         self.centerScene.setChecked(self._build.getBool("headings.centerScene"))
 
-        self._setBreak(self.breakTitle, self._build.getInt("headings.breakTitle"))
-        self._setBreak(self.breakPart, self._build.getInt("headings.breakPart"))
-        self._setBreak(self.breakChapter, self._build.getInt("headings.breakChapter"))
-        self._setBreak(self.breakScene, self._build.getInt("headings.breakScene"))
+        self.breakTitle.setCheckedId(self._build.getInt("headings.breakTitle"))
+        self.breakPart.setCheckedId(self._build.getInt("headings.breakPart"))
+        self.breakChapter.setCheckedId(self._build.getInt("headings.breakChapter"))
+        self.breakScene.setCheckedId(self._build.getInt("headings.breakScene"))
 
     def saveContent(self) -> None:
         """Save choices back into build object."""
@@ -920,23 +925,6 @@ class _HeadingsTab(NScrollablePage):
     ##
     #  Internal Functions
     ##
-
-    def _breakGroup(self, label: str, row: int) -> QButtonGroup:
-        """Add a row of page break radio buttons to the layout matrix."""
-        group = QButtonGroup(self)
-        box = QHBoxLayout()
-        for i, text in nwLabels.BREAK_TYPES.items():
-            trText = trConst(text)
-            button = NRadioButton(trText, self)
-            button.setAccessibleName(f"{label}: {trText}")
-            group.addButton(button, i)
-            box.addWidget(button)
-        self.layoutMatrix.addLayout(box, row, 2)
-        return group
-
-    def _setBreak(self, group: QButtonGroup, value: int) -> None:
-        """Check the page break radio button matching value."""
-        (group.button(value) or group.buttons()[0]).setChecked(True)
 
     def _insertIntoForm(self, text: str, replace: bool = False) -> None:
         """Insert formatting text from the dropdown menu."""

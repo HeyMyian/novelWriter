@@ -29,11 +29,13 @@ from PyQt6.QtCore import QEvent, QModelIndex, QRect, QRectF, QSize, Qt, pyqtSign
 from PyQt6.QtGui import QKeySequence, QPainter, QPaintEvent, QPalette
 from PyQt6.QtWidgets import (
     QApplication,
+    QButtonGroup,
     QComboBox,
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
     QFontDialog,
+    QHBoxLayout,
     QLabel,
     QPushButton,
     QRadioButton,
@@ -378,6 +380,33 @@ class NRadioButton(QRadioButton):
         painter.setBrush(SHARED.theme.accentCol if self.isChecked() else palette.alternateBase())
         painter.drawEllipse(centre, radius, radius)
         painter.end()
+
+
+class NHRadioGroup(QWidget):
+    """Custom: Group of Radio Buttons."""
+
+    __slots__ = ("_group", "_layout")
+
+    def __init__(self, parent: QWidget, label: str, data: dict[int, str]) -> None:
+        super().__init__(parent)
+        self._group = QButtonGroup(self)
+        self._layout = QHBoxLayout()
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        for key, text in data.items():
+            button = NRadioButton(text, self)
+            button.setAccessibleName(f"{label}: {text}")
+            self._group.addButton(button, key)
+            self._layout.addWidget(button)
+        self.setLayout(self._layout)
+
+    def setCheckedId(self, index: int) -> None:
+        """Set the currently checked button."""
+        if button := self._group.button(index):
+            button.setChecked(True)
+
+    def checkedId(self) -> int:
+        """Get the current checked button."""
+        return self._group.checkedId()
 
 
 class NIconButton(QToolButton):
