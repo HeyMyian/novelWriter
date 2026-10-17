@@ -86,6 +86,20 @@ def testFromQTextDocument_General():
     result = FromQTextDocument(document).convertText()
     assert result == "First\n\n\nSecond\n"
 
+    # Right-to-left text defaults to right alignment instead. Qt treats
+    # CSS alignment as relative to the text direction
+    document = QTextDocument()
+    document.setHtml(
+        '<p dir="rtl">Default</p>'
+        '<p dir="rtl" align="right">Right</p>'
+        '<p dir="rtl" align="left">Left</p>'
+        '<p dir="rtl" align="center">Centre</p>'
+        '<p dir="rtl" style="text-align:right">Relative</p>'
+        '<p align="left">\u05e9\u05dc\u05d5\u05dd</p>'
+    )
+    result = FromQTextDocument(document).convertText()
+    assert result == "Default\n\nRight\n\nLeft <<\n\n>> Centre <<\n\nRelative <<\n\n\u05e9\u05dc\u05d5\u05dd <<\n"
+
 
 @pytest.mark.core
 def testFromQTextDocument_Lists():

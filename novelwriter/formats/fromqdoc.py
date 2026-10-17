@@ -29,7 +29,15 @@ from PyQt6.QtGui import QFont, QTextCharFormat, QTextDocument, QTextListFormat
 
 from novelwriter import CONFIG
 from novelwriter.constants import nwShortcode, nwUnicode
-from novelwriter.types import QtAlignHCenter, QtAlignRight, QtVAlignSub, QtVAlignSuper
+from novelwriter.types import (
+    QtAlignAbsolute,
+    QtAlignHCenter,
+    QtAlignLeft,
+    QtAlignRight,
+    QtLayoutRTL,
+    QtVAlignSub,
+    QtVAlignSuper,
+)
 
 if TYPE_CHECKING:
     from PyQt6.QtGui import QTextBlock
@@ -157,15 +165,18 @@ class FromQTextDocument:
         return ""
 
     def _applyAlignment(self, block: QTextBlock, text: str) -> str:
-        """Wrap right-aligned or centred paragraphs in novelWriter's
-        alignment markers. Left alignment is the default and is left
-        as-is.
+        """Wrap aligned paragraphs in novelWriter's alignment markers.
+        Alignment to the leading side of the text direction is the
+        default and is left as-is.
         """
         align = block.blockFormat().alignment()
         if align & QtAlignHCenter:
             return f">> {text} <<"
-        elif align & QtAlignRight:
-            return f">> {text}"
+
+        rtl = block.textDirection() == QtLayoutRTL
+        if align & (QtAlignLeft if rtl and align & QtAlignAbsolute else QtAlignRight):
+            return f"{text} <<" if rtl else f">> {text}"
+
         return text
 
     def _resolveSoftBreaks(self, text: str) -> str:
