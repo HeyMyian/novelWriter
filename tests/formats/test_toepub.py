@@ -422,8 +422,8 @@ def testToEPub_Alignment(mockGUI: MockGuiMain):
 
     # In RTL projects, LTR blocks and titles are marked, and the rest
     # inherit RTL
-    project.setProjectLang(None, True)
     epub = ToEPub(project)
+    epub.setLanguage(None, True)
     epub.initDocument()
     epub._isNovel = True
     epub._text = "## Chapter\n\nEnglish text\n\nمتن\n\n1234\n\n"
@@ -432,6 +432,14 @@ def testToEPub_Alignment(mockGUI: MockGuiMain):
     section = epub._sections[-1]
     assert section._dir == " dir='ltr'"
     assert section.text == ["<p dir='ltr'>English text</p>", "<p>متن</p>", "<p>1234</p>"]
+
+    # Footnotes follow the same rule
+    epub._text = "متن[footnote:a]\n\n%footnote.a: English note.\n\n"
+    epub.tokenizeText()
+    epub.doConvert()
+    assert epub._sections[-1].footnotes[-1] == (
+        "<aside epub:type='footnote' id='fn_1'><p dir='ltr'><a href='#fns_1'>1.</a> English note.</p></aside>"
+    )
 
 
 @pytest.mark.core
@@ -703,7 +711,7 @@ def testToEPub_Save(mockGUI: MockGuiMain, fncPath: Path, tstPaths: TstPaths, ips
     assert cmpFiles(fm1File, fm1Comp)
 
     # RTL projects set the page progression and the page directions
-    project.setProjectLang(None, True)
+    epub.setLanguage(None, True)
     saveFile = fncPath / "outFileRTL.epub"
     epub.saveDocument(saveFile)
     with zipfile.ZipFile(saveFile, mode="r") as zipObj:

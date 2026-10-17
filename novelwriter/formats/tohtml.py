@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import logging
 
+from html import unescape
 from time import time
 from typing import TYPE_CHECKING
 
@@ -127,10 +128,8 @@ class ToHtml(Tokenizer):
     def doConvert(self) -> None:
         """Convert the list of text tokens into an HTML document."""
         lines = []
-        isRTL = self._project.data.isRTL
         for tType, tMeta, tText, tFmt, tStyle in self._blocks:
-            # In RTL documents, blocks without strong characters inherit RTL
-            hDir = " dir='ltr'" if isRTL and textDirection(tText) == "ltr" else ""
+            hDir = self._blockDir(tText)
             tText, tFmt = self._processHtmlEntities(tText, tFmt)
             hStyle = hDir + self._genInlineStyles(tStyle)
 
@@ -211,7 +210,7 @@ class ToHtml(Tokenizer):
             for key, index in self._usedNotes.items():
                 if content := self._footnotes.get(key):  # pragma: no branch
                     text = self._formatText(*content)
-                    lines.append(f"<li id='footnote_{index}'><p>{text}</p></li>\n")
+                    lines.append(f"<li id='footnote_{index}'><p{self._blockDir(content[0])}>{text}</p></li>\n")
             lines.append("</ol>\n")
 
             self._pages.append("".join(lines))
@@ -238,7 +237,7 @@ class ToHtml(Tokenizer):
         else:
             html = []
             html.append("<!DOCTYPE html>")
-            hDir = " dir='rtl'" if self._project.data.isRTL else ""
+            hDir = " dir='rtl'" if self._isRTL else ""
             html.append(f"<html lang='{self._dLocale.bcp47Name()}'{hDir}>")
             html.append("<head>")
             html.append(f"<title>{self._project.data.name:s}</title>")
@@ -274,7 +273,7 @@ class ToHtml(Tokenizer):
         if not self._cssStyles:
             return []
 
-        defaultAlign = "start" if self._project.data.isRTL else self._defaultAlign
+        defaultAlign = "start" if self._isRTL else self._defaultAlign
         tColor = self._theme.text.name(QtHexRgb)
         lColor = self._theme.head.name(QtHexRgb)
         mColor = self._theme.highlight.name(QtHexRgb)
@@ -394,6 +393,14 @@ class ToHtml(Tokenizer):
     ##
     #  Protected Functions (Shared with EPub)
     ##
+
+    def _blockDir(self, text: str) -> str:
+        """Return a direction attribute for LTR text in RTL documents.
+        Text without strong characters inherits RTL.
+        """
+        if self._isRTL and textDirection(unescape(text)) == "ltr":
+            return " dir='ltr'"
+        return ""
 
     def _genInlineStyles(self, tStyle: BlockFmt) -> str:
         """Generate inline styles for a block of text."""

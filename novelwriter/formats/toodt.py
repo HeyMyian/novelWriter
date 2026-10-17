@@ -32,7 +32,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from PyQt6.QtGui import QColor, QFont
 
 from novelwriter import __version__
-from novelwriter.common import xmlElement, xmlIndent, xmlSubElem
+from novelwriter.common import textDirection, xmlElement, xmlIndent, xmlSubElem
 from novelwriter.constants import nwHeadFmt, nwStyles, nwUnicode
 from novelwriter.formats.shared import BlockFmt, BlockTyp, TextFmt, stripEscape
 from novelwriter.formats.tokenizer import COMMENT_BLOCKS, LIST_BLOCKS, META_BLOCKS, Tokenizer
@@ -422,6 +422,8 @@ class ToOdt(Tokenizer):
         for tType, _, tText, tFormat, tStyle in self._blocks:
             # Styles
             oStyle = ODTParagraphStyle("New")
+            if self._isRTL and textDirection(tText) == "ltr":
+                oStyle.setWritingMode("lr-tb")
             if tStyle & BlockFmt.LEFT:
                 oStyle.setTextAlign("left")
             elif tStyle & BlockFmt.RIGHT:
@@ -737,6 +739,8 @@ class ToOdt(Tokenizer):
         if content := self._footnotes.get(key):
             self._nNote += 1
             nStyle = ODTParagraphStyle("New")
+            if self._isRTL and textDirection(content[0]) == "ltr":
+                nStyle.setWritingMode("lr-tb")
             xNote = xmlElement(
                 _mkTag("text", "note"),
                 attrib={
@@ -799,19 +803,18 @@ class ToOdt(Tokenizer):
                 _mkTag("style", "page-usage"): "mirrored" if self._mMirrored else "all",
             },
         )
-        ET.SubElement(
-            xPage,
-            _mkTag("style", "page-layout-properties"),
-            attrib={
-                _mkTag("fo", "page-width"): self._mDocWidth,
-                _mkTag("fo", "page-height"): self._mDocHeight,
-                _mkTag("fo", "margin-top"): self._mDocTop,
-                _mkTag("fo", "margin-bottom"): self._mDocBtm,
-                _mkTag("fo", "margin-left"): self._mDocLeft,
-                _mkTag("fo", "margin-right"): self._mDocRight,
-                _mkTag("loext", "margin-gutter"): self._mDocGutter,
-            },
-        )
+        pAttr = {
+            _mkTag("fo", "page-width"): self._mDocWidth,
+            _mkTag("fo", "page-height"): self._mDocHeight,
+            _mkTag("fo", "margin-top"): self._mDocTop,
+            _mkTag("fo", "margin-bottom"): self._mDocBtm,
+            _mkTag("fo", "margin-left"): self._mDocLeft,
+            _mkTag("fo", "margin-right"): self._mDocRight,
+            _mkTag("loext", "margin-gutter"): self._mDocGutter,
+        }
+        if self._isRTL:
+            pAttr[_mkTag("style", "writing-mode")] = "rl-tb"
+        ET.SubElement(xPage, _mkTag("style", "page-layout-properties"), attrib=pAttr)
 
         xHead = ET.SubElement(xPage, _mkTag("style", "header-style"))
         ET.SubElement(
@@ -959,7 +962,7 @@ class ToOdt(Tokenizer):
         style.setMarginTop(self._emToCm(self._marginText[0]))
         style.setMarginBottom(self._emToCm(self._marginText[1]))
         style.setLineHeight(lineHeight)
-        style.setTextAlign(self._defaultAlign)
+        style.setTextAlign("start" if self._isRTL else self._defaultAlign)
         style.setFontName(self._fontFamily)
         style.setFontFamily(self._fontFamily)
         style.setFontSize(textSize)
@@ -1121,7 +1124,7 @@ class ToOdt(Tokenizer):
         style = ODTParagraphStyle("Header")
         style.setDisplayName("Header")
         style.setParentStyleName(S_HNF)
-        style.setTextAlign("right")
+        style.setTextAlign("left" if self._isRTL else "right")
         style.packXML(self._xStyl)
         self._mainPara[style.name] = style
 
@@ -1238,6 +1241,7 @@ class ODTParagraphStyle:
 
     VALID_ALIGN: ClassVar[list[str]] = ["start", "center", "end", "justify", "left", "right"]
     VALID_BREAK: ClassVar[list[str]] = ["auto", "page", "even-page", "odd-page", "inherit"]
+    VALID_WRITE: ClassVar[list[str]] = ["lr-tb", "rl-tb", "page"]
     VALID_LEVEL: ClassVar[list[str]] = ["1", "2", "3", "4"]
     VALID_CLASS: ClassVar[list[str]] = ["text", "chapter", "extra", "html", "list"]
     VALID_WEIGHT: ClassVar[list[str]] = ["normal", "bold", *FONT_WEIGHT_NUM]
@@ -1268,6 +1272,7 @@ class ODTParagraphStyle:
             "text-indent": ["fo", None],
             "line-height": ["fo", None],
             "text-align": ["fo", None],
+            "writing-mode": ["style", None],
             "break-before": ["fo", None],
             "break-after": ["fo", None],
         }
@@ -1374,6 +1379,13 @@ class ODTParagraphStyle:
             self._pAttr["text-align"][1] = value
         else:
             self._pAttr["text-align"][1] = None
+
+    def setWritingMode(self, value: str | None) -> None:
+        """Set paragraph writing mode."""
+        if value in self.VALID_WRITE:
+            self._pAttr["writing-mode"][1] = value
+        else:
+            self._pAttr["writing-mode"][1] = None
 
     def setBreakBefore(self, value: str | None) -> None:
         """Set page break before policy."""

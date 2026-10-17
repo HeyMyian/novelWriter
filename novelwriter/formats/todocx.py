@@ -32,7 +32,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from PyQt6.QtCore import QMargins, QSize
 
 from novelwriter import __version__
-from novelwriter.common import firstFloat, xmlElement, xmlSubElem
+from novelwriter.common import firstFloat, textDirection, xmlElement, xmlSubElem
 from novelwriter.constants import nwHeadFmt, nwStyles, nwUnicode
 from novelwriter.formats.shared import BlockFmt, BlockTyp, T_Formats, TextFmt, stripEscape
 from novelwriter.formats.tokenizer import COMMENT_BLOCKS, LIST_BLOCKS, Tokenizer
@@ -283,11 +283,20 @@ class ToDocX(Tokenizer):
             par = DocXParagraph()
             self._pars.append(par)
 
+            # In RTL documents, blocks without strong characters inherit RTL
+            rtlPar = self._isRTL
+            if rtlPar and textDirection(tText) == "ltr":
+                par.setBidi(False)
+                rtlPar = False
+
+            # Word treats left and right as start and end in RTL paragraphs
+            pLeft, pRight = ("right", "left") if rtlPar else ("left", "right")
+
             # Styles
             if tStyle & BlockFmt.LEFT:
-                par.setAlignment("left")
+                par.setAlignment(pLeft)
             elif tStyle & BlockFmt.RIGHT:
-                par.setAlignment("right")
+                par.setAlignment(pRight)
             elif tStyle & BlockFmt.CENTRE:
                 par.setAlignment("center")
             elif tStyle & BlockFmt.JUSTIFY:
@@ -305,9 +314,10 @@ class ToDocX(Tokenizer):
 
             if tStyle & BlockFmt.IND_T:
                 par.setIndentFirst(True)
-            if tStyle & BlockFmt.IND_L:
+            indL, indR = (BlockFmt.IND_R, BlockFmt.IND_L) if rtlPar else (BlockFmt.IND_L, BlockFmt.IND_R)
+            if tStyle & indL:
                 par.setMarginLeft(bIndent)
-            if tStyle & BlockFmt.IND_R:
+            if tStyle & indR:
                 par.setMarginRight(bIndent)
 
             # Process Text Types
@@ -498,8 +508,12 @@ class ToDocX(Tokenizer):
         rPr = xmlSubElem(xR, _wTag("rPr"))
         if fmt & X_BLD:
             xmlSubElem(rPr, _wTag("b"))
+            if self._isRTL:
+                xmlSubElem(rPr, _wTag("bCs"))
         if fmt & X_ITA:
             xmlSubElem(rPr, _wTag("i"))
+            if self._isRTL:
+                xmlSubElem(rPr, _wTag("iCs"))
         if fmt & X_UND:
             xmlSubElem(rPr, _wTag("u"), attrib={W_VAL: "single"})
         if fmt & X_MRK:
@@ -844,7 +858,11 @@ class ToDocX(Tokenizer):
         )
         xmlSubElem(xRPr, _wTag("sz"), attrib={W_VAL: size})
         xmlSubElem(xRPr, _wTag("szCs"), attrib={W_VAL: size})
-        xmlSubElem(xRPr, _wTag("lang"), attrib={W_VAL: self._dLocale.name()})
+        lang = {W_VAL: self._dLocale.name()}
+        if self._isRTL:
+            lang[_wTag("bidi")] = self._dLocale.name()
+            xmlSubElem(xPPr, _wTag("bidi"))
+        xmlSubElem(xRPr, _wTag("lang"), attrib=lang)
         xmlSubElem(xPPr, _wTag("spacing"), attrib={_wTag("line"): line})
 
         # Paragraph Styles
@@ -1076,6 +1094,8 @@ class ToDocX(Tokenizer):
             },
         )
         xmlSubElem(xSect, _wTag("titlePg"))
+        if self._isRTL:
+            xmlSubElem(xSect, _wTag("bidi"))
 
         return rId
 
@@ -1097,6 +1117,8 @@ class ToDocX(Tokenizer):
             par = DocXParagraph()
             par.setIsFootnote(True)
             if content := self._footnotes.get(key):  # pragma: no branch
+                if self._isRTL and textDirection(content[0]) == "ltr":
+                    par.setBidi(False)
                 self._processFragments(par, S_FNOTE, content[0], content[1])
             par.toXml(xmlSubElem(xRoot, _wTag("footnote"), attrib={_wTag("id"): str(idx)}))
 
@@ -1233,6 +1255,7 @@ class DocXParagraph:
     """
 
     __slots__ = (
+        "_bidi",
         "_borders",
         "_bottomMargin",
         "_breakAfter",
@@ -1262,6 +1285,7 @@ class DocXParagraph:
         self._footnoteRef = False
         self._numbering: tuple[int, int] | None = None
         self._borders: dict[str, DocXBorder] = {}
+        self._bidi: bool | None = None
 
     ##
     #  Properties
@@ -1284,6 +1308,10 @@ class DocXParagraph:
         """Set paragraph alignment."""
         if value in ("left", "center", "right", "both"):
             self._textAlign = value
+
+    def setBidi(self, state: bool) -> None:
+        """Set the paragraph direction, overriding the default."""
+        self._bidi = state
 
     def setMarginTop(self, value: float) -> None:
         """Set margin above in pt."""
@@ -1354,6 +1382,8 @@ class DocXParagraph:
                 xNum = xmlSubElem(pPr, _wTag("numPr"))
                 xmlSubElem(xNum, _wTag("ilvl"), attrib={W_VAL: str(numbering[1])})
                 xmlSubElem(xNum, _wTag("numId"), attrib={W_VAL: str(numbering[0])})
+            if self._bidi is not None:
+                xmlSubElem(pPr, _wTag("bidi"), attrib={W_VAL: "1" if self._bidi else "0"})
             if self._topMargin is not None or self._bottomMargin is not None:
                 xmlSubElem(
                     pPr,

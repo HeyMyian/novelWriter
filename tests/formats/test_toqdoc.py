@@ -450,8 +450,8 @@ def testToQTextDocument_TextBlockFormats(mockGUI: MockGuiMain):
 
     # Right-to-Left
     # =============
-    project.setProjectLang(None, True)
     doc = ToQTextDocument(project)
+    doc.setLanguage(None, True)
     doc.initDocument()
 
     doc._text = "Text\n\nمتن\n\n1234\n\n"

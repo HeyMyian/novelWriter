@@ -29,7 +29,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Final, NamedTuple
 from zipfile import ZIP_DEFLATED, ZipFile
 
-from novelwriter.common import textDirection, xmlElement, xmlIndent, xmlSubElem
+from novelwriter.common import xmlElement, xmlIndent, xmlSubElem
 from novelwriter.constants import nwUnicode
 from novelwriter.formats.shared import BlockFmt, BlockTyp
 from novelwriter.formats.tohtml import ToHtml
@@ -115,10 +115,8 @@ class ToEPub(ToHtml):
 
     def doConvert(self) -> None:
         """Convert the list of text tokens into HTML."""
-        isRTL = self._project.data.isRTL
         for tType, tMeta, tText, tFmt, tStyle in self._blocks:
-            # In RTL books, blocks without strong characters inherit RTL
-            hDir = " dir='ltr'" if isRTL and textDirection(tText) == "ltr" else ""
+            hDir = self._blockDir(tText)
             tText, tFmt = self._processHtmlEntities(tText, tFmt)
             hStyle = hDir + self._genInlineStyles(tStyle)
 
@@ -221,7 +219,6 @@ class ToEPub(ToHtml):
             zipObj.writestr(name, ET.tostring(root, encoding="utf-8", xml_declaration=True))
 
         lang = self._dLocale.name()
-        isRTL = self._project.data.isRTL
         with ZipFile(path, mode="w", compression=ZIP_DEFLATED, compresslevel=3) as outZip:
             outZip.writestr("mimetype", X_MIME, compress_type=None, compresslevel=None)
             xmlToZip("META-INF/container.xml", xContainer, outZip)
@@ -230,7 +227,7 @@ class ToEPub(ToHtml):
             outZip.writestr("OEBPS/nav.xhtml", self._generateNavPage())
             outZip.writestr("OEBPS/styles/stylesheet.css", self._generateStyleSheet())
             for section in self._sections:
-                outZip.writestr(f"OEBPS/xhtml/{section.name}.xhtml", section.sectionToXHtml(lang, isRTL))
+                outZip.writestr(f"OEBPS/xhtml/{section.name}.xhtml", section.sectionToXHtml(lang, self._isRTL))
 
     ##
     #  EPub Files
@@ -308,7 +305,7 @@ class ToEPub(ToHtml):
 
         # Spine
         sAttr = {"toc": "toc"}
-        if self._project.data.isRTL:
+        if self._isRTL:
             sAttr["page-progression-direction"] = "rtl"
         xSpine = xmlSubElem(xRoot, "spine", attrib=sAttr)
         for section in self._sections:
@@ -366,7 +363,7 @@ class ToEPub(ToHtml):
         """Generate the content XHtml page."""
         langCode = self._dLocale.name()
         title = self._localLookup("Contents")
-        hDir = ' dir="rtl"' if self._project.data.isRTL else ""
+        hDir = ' dir="rtl"' if self._isRTL else ""
 
         xHtml = ['<?xml version="1.0" encoding="UTF-8"?>']
         xHtml.append("<!DOCTYPE html>")
@@ -429,8 +426,10 @@ class ToEPub(ToHtml):
 
         if content := self._footnotes.get(key):  # pragma: no branch
             text = self._formatText(*content)
+            hDir = self._blockDir(content[0])
+            link = f"<a href='#fns_{index}'>{index}.</a>"
             self._section.footnotes.append(
-                f"<aside epub:type='footnote' id='fn_{index}'><p><a href='#fns_{index}'>{index}.</a> {text}</p></aside>"
+                f"<aside epub:type='footnote' id='fn_{index}'><p{hDir}>{link} {text}</p></aside>"
             )
 
         return f"<sup><a epub:type='noteref' href='#fn_{index}' id='fns_{index}'>{index}</a></sup>"

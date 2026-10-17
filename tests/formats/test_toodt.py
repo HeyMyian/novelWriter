@@ -141,7 +141,7 @@ def testToOdt_TextFormatting(mockGUI: MockGuiMain):
         "Footnote",
     ]
 
-    key = "3cf442c88e0f5e263fdf225fa4763d6e5d7a1d78e611c24f5e9befef1b7646c9"
+    key = "004ca3f3ad2a6c893a9b5865f7f48265e430645ca13bc2600247e714597d6110"
     assert key in odt._autoPara
     assert isinstance(odt._autoPara[key], ODTParagraphStyle)
     assert odt._autoPara[key].name == "P1"
@@ -826,6 +826,45 @@ def testToOdt_ConvertParagraphs(mockGUI: MockGuiMain):
         "</office:text>"
     )
 
+    # Right-to-Left
+    # =============
+    # LTR blocks get their own writing mode, and the rest inherit RTL
+
+    odt = ToOdt(project, isFlat=True)
+    odt.setLanguage(None, True)
+    odt._text = "English text\n\nمتن\n\n1234\n\n"
+    odt.tokenizeText()
+    odt.initDocument()
+    odt.doConvert()
+    odt.closeDocument()
+    assert xmlToText(odt._xText) == (
+        "<office:text>"
+        '<text:p text:style-name="P1">English text</text:p>'
+        '<text:p text:style-name="Text_20_body">متن</text:p>'
+        '<text:p text:style-name="Text_20_body">1234</text:p>'
+        "</office:text>"
+    )
+    assert getStyle("P1")._pAttr["writing-mode"] == ["style", "lr-tb"]  # type: ignore
+    assert odt._mainPara["Text_20_body"]._pAttr["text-align"] == ["fo", "start"]
+
+    # The page sets the document direction, and the header is mirrored
+    pageLayout = xmlToText(odt._xAuto)
+    assert 'style:writing-mode="rl-tb"' in pageLayout
+    assert odt._mainPara["Header"]._pAttr["text-align"] == ["fo", "left"]
+
+    # Footnotes follow the same rule
+    odt = ToOdt(project, isFlat=True)
+    odt.setLanguage(None, True)
+    odt._text = "متن[footnote:a][footnote:b]\n\n%footnote.a: English note.\n\n%footnote.b: متن\n\n"
+    odt.tokenizeText()
+    odt.initDocument()
+    odt.doConvert()
+    odt.closeDocument()
+    xText = xmlToText(odt._xText)
+    assert '<text:p text:style-name="P1">English note.</text:p>' in xText
+    assert '<text:p text:style-name="Footnote">متن</text:p>' in xText
+    assert getStyle("P1")._pAttr["writing-mode"] == ["style", "lr-tb"]  # type: ignore
+
 
 @pytest.mark.core
 def testToOdt_ConvertDirect(mockGUI: MockGuiMain):
@@ -1166,6 +1205,19 @@ def testToOdt_ODTParagraphStyle():
     assert parStyle._pAttr["text-align"] == ["fo", "right"]
     parStyle.setTextAlign("stuff")
     assert parStyle._pAttr["text-align"] == ["fo", None]
+
+    # Writing Mode
+    assert parStyle._pAttr["writing-mode"] == ["style", None]
+    parStyle.setWritingMode("stuff")
+    assert parStyle._pAttr["writing-mode"] == ["style", None]
+    parStyle.setWritingMode("lr-tb")
+    assert parStyle._pAttr["writing-mode"] == ["style", "lr-tb"]
+    parStyle.setWritingMode("rl-tb")
+    assert parStyle._pAttr["writing-mode"] == ["style", "rl-tb"]
+    parStyle.setWritingMode("page")
+    assert parStyle._pAttr["writing-mode"] == ["style", "page"]
+    parStyle.setWritingMode(None)
+    assert parStyle._pAttr["writing-mode"] == ["style", None]
 
     # Break Before
     assert parStyle._pAttr["break-before"] == ["fo", None]

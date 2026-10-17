@@ -253,6 +253,7 @@ class GuiDocViewer(QTextBrowser):
         sPos = vBar.value() if vBar else 0
 
         qDoc = ToQTextDocument(SHARED.project)
+        qDoc.setLanguage(None, SHARED.project.data.isRTL)
         qDoc.setJustify(CONFIG.doJustify, False)
         qDoc.setDialogHighlight(True)
         qDoc.setTextFont(CONFIG.textFont)

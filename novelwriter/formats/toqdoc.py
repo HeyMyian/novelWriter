@@ -293,7 +293,7 @@ class ToQTextDocument(Tokenizer):
         # Text Formats
         self._blockFmt.setTopMargin(self._mText[0])
         self._blockFmt.setBottomMargin(self._mText[1])
-        if not self._project.data.isRTL:
+        if not self._isRTL:
             self._blockFmt.setAlignment(QtAlignAbsolute)
         self._blockFmt.setLineHeight(100.0 * self._lineHeight, QtPropLineHeight)
 
@@ -440,7 +440,7 @@ class ToQTextDocument(Tokenizer):
                     self._insertFragments(*content, cursor, self._charFmt)
 
         # Blocks without strong characters would otherwise fall back to LTR
-        if self._project.data.isRTL:
+        if self._isRTL:
             cursor = QTextCursor(self._document)
             bFmt = QTextBlockFormat()
             bFmt.setLayoutDirection(QtLayoutRTL)
