@@ -249,7 +249,7 @@ class ToOdt(Tokenizer):
         self._mMirrored = False
 
         # Horizontal Line Margin
-        self._mHorLine = 170.0  # Text width
+        self._mHorLine = 42.5  # Text width divided by 4
 
     ##
     #  Setters
@@ -275,7 +275,7 @@ class ToOdt(Tokenizer):
         self._mDocRight = right
         self._mDocGutter = gutter
         self._mMirrored = mirrored
-        self._mHorLine = width - left - right - gutter
+        self._mHorLine = (width - left - right - gutter) / 4.0
 
     def setHeaderFormat(self, value: str, offset: int) -> None:
         """Set the document header format."""
@@ -1046,8 +1046,8 @@ class ToOdt(Tokenizer):
         style.setClass("html")
         style.setMarginTop(self._emToCm(0))
         style.setMarginBottom(self._emToCm(self._marginSep[1]))
-        style.setMarginLeft(f"{(self._mHorLine) / 40.0:.3f}cm")
-        style.setMarginRight(f"{(self._mHorLine) / 40.0:.3f}cm")
+        style.setMarginLeft(f"{(self._mHorLine) / 10.0:.3f}cm")
+        style.setMarginRight(f"{(self._mHorLine) / 10.0:.3f}cm")
         style.setBorderLeft(ODTBorderStyle("none"))
         style.setBorderRight(ODTBorderStyle("none"))
         style.setBorderTop(ODTBorderStyle("none"))
