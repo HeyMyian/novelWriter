@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import pytest
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QTextBlock, QTextCharFormat, QTextCursor, QTextFormat, QTextLength, QTextListFormat
 
 from novelwriter import CONFIG
@@ -452,13 +453,25 @@ def testToQTextDocument_TextBlockFormats(mockGUI: MockGuiMain):
     project.setProjectLang(None, True)
     doc = ToQTextDocument(project)
     doc.initDocument()
-    assert doc.document.defaultTextOption().textDirection() == QtLayoutRTL
 
-    doc._text = "Text\n\n"
+    doc._text = "Text\n\nمتن\n\n1234\n\n"
     doc.tokenizeText()
     doc.doConvert()
-    bFmt = doc.document.findBlockByNumber(0).blockFormat()
-    assert bFmt.alignment() == QtAlignAbsolute | QtAlignRight
+    doc.closeDocument()
+    assert doc.document.blockCount() == 3
+
+    # Text with strong characters keeps its own direction
+    block = doc.document.findBlockByNumber(0)
+    assert block.textDirection() == Qt.LayoutDirection.LeftToRight
+    assert not block.blockFormat().alignment() & QtAlignAbsolute
+    block = doc.document.findBlockByNumber(1)
+    assert block.textDirection() == QtLayoutRTL
+    assert block.blockFormat().layoutDirection() == Qt.LayoutDirection.LayoutDirectionAuto
+
+    # Text without strong characters uses the project direction
+    block = doc.document.findBlockByNumber(2)
+    assert block.textDirection() == QtLayoutRTL
+    assert block.blockFormat().layoutDirection() == QtLayoutRTL
 
     # Unreachable
     # ===========

@@ -24,6 +24,7 @@ from __future__ import annotations
 import logging
 
 from typing import TYPE_CHECKING
+from unicodedata import bidirectional
 
 from PyQt6.QtCore import QMarginsF, QSizeF
 from PyQt6.QtGui import (
@@ -39,7 +40,6 @@ from PyQt6.QtGui import (
     QTextFrameFormat,
     QTextLength,
     QTextListFormat,
-    QTextOption,
     QTextTableCellFormat,
     QTextTableFormat,
 )
@@ -293,12 +293,7 @@ class ToQTextDocument(Tokenizer):
         # Text Formats
         self._blockFmt.setTopMargin(self._mText[0])
         self._blockFmt.setBottomMargin(self._mText[1])
-        if self._project.data.isRTL:
-            options = QTextOption()
-            options.setTextDirection(QtLayoutRTL)
-            self._document.setDefaultTextOption(options)
-            self._blockFmt.setAlignment(QtAlignAbsolute | QtAlignRight)
-        else:
+        if not self._project.data.isRTL:
             self._blockFmt.setAlignment(QtAlignAbsolute)
         self._blockFmt.setLineHeight(100.0 * self._lineHeight, QtPropLineHeight)
 
@@ -443,6 +438,18 @@ class ToQTextDocument(Tokenizer):
                     newBlock(cursor, self._blockFmt)
                     cursor.insertText(f"{index}. ", cFmt)
                     self._insertFragments(*content, cursor, self._charFmt)
+
+        # Blocks without strong characters would otherwise fall back to LTR
+        if self._project.data.isRTL:
+            cursor = QTextCursor(self._document)
+            bFmt = QTextBlockFormat()
+            bFmt.setLayoutDirection(QtLayoutRTL)
+            block = self._document.firstBlock()
+            while block.isValid():
+                if not any(bidirectional(c) in ("L", "R", "AL") for c in block.text()):
+                    cursor.setPosition(block.position())
+                    cursor.mergeBlockFormat(bFmt)
+                block = block.next()
 
         self._document.blockSignals(False)
 
