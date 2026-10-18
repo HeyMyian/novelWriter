@@ -228,6 +228,8 @@ class GuiMain(QMainWindow):
         self.projSearch.openDocumentSelectRequest.connect(self.docPanes.openDocumentSelection)
         self.projSearch.selectedItemChanged.connect(self.itemDetails.updateViewBox)
 
+        self.storyView.openDocumentRequest.connect(self.docPanes.openDocumentInMode)
+
         self.docEditor.docTextChanged.connect(self.projSearch.textChanged)
         self.docEditor.editedStatusChanged.connect(self.mainStatus.updateDocumentStatus)
         self.docEditor.itemHandleChanged.connect(self.novelView.setActiveHandle)

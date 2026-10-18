@@ -302,6 +302,40 @@ def testStoryOutline_WheelScroll(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
 
 
 @pytest.mark.gui
+def testStoryOutline_OpenDocument(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
+    """Test opening documents from the outline."""
+    assert nwGUI.openProject(prjLipsum)
+    nwGUI.changeView(nwView.STORY)
+    storyView = nwGUI.storyView
+    storyView.addView.click()
+
+    view = storyView.tabMain.currentWidget()
+    assert isinstance(view, GuiStoryOutlineView)
+    tree = view.outlineContent
+    first = tree.node(tree._model.index(1, 0))
+    second = tree.node(tree._model.index(2, 0))
+    assert first is not None
+    assert second is not None
+
+    # Middle-click opens in the viewer
+    tree.middleClicked.emit(tree._model.index(1, 0))
+    assert nwGUI.docViewer.docHandle == first.handle
+    assert nwGUI.mainStack.currentWidget() == nwGUI.splitMain
+
+    # Double-click opens in the editor
+    nwGUI.changeView(nwView.STORY)
+    tree.doubleClicked.emit(tree._model.index(2, 0))
+    assert nwGUI.docEditor.docHandle == second.handle
+    assert nwGUI.mainStack.currentWidget() == nwGUI.splitMain
+
+    # Clicks on an invalid index do nothing
+    nwGUI.changeView(nwView.STORY)
+    tree.middleClicked.emit(QModelIndex())
+    tree.doubleClicked.emit(QModelIndex())
+    assert nwGUI.mainStack.currentWidget() == storyView
+
+
+@pytest.mark.gui
 def testStoryOutline_Paint(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, prjLipsum: Path):
     """Test painting the outline rows."""
     assert nwGUI.openProject(prjLipsum)

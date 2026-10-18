@@ -62,7 +62,7 @@ from PyQt6.QtWidgets import (
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import simplified
 from novelwriter.constants import nwKeyWords, nwLabels, nwUnicode, trConst, trLabel, trUnit
-from novelwriter.enum import nwComment, nwStdLabel, nwStdUnit, nwToolButton
+from novelwriter.enum import nwComment, nwDocMode, nwStdLabel, nwStdUnit, nwToolButton
 from novelwriter.extensions.configlayout import NFixedPage
 from novelwriter.extensions.modified import NComboBox, NSpinBox, NTreeView
 from novelwriter.extensions.switch import NSwitch
@@ -118,6 +118,8 @@ class GuiStoryOutlineView(GuiStoryViewBase):
         super().__init__(parent, settings)
 
         self.outlineContent = GuiStoryOutlineTree(self, settings)
+        self.outlineContent.middleClicked.connect(self._processMiddleClick)
+        self.outlineContent.doubleClicked.connect(self._processDoubleClick)
         self.outerBox.addWidget(self.outlineContent, 1)
 
     ##
@@ -149,6 +151,22 @@ class GuiStoryOutlineView(GuiStoryViewBase):
     def settingsDialog(self) -> type[GuiStorySettingsBase]:
         """Return the settings dialog class of the view."""
         return GuiOutlineViewSettings
+
+    ##
+    #  Private Slots
+    ##
+
+    @pyqtSlot(QModelIndex)
+    def _processMiddleClick(self, index: QModelIndex) -> None:
+        """Process a user middle click."""
+        if node := self.outlineContent.node(index):
+            self.openDocumentRequest.emit(node.handle, nwDocMode.VIEW, node.key, False)
+
+    @pyqtSlot(QModelIndex)
+    def _processDoubleClick(self, index: QModelIndex) -> None:
+        """Process a user double click."""
+        if node := self.outlineContent.node(index):
+            self.openDocumentRequest.emit(node.handle, nwDocMode.EDIT, node.key, False)
 
 
 class GuiOutlineViewSettings(GuiStorySettingsBase):
@@ -591,6 +609,14 @@ class GuiStoryOutlineTree(NTreeView):
             header.setMinimumSectionSize(60)
             header.setDefaultSectionSize(160)
             header.setSectionResizeMode(QtHeaderInteractive)
+
+    ##
+    #  Getters
+    ##
+
+    def node(self, index: QModelIndex) -> OutlineNode | None:
+        """Return the outline node for a given model index."""
+        return self._model.node(index)
 
     ##
     #  Setters
