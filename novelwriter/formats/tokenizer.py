@@ -763,6 +763,7 @@ class Tokenizer(ABC):
                 tText = aLine[2:].strip()
                 tType = BlockTyp.HEAD1 if isPlain else BlockTyp.TITLE
                 sHide = self._hidePart if isPlain else False
+                sText = ""
                 if not (isPlain or (isNovel and sHide)):
                     tStyle |= self._titleStyle
                 if isNovel:
@@ -773,6 +774,7 @@ class Tokenizer(ABC):
                     elif isPlain:
                         tText = self._hFormatter.apply(self._fmtPart, tText, nHead)
                         tStyle |= self._partStyle
+                        sText = self._statusText
                     if isPlain:
                         self._hFormatter.resetScene()
                     else:
@@ -780,8 +782,8 @@ class Tokenizer(ABC):
                     self._noSep = True
 
                 tBlocks.append((tType, f"{tHandle}:T{nHead:04d}", tText, [], tStyle))
-                if isNovel and not sHide and self._showStatus:
-                    tBlocks.append((BlockTyp.COMMENT, "", self._statusText, self._statusFmt, tStyle & BlockFmt.CENTRE))
+                if sText and self._showStatus:
+                    tBlocks.append((BlockTyp.COMMENT, "", sText, self._statusFmt, tStyle & BlockFmt.CENTRE))
 
             elif aLine.startswith(("## ", "##! ")):
                 # (Unnumbered) Chapter Headings
