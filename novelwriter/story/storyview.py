@@ -258,6 +258,11 @@ class GuiStoryView(QWidget):
             self._loadViews()
         self._refreshCurrentView()
 
+    def cycleTabs(self) -> None:
+        """Switch to the next view tab, wrapping around."""
+        if (count := self.tabMain.count()) > 1:
+            self.tabMain.setCurrentIndex((self.tabMain.currentIndex() + 1) % count)
+
     ##
     #  Public Slots
     ##

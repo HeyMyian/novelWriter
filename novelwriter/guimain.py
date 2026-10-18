@@ -752,7 +752,10 @@ class GuiMain(QMainWindow):
             self.docPanes.cycleFocus()
 
         elif paneNo == nwFocus.STORY:
-            self.changeView(nwView.STORY, exitFocus=True)
+            if self.mainStack.currentWidget() is self.storyView:
+                self.storyView.cycleTabs()
+            else:
+                self.changeView(nwView.STORY, exitFocus=True)
 
         else:  # pragma: no cover
             pass
