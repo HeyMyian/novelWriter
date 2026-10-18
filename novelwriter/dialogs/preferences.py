@@ -256,15 +256,6 @@ class GuiPreferences(NDialog):
             button=self.guiFontButton,
         )
 
-        # Force RTL Layout
-        self.guiForceRTL = NSwitch(self)
-        self.guiForceRTL.setChecked(CONFIG.guiForceRTL)
-        self.mainForm.addRow(
-            self.tr("Force right-to-left layout"),
-            self.guiForceRTL,
-            self.tr("If off, layout direction is determined by the display language."),
-        )
-
         # Vertical Scrollbars
         self.hideVScroll = NSwitch(self)
         self.hideVScroll.setChecked(CONFIG.hideVScroll)
@@ -299,6 +290,15 @@ class GuiPreferences(NDialog):
             self.tr("Prefer character count over word count"),
             self.useCharCount,
             self.tr("Display character count instead where available."),
+        )
+
+        # Force RTL Layout
+        self.guiForceRTL = NSwitch(self)
+        self.guiForceRTL.setChecked(CONFIG.guiForceRTL)
+        self.mainForm.addRow(
+            self.tr("Force right-to-left layout"),
+            self.guiForceRTL,
+            self.tr("If off, layout direction is determined by the display language."),
         )
 
         # Document Style
