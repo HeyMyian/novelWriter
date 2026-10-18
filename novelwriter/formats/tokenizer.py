@@ -171,12 +171,15 @@ class Tokenizer(ABC):
         "_sceneStyle",
         "_shortCodeFmt",
         "_shortCodeVals",
+        "_showStatus",
         "_sizeHead1",
         "_sizeHead2",
         "_sizeHead3",
         "_sizeHead4",
         "_sizeTitle",
         "_skipKeywords",
+        "_statusFmt",
+        "_statusText",
         "_text",
         "_textFont",
         "_theme",
@@ -193,6 +196,8 @@ class Tokenizer(ABC):
         self._handle = None  # The item handle currently being processed
         self._keepRaw = False  # Whether to keep the raw text, used by ToRaw
         self._noTokens = False  # Disable tokenization if they're not needed
+        self._statusText = ""  # The item status of the current document
+        self._statusFmt: T_Formats = []  # The format of the status label
 
         # Blocks and Meta Data (Per Document)
         self._blocks: list[T_Block] = []
@@ -223,6 +228,7 @@ class Tokenizer(ABC):
         self._keepBreaks = True  # Keep line breaks in paragraphs
         self._defaultAlign = "left"  # The default text alignment
         self._useAnchors = True  # Enable anchors for headings
+        self._showStatus = False  # Show status labels below headings
 
         self._skipKeywords: set[str] = set()  # Keywords to ignore
 
@@ -415,11 +421,12 @@ class Tokenizer(ABC):
         """Set the line height between 0.5 and 5.0."""
         self._lineHeight = min(max(float(height), 0.5), 5.0)
 
-    def setHeadingStyles(self, color: bool, bold: bool, upper: bool) -> None:
+    def setHeadingStyles(self, color: bool, bold: bool, upper: bool, status: bool) -> None:
         """Set text style for headings."""
         self._colorHeads = color
         self._boldHeads = bold
         self._hFormatter.setUppercase(upper)
+        self._showStatus = status
 
     def setBlockIndent(self, indent: float) -> None:
         """Set the block indent between 0.0 and 10.0."""
@@ -558,10 +565,12 @@ class Tokenizer(ABC):
         """Add a heading at the start of a new root folder."""
         self._text = ""
         self._handle = None
-
+        self._isNovel = False
+        self._statusText = ""
+        self._statusFmt = []
         if (item := self._project.tree[tHandle]) and item.isRootType():
-            self._isNovel = item.isNovelLike()
             self._handle = tHandle
+            self._isNovel = item.isNovelLike()
             style = BlockFmt.CENTRE
             if self._isFirst:
                 self._isFirst = False
@@ -583,10 +592,23 @@ class Tokenizer(ABC):
         """
         self._text = ""
         self._handle = None
-        if nwItem := self._project.tree[tHandle]:
+        self._isNovel = False
+        self._statusText = ""
+        self._statusFmt = []
+        if item := self._project.tree[tHandle]:
             self._text = text or self._project.storage.getDocumentText(tHandle)
             self._handle = tHandle
-            self._isNovel = nwItem.itemLayout == nwItemLayout.DOCUMENT
+            self._isNovel = item.itemLayout == nwItemLayout.DOCUMENT
+
+            status, _ = item.getImportStatus()
+            if status:
+                self._statusText = f"({status})"
+                self._statusFmt = [
+                    (0, TextFmt.B_B, ""),
+                    (0, TextFmt.COL_B, "keyword"),
+                    (len(self._statusText), TextFmt.COL_E, ""),
+                    (len(self._statusText), TextFmt.B_E, ""),
+                ]
 
     def doPreProcessing(self) -> None:
         """Run pre-processing jobs before the text is tokenized."""
@@ -745,6 +767,7 @@ class Tokenizer(ABC):
                 tText = aLine[2:].strip()
                 tType = BlockTyp.HEAD1 if isPlain else BlockTyp.TITLE
                 sHide = self._hidePart if isPlain else False
+                sText = ""
                 if not (isPlain or (isNovel and sHide)):
                     tStyle |= self._titleStyle
                 if isNovel:
@@ -755,6 +778,7 @@ class Tokenizer(ABC):
                     elif isPlain:
                         tText = self._hFormatter.apply(self._fmtPart, tText, nHead)
                         tStyle |= self._partStyle
+                        sText = self._statusText
                     if isPlain:
                         self._hFormatter.resetScene()
                     else:
@@ -762,6 +786,8 @@ class Tokenizer(ABC):
                     self._noSep = True
 
                 tBlocks.append((tType, f"{tHandle}:T{nHead:04d}", tText, [], tStyle))
+                if sText and self._showStatus:
+                    tBlocks.append((BlockTyp.COMMENT, "", sText, self._statusFmt, tStyle & BlockFmt.CENTRE))
 
             elif aLine.startswith(("## ", "##! ")):
                 # (Unnumbered) Chapter Headings
@@ -779,6 +805,7 @@ class Tokenizer(ABC):
                 tType = BlockTyp.HEAD2
                 sHide = self._hideChapter if isPlain else self._hideUnNum
                 tFormat = self._fmtChapter if isPlain else self._fmtUnNum
+                sText = ""
                 if isNovel:
                     tType = BlockTyp.HEAD1  # Promote
                     if isPlain:
@@ -789,10 +816,13 @@ class Tokenizer(ABC):
                     else:
                         tText = self._hFormatter.apply(tFormat, tText, nHead)
                         tStyle |= self._chapterStyle
+                        sText = self._statusText
                     self._hFormatter.resetScene()
                     self._noSep = True
 
                 tBlocks.append((tType, f"{tHandle}:T{nHead:04d}", tText, [], tStyle))
+                if sText and self._showStatus:
+                    tBlocks.append((BlockTyp.COMMENT, "", sText, self._statusFmt, tStyle & BlockFmt.CENTRE))
 
             elif aLine.startswith(("### ", "###! ")):
                 # (Alternative) Scene Headings
@@ -812,6 +842,7 @@ class Tokenizer(ABC):
                 tType = BlockTyp.HEAD3
                 sHide = self._hideScene if isPlain else self._hideHScene
                 tFormat = self._fmtScene if isPlain else self._fmtHScene
+                sText = ""
                 if isNovel:
                     tType = BlockTyp.HEAD2  # Promote
                     self._hFormatter.incScene()
@@ -831,10 +862,14 @@ class Tokenizer(ABC):
                             tText = "" if self._noSep else tText
                             tType = BlockTyp.EMPTY if self._noSep else BlockTyp.SEP
                             tStyle |= BlockFmt.NONE if self._noSep else BlockFmt.CENTRE
+                        else:
+                            sText = self._statusText
 
                     self._noSep = False
 
                 tBlocks.append((tType, f"{tHandle}:T{nHead:04d}", tText, [], tStyle))
+                if sText and self._showStatus:
+                    tBlocks.append((BlockTyp.COMMENT, "", sText, self._statusFmt, tStyle & BlockFmt.CENTRE))
 
             elif aLine.startswith("#### "):
                 # Section Headings

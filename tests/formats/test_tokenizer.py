@@ -115,6 +115,10 @@ def testTokenizer_Setters(mockGUI: MockGuiMain):
     assert tokens._doBodyText is True
     assert tokens._doComments == {nwComment.FOOTNOTE}
     assert tokens._doKeywords is False
+    assert tokens._colorHeads is True
+    assert tokens._boldHeads is True
+    assert tokens._hFormatter._upper is False
+    assert tokens._showStatus is False
 
     # Set new values
     tokens.setPartitionFormat(f"T: {nwHeadFmt.TITLE}", True)
@@ -141,6 +145,7 @@ def testTokenizer_Setters(mockGUI: MockGuiMain):
     tokens.setCommentType(nwComment.SHORT, True)
     tokens.setCommentType(nwComment.SYNOPSIS, True)
     tokens.setKeywords(True)
+    tokens.setHeadingStyles(False, False, True, True)
 
     # Check new values
     assert tokens._fmtPart == f"T: {nwHeadFmt.TITLE}"
@@ -181,6 +186,10 @@ def testTokenizer_Setters(mockGUI: MockGuiMain):
         nwComment.SHORT,
     }
     assert tokens._doKeywords is True
+    assert tokens._colorHeads is False
+    assert tokens._boldHeads is False
+    assert tokens._hFormatter._upper is True
+    assert tokens._showStatus is True
 
     # Properties
     assert tokens.textStats == {}
@@ -278,16 +287,37 @@ def testTokenizer_TextOps(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain,
     assert tokens._blocks[-1][4] == BlockFmt.CENTRE | BlockFmt.PBB
 
     # Set Text
+    tokens._isNovel = True
+    tokens._statusText = "(Draft)"
     tokens.setText("stuff")
     assert tokens._text == ""
+    assert tokens._isNovel is False
+    assert tokens._statusText == ""
+    assert tokens._statusFmt == []
 
+    sceneItem = project.tree[C.hSceneDoc]
+    assert sceneItem is not None
+    sceneItem.setStatus(C.sDraft)
     tokens.setText(C.hSceneDoc)
     assert tokens._text == docText
+    assert tokens._statusText == "(Draft)"
+    assert tokens._statusFmt == [
+        (0, TextFmt.B_B, ""),
+        (0, TextFmt.COL_B, "keyword"),
+        (7, TextFmt.COL_E, ""),
+        (7, TextFmt.B_E, ""),
+    ]
 
     tokens.setText(C.hSceneDoc, docText)
     assert tokens._text == docText
 
     assert tokens._isNovel is True
+
+    # No status label if the status has no name
+    project.data.itemStatus.update([])
+    tokens.setText(C.hSceneDoc, docText)
+    assert tokens._statusText == ""
+    assert tokens._statusFmt == []
 
     # Pre Processing
     tokens.doPreProcessing()
@@ -2565,6 +2595,154 @@ def testTokenizer_ProcessHeaders(mockGUI: MockGuiMain):
     tokens._text = "Some text ...\n\n### Scene\n\nText"
     tokens.tokenizeText()
     assert tokens._noSep is False
+
+
+@pytest.mark.core
+def testTokenizer_HeaderStatus(mockGUI: MockGuiMain):
+    """Test the status labels added below headings."""
+    project = NWProject()
+    project.data.setLanguage("en", False)
+    project._loadProjectLocalisation()
+    tokens = BareTokenizer(project)
+    tokens._isNovel = True
+    tokens._handle = TMH
+
+    sFmt = [
+        (0, TextFmt.B_B, ""),
+        (0, TextFmt.COL_B, "keyword"),
+        (7, TextFmt.COL_E, ""),
+        (7, TextFmt.B_E, ""),
+    ]
+    tokens._statusText = "(Draft)"
+    tokens._statusFmt = sFmt
+    tokens.setHeadingStyles(True, True, False, True)
+
+    # Title, First Page
+    tokens._text = "#! My Novel\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.TITLE, TM1, "My Novel", [], BlockFmt.CENTRE),
+    ]
+
+    # Partition
+    tokens._text = "# Part One\n"
+    tokens.setPartitionFormat(f"T: {nwHeadFmt.TITLE}", False)
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.PART, TM1, "T: Part One", [], BlockFmt.PBB | BlockFmt.CENTRE),
+        (BlockTyp.COMMENT, "", "(Draft)", sFmt, BlockFmt.CENTRE),
+    ]
+
+    # Partition, hidden
+    tokens._text = "# Part One\n"
+    tokens.setPartitionFormat(f"T: {nwHeadFmt.TITLE}", True)
+    tokens.tokenizeText()
+    assert tokens._blocks == []
+
+    # Chapter
+    tokens._text = "## Chapter One\n"
+    tokens.setChapterFormat(f"C: {nwHeadFmt.TITLE}", False)
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.HEAD1, TM1, "C: Chapter One", [], BlockFmt.PBB),
+        (BlockTyp.COMMENT, "", "(Draft)", sFmt, BlockFmt.NONE),
+    ]
+
+    # Chapter, hidden
+    tokens._text = "## Chapter One\n"
+    tokens.setChapterFormat(f"C: {nwHeadFmt.TITLE}", True)
+    tokens.tokenizeText()
+    assert tokens._blocks == []
+
+    # Unnumbered Chapter
+    tokens._text = "##! Prologue\n"
+    tokens.setUnNumberedFormat(f"U: {nwHeadFmt.TITLE}", False)
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.HEAD1, TM1, "U: Prologue", [], BlockFmt.PBB),
+        (BlockTyp.COMMENT, "", "(Draft)", sFmt, BlockFmt.NONE),
+    ]
+
+    # Scene, centred
+    tokens._text = "### Scene One\n"
+    tokens.setSceneFormat(f"S: {nwHeadFmt.TITLE}", False)
+    tokens.setSceneStyle(True, 0)
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.HEAD2, TM1, "S: Scene One", [], BlockFmt.CENTRE),
+        (BlockTyp.COMMENT, "", "(Draft)", sFmt, BlockFmt.CENTRE),
+    ]
+    tokens.setSceneStyle(False, 0)
+
+    # Scene, hidden
+    tokens._text = "### Scene One\n"
+    tokens.setSceneFormat(f"S: {nwHeadFmt.TITLE}", True)
+    tokens.tokenizeText()
+    assert tokens._blocks == []
+
+    # Scene, separator
+    tokens._text = "### Scene One\n"
+    tokens.setSceneFormat("* * *", False)
+    tokens._noSep = False
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.SEP, TM1, "* * *", [], BlockFmt.CENTRE),
+    ]
+
+    # Scene, empty format
+    tokens._text = "### Scene One\n"
+    tokens.setSceneFormat("", False)
+    tokens._noSep = False
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.SKIP, TM1, "", [], BlockFmt.NONE),
+    ]
+
+    # Scene, horizontal rule
+    tokens._text = "### Scene One\n"
+    tokens.setSceneFormat(nwHeadFmt.HRULE, False)
+    tokens._noSep = False
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.HRULE, TM1, "", [], BlockFmt.NONE),
+    ]
+
+    # Hard Scene
+    tokens._text = "###! Scene One\n"
+    tokens.setHardSceneFormat(f"H: {nwHeadFmt.TITLE}", False)
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.HEAD2, TM1, "H: Scene One", [], BlockFmt.NONE),
+        (BlockTyp.COMMENT, "", "(Draft)", sFmt, BlockFmt.NONE),
+    ]
+
+    # Section
+    tokens._text = "#### A Section\n"
+    tokens.setSectionFormat(f"X: {nwHeadFmt.TITLE}", False)
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.HEAD3, TM1, "X: A Section", [], BlockFmt.NONE),
+    ]
+
+    # Notes
+    tokens._isNovel = False
+    tokens._text = "# Heading 1\n\n## Heading 2\n\n### Heading 3\n"
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.HEAD1, TM1, "Heading 1", [], BlockFmt.NONE),
+        (BlockTyp.HEAD2, TM2, "Heading 2", [], BlockFmt.NONE),
+        (BlockTyp.HEAD3, f"{TMH}:T0003", "Heading 3", [], BlockFmt.NONE),
+    ]
+    tokens._isNovel = True
+
+    # Disabled
+    tokens._text = "## Chapter One\n"
+    tokens.setChapterFormat(f"C: {nwHeadFmt.TITLE}", False)
+    tokens.setHeadingStyles(True, True, False, False)
+    tokens.tokenizeText()
+    assert tokens._blocks == [
+        (BlockTyp.HEAD1, TM1, "C: Chapter One", [], BlockFmt.PBB),
+    ]
 
 
 @pytest.mark.core
