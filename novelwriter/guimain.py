@@ -228,6 +228,8 @@ class GuiMain(QMainWindow):
         self.projSearch.openDocumentSelectRequest.connect(self.docPanes.openDocumentSelection)
         self.projSearch.selectedItemChanged.connect(self.itemDetails.updateViewBox)
 
+        self.storyView.openDocumentRequest.connect(self.docPanes.openDocumentInMode)
+
         self.docEditor.docTextChanged.connect(self.projSearch.textChanged)
         self.docEditor.editedStatusChanged.connect(self.mainStatus.updateDocumentStatus)
         self.docEditor.itemHandleChanged.connect(self.novelView.setActiveHandle)
@@ -750,7 +752,10 @@ class GuiMain(QMainWindow):
             self.docPanes.cycleFocus()
 
         elif paneNo == nwFocus.STORY:
-            self.changeView(nwView.STORY, exitFocus=True)
+            if self.mainStack.currentWidget() is self.storyView:
+                self.storyView.cycleTabs()
+            else:
+                self.changeView(nwView.STORY, exitFocus=True)
 
         else:  # pragma: no cover
             pass

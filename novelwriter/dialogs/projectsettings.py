@@ -304,13 +304,6 @@ class _SettingsPage(NScrollableForm):
             stretch=(3, 2),
         )
 
-        self.isRTL = NSwitch(self)
-        self.isRTL.setChecked(data.isRTL)
-        self.addRow(
-            self.tr("Use right-to-left text layout"),
-            self.isRTL,
-        )
-
         # Spell Check Language
         self.spellLang = NComboBox(self)
         self.spellLang.setMinimumWidth(200)
@@ -334,6 +327,15 @@ class _SettingsPage(NScrollableForm):
             self.tr("Disable backup on close"),
             self.noBackup,
             self.tr("Overrides main preferences."),
+        )
+
+        # RTL Support
+        self.isRTL = NSwitch(self)
+        self.isRTL.setChecked(data.isRTL)
+        self.addRow(
+            self.tr("Enable right-to-left text support"),
+            self.isRTL,
+            self.tr("Improves RTL text handling in editor and manuscript."),
         )
 
         self.finalise()
