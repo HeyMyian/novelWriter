@@ -783,6 +783,7 @@ def testGuiBuildSettings_FormatHeadingFormat(monkeypatch: pytest.MonkeyPatch, qt
     build.setValue("format.colorHeadings", True)
     build.setValue("format.boldHeadings", True)
     build.setValue("format.upperHeadings", False)
+    build.setValue("format.showStatus", False)
 
     # Create the dialog and populate it
     bSettings = GuiBuildSettings(nwGUI, build)
@@ -799,11 +800,13 @@ def testGuiBuildSettings_FormatHeadingFormat(monkeypatch: pytest.MonkeyPatch, qt
     assert fmtTab.colorHeadings.isChecked() is True
     assert fmtTab.boldHeadings.isChecked() is True
     assert fmtTab.upperHeadings.isChecked() is False
+    assert fmtTab.showStatus.isChecked() is False
 
     # Change values
     fmtTab.colorHeadings.setChecked(False)
     fmtTab.boldHeadings.setChecked(False)
     fmtTab.upperHeadings.setChecked(True)
+    fmtTab.showStatus.setChecked(True)
 
     # Save values
     fmtTab.saveContent()
@@ -813,6 +816,7 @@ def testGuiBuildSettings_FormatHeadingFormat(monkeypatch: pytest.MonkeyPatch, qt
     assert sBuild.getBool("format.colorHeadings") is False
     assert sBuild.getBool("format.boldHeadings") is False
     assert sBuild.getBool("format.upperHeadings") is True
+    assert sBuild.getBool("format.showStatus") is True
 
     # Finish
     bSettings._dialogButtonClicked(bSettings.btnClose)
