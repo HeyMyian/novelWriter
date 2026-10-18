@@ -37,7 +37,7 @@ from novelwriter.guimain import GuiMain
 from novelwriter.models.outlinemodel import OutlineModel
 from novelwriter.story.outline import GuiOutlineViewSettings, GuiStoryOutlineView, _OutlineDelegate
 from novelwriter.story.storysettings import OutlineColumn, OutlineViewSettings
-from novelwriter.types import QtModCtrl, QtModNone, QtScrollAlwaysOff, QtScrollAsNeeded
+from novelwriter.types import QtModCtrl, QtModNone, QtModShift, QtScrollAlwaysOff, QtScrollAsNeeded
 
 ALL_SETTINGS = (
     "outline.syntaxColors",
@@ -302,7 +302,7 @@ def testStoryOutline_WheelScroll(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
 
 
 @pytest.mark.gui
-def testStoryOutline_OpenDocument(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
+def testStoryOutline_OpenDocument(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, prjLipsum: Path):
     """Test opening documents from the outline."""
     assert nwGUI.openProject(prjLipsum)
     nwGUI.changeView(nwView.STORY)
@@ -320,12 +320,14 @@ def testStoryOutline_OpenDocument(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path)
     # Middle-click opens in the viewer
     tree.middleClicked.emit(tree._model.index(1, 0))
     assert nwGUI.docViewer.docHandle == first.handle
+    assert nwGUI.docViewer.hasFocus() is True
     assert nwGUI.mainStack.currentWidget() == nwGUI.splitMain
 
     # Double-click opens in the editor
     nwGUI.changeView(nwView.STORY)
     tree.doubleClicked.emit(tree._model.index(2, 0))
     assert nwGUI.docEditor.docHandle == second.handle
+    assert nwGUI.docEditor.hasFocus() is True
     assert nwGUI.mainStack.currentWidget() == nwGUI.splitMain
 
     # Clicks on an invalid index do nothing
@@ -333,6 +335,27 @@ def testStoryOutline_OpenDocument(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path)
     tree.middleClicked.emit(QModelIndex())
     tree.doubleClicked.emit(QModelIndex())
     assert nwGUI.mainStack.currentWidget() == storyView
+
+    # The open shortcut does nothing without a current index
+    tree.setCurrentIndex(QModelIndex())
+    view.keyOpenItem.activated.emit()
+    assert nwGUI.mainStack.currentWidget() == storyView
+
+    # The open shortcut opens the current row in the editor
+    nwGUI.docPanes.closeDocument()
+    tree.setCurrentIndex(tree._model.index(1, 0))
+    view.keyOpenItem.activated.emit()
+    assert nwGUI.docEditor.docHandle == first.handle
+    assert nwGUI.mainStack.currentWidget() == nwGUI.splitMain
+
+    # ... or in the viewer when Shift is held
+    nwGUI.changeView(nwView.STORY)
+    nwGUI.docPanes.closeDocViewer()
+    tree.setCurrentIndex(tree._model.index(2, 0))
+    with monkeypatch.context() as mpShift:
+        mpShift.setattr(QApplication, "keyboardModifiers", lambda: QtModShift)
+        view.keyOpenItem.activated.emit()
+    assert nwGUI.docViewer.docHandle == second.handle
 
 
 @pytest.mark.gui

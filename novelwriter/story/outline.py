@@ -35,6 +35,7 @@ from PyQt6.QtGui import (
     QIcon,
     QPainter,
     QPalette,
+    QShortcut,
     QTextCharFormat,
     QTextLayout,
     QTextOption,
@@ -88,6 +89,7 @@ from novelwriter.types import (
     QtScrollAsNeeded,
     QtTransparent,
     QtUserRole,
+    QtWidgetShortcut,
 )
 
 if TYPE_CHECKING:
@@ -117,9 +119,18 @@ class GuiStoryOutlineView(GuiStoryViewBase):
     def __init__(self, parent: QWidget, settings: OutlineViewSettings) -> None:
         super().__init__(parent, settings)
 
+        # Outline Tree
         self.outlineContent = GuiStoryOutlineTree(self, settings)
         self.outlineContent.middleClicked.connect(self._processMiddleClick)
         self.outlineContent.doubleClicked.connect(self._processDoubleClick)
+
+        # Keyboard Shortcuts
+        self.keyOpenItem = QShortcut(self.outlineContent)
+        self.keyOpenItem.setKeys(["Return", "Enter", "Shift+Return", "Shift+Enter"])
+        self.keyOpenItem.setContext(QtWidgetShortcut)
+        self.keyOpenItem.activated.connect(self._openSelectedIndex)
+
+        # Assemble
         self.outerBox.addWidget(self.outlineContent, 1)
 
     ##
@@ -160,13 +171,22 @@ class GuiStoryOutlineView(GuiStoryViewBase):
     def _processMiddleClick(self, index: QModelIndex) -> None:
         """Process a user middle click."""
         if node := self.outlineContent.node(index):
-            self.openDocumentRequest.emit(node.handle, nwDocMode.VIEW, node.key, False)
+            self.openDocumentRequest.emit(node.handle, nwDocMode.VIEW, node.key, True)
 
     @pyqtSlot(QModelIndex)
     def _processDoubleClick(self, index: QModelIndex) -> None:
         """Process a user double click."""
         if node := self.outlineContent.node(index):
-            self.openDocumentRequest.emit(node.handle, nwDocMode.EDIT, node.key, False)
+            self.openDocumentRequest.emit(node.handle, nwDocMode.EDIT, node.key, True)
+
+    @pyqtSlot()
+    def _openSelectedIndex(self) -> None:
+        """Open the currently selected tree index."""
+        if node := self.outlineContent.node(self.outlineContent.currentIndex()):
+            if QApplication.keyboardModifiers() == QtModShift:
+                self.openDocumentRequest.emit(node.handle, nwDocMode.VIEW, node.key, True)
+            else:
+                self.openDocumentRequest.emit(node.handle, nwDocMode.EDIT, node.key, True)
 
 
 class GuiOutlineViewSettings(GuiStorySettingsBase):
