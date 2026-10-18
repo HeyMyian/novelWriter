@@ -565,10 +565,12 @@ class Tokenizer(ABC):
         """Add a heading at the start of a new root folder."""
         self._text = ""
         self._handle = None
-
+        self._isNovel = False
+        self._statusText = ""
+        self._statusFmt = []
         if (item := self._project.tree[tHandle]) and item.isRootType():
-            self._isNovel = item.isNovelLike()
             self._handle = tHandle
+            self._isNovel = item.isNovelLike()
             style = BlockFmt.CENTRE
             if self._isFirst:
                 self._isFirst = False
@@ -590,21 +592,23 @@ class Tokenizer(ABC):
         """
         self._text = ""
         self._handle = None
+        self._isNovel = False
         self._statusText = ""
         self._statusFmt = []
-        if nwItem := self._project.tree[tHandle]:
+        if item := self._project.tree[tHandle]:
             self._text = text or self._project.storage.getDocumentText(tHandle)
             self._handle = tHandle
-            self._isNovel = nwItem.itemLayout == nwItemLayout.DOCUMENT
+            self._isNovel = item.itemLayout == nwItemLayout.DOCUMENT
 
-            status, _ = nwItem.getImportStatus()
-            self._statusText = f"({status})"
-            self._statusFmt = [
-                (0, TextFmt.B_B, ""),
-                (0, TextFmt.COL_B, "keyword"),
-                (len(self._statusText), TextFmt.COL_E, ""),
-                (len(self._statusText), TextFmt.B_E, ""),
-            ]
+            status, _ = item.getImportStatus()
+            if status:
+                self._statusText = f"({status})"
+                self._statusFmt = [
+                    (0, TextFmt.B_B, ""),
+                    (0, TextFmt.COL_B, "keyword"),
+                    (len(self._statusText), TextFmt.COL_E, ""),
+                    (len(self._statusText), TextFmt.B_E, ""),
+                ]
 
     def doPreProcessing(self) -> None:
         """Run pre-processing jobs before the text is tokenized."""
