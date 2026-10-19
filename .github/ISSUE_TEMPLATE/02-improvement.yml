@@ -18,7 +18,7 @@ body:
       description: >
         Explain the problem you're facing.
         Include screenshots where relevant.
-      placeholer: Tell us about the issue.
+      placeholder: Tell us about the issue.
     validations:
       required: true
 
@@ -32,4 +32,3 @@ body:
       placeholder: Tell us what you need.
     validations:
       required: true
-
