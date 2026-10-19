@@ -21,20 +21,24 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from PyQt6.QtGui import QAction
+from pytestqt.qtbot import QtBot
 
 from novelwriter import SHARED
 from novelwriter.core.project import NWProject
 from novelwriter.enum import nwDocInsert
+from novelwriter.guimain import GuiMain
 from novelwriter.tools.lipsum import GuiLipsum
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, MockRnd, buildTestProject
 
 
 @pytest.mark.gui
-def testGuiLipsum_Main(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiLipsum_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, projPath: Path, mockRnd: MockRnd):
     """Test the Lorem Ipsum tool."""
     # Check that we cannot open when there is no project
     nwGUI.mainMenu.aLipsumText.activate(QAction.ActionEvent.Trigger)
@@ -61,7 +65,7 @@ def testGuiLipsum_Main(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     nwLipsum.close()
 
     # Trigger insertion in document
-    assert nwGUI.openDocument(C.hSceneDoc) is True
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
     nwGUI.docEditor.setCursorLine(3)
     with monkeypatch.context() as mp:
         mp.setattr(GuiLipsum, "exec", lambda *a: None)

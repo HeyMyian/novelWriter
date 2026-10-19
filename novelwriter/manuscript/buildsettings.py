@@ -70,10 +70,11 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "headings.centerPart":     (bool, True),
     "headings.centerChapter":  (bool, False),
     "headings.centerScene":    (bool, False),
-    "headings.breakTitle":     (bool, False),
-    "headings.breakPart":      (bool, True),
-    "headings.breakChapter":   (bool, True),
-    "headings.breakScene":     (bool, False),
+    "headings.breakTitle":     (int, 0),
+    "headings.breakPart":      (int, 1),
+    "headings.breakChapter":   (int, 1),
+    "headings.breakScene":     (int, 0),
+
     "text.includeBodyText":    (bool, True),
     "text.includeSynopsis":    (bool, False),
     "text.includeComments":    (bool, False),
@@ -82,6 +83,7 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "text.includeKeywords":    (bool, False),
     "text.ignoredKeywords":    (str, ""),
     "text.addNoteHeadings":    (bool, True),
+
     "format.textFont":         (str, CONFIG.textFont.toString()),
     "format.lineHeight":       (float, 1.15),
     "format.justifyText":      (bool, False),
@@ -93,6 +95,7 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "format.colorHeadings":    (bool, True),
     "format.boldHeadings":     (bool, True),
     "format.upperHeadings":    (bool, False),
+    "format.showStatus":       (bool, False),
     "format.firstLineIndent":  (bool, False),
     "format.firstIndentWidth": (float, 1.4),
     "format.indentFirstPar":   (bool, False),
@@ -124,9 +127,14 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "format.bottomMargin":     (float, 2.0),
     "format.leftMargin":       (float, 2.0),
     "format.rightMargin":      (float, 2.0),
-    "doc.pageHeader":          (str, nwHeadFmt.DOC_AUTO),
+    "format.gutterMargin":     (float, 0.0),
+    "format.doublePages":      (bool, False),
+
+    "doc.pageHeader":          (str, nwHeadFmt.DOC_AUTO_ODD),
+    "doc.pageHeaderEven":      (str, nwHeadFmt.DOC_AUTO_EVEN),
     "doc.pageCountOffset":     (int, 0),
     "doc.metaLanguage":        (str, ""),
+
     "html.addStyles":          (bool, True),
     "html.preserveTabs":       (bool, False),
 }
@@ -168,6 +176,7 @@ SETTINGS_LABELS = {
     "format.colorHeadings":    QT_TRANSLATE_NOOP("Builds", "Add colours to headings"),
     "format.boldHeadings":     QT_TRANSLATE_NOOP("Builds", "Bold headings"),
     "format.upperHeadings":    QT_TRANSLATE_NOOP("Builds", "Uppercase headings"),
+    "format.showStatus":       QT_TRANSLATE_NOOP("Builds", "Show status label under headings"),
 
     "format.grpParIndent":     QT_TRANSLATE_NOOP("Builds", "First Line Indent"),
     "format.firstLineIndent":  QT_TRANSLATE_NOOP("Builds", "Enable indent"),
@@ -187,10 +196,15 @@ SETTINGS_LABELS = {
     "format.grpPage":          QT_TRANSLATE_NOOP("Builds", "Page Layout"),
     "format.pageUnit":         QT_TRANSLATE_NOOP("Builds", "Unit"),
     "format.pageSize":         QT_TRANSLATE_NOOP("Builds", "Page size"),
-    "format.pageMargins":      QT_TRANSLATE_NOOP("Builds", "Page margins"),
+    "format.pageMarginsTB":    QT_TRANSLATE_NOOP("Builds", "Top and bottom margins"),
+    "format.pageMarginsLR":    QT_TRANSLATE_NOOP("Builds", "Left and right margins"),
+    "format.pageMarginsIO":    QT_TRANSLATE_NOOP("Builds", "Inner and outer margins"),
+    "format.gutterMargin":     QT_TRANSLATE_NOOP("Builds", "Gutter margin"),
+    "format.doublePages":      QT_TRANSLATE_NOOP("Builds", "Double-sided pages"),
 
     "doc":                     QT_TRANSLATE_NOOP("Builds", "Document Style"),
     "doc.pageHeader":          QT_TRANSLATE_NOOP("Builds", "Page header"),
+    "doc.pageHeaderEven":      QT_TRANSLATE_NOOP("Builds", "Page header for even pages"),
     "doc.pageCountOffset":     QT_TRANSLATE_NOOP("Builds", "Page counter offset"),
     "doc.metaLanguage":        QT_TRANSLATE_NOOP("Builds", "Override document language"),
 
@@ -220,11 +234,25 @@ class FilterMode(Enum):
 
 
 class BuildSettings:
-    """Core: Build Settings Class.
+    """Manuscript: Build Settings Class.
 
     This class manages the build settings for a Manuscript build job.
     The settings can be packed/unpacked to/from a dictionary for JSON.
     """
+
+    __slots__ = (
+        "_build",
+        "_changed",
+        "_excluded",
+        "_format",
+        "_included",
+        "_name",
+        "_order",
+        "_path",
+        "_settings",
+        "_skipRoot",
+        "_uuid",
+    )
 
     def __init__(self) -> None:
         self._name = ""
@@ -521,7 +549,7 @@ class BuildSettings:
 
 
 class BuildCollection:
-    """Core: Build Collection Class.
+    """Manuscript: Build Collection Class.
 
     This object holds all the build setting objects defined by the given
     project. The build settings are saved as a single JSON file in the
@@ -609,17 +637,17 @@ class BuildCollection:
         buildsFile = self._project.storage.getMetaFile(nwFiles.BUILDS_FILE)
         if not isinstance(buildsFile, Path):
             return False
+        if not safeExists(buildsFile):
+            return True
 
-        data = {}
-        if safeExists(buildsFile):
-            logger.debug("Loading builds file")
-            try:
-                with open(buildsFile, mode="r", encoding="utf-8") as inFile:
-                    data = json.load(inFile)
-            except Exception:
-                logger.error("Failed to load builds file")
-                logException()
-                return False
+        logger.debug("Loading builds file")
+        try:
+            with open(buildsFile, mode="r", encoding="utf-8") as inFile:
+                data = json.load(inFile)
+        except Exception:
+            logger.error("Failed to load builds file")
+            logException()
+            return False
 
         if not isinstance(data, dict):
             logger.error("Builds file is not a JSON object")
@@ -653,7 +681,7 @@ class BuildCollection:
                 "defaultBuild": self._defaultBuild,
             }
             data.update({k: b.pack() for k, b in self._builds.items()})
-            with open(buildsFile, mode="w+", encoding="utf-8") as outFile:
+            with open(buildsFile, mode="w+", encoding="utf-8", newline=CONFIG.lineEnding) as outFile:
                 outFile.write(jsonEncode({"novelWriter.builds": data}, nmax=4))
         except Exception:
             logger.error("Failed to save builds file")

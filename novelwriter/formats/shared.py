@@ -34,6 +34,7 @@ ESCAPES = {
     r"\_": "_",
     r"\[": "[",
     r"\]": "]",
+    r"\#": "#",
     r"\ ": "",
 }
 RX_ESC = re.compile("|".join([re.escape(k) for k in ESCAPES]), flags=re.DOTALL)
@@ -76,6 +77,7 @@ class TextFmt(IntEnum):
     text block.
     """
 
+    NONE = 0  # No format
     B_B = 1  # Begin bold
     B_E = 2  # End bold
     I_B = 3  # Begin italics
@@ -117,13 +119,15 @@ class BlockTyp(IntEnum):
     HEAD3 = 6  # Heading 3 or Section
     HEAD4 = 7  # Heading 4
     TEXT = 8  # Text line
-    SEP = 9  # Scene separator
-    HRULE = 10  # Horizontal rule
-    SKIP = 11  # Paragraph break
-    SUMMARY = 12  # Synopsis/short comment
-    NOTE = 13  # Note
-    COMMENT = 14  # Comment
-    KEYWORD = 15  # Tag/reference keywords
+    LIST_U = 9  # List item
+    LIST_O = 10  # Ordered list item
+    SEP = 11  # Scene separator
+    HRULE = 12  # Horizontal rule
+    SKIP = 13  # Paragraph break
+    SUMMARY = 14  # Synopsis/short comment
+    NOTE = 15  # Note
+    COMMENT = 16  # Comment
+    KEYWORD = 17  # Tag/reference keywords
 
 
 class BlockFmt(Flag):
@@ -139,14 +143,18 @@ class BlockFmt(Flag):
     JUSTIFY = 0x0008  # Justified
     PBB = 0x0010  # Page break before
     PBA = 0x0020  # Page break after
-    Z_TOP = 0x0040  # Zero top margin
-    Z_BTM = 0x0080  # Zero bottom margin
-    IND_L = 0x0100  # Left indentation
-    IND_R = 0x0200  # Right indentation
-    IND_T = 0x0400  # Text indentation
+    HBB = 0x0040  # Header page break before
+    Z_TOP = 0x0080  # Zero top margin
+    Z_BTM = 0x0100  # Zero bottom margin
+    IND_L = 0x0200  # Left indentation
+    IND_R = 0x0400  # Right indentation
+    IND_T = 0x0800  # Text indentation
+    LIST_S = 0x1000  # List start
+    LIST_E = 0x2000  # List end
 
     # Masks
     ALIGNED = LEFT | RIGHT | CENTRE | JUSTIFY
+    BREAK_B = PBB | HBB
 
 
 # Types

@@ -38,15 +38,17 @@ from PyQt6.QtGui import (
     QTextDocument,
     QTextFrameFormat,
     QTextLength,
+    QTextListFormat,
     QTextTableCellFormat,
     QTextTableFormat,
 )
 from PyQt6.QtPrintSupport import QPrinter
 
 from novelwriter import __version__
+from novelwriter.common import textDirection
 from novelwriter.constants import nwUnicode
 from novelwriter.formats.shared import BlockFmt, BlockTyp, T_Formats, TextFmt, stripEscape
-from novelwriter.formats.tokenizer import HEADING_BLOCKS, META_BLOCKS, Tokenizer
+from novelwriter.formats.tokenizer import HEADING_BLOCKS, LIST_BLOCKS, META_BLOCKS, Tokenizer
 from novelwriter.types import (
     QtAlignAbsolute,
     QtAlignCenter,
@@ -56,6 +58,7 @@ from novelwriter.types import (
     QtFontBold,
     QtFontNormal,
     QtKeepAnchor,
+    QtLayoutRTL,
     QtMoveAnchor,
     QtMoveEnd,
     QtPageBreakAfter,
@@ -106,6 +109,8 @@ class ToQTextDocument(Tokenizer):
         "_hWeight",
         "_iHead",
         "_init",
+        "_listFmtO",
+        "_listFmtU",
         "_mHead",
         "_mIndent",
         "_mMeta",
@@ -161,6 +166,8 @@ class ToQTextDocument(Tokenizer):
         self._tIndent = 1.0
         self._blockFmt = QTextBlockFormat()
         self._charFmt = QTextCharFormat()
+        self._listFmtU = QTextListFormat()
+        self._listFmtO = QTextListFormat()
 
     ##
     #  Properties
@@ -175,7 +182,17 @@ class ToQTextDocument(Tokenizer):
     #  Setters
     ##
 
-    def setPageLayout(self, width: float, height: float, top: float, bottom: float, left: float, right: float) -> None:
+    def setPageLayout(
+        self,
+        width: float,
+        height: float,
+        top: float,
+        bottom: float,
+        left: float,
+        right: float,
+        gutter: float,
+        doublePages: bool,
+    ) -> None:
         """Set the document page size and margins in millimetres."""
         self._pageSize = QPageSize(QSizeF(width, height), QPageSize.Unit.Millimeter)
         self._pageMargins = QMarginsF(left, top, right, bottom)
@@ -271,14 +288,23 @@ class ToQTextDocument(Tokenizer):
         self._mIndent = mPx * 2.0
         self._tIndent = mPx * self._firstWidth
 
+        self._document.setIndentWidth(self._mIndent)
+
         # Text Formats
         self._blockFmt.setTopMargin(self._mText[0])
         self._blockFmt.setBottomMargin(self._mText[1])
-        self._blockFmt.setAlignment(QtAlignAbsolute)
+        if not self._isRTL:
+            self._blockFmt.setAlignment(QtAlignAbsolute)
         self._blockFmt.setLineHeight(100.0 * self._lineHeight, QtPropLineHeight)
 
         self._charFmt.setBackground(QtTransparent)
         self._charFmt.setForeground(self._theme.text)
+
+        self._listFmtU.setStyle(QTextListFormat.Style.ListDisc)
+        self._listFmtU.setIndent(1)
+
+        self._listFmtO.setStyle(QTextListFormat.Style.ListDecimal)
+        self._listFmtO.setIndent(1)
 
         self._init = True
 
@@ -291,6 +317,7 @@ class ToQTextDocument(Tokenizer):
         cursor = QTextCursor(self._document)
         cursor.movePosition(QtMoveEnd)
 
+        qList = None
         for tType, tMeta, tText, tFormat, tStyle in self._blocks:
             bFmt = QTextBlockFormat(self._blockFmt)
             if tType in META_BLOCKS:
@@ -301,15 +328,15 @@ class ToQTextDocument(Tokenizer):
                 bFmt.setBottomMargin(self._mSep[1])
 
             if tStyle & BlockFmt.LEFT:
-                bFmt.setAlignment(QtAlignLeft)
+                bFmt.setAlignment(QtAlignAbsolute | QtAlignLeft)
             elif tStyle & BlockFmt.RIGHT:
-                bFmt.setAlignment(QtAlignRight)
+                bFmt.setAlignment(QtAlignAbsolute | QtAlignRight)
             elif tStyle & BlockFmt.CENTRE:
                 bFmt.setAlignment(QtAlignCenter)
             elif tStyle & BlockFmt.JUSTIFY:
                 bFmt.setAlignment(QtAlignJustify)
 
-            if tStyle & BlockFmt.PBB:
+            if tStyle & BlockFmt.BREAK_B:
                 self._insertNewPageMarker(cursor)
                 bFmt.setPageBreakPolicy(QtPageBreakBefore)
             if tStyle & BlockFmt.PBA:
@@ -329,6 +356,15 @@ class ToQTextDocument(Tokenizer):
 
             if tType == BlockTyp.TEXT:
                 newBlock(cursor, bFmt)
+                self._insertFragments(tText, tFormat, cursor, self._charFmt)
+
+            elif tType in LIST_BLOCKS:
+                newBlock(cursor, bFmt)
+                cursor.setBlockCharFormat(self._charFmt)
+                if qList is None or tStyle & BlockFmt.LIST_S:
+                    qList = cursor.createList(self._listFmtO if tType == BlockTyp.LIST_O else self._listFmtU)
+                else:
+                    qList.add(cursor.block())
                 self._insertFragments(tText, tFormat, cursor, self._charFmt)
 
             elif tType in HEADING_BLOCKS:
@@ -402,6 +438,18 @@ class ToQTextDocument(Tokenizer):
                     newBlock(cursor, self._blockFmt)
                     cursor.insertText(f"{index}. ", cFmt)
                     self._insertFragments(*content, cursor, self._charFmt)
+
+        # Blocks without strong characters would otherwise fall back to LTR
+        if self._isRTL:
+            cursor = QTextCursor(self._document)
+            bFmt = QTextBlockFormat()
+            bFmt.setLayoutDirection(QtLayoutRTL)
+            block = self._document.firstBlock()
+            while block.isValid():
+                if not textDirection(block.text()):
+                    cursor.setPosition(block.position())
+                    cursor.mergeBlockFormat(bFmt)
+                block = block.next()
 
         self._document.blockSignals(False)
 

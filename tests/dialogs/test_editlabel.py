@@ -23,12 +23,14 @@ from __future__ import annotations
 
 import pytest
 
+from pytestqt.qtbot import QtBot
+
 from novelwriter.dialogs.editlabel import GuiEditLabel
 from novelwriter.types import QtAccepted, QtRejected
 
 
 @pytest.mark.gui
-def testGuiEditLabel_Main(qtbot, monkeypatch):
+def testGuiEditLabel_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch):
     """Test the label editor dialog."""
     monkeypatch.setattr(GuiEditLabel, "exec", lambda *a: None)
 

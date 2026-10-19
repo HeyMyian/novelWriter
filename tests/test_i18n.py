@@ -23,9 +23,13 @@ from __future__ import annotations
 
 import sys
 
+from collections.abc import Callable
+from pathlib import Path
+
 import pytest
 
-from PyQt6.QtWidgets import QApplication, QDialog
+from PyQt6.QtWidgets import QApplication, QDialog, QWidget
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.core.project import NWProject
@@ -33,9 +37,9 @@ from novelwriter.dialogs.about import GuiAbout
 from novelwriter.dialogs.preferences import GuiPreferences
 from novelwriter.dialogs.projectsettings import GuiProjectSettings
 from novelwriter.dialogs.wordlist import GuiWordList
+from novelwriter.guimain import GuiMain
 from novelwriter.manuscript.manuscript import GuiManuscript
 from novelwriter.tools.dictionaries import GuiDictionaries
-from novelwriter.tools.noveldetails import GuiNovelDetails
 from novelwriter.tools.welcome import GuiWelcome
 from novelwriter.tools.writingstats import GuiWritingStats
 
@@ -48,7 +52,13 @@ LANG_DATA = CONFIG.listLanguages(CONFIG.LANG_NW)
 @pytest.mark.skipif(sys.platform != "linux", reason="Linux Only")
 @pytest.mark.skipif(not LANG_DATA, reason="No i18n Data")
 @pytest.mark.parametrize("language", [a for a, b in LANG_DATA])
-def testGuiI18n_Localisation(qtbot, monkeypatch, language, nwGUI, projPath):
+def testGuiI18n_Localisation(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    language: str,
+    nwGUI: GuiMain,
+    projPath: Path,
+):
     """Test loading the gui with a specific language."""
     monkeypatch.setattr(QDialog, "exec", lambda *a: None)
 
@@ -60,7 +70,7 @@ def testGuiI18n_Localisation(qtbot, monkeypatch, language, nwGUI, projPath):
     nwGUI.openProject(projPath)
     nwGUI.show()
 
-    def showDialog(func, dType) -> None:
+    def showDialog(func: Callable[[], None], dType: type[QWidget]) -> None:
         func()
         qtbot.waitUntil(lambda: SHARED.findTopLevelWidget(dType) is not None, timeout=1000)
         dialog = SHARED.findTopLevelWidget(dType)
@@ -71,7 +81,6 @@ def testGuiI18n_Localisation(qtbot, monkeypatch, language, nwGUI, projPath):
     showDialog(nwGUI.showWelcomeDialog, GuiWelcome)
     showDialog(nwGUI.showPreferencesDialog, GuiPreferences)
     showDialog(nwGUI.showProjectSettingsDialog, GuiProjectSettings)
-    showDialog(nwGUI.showNovelDetailsDialog, GuiNovelDetails)
     showDialog(nwGUI.showBuildManuscriptDialog, GuiManuscript)
     showDialog(nwGUI.showProjectWordListDialog, GuiWordList)
     showDialog(nwGUI.showWritingStatsDialog, GuiWritingStats)

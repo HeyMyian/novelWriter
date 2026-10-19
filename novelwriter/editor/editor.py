@@ -36,6 +36,7 @@ from PyQt6.QtCore import (
     QRect,
     Qt,
     QTimer,
+    QUrl,
     QVariant,
     pyqtSignal,
     pyqtSlot,
@@ -71,11 +72,13 @@ from novelwriter.common import (
     qtLambda,
     qtWeakLambda,
     stripUnsafe,
+    textDirection,
     transferCase,
 )
 from novelwriter.constants import nwConst, nwKeyWords, nwShortcode, nwStyles, nwUnicode
 from novelwriter.core.document import ProjectDocument
 from novelwriter.dialogs.editlabel import GuiEditLabel
+from novelwriter.dialogs.editlink import GuiEditLink
 from novelwriter.editor.completer import CommandCompleter
 from novelwriter.editor.editordocument import GuiTextDocument
 from novelwriter.editor.editsearch import GuiDocEditSearch
@@ -100,6 +103,7 @@ from novelwriter.extensions.eventfilters import WheelEventFilter
 from novelwriter.formats.fromqdoc import FromQTextDocument
 from novelwriter.text.autoreplace import TextAutoReplace
 from novelwriter.text.formats import processHeading
+from novelwriter.text.patterns import REGEX_PATTERNS
 from novelwriter.tools.lipsum import GuiLipsum
 from novelwriter.types import (
     QAnimDeleteWhenStopped,
@@ -154,6 +158,13 @@ T_SelCache = dict[int, tuple[T_TextCheckList, T_Selections]]
 
 MOVE_KEYS = (QtKeyLeft, QtKeyRight, QtKeyUp, QtKeyDown, QtKeyPageUp, QtKeyPageDown)
 ENTER_KEYS = (QtKeyReturn, QtKeyEnter)
+BLOCK_TEXT_ONLY = (
+    nwDocAction.ALIGN_L,
+    nwDocAction.ALIGN_C,
+    nwDocAction.ALIGN_R,
+    nwDocAction.INDENT_L,
+    nwDocAction.INDENT_R,
+)
 
 
 class _SelectAction(Enum):
@@ -838,14 +849,21 @@ class GuiDocEditor(QTextEdit):
         fY = wH - fH - tB - sH
         self.docHeader.setGeometry(tB, tB, tW, tH)
         self.docFooter.setGeometry(tB, fY, tW, fH)
-        self.docToolBar.move(0, tH)
+        if CONFIG.rtlMode:
+            dW = self.docToolBar.sizeHint().width()
+            self.docToolBar.move(wW - dW, tH)
+        else:
+            self.docToolBar.move(0, tH)
 
         rH = 0
         if self.docSearch.isVisible():
             rH = self.docSearch.height()
             rW = self.docSearch.width()
-            rL = wW - sW - rW - 2 * tB
-            self.docSearch.move(rL, 2 * tB)
+            if CONFIG.rtlMode:
+                self.docSearch.move(2, 2 * tB)
+            else:
+                rL = wW - sW - rW - 2 * tB
+                self.docSearch.move(rL, 2 * tB)
 
         uM = max(self._vpMargin, tH, rH)
         lM = max(self._vpMargin, fH)
@@ -1031,6 +1049,8 @@ class GuiDocEditor(QTextEdit):
             self._toggleFormat(2, "~")
         elif action == nwDocAction.MD_MARK and not noFormat:
             self._toggleFormat(2, "=")
+        elif action == nwDocAction.MD_LINK and not noFormat:
+            self._formatLink()
         elif action == nwDocAction.S_QUOTE:
             self._wrapSelection(CONFIG.fmtSQuoteOpen, CONFIG.fmtSQuoteClose)
         elif action == nwDocAction.D_QUOTE:
@@ -1053,6 +1073,10 @@ class GuiDocEditor(QTextEdit):
             self._iterFormatBlocks(nwDocAction.BLOCK_IGN)
         elif action == nwDocAction.BLOCK_TXT:
             self._iterFormatBlocks(nwDocAction.BLOCK_TXT)
+        elif action == nwDocAction.BLOCK_LST_U:
+            self._iterFormatBlocks(nwDocAction.BLOCK_LST_U)
+        elif action == nwDocAction.BLOCK_LST_O:
+            self._iterFormatBlocks(nwDocAction.BLOCK_LST_O)
         elif action == nwDocAction.BLOCK_TTL:
             self._formatBlock(nwDocAction.BLOCK_TTL)
         elif action == nwDocAction.BLOCK_UNN:
@@ -1065,30 +1089,22 @@ class GuiDocEditor(QTextEdit):
             self._replaceQuotes('"', CONFIG.fmtDQuoteOpen, CONFIG.fmtDQuoteClose)
         elif action == nwDocAction.RM_BREAKS:
             self._removeInParLineBreaks()
-        elif action == nwDocAction.ALIGN_L and not noFormat:
-            self._formatBlock(nwDocAction.ALIGN_L)
-        elif action == nwDocAction.ALIGN_C and not noFormat:
-            self._formatBlock(nwDocAction.ALIGN_C)
-        elif action == nwDocAction.ALIGN_R and not noFormat:
-            self._formatBlock(nwDocAction.ALIGN_R)
-        elif action == nwDocAction.INDENT_L and not noFormat:
-            self._formatBlock(nwDocAction.INDENT_L)
-        elif action == nwDocAction.INDENT_R and not noFormat:
-            self._formatBlock(nwDocAction.INDENT_R)
+        elif action in BLOCK_TEXT_ONLY and not (noFormat and len(self._selectedBlocks(cursor)) < 2):
+            self._iterFormatBlocks(action)
         elif action == nwDocAction.SC_ITALIC and not noFormat:
-            self._wrapSelection(nwShortcode.ITALIC_O, nwShortcode.ITALIC_C)
+            self._wrapSelection(nwShortcode.ITALIC_O, nwShortcode.ITALIC_C, rtlMark=True)
         elif action == nwDocAction.SC_BOLD and not noFormat:
-            self._wrapSelection(nwShortcode.BOLD_O, nwShortcode.BOLD_C)
+            self._wrapSelection(nwShortcode.BOLD_O, nwShortcode.BOLD_C, rtlMark=True)
         elif action == nwDocAction.SC_STRIKE and not noFormat:
-            self._wrapSelection(nwShortcode.STRIKE_O, nwShortcode.STRIKE_C)
+            self._wrapSelection(nwShortcode.STRIKE_O, nwShortcode.STRIKE_C, rtlMark=True)
         elif action == nwDocAction.SC_ULINE and not noFormat:
-            self._wrapSelection(nwShortcode.ULINE_O, nwShortcode.ULINE_C)
+            self._wrapSelection(nwShortcode.ULINE_O, nwShortcode.ULINE_C, rtlMark=True)
         elif action == nwDocAction.SC_MARK and not noFormat:
-            self._wrapSelection(nwShortcode.MARK_O, nwShortcode.MARK_C)
+            self._wrapSelection(nwShortcode.MARK_O, nwShortcode.MARK_C, rtlMark=True)
         elif action == nwDocAction.SC_SUP and not noFormat:
-            self._wrapSelection(nwShortcode.SUP_O, nwShortcode.SUP_C)
+            self._wrapSelection(nwShortcode.SUP_O, nwShortcode.SUP_C, rtlMark=True)
         elif action == nwDocAction.SC_SUB and not noFormat:
-            self._wrapSelection(nwShortcode.SUB_O, nwShortcode.SUB_C)
+            self._wrapSelection(nwShortcode.SUB_O, nwShortcode.SUB_C, rtlMark=True)
         elif action == nwDocAction.MOVE_TEXT:
             self._moveTextToNewDocument()
         elif action == nwDocAction.ZOOM_IN:
@@ -1452,6 +1468,8 @@ class GuiDocEditor(QTextEdit):
 
         if document is not None:
             text = FromQTextDocument(document).convertText().strip("\n")
+        elif urls := source.urls():
+            text = "\n".join(url.toString(QUrl.ComponentFormattingOption.FullyEncoded) for url in urls)
         elif source.hasText():
             text = source.text()
         else:
@@ -1498,6 +1516,12 @@ class GuiDocEditor(QTextEdit):
         if updated or deleted:
             self._qDocument.syntaxHighlighter.rehighlightByType(BLOCK_META)
             self._hoverCard.pruneCache(updated + deleted)
+
+    @pyqtSlot()
+    def indexHasAppeared(self) -> None:
+        """Rehighlight tags after the index has been loaded or rebuilt."""
+        self._qDocument.syntaxHighlighter.rehighlightByType(BLOCK_META)
+        self._hoverCard.clearCache()
 
     @pyqtSlot(str, str)
     def processSpellCheckChange(self, language: str, provider: str) -> None:
@@ -1907,7 +1931,7 @@ class GuiDocEditor(QTextEdit):
             and (item := self._nwItem)
             and (parent := item.itemParent)
         ):
-            heading, title = processHeading(text.partition("\n")[0])
+            heading, title, _ = processHeading(text.partition("\n")[0])
             label, dlgOk = GuiEditLabel.getLabel(
                 self,
                 text=title or f"{item.itemName} (1)",
@@ -2274,11 +2298,14 @@ class GuiDocEditor(QTextEdit):
         after: str | None = None,
         pos: int | None = None,
         select: _SelectAction = _SelectAction.NO_DECISION,
+        rtlMark: bool = False,
     ) -> None:
         """Wrap the selected text in whatever is in tBefore and tAfter.
         If there is no selection, the autoSelect setting decides the
         action. AutoSelect will select the word under the cursor before
-        wrapping it. If this feature is disabled, nothing is done.
+        wrapping it. If this feature is disabled, nothing is done. If
+        rtlMark is set, an RTL mark is added in RTL projects when the
+        wrapping would otherwise set the paragraph direction.
         """
         if after is None:
             after = before
@@ -2302,6 +2329,12 @@ class GuiDocEditor(QTextEdit):
         blockE = self._qDocument.findBlock(posE)
         if blockS != blockE:
             posE = blockS.position() + blockS.length() - 1
+
+        if rtlMark and SHARED.project.data.isRTL:
+            # Qt picks the paragraph direction from the first strong character
+            prefix = blockS.text()[: posS - blockS.position()]
+            if not textDirection(prefix):
+                before = nwUnicode.U_RLM + before
 
         cursor.clearSelection()
         cursor.beginEditBlock()
@@ -2374,7 +2407,10 @@ class GuiDocEditor(QTextEdit):
         """Process the formatting of a single text block."""
         # Remove existing format first, if any
         if text.startswith("@"):
-            logger.error("Cannot apply block format to keyword/value line")
+            logger.debug("Cannot apply block format to keyword/value line")
+            return nwDocAction.NO_ACTION, "", 0
+        elif action in BLOCK_TEXT_ONLY and text.startswith(nwStyles.H_MARKERS):
+            logger.debug("Cannot apply text block format to heading")
             return nwDocAction.NO_ACTION, "", 0
         elif text.startswith("%~"):
             temp = text[2:].lstrip()
@@ -2389,27 +2425,25 @@ class GuiDocEditor(QTextEdit):
         elif text.startswith("# "):
             temp = text[2:]
             offset = 2
-        elif text.startswith("## "):
+        elif text.startswith(("## ", "#! ", ">> ")):
             temp = text[3:]
             offset = 3
-        elif text.startswith("### "):
+        elif text.startswith(("### ", "##! ")):
             temp = text[4:]
             offset = 4
-        elif text.startswith("#### "):
+        elif text.startswith(("#### ", "###! ")):
             temp = text[5:]
             offset = 5
-        elif text.startswith("#! "):
+        elif text.startswith("* ") and text[2:].strip("* "):
+            temp = text[2:]
+            offset = 2
+            if toggle and action == nwDocAction.BLOCK_LST_U:
+                action = nwDocAction.BLOCK_TXT
+        elif text.startswith("#. "):
             temp = text[3:]
             offset = 3
-        elif text.startswith("##! "):
-            temp = text[4:]
-            offset = 4
-        elif text.startswith("###! "):
-            temp = text[5:]
-            offset = 5
-        elif text.startswith(">> "):
-            temp = text[3:]
-            offset = 3
+            if toggle and action == nwDocAction.BLOCK_LST_O:
+                action = nwDocAction.BLOCK_TXT
         elif (text.startswith("> ") and action != nwDocAction.INDENT_R) or text.startswith(">>"):
             temp = text[2:]
             offset = 2
@@ -2429,6 +2463,16 @@ class GuiDocEditor(QTextEdit):
             temp = temp[:-1]
 
         # Apply new format
+        if toggle and action in (nwDocAction.ALIGN_L, nwDocAction.ALIGN_C, nwDocAction.ALIGN_R):
+            isRight = text.startswith(">>")
+            isLeft = text.endswith("<<")
+            if (
+                (action == nwDocAction.ALIGN_L and isLeft and not isRight)
+                or (action == nwDocAction.ALIGN_C and isLeft and isRight)
+                or (action == nwDocAction.ALIGN_R and isRight and not isLeft)
+            ):
+                action = nwDocAction.BLOCK_TXT
+
         if action == nwDocAction.BLOCK_COM:
             text = f"% {temp}"
             offset -= 2
@@ -2456,6 +2500,12 @@ class GuiDocEditor(QTextEdit):
         elif action == nwDocAction.BLOCK_HSC:
             text = f"###! {temp}"
             offset -= 5
+        elif action == nwDocAction.BLOCK_LST_U:
+            text = f"* {temp}"
+            offset -= 2
+        elif action == nwDocAction.BLOCK_LST_O:
+            text = f"#. {temp}"
+            offset -= 3
         elif action == nwDocAction.ALIGN_L:
             text = f"{temp} <<"
         elif action == nwDocAction.ALIGN_C:
@@ -2502,6 +2552,51 @@ class GuiDocEditor(QTextEdit):
 
         return True
 
+    def _formatLink(self) -> None:
+        """Format a link under the cursor, or insert a new one. An
+        existing bare URL or Markdown link at the cursor is detected via
+        the block's TextBlockData, and used to pre-fill the edit dialog.
+        """
+        cursor = self.textCursor()
+        block = cursor.block()
+
+        text = ""
+        url = ""
+        posS = posE = cursor.position()
+        if cursor.hasSelection():
+            posS = cursor.selectionStart()
+            posE = cursor.selectionEnd()
+            text = cursor.selectedText()
+
+        if isinstance(data := block.userData(), TextBlockData):
+            check = cursor.position() - block.position()
+            for start, end, mData, mType in data.metaData:
+                if mType in ("url", "link") and start <= check <= end:
+                    posS = block.position() + start
+                    posE = block.position() + end
+                    url = mData
+                    text = ""
+                    if mType == "link":
+                        linkCursor = QTextCursor(self._qDocument)
+                        linkCursor.setPosition(posS)
+                        linkCursor.setPosition(posE, QtKeepAnchor)
+                        if m := REGEX_PATTERNS.markdownLink.match(linkCursor.selectedText()):  # pragma: no branch
+                            text, url = m.group(2), m.group(4)
+                    break
+
+        newText, newUrl, dlgOk = GuiEditLink.getLink(self, text=text, url=url)
+        if not dlgOk or not newUrl:
+            return
+
+        result = f"[{newText}]({newUrl})" if newText else newUrl
+
+        cursor.setPosition(posS)
+        cursor.setPosition(posE, QtKeepAnchor)
+        cursor.beginEditBlock()
+        cursor.insertText(result)
+        cursor.endEditBlock()
+        self.setTextCursor(cursor)
+
     def _iterFormatBlocks(self, action: nwDocAction) -> bool:
         """Iterate over all selected blocks and apply format. If no
         selection is made, just forward the call to the single block
@@ -2525,6 +2620,11 @@ class GuiDocEditor(QTextEdit):
                 toggle = False
 
         cursor.endEditBlock()
+
+        # Reselect the affected blocks so the action can be repeated
+        cursor.setPosition(blocks[0].position())
+        cursor.setPosition(blocks[-1].position() + blocks[-1].length() - 1, QtKeepAnchor)
+        self.setTextCursor(cursor)
 
         return True
 
@@ -2939,25 +3039,36 @@ class GuiDocEditor(QTextEdit):
     ##
 
     def _dispatchKeyPress(self, event: QKeyEvent) -> None:
-        """Send a key event on to the base class for regular handling,
-        except for a plain Return/Enter press, which is handled
-        directly instead.
+        """Send a key event to the base class, except plain Return.
 
-        Qt's own Return handling (QWidgetTextControlPrivate::
-        insertParagraphSeparator) resets the current block's format to
-        a bare default and swallows the keypress whenever the cursor
-        is on an empty block whose format isn't already default. That
-        heuristic exists so rich-text users can hit Enter twice to
-        escape a list/heading/quote, but every block here always
-        carries a non-default line height, so it fires on every
-        ordinary blank-line paragraph break and silently eats every
-        second Return. novelWriter never uses Qt's native list/heading
-        block formatting, so the heuristic serves no purpose here, and
-        can be bypassed entirely by inserting the new block directly.
+        Qt's Return handling swallows the keypress on empty blocks with
+        a non-default format, which all blocks have here due to line
+        height, so new blocks are inserted directly. List markers are
+        carried over to the new block.
         """
         if event.key() in ENTER_KEYS and event.modifiers() == QtModNone:
             cursor = self.textCursor()
-            cursor.insertBlock()
+            block = self._qDocument.findBlock(cursor.selectionStart())
+            text = block.text()
+            marker = ""
+            if text.startswith("* ") and text[2:].strip("* "):
+                marker = "* "
+            elif text.startswith("#. ") and text[3:].strip():
+                marker = "#. "
+
+            cursor.beginEditBlock()
+            if text.startswith(("* ", "#. ")) and text.rstrip() in ("*", "#.") and not cursor.hasSelection():
+                # Enter on an empty item clears the marker and ends the list (see #1460)
+                cursor.setPosition(block.position())
+                cursor.setPosition(block.position() + block.length() - 1, QtKeepAnchor)
+                cursor.removeSelectedText()
+            else:
+                inMarker = cursor.selectionStart() - block.position() < len(marker)
+                cursor.insertBlock()
+                if marker and not inMarker:
+                    cursor.insertText(marker)
+            cursor.endEditBlock()
+
             self.setTextCursor(cursor)
             self.ensureCursorVisible(centre=False)
             event.accept()

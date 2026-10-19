@@ -39,8 +39,8 @@ from novelwriter.formats.toraw import ToRaw
 from novelwriter.manuscript.buildsettings import BuildSettings
 from novelwriter.manuscript.docbuild import DocumentBuilder
 
-from tests.helpers import ODT_IGNORE, C, buildTestProject, cmpFiles
-from tests.mocked import causeException, causeOSError
+from tests.helpers import ODT_IGNORE, C, MockRnd, TstPaths, buildTestProject, cmpFiles
+from tests.mocked import MockGuiMain, causeException, causeOSError
 
 BUILD_CONF = {
     "name": "Test Build",
@@ -80,7 +80,13 @@ BUILD_CONF = {
 
 
 @pytest.mark.core
-def testDocumentBuilder_OpenDocument(monkeypatch, mockGUI, prjLipsum, fncPath, tstPaths):
+def testDocumentBuilder_OpenDocument(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    prjLipsum: Path,
+    fncPath: Path,
+    tstPaths: TstPaths,
+):
     """Test building an open document manuscript."""
     project = NWProject()
     project.openProject(prjLipsum)
@@ -186,7 +192,13 @@ def testDocumentBuilder_OpenDocument(monkeypatch, mockGUI, prjLipsum, fncPath, t
 
 
 @pytest.mark.core
-def testDocumentBuilder_HTML(monkeypatch, mockGUI, prjLipsum, fncPath, tstPaths):
+def testDocumentBuilder_HTML(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    prjLipsum: Path,
+    fncPath: Path,
+    tstPaths: TstPaths,
+):
     """Test building an HTML manuscript."""
     project = NWProject()
     project.openProject(prjLipsum)
@@ -262,7 +274,13 @@ def testDocumentBuilder_HTML(monkeypatch, mockGUI, prjLipsum, fncPath, tstPaths)
 
 
 @pytest.mark.core
-def testDocumentBuilder_Markdown(monkeypatch, mockGUI, prjLipsum, fncPath, tstPaths):
+def testDocumentBuilder_Markdown(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    prjLipsum: Path,
+    fncPath: Path,
+    tstPaths: TstPaths,
+):
     """Test building an Markdown manuscript."""
     project = NWProject()
     project.openProject(prjLipsum)
@@ -330,7 +348,7 @@ def testDocumentBuilder_Markdown(monkeypatch, mockGUI, prjLipsum, fncPath, tstPa
 
 
 @pytest.mark.core
-def testDocumentBuilder_DocX(mockGUI, prjLipsum, fncPath):
+def testDocumentBuilder_DocX(mockGUI: MockGuiMain, prjLipsum: Path, fncPath: Path):
     """Test building a Word manuscript."""
     project = NWProject()
     project.openProject(prjLipsum)
@@ -363,7 +381,7 @@ def testDocumentBuilder_DocX(mockGUI, prjLipsum, fncPath):
 
 
 @pytest.mark.core
-def testDocumentBuilder_PDF(mockGUI, prjLipsum, fncPath):
+def testDocumentBuilder_PDF(mockGUI: MockGuiMain, prjLipsum: Path, fncPath: Path):
     """Test building a PDF manuscript."""
     project = NWProject()
     project.openProject(prjLipsum)
@@ -395,7 +413,7 @@ def testDocumentBuilder_PDF(mockGUI, prjLipsum, fncPath):
 
 
 @pytest.mark.core
-def testDocumentBuilder_NWD(mockGUI, prjLipsum, fncPath, tstPaths):
+def testDocumentBuilder_NWD(mockGUI: MockGuiMain, prjLipsum: Path, fncPath: Path, tstPaths: TstPaths):
     """Test building a NWD manuscript."""
     project = NWProject()
     project.openProject(prjLipsum)
@@ -450,7 +468,7 @@ def testDocumentBuilder_NWD(mockGUI, prjLipsum, fncPath, tstPaths):
 
 
 @pytest.mark.core
-def testDocumentBuilder_Custom(mockGUI, fncPath: Path, mockRnd):
+def testDocumentBuilder_Custom(mockGUI: MockGuiMain, fncPath: Path, mockRnd: MockRnd):
     """Test custom builds and some error handling."""
     project = NWProject()
     buildTestProject(project, fncPath)
@@ -529,7 +547,7 @@ def testDocumentBuilder_Custom(mockGUI, fncPath: Path, mockRnd):
 
 
 @pytest.mark.core
-def testDocumentBuilder_IterBuild(mockGUI, fncPath: Path, mockRnd):
+def testDocumentBuilder_IterBuild(mockGUI: MockGuiMain, fncPath: Path, mockRnd: MockRnd):
     """Test iter build wrapper."""
     project = NWProject()
     buildTestProject(project, fncPath)

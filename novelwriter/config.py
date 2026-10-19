@@ -42,6 +42,7 @@ from PyQt6.QtCore import (
     QRect,
     QStandardPaths,
     QSysInfo,
+    Qt,
     QTranslator,
 )
 from PyQt6.QtGui import QFont, QFontDatabase, QFontMetrics
@@ -59,6 +60,7 @@ from novelwriter.common import (
     processDialogSymbols,
     safeExists,
     safeIsDir,
+    safeIsFile,
     simplified,
     uniqueCompact,
 )
@@ -154,7 +156,9 @@ class Config:
         "fmtSQuoteOpen",
         "focusWidth",
         "fontWinSize",
+        "forceUnixLineEndings",
         "guiFont",
+        "guiForceRTL",
         "guiLocale",
         "hasEnchant",
         "hideFocusFooter",
@@ -180,13 +184,14 @@ class Config:
         "narratorBreak",
         "narratorDialog",
         "nativeFont",
+        "novelViewSubCounts",
         "osDarwin",
         "osLinux",
         "osType",
         "osUnknown",
         "osWindows",
-        "outlinePanePos",
         "prefsWinSize",
+        "rtlMode",
         "scaleHeadings",
         "scrollPastEnd",
         "searchAuto",
@@ -212,6 +217,7 @@ class Config:
         "singleStarBold",
         "spellLanguage",
         "stopWhenIdle",
+        "storyPanePos",
         "tabWidth",
         "textFont",
         "textMargin",
@@ -297,6 +303,7 @@ class Config:
 
         # General GUI Settings
         self.guiLocale = self._qLocale.name()
+        self.guiForceRTL = False  # User setting to force RTL layout
         self.lightTheme = DEF_GUI_LIGHT  # Light GUI theme
         self.darkTheme = DEF_GUI_DARK  # Dark GUI theme
         self.themeMode = nwTheme.AUTO  # Colour theme mode
@@ -308,6 +315,7 @@ class Config:
         self.useCharCount = False  # Use character count as primary count
         self.countUnit = "words"  # Primary count unit
         self.vimMode = False  # Enable Vim mode
+        self.rtlMode = False  # RTL layout, from the language or the forced setting
 
         # Icons
         self.iconTheme = DEF_ICONS  # Icons theme
@@ -321,8 +329,8 @@ class Config:
         self.fontWinSize = [700, 550]  # Last size of the Font dialog
         self.mainPanePos = [300, 800]  # Last position of the main window splitter
         self.viewPanePos = [500, 150]  # Last position of the document viewer splitter
-        self.outlinePanePos = [500, 150]  # Last position of the outline panel splitter
         self.searchPanePos = [150, 500]  # Last position of the project search splitter
+        self.storyPanePos = [300, 800]  # Last position of the story panel splitter
         self.moveMainWin = True  # Move main window to the screen middle on startup
 
         # Project Settings
@@ -333,6 +341,7 @@ class Config:
         self.backupInterval = "session"  # Backup interval
         self.askBeforeBackup = True  # Flag for asking before running automatic backup
         self.askBeforeExit = True  # Flag for asking before exiting the app
+        self.forceUnixLineEndings = False  # Always use LF line endings, never CRLF
 
         # Text Editor Settings
         self.textFont = QFont()  # Editor font
@@ -396,6 +405,7 @@ class Config:
         self.spellLanguage = "en"
 
         # State
+        self.novelViewSubCounts = True  # Count notes of sub elements in novel view
         self.showDetailsPanel = True  # The panel for the item details is visible
         self.showViewerPanel = True  # The panel for the viewer is visible
         self.showEditToolBar = False  # The document editor toolbar visibility
@@ -493,6 +503,11 @@ class Config:
     def lastAuthor(self) -> str:
         """Return the last author name used."""
         return self._lastAuthor
+
+    @property
+    def lineEnding(self) -> str | None:
+        """Return the project file line ending."""
+        return "\n" if self.forceUnixLineEndings else None
 
     ##
     #  Getters
@@ -771,6 +786,9 @@ class Config:
 
         # Refresh translated values
         self.setPrimaryCount(self.useCharCount)
+        if self.guiForceRTL:
+            nwApp.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        self.rtlMode = nwApp.layoutDirection() == Qt.LayoutDirection.RightToLeft
 
     def loadConfig(self, splash: NSplashScreen | None = None) -> bool:
         """Load preferences from file and replace default settings."""
@@ -814,6 +832,7 @@ class Config:
         self.iconColTree = parser.getStr(sec, "iconColTree", self.iconColTree)
         self.iconColDocs = parser.getBool(sec, "iconColDocs", self.iconColDocs)
         self.guiLocale = parser.getStr(sec, "localisation", self.guiLocale)
+        self.guiForceRTL = parser.getBool(sec, "forceRTL", self.guiForceRTL)
         self.hideVScroll = parser.getBool(sec, "hideVScroll", self.hideVScroll)
         self.hideHScroll = parser.getBool(sec, "hideHScroll", self.hideHScroll)
         self.lastNotes = parser.getStr(sec, "lastNotes", self.lastNotes)
@@ -829,8 +848,8 @@ class Config:
         self.fontWinSize = parser.getIntList(sec, "fontSelect", self.fontWinSize)
         self.mainPanePos = parser.getIntList(sec, "mainPane", self.mainPanePos)
         self.viewPanePos = parser.getIntList(sec, "viewPane", self.viewPanePos)
-        self.outlinePanePos = parser.getIntList(sec, "outlinePane", self.outlinePanePos)
         self.searchPanePos = parser.getIntList(sec, "searchPane", self.searchPanePos)
+        self.storyPanePos = parser.getIntList(sec, "storyPane", self.storyPanePos)
         self.moveMainWin = parser.getBool(sec, "moveMainWin", self.moveMainWin)
 
         # Project
@@ -843,6 +862,7 @@ class Config:
         self.backupInterval = parser.getStr(sec, "backupInterval", self.backupInterval)
         self.askBeforeBackup = parser.getBool(sec, "askBeforeBackup", self.askBeforeBackup)
         self.askBeforeExit = parser.getBool(sec, "askBeforeExit", self.askBeforeExit)
+        self.forceUnixLineEndings = parser.getBool(sec, "forceUnixLineEndings", self.forceUnixLineEndings)
         self._lastAuthor = simplified(parser.getStr(sec, "lastAuthor", self._lastAuthor))
 
         # Editor
@@ -895,6 +915,7 @@ class Config:
 
         # State
         sec = "State"
+        self.novelViewSubCounts = parser.getBool(sec, "novelViewSubCounts", self.novelViewSubCounts)
         self.showDetailsPanel = parser.getBool(sec, "showDetailsPanel", self.showDetailsPanel)
         self.showViewerPanel = parser.getBool(sec, "showViewerPanel", self.showViewerPanel)
         self.showEditToolBar = parser.getBool(sec, "showEditToolBar", self.showEditToolBar)
@@ -958,6 +979,7 @@ class Config:
             "iconColTree": self.iconColTree,
             "iconColDocs": self.iconColDocs,
             "localisation": self.guiLocale,
+            "forceRTL": self.guiForceRTL,
             "hideVScroll": self.hideVScroll,
             "hideHScroll": self.hideHScroll,
             "lastNotes": self.lastNotes,
@@ -973,8 +995,8 @@ class Config:
             "fontSelect": self.fontWinSize,
             "mainPane": self.mainPanePos,
             "viewPane": self.viewPanePos,
-            "outlinePane": self.outlinePanePos,
             "searchPane": self.searchPanePos,
+            "storyPane": self.storyPanePos,
             "moveMainWin": self.moveMainWin,
         }
 
@@ -987,6 +1009,7 @@ class Config:
             "backupInterval": self.backupInterval,
             "askBeforeBackup": self.askBeforeBackup,
             "askBeforeExit": self.askBeforeExit,
+            "forceUnixLineEndings": self.forceUnixLineEndings,
             "lastAuthor": self._lastAuthor,
         }
 
@@ -1039,6 +1062,7 @@ class Config:
         }
 
         config["State"] = {
+            "novelViewSubCounts": self.novelViewSubCounts,
             "showDetailsPanel": self.showDetailsPanel,
             "showViewerPanel": self.showViewerPanel,
             "showEditToolBar": self.showEditToolBar,
@@ -1130,6 +1154,10 @@ class RecentProjects:
         self._data: dict[str, dict[str, str | int]] = {}
         self._map: dict[str, str] = {}
 
+    ##
+    #  Methods
+    ##
+
     def loadCache(self) -> bool:
         """Load the cache file for recent projects."""
         self._data = {}
@@ -1173,11 +1201,19 @@ class RecentProjects:
             (str(k), str(e["title"]), checkInt(e["words"], 0), checkInt(e["time"], 0)) for k, e in self._data.items()
         ]
 
+    def findCopy(self, path: str | Path, puuid: str) -> str | None:
+        """Return the path of another existing project with the same UUID."""
+        if (other := self._otherPath(str(path), puuid)) and safeIsFile(Path(other) / nwFiles.PROJ_FILE):
+            return other
+        return None
+
     def update(self, path: str | Path, data: ProjectData, saved: float | int) -> None:
         """Add or update recent cache information on a given project."""
         try:
-            if (remove := self._map.get(data.uuid)) and (remove != str(path)):
-                self.remove(remove)
+            # A project with the same UUID at another path has been moved, unless it still exists
+            if (other := self._otherPath(str(path), data.uuid)) and not safeIsFile(Path(other) / nwFiles.PROJ_FILE):
+                self.remove(other)
+
             self._setEntry(
                 data.uuid,
                 str(path),
@@ -1186,6 +1222,7 @@ class RecentProjects:
                 sum(data.currCounts[2:]),
                 int(saved),
             )
+
             self.saveCache()
         except Exception:
             pass
@@ -1195,6 +1232,16 @@ class RecentProjects:
         if self._data.pop(str(path), None) is not None:
             logger.debug("Removed recent: %s", path)
             self.saveCache()
+
+    ##
+    #  Internal Functions
+    ##
+
+    def _otherPath(self, path: str, puuid: str) -> str | None:
+        """Return another recorded path for the same project UUID."""
+        if (other := self._map.get(puuid)) and other != path and self._data.get(other, {}).get("uuid") == puuid:
+            return other
+        return None
 
     def _setEntry(self, puuid: str, path: str, title: str, words: int, chars: int, saved: int) -> None:
         """Set an entry in the recent projects record."""
@@ -1212,7 +1259,7 @@ class RecentProjects:
 class RecentPaths:
     """A record of recently used file paths."""
 
-    KEYS: Final[list[str]] = ["default", "project", "import", "outline", "stats"]
+    KEYS: Final[list[str]] = ["default", "project", "import", "story", "stats"]
 
     def __init__(self, config: Config) -> None:
         self._conf = config

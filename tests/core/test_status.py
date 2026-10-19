@@ -28,7 +28,8 @@ from PyQt6.QtGui import QColor, QIcon
 from novelwriter.core.status import CUSTOM_COL, ItemStatus, StatusEntry, _ShapeCache
 from novelwriter.enum import nwStatusShape
 
-from tests.helpers import C
+from tests.helpers import C, MockRnd
+from tests.mocked import MockGuiMain
 
 statusKeys = [C.sNew, C.sNote, C.sDraft, C.sFinished]
 importKeys = [C.iNew, C.iMinor, C.iMajor, C.iMain]
@@ -64,7 +65,7 @@ def testItemStatus_StatusEntry():
 
 
 @pytest.mark.core
-def testItemStatus_Internal(mockGUI, mockRnd):
+def testItemStatus_Internal(mockGUI: MockGuiMain, mockRnd: MockRnd):
     """Test all the internal functions of the ItemStatus class."""
     nStatus = ItemStatus(ItemStatus.STATUS)
     nImport = ItemStatus(ItemStatus.IMPORT)
@@ -119,7 +120,7 @@ def testItemStatus_Internal(mockGUI, mockRnd):
 
 
 @pytest.mark.core
-def testItemStatus_Iterator(mockGUI, mockRnd):
+def testItemStatus_Iterator(mockGUI: MockGuiMain, mockRnd: MockRnd):
     """Test the iterator functions of the ItemStatus class."""
     nStatus = ItemStatus(ItemStatus.STATUS)
     nStatus.add(None, "New", "#646464", "SQUARE", 0)
@@ -165,7 +166,7 @@ def testItemStatus_Iterator(mockGUI, mockRnd):
 
 
 @pytest.mark.core
-def testItemStatus_Entries(mockGUI, mockRnd):
+def testItemStatus_Entries(mockGUI: MockGuiMain, mockRnd: MockRnd):
     """Test all the simple setters for the ItemStatus class."""
     nStatus = ItemStatus(ItemStatus.STATUS)
 
@@ -332,7 +333,7 @@ def testItemStatus_Entries(mockGUI, mockRnd):
 
 
 @pytest.mark.core
-def testItemStatus_RefreshIcons_Theme(mockGUIwithTheme, mockRnd):
+def testItemStatus_RefreshIcons_Theme(mockGUIwithTheme: MockGuiMain, mockRnd: MockRnd):
     """Test refreshing the icons with theme colours."""
     nStatus = ItemStatus(ItemStatus.STATUS)
     nStatus.add(None, "New", "default", "SQUARE", 0)
@@ -355,7 +356,7 @@ def testItemStatus_RefreshIcons_Theme(mockGUIwithTheme, mockRnd):
 
 
 @pytest.mark.core
-def testItemStatus_RefreshIcons_Custom(mockGUIwithTheme, mockRnd):
+def testItemStatus_RefreshIcons_Custom(mockGUIwithTheme: MockGuiMain, mockRnd: MockRnd):
     """Test refreshing the icons with custom colours."""
     nStatus = ItemStatus(ItemStatus.STATUS)
     nStatus.add(None, "New", "#707070", "SQUARE", 0)
@@ -383,7 +384,7 @@ def testItemStatus_RefreshIcons_Custom(mockGUIwithTheme, mockRnd):
 
 
 @pytest.mark.core
-def testItemStatus_Pack(mockGUIwithTheme, mockRnd):
+def testItemStatus_Pack(mockGUIwithTheme: MockGuiMain, mockRnd: MockRnd):
     """Test data packing of the ItemStatus class."""
     nStatus = ItemStatus(ItemStatus.STATUS)
     nStatus.add(None, "New", "#646464", "SQUARE", 0)

@@ -26,6 +26,7 @@ import shutil
 import uuid
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -35,11 +36,11 @@ from novelwriter.core.project import NWProject
 from novelwriter.enum import nwBuildFmt, nwItemClass
 from novelwriter.manuscript.buildsettings import BuildCollection, BuildSettings, FilterMode
 
-from tests.helpers import C, buildTestProject
-from tests.mocked import causeOSError
+from tests.helpers import C, MockRnd, buildTestProject
+from tests.mocked import MockGuiMain, causeOSError
 
 
-def isUUID(value):
+def isUUID(value: Any) -> bool:
     """Check if a value is a valid UUID object."""
     try:
         uuid.UUID(value)
@@ -251,7 +252,7 @@ def testBuildSettings_BuildValues():
 
 
 @pytest.mark.core
-def testBuildSettings_Filters(mockGUI, fncPath: Path, mockRnd):
+def testBuildSettings_Filters(mockGUI: MockGuiMain, fncPath: Path, mockRnd: MockRnd):
     """Test filters for project items."""
     project = NWProject()
     buildTestProject(project, fncPath)
@@ -397,7 +398,12 @@ def testBuildSettings_Filters(mockGUI, fncPath: Path, mockRnd):
 
 
 @pytest.mark.core
-def testBuildSettings_Collection(monkeypatch, mockGUI, fncPath: Path, mockRnd):
+def testBuildSettings_Collection(
+    monkeypatch: pytest.MonkeyPatch,
+    mockGUI: MockGuiMain,
+    fncPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the collections class for builds."""
     project = NWProject()
     buildTestProject(project, fncPath)
@@ -488,6 +494,10 @@ def testBuildSettings_Collection(monkeypatch, mockGUI, fncPath: Path, mockRnd):
     # Check errors: Valid json file, but list instead of object
     buildsFile.write_text("[]")
     assert builds._loadCollection() is False
+
+    # Check errors: Valid json object, but no builds entry
+    buildsFile.write_text("{}")
+    assert builds._loadCollection() is False
     buildsFile.unlink()
     shutil.copy(buildsFile.with_suffix(".bak"), buildsFile)
 
@@ -513,7 +523,7 @@ def testBuildSettings_Collection(monkeypatch, mockGUI, fncPath: Path, mockRnd):
 
 
 @pytest.mark.core
-def testBuildSettings_Duplicate(monkeypatch, mockGUI, fncPath: Path, mockRnd):
+def testBuildSettings_Duplicate(monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain, fncPath: Path, mockRnd: MockRnd):
     """Test duplicating builds."""
     project = NWProject()
     buildTestProject(project, fncPath)

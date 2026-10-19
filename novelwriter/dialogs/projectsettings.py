@@ -49,9 +49,9 @@ from PyQt6.QtWidgets import (
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import formatFileFilter, qtAddAction, qtLambda, simplified
-from novelwriter.constants import nwLabels, trConst, trStats
+from novelwriter.constants import nwLabels, trConst, trUnit
 from novelwriter.core.status import CUSTOM_COL, ItemStatus, StatusEntry
-from novelwriter.enum import nwItemClass, nwStandardButton, nwStatusShape, nwToolButton
+from novelwriter.enum import nwItemClass, nwStandardButton, nwStatusShape, nwStdUnit, nwToolButton
 from novelwriter.extensions.configlayout import NColorLabel, NFixedPage, NScrollableForm
 from novelwriter.extensions.modified import NComboBox, NDialog, NIconButton, NSpinBox
 from novelwriter.extensions.pagedsidebar import NPagedSideBar
@@ -200,12 +200,13 @@ class GuiProjectSettings(NDialog):
         projName = self.settingsPage.projName.text()
         projAuthor = self.settingsPage.projAuthor.text()
         projLang = self.settingsPage.projLang.currentData()
+        isRTL = self.settingsPage.isRTL.isChecked()
         spellLang = self.settingsPage.spellLang.currentData()
         doBackup = not self.settingsPage.noBackup.isChecked()
 
         project.data.setName(projName)
         project.data.setAuthor(projAuthor)
-        project.setProjectLang(projLang)
+        project.setProjectLang(projLang, isRTL)
         project.data.setSpellLang(spellLang)
         project.data.setDoBackup(doBackup)
 
@@ -328,6 +329,15 @@ class _SettingsPage(NScrollableForm):
             self.tr("Overrides main preferences."),
         )
 
+        # RTL Support
+        self.isRTL = NSwitch(self)
+        self.isRTL.setChecked(data.isRTL)
+        self.addRow(
+            self.tr("Enable right-to-left text support"),
+            self.isRTL,
+            self.tr("Improves RTL text handling in editor and manuscript."),
+        )
+
         self.finalise()
 
 
@@ -425,7 +435,7 @@ class _GoalsPage(NScrollableForm):
     @pyqtSlot(bool)
     def _updateCountMode(self, checked: bool) -> None:
         """Update the unit label when the count mode is changed."""
-        unit = trStats("Characters" if checked else "Words")
+        unit = trUnit(nwStdUnit.CHARS if checked else nwStdUnit.WORDS)
         self.setUnitText("targetCount", unit)
         self.setUnitText("dailyGoal", unit)
 

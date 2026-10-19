@@ -32,11 +32,14 @@ from novelwriter.types import QtModNone, QtModShift
 
 
 class MockWidget(QWidget):
+    """Mock widget that counts wheel events."""
+
     def __init__(self):
         super().__init__(None)
         self.count = 0
 
     def wheelEvent(self, event: QWheelEvent) -> None:
+        """Count the wheel event."""
         self.count += 1
 
 

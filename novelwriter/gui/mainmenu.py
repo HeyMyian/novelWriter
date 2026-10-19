@@ -208,11 +208,6 @@ class GuiMainMenu(QMenuBar):
         self.aProjectSettings.setShortcut("Ctrl+Shift+,")
         self.aProjectSettings.triggered.connect(self.mainGui.showProjectSettingsDialog)
 
-        # Project > Novel Details
-        self.aNovelDetails = qtAddAction(self.projMenu, self.tr("Novel Details"))
-        self.aNovelDetails.setShortcut("Shift+F6")
-        self.aNovelDetails.triggered.connect(self.mainGui.showNovelDetailsDialog)
-
         # Project > Separator
         self.projMenu.addSeparator()
 
@@ -253,13 +248,13 @@ class GuiMainMenu(QMenuBar):
         # Document > Save
         self.aSaveDoc = qtAddAction(self.docuMenu, self.tr("Save Document"))
         self.aSaveDoc.setShortcut("Ctrl+S")
-        self.aSaveDoc.triggered.connect(self.mainGui.forceSaveDocument)
+        self.aSaveDoc.triggered.connect(self.mainGui.docPanes.forceSaveDocument)
         self.mainGui.addAction(self.aSaveDoc)
 
         # Document > Close
         self.aCloseDoc = qtAddAction(self.docuMenu, self.tr("Close Document"))
         self.aCloseDoc.setShortcut("Ctrl+W")
-        self.aCloseDoc.triggered.connect(self.mainGui.closeDocEditor)
+        self.aCloseDoc.triggered.connect(self.mainGui.docPanes.closeDocEditor)
         self.mainGui.addAction(self.aCloseDoc)
 
         # Document > Separator
@@ -268,12 +263,12 @@ class GuiMainMenu(QMenuBar):
         # Document > Preview
         self.aViewDoc = qtAddAction(self.docuMenu, self.tr("View Document"))
         self.aViewDoc.setShortcut("Ctrl+R")
-        self.aViewDoc.triggered.connect(qtWeakLambda(self.mainGui.viewDocument, None))
+        self.aViewDoc.triggered.connect(qtWeakLambda(self.mainGui.docPanes.viewDocument, None))
 
         # Document > Close Preview
         self.aCloseView = qtAddAction(self.docuMenu, self.tr("Close Document View"))
         self.aCloseView.setShortcut("Ctrl+Shift+R")
-        self.aCloseView.triggered.connect(self.mainGui.closeDocViewer)
+        self.aCloseView.triggered.connect(self.mainGui.docPanes.closeDocViewer)
 
         # Document > Separator
         self.docuMenu.addSeparator()
@@ -284,7 +279,7 @@ class GuiMainMenu(QMenuBar):
 
         # Document > Import From File
         self.aImportFile = qtAddAction(self.docuMenu, self.tr("Import Text from File"))
-        self.aImportFile.triggered.connect(qtWeakLambda(self.mainGui.importDocument))
+        self.aImportFile.triggered.connect(qtWeakLambda(self.mainGui.docPanes.importDocument))
 
         # Document > Move Text
         self.aMoveText = qtAddAction(self.docuMenu, self.tr("Move Text to New Document"))
@@ -359,11 +354,16 @@ class GuiMainMenu(QMenuBar):
         self.aFocusDocument.setShortcut("Ctrl+E")
         self.aFocusDocument.triggered.connect(qtWeakLambda(self._emitFocusChange, nwFocus.DOCUMENT))
 
-        # View > Outline
-        self.aFocusOutline = qtAddAction(self.viewMenu, self.tr("Go to Outline"))
-        self.aFocusOutline.setShortcut("Ctrl+Shift+T")
-        self.aFocusOutline.triggered.connect(qtWeakLambda(self._emitFocusChange, nwFocus.OUTLINE))
-        self.mainGui.addAction(self.aFocusOutline)
+        # View > Story View
+        self.aFocusStory = qtAddAction(self.viewMenu, self.tr("Go to Story View"))
+        self.aFocusStory.setShortcut("Ctrl+Shift+T")
+        self.aFocusStory.triggered.connect(qtWeakLambda(self._emitFocusChange, nwFocus.STORY))
+        self.mainGui.addAction(self.aFocusStory)
+
+        # View > Show/Hide Tree View
+        self.aHideTreePane = qtAddAction(self.viewMenu, self.tr("Show/Hide Tree View"))
+        self.aHideTreePane.setShortcut("Shift+F8")
+        self.aHideTreePane.triggered.connect(self.mainGui.toggleTreePane)
 
         # View > Separator
         self.viewMenu.addSeparator()
@@ -662,6 +662,11 @@ class GuiMainMenu(QMenuBar):
         self.aFmtMark.triggered.connect(qtWeakLambda(self._emitDocAction, nwDocAction.MD_MARK))
         self.mainGui.addAction(self.aFmtStrike)
 
+        # Format > Link
+        self.aFmtLink = qtAddAction(self.fmtMenu, self.tr("Link"))
+        self.aFmtLink.triggered.connect(qtWeakLambda(self._emitDocAction, nwDocAction.MD_LINK))
+        self.mainGui.addAction(self.aFmtLink)
+
         # Edit > Separator
         self.fmtMenu.addSeparator()
 
@@ -788,6 +793,17 @@ class GuiMainMenu(QMenuBar):
         self.aFmtIndentRight.setShortcut("Ctrl+9")
         self.aFmtIndentRight.triggered.connect(qtWeakLambda(self._emitDocAction, nwDocAction.INDENT_R))
         self.mainGui.addAction(self.aFmtIndentRight)
+
+        # Format > Separator
+        self.fmtMenu.addSeparator()
+
+        # Format > Bullet List
+        self.aFmtListU = qtAddAction(self.fmtMenu, self.tr("Bullet List"))
+        self.aFmtListU.triggered.connect(qtWeakLambda(self._emitDocAction, nwDocAction.BLOCK_LST_U))
+
+        # Format > Numbered List
+        self.aFmtListO = qtAddAction(self.fmtMenu, self.tr("Numbered List"))
+        self.aFmtListO.triggered.connect(qtWeakLambda(self._emitDocAction, nwDocAction.BLOCK_LST_O))
 
         # Format > Separator
         self.fmtMenu.addSeparator()

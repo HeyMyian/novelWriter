@@ -21,6 +21,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 import pytest
 
 from PyQt6.QtGui import QTextCharFormat, QTextCursor, QTextDocument
@@ -31,6 +33,7 @@ from novelwriter.core.spellcheck import SpellEnchant
 from novelwriter.editor.highlighter import BLOCK_META, BLOCK_TITLE, GuiDocHighlighter
 from novelwriter.editor.textblock import TextBlockData
 from novelwriter.enum import nwItemClass, nwItemLayout, nwItemType, nwTheme
+from novelwriter.guimain import GuiMain
 from novelwriter.types import QtKeepAnchor
 
 R_HANDLE = "3456789abcdef"
@@ -38,7 +41,7 @@ T_HANDLE = "0123456789abc"
 
 
 @pytest.fixture
-def syntax(nwGUI):
+def syntax(nwGUI: GuiMain) -> Iterator[GuiDocHighlighter]:
     """Create a syntax object for use with testing."""
     CONFIG.lightTheme = "default_light"
     CONFIG.themeMode = nwTheme.LIGHT
@@ -102,7 +105,7 @@ def maxOrd(text: str) -> int:
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_Basic(syntax):
+def testGuiDocHighlighter_Basic(syntax: GuiDocHighlighter):
     """Test the basic functionality of the syntax highlighter."""
     # Check Handle
     assert syntax._tHandle is None
@@ -128,7 +131,7 @@ def testGuiDocHighlighter_Basic(syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_Keywords(syntax):
+def testGuiDocHighlighter_Keywords(syntax: GuiDocHighlighter):
     """Test highlighting of keywords."""
     theme = SHARED.theme
     doc = syntax.document()
@@ -213,7 +216,7 @@ def testGuiDocHighlighter_Keywords(syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_Titles(syntax):
+def testGuiDocHighlighter_Titles(syntax: GuiDocHighlighter):
     """Test highlighting of titles."""
     theme = SHARED.theme
     doc = syntax.document()
@@ -315,7 +318,7 @@ def testGuiDocHighlighter_Titles(syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_Comments(syntax):
+def testGuiDocHighlighter_Comments(syntax: GuiDocHighlighter):
     """Test highlighting of comments."""
     theme = SHARED.theme
     doc = syntax.document()
@@ -412,7 +415,7 @@ def testGuiDocHighlighter_Comments(syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_Special(syntax):
+def testGuiDocHighlighter_Special(syntax: GuiDocHighlighter):
     """Test highlighting of special commands."""
     theme = SHARED.theme
     doc = syntax.document()
@@ -508,7 +511,7 @@ def testGuiDocHighlighter_Special(syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_Text(monkeypatch, syntax):
+def testGuiDocHighlighter_Text(monkeypatch: pytest.MonkeyPatch, syntax: GuiDocHighlighter):
     """Test highlighting of text."""
     theme = SHARED.theme
     doc = syntax.document()
@@ -638,7 +641,68 @@ def testGuiDocHighlighter_Text(monkeypatch, syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_MaxBlockLength(monkeypatch, syntax):
+def testGuiDocHighlighter_Lists(monkeypatch: pytest.MonkeyPatch, syntax: GuiDocHighlighter):
+    """Test highlighting of list items."""
+    theme = SHARED.theme
+    doc = syntax.document()
+    assert doc is not None
+
+    # Settings
+    syntax._tHandle = T_HANDLE
+    syntax._isNovel = True
+    monkeypatch.setattr(SpellEnchant, "checkWord", lambda *a: False)
+
+    colHidden = theme.syntaxTheme.hidden.getRgb()
+    colEmph = theme.syntaxTheme.emph.getRgb()
+    colCode = theme.syntaxTheme.code.getRgb()
+    colDialogue = theme.syntaxTheme.dialN.getRgb()
+
+    doc.setPlainText("* Some **bold** text\n* * *\n> * Not an item\n* “Hi,” she said.\n“Hi,” she said.\n")
+    syntax.rehighlight()
+
+    pieces, formats = getFragments(syntax)
+    assert pieces == [
+        (0, 0, 2, "* "),
+        (0, 7, 2, "**"),
+        (0, 9, 4, "bold"),
+        (0, 13, 2, "**"),
+        (2, 0, 1, ">"),
+        (3, 0, 2, "* "),
+        (4, 0, 5, "“Hi,”"),
+    ]
+    assert formats[0].foreground().color().getRgb() == colCode  # *
+    assert formats[1].foreground().color().getRgb() == colHidden  # **
+    assert formats[2].foreground().color().getRgb() == colEmph  # bold
+    assert formats[3].foreground().color().getRgb() == colHidden  # **
+    assert formats[5].foreground().color().getRgb() == colCode  # *
+    assert formats[6].foreground().color().getRgb() == colDialogue  # Dialogue
+
+    # Spell Check
+    data = doc.findBlockByNumber(0).userData()
+    assert isinstance(data, TextBlockData)
+    assert data.spellCheck() == [
+        (2, 6, "Some"),
+        (9, 13, "bold"),
+        (16, 20, "text"),
+    ]
+
+    # Ordered Lists
+    doc.setPlainText("#. Some **bold** text\n#.   \n#.Not an item\n")
+    syntax.rehighlight()
+
+    pieces, formats = getFragments(syntax)
+    assert pieces == [
+        (0, 0, 3, "#. "),
+        (0, 8, 2, "**"),
+        (0, 10, 4, "bold"),
+        (0, 14, 2, "**"),
+    ]
+    assert formats[0].foreground().color().getRgb() == colCode  # #.
+    assert formats[2].foreground().color().getRgb() == colEmph  # bold
+
+
+@pytest.mark.gui
+def testGuiDocHighlighter_MaxBlockLength(monkeypatch: pytest.MonkeyPatch, syntax: GuiDocHighlighter):
     """Content beyond the max block length cap must be ignored
     entirely: no syntax highlighting, and no spell/format checking.
     """
@@ -669,7 +733,7 @@ def testGuiDocHighlighter_MaxBlockLength(monkeypatch, syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_UnknownCommand(syntax):
+def testGuiDocHighlighter_UnknownCommand(syntax: GuiDocHighlighter):
     """An unrecognised bracketed command falls back to plain rules."""
     doc = syntax.document()
     assert doc is not None
@@ -683,7 +747,7 @@ def testGuiDocHighlighter_UnknownCommand(syntax):
 
 
 @pytest.mark.gui
-def testGuiDocHighlighter_OverlappingMarkup(syntax):
+def testGuiDocHighlighter_OverlappingMarkup(syntax: GuiDocHighlighter):
     """Nested markup (e.g. italic inside bold) must not have the
     outer rule overwrite the markup already applied by the inner
     rule, including when a 4-byte unicode character forces the

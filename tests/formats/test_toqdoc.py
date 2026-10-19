@@ -23,7 +23,8 @@ from __future__ import annotations
 
 import pytest
 
-from PyQt6.QtGui import QTextBlock, QTextCharFormat, QTextCursor, QTextFormat, QTextLength
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QTextBlock, QTextCharFormat, QTextCursor, QTextFormat, QTextLength, QTextListFormat
 
 from novelwriter import CONFIG
 from novelwriter.constants import nwHeadFmt, nwUnicode
@@ -38,6 +39,7 @@ from novelwriter.types import (
     QtAlignLeft,
     QtAlignRight,
     QtFontBold,
+    QtLayoutRTL,
     QtMoveEnd,
     QtPageBreakAfter,
     QtPageBreakAuto,
@@ -47,6 +49,8 @@ from novelwriter.types import (
     QtVAlignSub,
     QtVAlignSuper,
 )
+
+from tests.mocked import MockGuiMain
 
 THEME = TextDocumentTheme()
 
@@ -59,7 +63,7 @@ def charFmtInBlock(block: QTextBlock, pos: int) -> QTextCharFormat:
 
 
 @pytest.mark.core
-def testToQTextDocument_ConvertHeaders(mockGUI):
+def testToQTextDocument_ConvertHeaders(mockGUI: MockGuiMain):
     """Test header formats in the ToQTextDocument class."""
     project = NWProject()
     doc = ToQTextDocument(project)
@@ -150,7 +154,7 @@ def testToQTextDocument_ConvertHeaders(mockGUI):
 
 
 @pytest.mark.core
-def testToQTextDocument_SeparatorSkip(mockGUI):
+def testToQTextDocument_SeparatorSkip(mockGUI: MockGuiMain):
     """Test separator and skip in the ToQTextDocument class."""
     project = NWProject()
     doc = ToQTextDocument(project)
@@ -207,7 +211,7 @@ def testToQTextDocument_SeparatorSkip(mockGUI):
 
 
 @pytest.mark.core
-def testToQTextDocument_HorizontalRule(mockGUI):
+def testToQTextDocument_HorizontalRule(mockGUI: MockGuiMain):
     """Test horizontal rule helper in the ToQTextDocument class."""
     project = NWProject()
     doc = ToQTextDocument(project)
@@ -237,7 +241,7 @@ def testToQTextDocument_HorizontalRule(mockGUI):
 
 
 @pytest.mark.core
-def testToQTextDocument_NovelMeta(mockGUI):
+def testToQTextDocument_NovelMeta(mockGUI: MockGuiMain):
     """Test novel meta formats in the ToQTextDocument class."""
     project = NWProject()
     doc = ToQTextDocument(project)
@@ -309,7 +313,7 @@ def testToQTextDocument_NovelMeta(mockGUI):
 
 
 @pytest.mark.core
-def testToQTextDocument_NoteMeta(mockGUI):
+def testToQTextDocument_NoteMeta(mockGUI: MockGuiMain):
     """Test note meta formats in the ToQTextDocument class."""
     project = NWProject()
     doc = ToQTextDocument(project)
@@ -361,7 +365,7 @@ def testToQTextDocument_NoteMeta(mockGUI):
 
 
 @pytest.mark.core
-def testToQTextDocument_TextBlockFormats(mockGUI):
+def testToQTextDocument_TextBlockFormats(mockGUI: MockGuiMain):
     """Test text block formats in the ToQTextDocument class."""
     project = NWProject()
     doc = ToQTextDocument(project)
@@ -397,7 +401,7 @@ def testToQTextDocument_TextBlockFormats(mockGUI):
     block = doc.document.findBlockByNumber(1)
     assert block.text() == "Left"
     bFmt = block.blockFormat()
-    assert bFmt.alignment() == QtAlignLeft
+    assert bFmt.alignment() == QtAlignAbsolute | QtAlignLeft
 
     # 2: Center
     block = doc.document.findBlockByNumber(2)
@@ -409,7 +413,7 @@ def testToQTextDocument_TextBlockFormats(mockGUI):
     block = doc.document.findBlockByNumber(3)
     assert block.text() == "Right"
     bFmt = block.blockFormat()
-    assert bFmt.alignment() == QtAlignRight
+    assert bFmt.alignment() == QtAlignAbsolute | QtAlignRight
 
     # 4: Left Indent
     block = doc.document.findBlockByNumber(4)
@@ -444,6 +448,31 @@ def testToQTextDocument_TextBlockFormats(mockGUI):
     assert bFmt.leftMargin() == 0.0
     assert bFmt.rightMargin() == 0.0
 
+    # Right-to-Left
+    # =============
+    doc = ToQTextDocument(project)
+    doc.setLanguage(None, True)
+    doc.initDocument()
+
+    doc._text = "Text\n\nمتن\n\n1234\n\n"
+    doc.tokenizeText()
+    doc.doConvert()
+    doc.closeDocument()
+    assert doc.document.blockCount() == 3
+
+    # Text with strong characters keeps its own direction
+    block = doc.document.findBlockByNumber(0)
+    assert block.textDirection() == Qt.LayoutDirection.LeftToRight
+    assert not block.blockFormat().alignment() & QtAlignAbsolute
+    block = doc.document.findBlockByNumber(1)
+    assert block.textDirection() == QtLayoutRTL
+    assert block.blockFormat().layoutDirection() == Qt.LayoutDirection.LayoutDirectionAuto
+
+    # Text without strong characters uses the project direction
+    block = doc.document.findBlockByNumber(2)
+    assert block.textDirection() == QtLayoutRTL
+    assert block.blockFormat().layoutDirection() == QtLayoutRTL
+
     # Unreachable
     # ===========
     # Some formatting markers are currently not reachable
@@ -470,7 +499,82 @@ def testToQTextDocument_TextBlockFormats(mockGUI):
 
 
 @pytest.mark.core
-def testToQTextDocument_TextCharFormats(mockGUI):
+def testToQTextDocument_Lists(mockGUI: MockGuiMain):
+    """Test lists in the ToQTextDocument class."""
+    project = NWProject()
+    doc = ToQTextDocument(project)
+    doc.setShowNewPage(True)
+    doc.initDocument()
+
+    doc._isNovel = True
+    doc._isFirst = True
+
+    doc._text = (
+        "### Scene\n* One\n* Two\n\n* Three\n\nText\n\n* Four\n[newpage]\n* Five\n\n#. Six\n#. Seven\n* Eight\n\n"
+    )
+    doc.tokenizeText()
+    doc.doConvert()
+    blocks = {}
+    block = doc.document.begin()
+    while block.isValid():
+        blocks[block.text()] = block
+        block = block.next()
+
+    assert doc.document.indentWidth() == doc._mIndent
+
+    # First list
+    bOne = blocks["One"]
+    bTwo = blocks["Two"]
+    assert (lOne := bOne.textList()) is not None
+    assert lOne.format().style() == QTextListFormat.Style.ListDisc
+    assert lOne.format().indent() == 1
+    assert lOne.count() == 2
+    assert lOne.itemNumber(bOne) == 0
+    assert lOne.itemNumber(bTwo) == 1
+
+    # The bullet does not inherit the heading format
+    assert bOne.charFormat() == doc._charFmt
+
+    # Margins are zero between items
+    assert bOne.blockFormat().topMargin() == doc._mText[0]
+    assert bOne.blockFormat().bottomMargin() == 0.0
+    assert bTwo.blockFormat().topMargin() == 0.0
+    assert bTwo.blockFormat().bottomMargin() == doc._mText[1]
+
+    # A blank line starts a new list
+    bThree = blocks["Three"]
+    assert (lThree := bThree.textList()) is not None
+    assert lThree.count() == 1
+    assert lThree.itemNumber(bOne) == -1
+
+    # Text after a list is not a list item
+    assert blocks["Text"].textList() is None
+
+    # A page break does not end the list
+    bFour = blocks["Four"]
+    bFive = blocks["Five"]
+    assert (lFour := bFour.textList()) is not None
+    assert lFour.count() == 2
+    assert lFour.itemNumber(bFive) == 1
+    assert bFive.blockFormat().pageBreakPolicy() == QtPageBreakBefore
+
+    # Ordered list, ended by a bullet item
+    bSix = blocks["Six"]
+    bSeven = blocks["Seven"]
+    assert (lSix := bSix.textList()) is not None
+    assert lSix.format().style() == QTextListFormat.Style.ListDecimal
+    assert lSix.format().indent() == 1
+    assert lSix.count() == 2
+    assert lSix.itemNumber(bSeven) == 1
+    assert lSix.itemText(bSeven) == "2."
+
+    assert (lEight := blocks["Eight"].textList()) is not None
+    assert lEight.format().style() == QTextListFormat.Style.ListDisc
+    assert lEight.count() == 1
+
+
+@pytest.mark.core
+def testToQTextDocument_TextCharFormats(mockGUI: MockGuiMain):
     """Test text char formats in the ToQTextDocument class."""
     CONFIG.fmtDQuoteOpen = nwUnicode.U_LDQUO
     CONFIG.fmtDQuoteClose = nwUnicode.U_RDQUO
@@ -618,7 +722,7 @@ def testToQTextDocument_TextCharFormats(mockGUI):
 
 
 @pytest.mark.core
-def testToQTextDocument_Footnotes(mockGUI):
+def testToQTextDocument_Footnotes(mockGUI: MockGuiMain):
     """Test footnotes in the ToQTextDocument class."""
     project = NWProject()
     doc = ToQTextDocument(project)
@@ -656,7 +760,7 @@ def testToQTextDocument_Footnotes(mockGUI):
 
 
 @pytest.mark.core
-def testToQTextDocument_Fields(mockGUI):
+def testToQTextDocument_Fields(mockGUI: MockGuiMain):
     """Test field substitution in the ToQTextDocument class."""
     project = NWProject()
     doc = ToQTextDocument(project)

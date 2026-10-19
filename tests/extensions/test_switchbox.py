@@ -23,14 +23,17 @@ from __future__ import annotations
 
 import pytest
 
+from pytestqt.qtbot import QtBot
+
 from novelwriter.extensions.switch import NSwitch
 from novelwriter.extensions.switchbox import NSwitchBox
 
 from tests.helpers import SimpleDialog, checkWidgetFreedOnRelease
+from tests.mocked import MockGuiMain
 
 
 @pytest.mark.gui
-def testNSwitchBox_AddAndState(qtbot, mockGUIwithTheme):
+def testNSwitchBox_AddAndState(qtbot: QtBot, mockGUIwithTheme: MockGuiMain):
     """Test adding labels, items and separators, and reading and
     writing the resulting switch state.
     """
@@ -65,7 +68,7 @@ def testNSwitchBox_AddAndState(qtbot, mockGUIwithTheme):
 
 
 @pytest.mark.gui
-def testNSwitchBox_UpdateInPlace(qtbot, mockGUIwithTheme):
+def testNSwitchBox_UpdateInPlace(qtbot: QtBot, mockGUIwithTheme: MockGuiMain):
     """Test that re-adding an existing identifier updates the entry in
     place rather than appending a duplicate, and keeps the current
     switch state instead of resetting it to the new default.
@@ -103,7 +106,7 @@ def testNSwitchBox_UpdateInPlace(qtbot, mockGUIwithTheme):
 
 
 @pytest.mark.gui
-def testNSwitchBox_RemoveItem(qtbot, mockGUIwithTheme):
+def testNSwitchBox_RemoveItem(qtbot: QtBot, mockGUIwithTheme: MockGuiMain):
     """Test removing items from the switch box, including items that
     were never added and items without an icon.
     """
@@ -137,7 +140,7 @@ def testNSwitchBox_RemoveItem(qtbot, mockGUIwithTheme):
 
 
 @pytest.mark.gui
-def testNSwitchBox_Clear(qtbot, mockGUIwithTheme):
+def testNSwitchBox_Clear(qtbot: QtBot, mockGUIwithTheme: MockGuiMain):
     """Test that clear() resets all internal tracking dicts, and that
     the widget remains usable afterwards.
     """
@@ -159,7 +162,7 @@ def testNSwitchBox_Clear(qtbot, mockGUIwithTheme):
 
 
 @pytest.mark.gui
-def testNSwitchBox_MemoryLeakRegression(qtbot, mockGUIwithTheme):
+def testNSwitchBox_MemoryLeakRegression(qtbot: QtBot, mockGUIwithTheme: MockGuiMain):
     """Test that the box is freed by reference count alone once
     released, even though its switches connect back to it. This guards
     against a self-pinning closure connected to a switch in the box's

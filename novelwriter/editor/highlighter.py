@@ -25,7 +25,7 @@ import logging
 import re
 
 from time import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QBrush, QColor, QSyntaxHighlighter, QTextCharFormat, QTextDocument
@@ -198,6 +198,19 @@ class GuiDocHighlighter(QSyntaxHighlighter):
         self._txtRules.append((rxRule, hlRule))
         self._cmnRules.append((rxRule, hlRule))
 
+        # Markdown Link
+        rxRule = REGEX_PATTERNS.markdownLink
+        hlRule = {
+            1: self._hStyles["markup"],
+            2: self._hStyles["value"],
+            3: self._hStyles["markup"],
+            4: self._hStyles["link"],
+            5: self._hStyles["markup"],
+        }
+        self._minRules.append((rxRule, hlRule))
+        self._txtRules.append((rxRule, hlRule))
+        self._cmnRules.append((rxRule, hlRule))
+
         # Shortcodes
         rxRule = REGEX_PATTERNS.shortcodePlain
         hlRule = {
@@ -264,7 +277,7 @@ class GuiDocHighlighter(QSyntaxHighlighter):
 
     def rehighlight(self) -> None:
         """Mark the document layout busy before a full rehighlight."""
-        doc: GuiTextDocument = self.document()  # type: ignore[assignment]
+        doc = cast("GuiTextDocument", self.document())
         if hasattr(doc, "markLayoutBusy"):
             doc.markLayoutBusy()
         super().rehighlight()
@@ -403,6 +416,20 @@ class GuiDocHighlighter(QSyntaxHighlighter):
             else:
                 self.setFormat(0, pos, self._hStyles["modifier"])
                 self.setFormat(pos, length, self._hStyles["note"])
+
+        elif text.startswith("* ") and text[2:].strip("* "):  # Unordered Lists
+            self.setCurrentBlockState(BLOCK_TEXT)
+            rules = self._cmnRules
+
+            self.setFormat(0, 2, self._hStyles["code"])
+            offset = 2
+
+        elif text.startswith("#. ") and text[3:].strip():  # Ordered Lists
+            self.setCurrentBlockState(BLOCK_TEXT)
+            rules = self._cmnRules
+
+            self.setFormat(0, 3, self._hStyles["code"])
+            offset = 3
 
         elif text.startswith("["):  # Special Command
             self.setCurrentBlockState(BLOCK_TEXT)

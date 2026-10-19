@@ -26,14 +26,16 @@ from time import sleep
 import pytest
 
 from PyQt6.QtGui import QColor
+from pytestqt.qtbot import QtBot
 
 from novelwriter.extensions.progressbars import NColorRangeProgress, NProgressCircle, NProgressSimple
 
 from tests.helpers import SimpleDialog
+from tests.mocked import MockGuiMain
 
 
 @pytest.mark.gui
-def testNProgressCircle_Main(qtbot):
+def testNProgressCircle_Main(qtbot: QtBot):
     """Test the NProgressCircle class."""
     dialog = SimpleDialog()
     progress = NProgressCircle(dialog, 200, 16)
@@ -66,7 +68,7 @@ def testNProgressCircle_Main(qtbot):
 
 
 @pytest.mark.gui
-def testNProgressSimple_Main(qtbot):
+def testNProgressSimple_Main(qtbot: QtBot):
     """Test the NProgressSimple class."""
     dialog = SimpleDialog()
     progress = NProgressSimple(dialog)
@@ -85,7 +87,7 @@ def testNProgressSimple_Main(qtbot):
 
 
 @pytest.mark.gui
-def testNColorRangeProgress_Main(qtbot, mockGUI):
+def testNColorRangeProgress_Main(qtbot: QtBot, mockGUI: MockGuiMain):
     """Test the NColorRangeProgress class."""
     dialog = SimpleDialog()
     progress = NColorRangeProgress(dialog, 200, 20, 2)
