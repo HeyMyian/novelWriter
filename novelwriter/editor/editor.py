@@ -2212,6 +2212,7 @@ class GuiDocEditor(QTextEdit):
             cursor = QTextCursor(self._qDocument)
             cursor.setPosition(start)
             cursor.setPosition(end, QtKeepAnchor)
+            cursor.setKeepPositionOnInsert(True)  # Don't extend on typing after (#3105)
             selection = QTextEdit.ExtraSelection()
             selection.format = self._searchFormat
             selection.cursor = cursor

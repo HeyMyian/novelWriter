@@ -4014,6 +4014,23 @@ def testGuiDocEditor_Search(
         nwGUI.mainMenu.aFindNext.activate(QAction.ActionEvent.Trigger)
     assert docEditor.getCursorPosition() == anyMatches[0][1]
 
+    # Typing next to a highlighted match should not extend it
+    mStart, mEnd = anyMatches[0]
+    match = origText[mStart:mEnd]
+    highlight = docEditor._searchSelections[0].cursor
+    assert highlight.selectedText() == match
+    cursor = docEditor.textCursor()
+    cursor.setPosition(mEnd)
+    cursor.insertText("xx")
+    assert highlight.selectedText() == match
+    cursor.setPosition(mStart)
+    cursor.insertText("yy")
+    assert highlight.selectedText() == match
+    cursor.setPosition(mStart)
+    cursor.setPosition(mEnd + 4, QtKeepAnchor)
+    cursor.insertText(match)
+    assert docEditor.getText() == origText
+
     # Close search
     docSearch.tbCancel.click()
     assert docSearch.isVisible() is False
