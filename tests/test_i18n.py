@@ -94,8 +94,8 @@ def testGuiI18n_Localisation(
 
 
 @pytest.mark.base
-@pytest.mark.parametrize("language", [a for a, b in PROJ_DATA])
-def testGuiI18n_ProjectLanguageFiles(language: str):
+@pytest.mark.parametrize("language", [a for a, b in PROJ_DATA if a != "en_GB"])
+def testGuiI18n_ProjectExport(language: str):
     """Check that a project language file matches the en_GB reference."""
     langPath = Path(CONFIG.nwLangPath)
     reference = json.loads((langPath / "project_en_GB.json").read_text(encoding="utf-8"))
