@@ -361,6 +361,15 @@ class GuiPreferences(NDialog):
             self.tr("Hides the title and most buttons."),
         )
 
+        # Project Goal in Focus Mode
+        self.goalInFocusMode = NSwitch(self)
+        self.goalInFocusMode.setChecked(CONFIG.goalInFocusMode)
+        self.mainForm.addRow(
+            self.tr('Show writing goal in "Focus Mode"'),
+            self.goalInFocusMode,
+            self.tr("Keeps the goal progress in the status bar."),
+        )
+
         # Project View
         # ============
 
@@ -1236,6 +1245,7 @@ class GuiPreferences(NDialog):
         CONFIG.showFullPath = self.showFullPath.isChecked()
         CONFIG.hideFocusFooter = self.hideFocusFooter.isChecked()
         CONFIG.cleanFocusHeader = self.cleanFocusHeader.isChecked()
+        CONFIG.goalInFocusMode = self.goalInFocusMode.isChecked()
         CONFIG.setTextFont(textFont)
 
         # Project View

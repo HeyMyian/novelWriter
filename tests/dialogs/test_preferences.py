@@ -224,11 +224,13 @@ def testGuiPreferences_Settings(
     prefs.showFullPath.setChecked(False)
     prefs.hideFocusFooter.setChecked(True)
     prefs.cleanFocusHeader.setChecked(True)
+    prefs.goalInFocusMode.setChecked(True)
 
     assert CONFIG.textFont.family() != ""
     assert CONFIG.showFullPath is True
     assert CONFIG.hideFocusFooter is False
     assert CONFIG.cleanFocusHeader is False
+    assert CONFIG.goalInFocusMode is False
 
     # Project View
     prefs.iconColTree.setCurrentData("faded", "default")
@@ -451,6 +453,7 @@ def testGuiPreferences_Settings(
     assert CONFIG.showFullPath is False
     assert CONFIG.hideFocusFooter is True
     assert CONFIG.cleanFocusHeader is True
+    assert CONFIG.goalInFocusMode is True
 
     # Project View
     assert CONFIG.iconColTree == "faded"

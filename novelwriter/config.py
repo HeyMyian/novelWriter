@@ -164,6 +164,7 @@ class Config:
         "focusWidth",
         "fontWinSize",
         "forceUnixLineEndings",
+        "goalInFocusMode",
         "guiFont",
         "guiForceRTL",
         "guiLocale",
@@ -320,6 +321,7 @@ class Config:
         self.hideHScroll = False  # Hide horizontal scroll bars on main widgets
         self.lastNotes = "0x0"  # The latest release notes that have been shown
         self.nativeFont = True  # Use native font dialog
+        self.goalInFocusMode = False  # Show project goal when in focus mode
         self.useCharCount = False  # Use character count as primary count
         self.countUnit = "words"  # Primary count unit
         self.vimMode = False  # Enable Vim mode
@@ -849,6 +851,7 @@ class Config:
         self.nativeFont = parser.getBool(sec, "nativeFont", self.nativeFont)
         self.hideFocusFooter = parser.getBool(sec, "hideFocusFooter", self.hideFocusFooter)
         self.cleanFocusHeader = parser.getBool(sec, "cleanFocusHeader", self.cleanFocusHeader)
+        self.goalInFocusMode = parser.getBool(sec, "goalInFocusMode", self.goalInFocusMode)
         self.useCharCount = parser.getBool(sec, "useCharCount", self.useCharCount)
         self.vimMode = parser.getBool(sec, "vimMode", self.vimMode)
 
@@ -998,6 +1001,7 @@ class Config:
             "nativeFont": self.nativeFont,
             "hideFocusFooter": self.hideFocusFooter,
             "cleanFocusHeader": self.cleanFocusHeader,
+            "goalInFocusMode": self.goalInFocusMode,
             "useCharCount": self.useCharCount,
             "vimMode": self.vimMode,
         }

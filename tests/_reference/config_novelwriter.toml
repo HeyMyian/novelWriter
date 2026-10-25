@@ -17,6 +17,7 @@ lastNotes = "0x0"
 nativeFont = true
 hideFocusFooter = false
 cleanFocusHeader = false
+goalInFocusMode = false
 useCharCount = false
 vimMode = false
 
