@@ -292,6 +292,15 @@ class GuiPreferences(NDialog):
             self.tr("Display character count instead where available."),
         )
 
+        # Include Notes in Word Count
+        self.incNotesWCount = NSwitch(self)
+        self.incNotesWCount.setChecked(CONFIG.incNotesWCount)
+        self.mainForm.addRow(
+            self.tr("Include project notes in status bar word count"),
+            self.incNotesWCount,
+            self.tr("If off, only shows novel word count."),
+        )
+
         # Force RTL Layout
         self.guiForceRTL = NSwitch(self)
         self.guiForceRTL.setChecked(CONFIG.guiForceRTL)
@@ -334,12 +343,22 @@ class GuiPreferences(NDialog):
             self.tr("Add the parent folder names to the header."),
         )
 
-        # Include Notes in Word Count
-        self.incNotesWCount = NSwitch(self)
-        self.incNotesWCount.setChecked(CONFIG.incNotesWCount)
+        # Focus Mode Footer
+        self.hideFocusFooter = NSwitch(self)
+        self.hideFocusFooter.setChecked(CONFIG.hideFocusFooter)
         self.mainForm.addRow(
-            self.tr("Include project notes in status bar word count"),
-            self.incNotesWCount,
+            self.tr('Hide document footer in "Focus Mode"'),
+            self.hideFocusFooter,
+            self.tr("Hides the entire document footer."),
+        )
+
+        # Focus Mode Header
+        self.cleanFocusHeader = NSwitch(self)
+        self.cleanFocusHeader.setChecked(CONFIG.cleanFocusHeader)
+        self.mainForm.addRow(
+            self.tr('Minimal document header in "Focus Mode"'),
+            self.cleanFocusHeader,
+            self.tr("Hides the title and most buttons."),
         )
 
         # Project View
@@ -584,24 +603,6 @@ class GuiPreferences(NDialog):
             self.lineHeight,
             self.tr("The relative line height in the editor and viewer."),
             unit=self.tr("em"),
-        )
-
-        # Focus Mode Footer
-        self.hideFocusFooter = NSwitch(self)
-        self.hideFocusFooter.setChecked(CONFIG.hideFocusFooter)
-        self.mainForm.addRow(
-            self.tr('Hide document footer in "Focus Mode"'),
-            self.hideFocusFooter,
-            self.tr("Hides the entire document footer."),
-        )
-
-        # Focus Mode Header
-        self.cleanFocusHeader = NSwitch(self)
-        self.cleanFocusHeader.setChecked(CONFIG.cleanFocusHeader)
-        self.mainForm.addRow(
-            self.tr('Minimal document header in "Focus Mode"'),
-            self.cleanFocusHeader,
-            self.tr("Hides the title and most buttons."),
         )
 
         # Text Editing
@@ -1222,6 +1223,7 @@ class GuiPreferences(NDialog):
         CONFIG.hideVScroll = hideVScroll
         CONFIG.hideHScroll = hideHScroll
         CONFIG.nativeFont = self.nativeFont.isChecked()
+        CONFIG.incNotesWCount = self.incNotesWCount.isChecked()
         CONFIG.setGuiFont(self._guiFont)
         CONFIG.setPrimaryCount(useCharCount)
 
@@ -1232,7 +1234,8 @@ class GuiPreferences(NDialog):
         initViewer |= CONFIG.textFont != textFont
 
         CONFIG.showFullPath = self.showFullPath.isChecked()
-        CONFIG.incNotesWCount = self.incNotesWCount.isChecked()
+        CONFIG.hideFocusFooter = self.hideFocusFooter.isChecked()
+        CONFIG.cleanFocusHeader = self.cleanFocusHeader.isChecked()
         CONFIG.setTextFont(textFont)
 
         # Project View
@@ -1284,8 +1287,6 @@ class GuiPreferences(NDialog):
 
         CONFIG.textWidth = textWidth
         CONFIG.focusWidth = focusWidth
-        CONFIG.hideFocusFooter = self.hideFocusFooter.isChecked()
-        CONFIG.cleanFocusHeader = self.cleanFocusHeader.isChecked()
         CONFIG.doJustify = doJustify
         CONFIG.textMargin = textMargin
         CONFIG.tabWidth = tabWidth

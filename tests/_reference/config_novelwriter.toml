@@ -15,6 +15,8 @@ hideVScroll = false
 hideHScroll = false
 lastNotes = "0x0"
 nativeFont = true
+hideFocusFooter = false
+cleanFocusHeader = false
 useCharCount = false
 vimMode = false
 
@@ -50,8 +52,6 @@ lineHeight = 1.15
 cursorWidth = 1
 lineHighlight = false
 focusWidth = 800
-hideFocusFooter = false
-cleanFocusHeader = false
 justify = false
 autoSelect = true
 autoReplace = true

@@ -68,7 +68,7 @@ from novelwriter.constants import nwFiles, nwQuotes, nwUnicode, trStats
 from novelwriter.enum import nwTheme
 from novelwriter.error import formatException, logException
 from novelwriter.formats.configparser import NConfigParser
-from novelwriter.formats.tomlparser import NTomlParser
+from novelwriter.formats.tomlparser import NTomlParser, T_ConfigMap
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -83,6 +83,12 @@ DEF_GUI_DARK = "default_dark"
 DEF_GUI_LIGHT = "default_light"
 DEF_ICONS = "material_rounded_normal"
 DEF_TREECOL = "theme"
+
+
+# Maps the current location of an option to its old location
+MOVED_CONFIGS: T_ConfigMap = {
+    ("Main", "hideFocusFooter"): ("Editor", "hideFocusFooter"),
+}
 
 
 class Config:
@@ -804,10 +810,10 @@ class Config:
 
         if safeExists(path := self._confPath / nwFiles.CONF_FILE):
             confPath = path
-            parser = NTomlParser()
+            parser = NTomlParser(confMap=MOVED_CONFIGS)
         elif safeExists(path := self._confPath / nwFiles.CONF_FILE_OLD):
             confPath = path
-            parser = NConfigParser()
+            parser = NConfigParser(confMap=MOVED_CONFIGS)
             convertOld = True
         else:
             # Initial file, so we just create one from defaults
@@ -841,6 +847,8 @@ class Config:
         self.hideHScroll = parser.getBool(sec, "hideHScroll", self.hideHScroll)
         self.lastNotes = parser.getStr(sec, "lastNotes", self.lastNotes)
         self.nativeFont = parser.getBool(sec, "nativeFont", self.nativeFont)
+        self.hideFocusFooter = parser.getBool(sec, "hideFocusFooter", self.hideFocusFooter)
+        self.cleanFocusHeader = parser.getBool(sec, "cleanFocusHeader", self.cleanFocusHeader)
         self.useCharCount = parser.getBool(sec, "useCharCount", self.useCharCount)
         self.vimMode = parser.getBool(sec, "vimMode", self.vimMode)
 
@@ -879,8 +887,6 @@ class Config:
         self.cursorWidth = parser.getInt(sec, "cursorWidth", self.cursorWidth)
         self.lineHighlight = parser.getBool(sec, "lineHighlight", self.lineHighlight)
         self.focusWidth = parser.getInt(sec, "focusWidth", self.focusWidth)
-        self.hideFocusFooter = parser.getBool(sec, "hideFocusFooter", self.hideFocusFooter)
-        self.cleanFocusHeader = parser.getBool(sec, "cleanFocusHeader", self.cleanFocusHeader)
         self.doJustify = parser.getBool(sec, "justify", self.doJustify)
         self.autoSelect = parser.getBool(sec, "autoSelect", self.autoSelect)
         self.doReplace = parser.getBool(sec, "autoReplace", self.doReplace)
@@ -990,6 +996,8 @@ class Config:
             "hideHScroll": self.hideHScroll,
             "lastNotes": self.lastNotes,
             "nativeFont": self.nativeFont,
+            "hideFocusFooter": self.hideFocusFooter,
+            "cleanFocusHeader": self.cleanFocusHeader,
             "useCharCount": self.useCharCount,
             "vimMode": self.vimMode,
         }
@@ -1028,8 +1036,6 @@ class Config:
             "cursorWidth": self.cursorWidth,
             "lineHighlight": self.lineHighlight,
             "focusWidth": self.focusWidth,
-            "hideFocusFooter": self.hideFocusFooter,
-            "cleanFocusHeader": self.cleanFocusHeader,
             "justify": self.doJustify,
             "autoSelect": self.autoSelect,
             "autoReplace": self.doReplace,
