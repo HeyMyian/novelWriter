@@ -69,7 +69,6 @@ class GuiDocEditFooter(QWidget):
         self._linePc = -1
 
         # Main Widget Settings
-        self.setContentsMargins(0, 0, 0, 0)
         self.setAutoFillBackground(True)
 
         # Status
@@ -128,11 +127,6 @@ class GuiDocEditFooter(QWidget):
         self.outerBox.setContentsMargins(8, 8, 8, 8)
 
         self.setLayout(self.outerBox)
-
-        # Fix Margins and Size
-        # This is needed for high DPI systems. See issue #499.
-        self.setContentsMargins(0, 0, 0, 0)
-        self.setMinimumHeight(fPx + 16)
 
         # Fix the Colours
         self.updateFont()
@@ -273,11 +267,9 @@ class GuiDocViewFooter(QWidget):
         # Internal Variables
         self._docHandle = None
 
-        iPx = SHARED.theme.baseIconHeight
         iSz = SHARED.theme.baseIconSize
 
         # Main Widget Settings
-        self.setContentsMargins(0, 0, 0, 0)
         self.setAutoFillBackground(True)
 
         # Show/Hide Details
@@ -316,14 +308,9 @@ class GuiDocViewFooter(QWidget):
         self.outerBox.addWidget(self.showComments, 0)
         self.outerBox.addWidget(self.showSynopsis, 0)
         self.outerBox.addWidget(self.showNotes, 0)
+        self.outerBox.setContentsMargins(4, 4, 4, 4)
         self.outerBox.setSpacing(4)
         self.setLayout(self.outerBox)
-
-        # Fix Margins and Size
-        # This is needed for high DPI systems. See issue #499.
-        self.setContentsMargins(0, 0, 0, 0)
-        self.outerBox.setContentsMargins(4, 4, 4, 4)
-        self.setMinimumHeight(iPx + 8)
 
         self.updateFont()
         self.updateTheme(init=True)

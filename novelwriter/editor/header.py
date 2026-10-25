@@ -117,6 +117,11 @@ class GuiDocEditHeader(QWidget):
         self.closeButton.setToolTip(self.tr("Close"))
         self.closeButton.clicked.connect(self._closeDocument)
 
+        # Keep the header height stable when no document is open
+        policy = self.minmaxButton.sizePolicy()
+        policy.setRetainSizeWhenHidden(True)
+        self.minmaxButton.setSizePolicy(policy)
+
         # Assemble Layout
         self.outerBox = QHBoxLayout()
         self.outerBox.addWidget(self.tbButton, 0, QtAlignMiddle)
@@ -135,11 +140,6 @@ class GuiDocEditHeader(QWidget):
 
         # Other Signals
         SHARED.focusModeChanged.connect(self._focusModeChanged)
-
-        # Fix Margins and Size
-        # This is needed for high DPI systems. See issue #499.
-        self.setContentsMargins(0, 0, 0, 0)
-        self.setMinimumHeight(fPx + 4)
 
         self.updateFont()
         self.updateTheme(init=True)
@@ -354,6 +354,11 @@ class GuiDocViewHeader(QWidget):
         self.closeButton.setToolTip(self.tr("Close"))
         self.closeButton.clicked.connect(self._closeDocument)
 
+        # Keep the header height stable when no document is open
+        policy = self.closeButton.sizePolicy()
+        policy.setRetainSizeWhenHidden(True)
+        self.closeButton.setSizePolicy(policy)
+
         # Assemble Layout
         self.outerBox = QHBoxLayout()
         self.outerBox.addWidget(self.outlineButton, 0, QtAlignMiddle)
@@ -365,15 +370,10 @@ class GuiDocViewHeader(QWidget):
         self.outerBox.addWidget(self.editButton, 0, QtAlignMiddle)
         self.outerBox.addWidget(self.refreshButton, 0, QtAlignMiddle)
         self.outerBox.addWidget(self.closeButton, 0, QtAlignMiddle)
+        self.outerBox.setContentsMargins(4, 4, 4, 4)
         self.outerBox.setSpacing(0)
 
         self.setLayout(self.outerBox)
-
-        # Fix Margins and Size
-        # This is needed for high DPI systems. See issue #499.
-        self.setContentsMargins(0, 0, 0, 0)
-        self.outerBox.setContentsMargins(4, 4, 4, 4)
-        self.setMinimumHeight(fPx + 4)
 
         self.updateFont()
         self.updateTheme(init=True)
