@@ -182,7 +182,6 @@ ICONS = [
     "font",
     "import",
     "language",
-    "lines",
     "link",
     "list",
     "margin_bottom",

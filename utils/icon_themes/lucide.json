@@ -119,7 +119,6 @@
     "font": "type",
     "import": "file-input",
     "language": "languages",
-    "lines": "list-ordered",
     "link": "link",
     "list": "list",
     "margin_bottom": "arrow-down-to-line",
