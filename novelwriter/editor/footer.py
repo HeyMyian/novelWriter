@@ -25,14 +25,15 @@ import logging
 
 from typing import TYPE_CHECKING
 
-from PyQt6.QtCore import pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QEvent, QPoint, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QPalette, QPixmap, QTextCursor
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
+from PyQt6.QtWidgets import QHBoxLayout, QLabel, QMenu, QWidget
 
 from novelwriter import CONFIG, SHARED
-from novelwriter.constants import nwLabels, nwStats, trLabel, trStats
-from novelwriter.enum import nwStdLabel, nwVimMode
-from novelwriter.extensions.modified import NFlatIconButton, NFlatIconTextButton
+from novelwriter.common import qtAddAction
+from novelwriter.constants import nwLabels, nwStats, trStats
+from novelwriter.enum import nwVimMode
+from novelwriter.extensions.modified import NFlatIconButton
 from novelwriter.types import QtAlignLeftTop, QtBlack
 
 if TYPE_CHECKING:
@@ -63,6 +64,13 @@ class GuiDocFooterBase(QWidget):
         self.showHide = NFlatIconButton(self, iSz, "panel:default")
         self.showHide.setToolTip(self.tr("Show/Hide Viewer Panel"))
         self.showHide.clicked.connect(self.togglePanelRequest)
+
+        # Options
+        self.optsButton = NFlatIconButton(self, iSz, "more_vertical:default")
+        self.optsButton.setToolTip(self.tr("Options"))
+
+        self.optsMenu = _PopUpMenu(self.optsButton)
+        self.optsButton.setMenu(self.optsMenu)
 
         # Status
         self.statusIcon = QLabel("", self)
@@ -96,6 +104,7 @@ class GuiDocFooterBase(QWidget):
         self.outerBox = QHBoxLayout()
         self.outerBox.setSpacing(4)
         self.outerBox.addWidget(self.showHide)
+        self.outerBox.addWidget(self.optsButton)
         self.outerBox.addWidget(self.statusIcon)
         self.outerBox.addWidget(self.statusText)
         self.outerBox.addStretch(1)
@@ -155,6 +164,7 @@ class GuiDocFooterBase(QWidget):
         """Update theme elements."""
         if not init:
             self.showHide.refreshTheme()
+            self.optsButton.refreshTheme()
         iPx = round(0.9 * SHARED.theme.baseIconHeight)
         self.wordsIcon.setPixmap(SHARED.theme.getPixmap("stats", iPx, iPx))
         self.matchColors()
@@ -197,6 +207,7 @@ class GuiDocEditFooter(GuiDocFooterBase):
 
         # Not used by the editor yet
         self.showHide.setVisible(False)
+        self.optsButton.setVisible(False)
 
         # Lines
         self.linesIcon = QLabel("", self)
@@ -308,36 +319,23 @@ class GuiDocViewFooter(GuiDocFooterBase):
 
         logger.debug("Create: GuiDocViewFooter")
 
-        iSz = SHARED.theme.baseIconSize
+        # Options
+        self.aShowComments = qtAddAction(self.optsMenu, self.tr("Show Comments"))
+        self.aShowComments.setCheckable(True)
+        self.aShowComments.setChecked(CONFIG.viewComments)
+        self.aShowComments.toggled.connect(self._doToggleComments)
 
-        # Show Comments
-        self.showComments = NFlatIconTextButton(self, iSz, "toggle-bullet:action", self.tr("Comments"))
-        self.showComments.setToolTip(self.tr("Show Comments"))
-        self.showComments.setCheckable(True)
-        self.showComments.setChecked(CONFIG.viewComments)
-        self.showComments.setIconSize(iSz)
-        self.showComments.toggled.connect(self._doToggleComments)
+        self.aShowSynopsis = qtAddAction(self.optsMenu, self.tr("Show Synopsis Comments"))
+        self.aShowSynopsis.setCheckable(True)
+        self.aShowSynopsis.setChecked(CONFIG.viewSynopsis)
+        self.aShowSynopsis.toggled.connect(self._doToggleSynopsis)
 
-        # Show Synopsis
-        self.showSynopsis = NFlatIconTextButton(self, iSz, "toggle-bullet:action", trLabel(nwStdLabel.SYNOPSIS))
-        self.showSynopsis.setToolTip(self.tr("Show Synopsis Comments"))
-        self.showSynopsis.setCheckable(True)
-        self.showSynopsis.setChecked(CONFIG.viewSynopsis)
-        self.showSynopsis.setIconSize(iSz)
-        self.showSynopsis.toggled.connect(self._doToggleSynopsis)
-
-        # Show Notes
-        self.showNotes = NFlatIconTextButton(self, iSz, "toggle-bullet:action", self.tr("Notes"))
-        self.showNotes.setToolTip(self.tr("Show Notes"))
-        self.showNotes.setCheckable(True)
-        self.showNotes.setChecked(CONFIG.viewNotes)
-        self.showNotes.setIconSize(iSz)
-        self.showNotes.toggled.connect(self._doToggleNotes)
+        self.aShowNotes = qtAddAction(self.optsMenu, self.tr("Show Notes"))
+        self.aShowNotes.setCheckable(True)
+        self.aShowNotes.setChecked(CONFIG.viewNotes)
+        self.aShowNotes.toggled.connect(self._doToggleNotes)
 
         # Assemble Layout
-        self.innerBox.addWidget(self.showComments, 0)
-        self.innerBox.addWidget(self.showSynopsis, 0)
-        self.innerBox.addWidget(self.showNotes, 0)
         self.outerBox.setContentsMargins(4, 4, 4, 4)
         self.setLayout(self.outerBox)
 
@@ -346,28 +344,6 @@ class GuiDocViewFooter(GuiDocFooterBase):
         self.updateMainCount(0, False)
 
         logger.debug("Ready: GuiDocViewFooter")
-
-    ##
-    #  Methods
-    ##
-
-    def updateFont(self) -> None:
-        """Update the font settings."""
-        super().updateFont()
-        self.showComments.setFont(SHARED.theme.guiFontSmall)
-        self.showSynopsis.setFont(SHARED.theme.guiFontSmall)
-        self.showNotes.setFont(SHARED.theme.guiFontSmall)
-
-    def updateTheme(self, *, init: bool = False) -> None:
-        """Update theme elements."""
-        logger.debug("Theme Update: GuiDocViewFooter")
-
-        if not init:
-            self.showComments.refreshTheme()
-            self.showSynopsis.refreshTheme()
-            self.showNotes.refreshTheme()
-
-        super().updateTheme(init=init)
 
     ##
     #  Private Slots
@@ -390,3 +366,12 @@ class GuiDocViewFooter(GuiDocFooterBase):
         """Toggle the view notes setting."""
         CONFIG.viewNotes = state
         self.viewOptionsChanged.emit()
+
+
+class _PopUpMenu(QMenu):
+    def event(self, event: QEvent) -> bool:
+        """Overload the show event and move the menu popup location."""
+        if event.type() == QEvent.Type.Show and isinstance(parent := self.parent(), QWidget):
+            xPos = parent.width() - self.width() if parent.isRightToLeft() else 0
+            self.move(parent.mapToGlobal(QPoint(xPos, -self.height())))
+        return super().event(event)

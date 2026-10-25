@@ -612,20 +612,35 @@ def testGuiDocViewer_FooterAndErrors(
     with qtbot.waitSignal(docViewer.togglePanelVisibility, timeout=1000):
         docViewer.docFooter.showHide.click()
 
-    docViewer.docFooter._doToggleSynopsis(False)
+    docViewer.docFooter.aShowSynopsis.setChecked(False)
     noSynopLength = len(docViewer.toPlainText())
     assert noSynopLength < fullLength
-    docViewer.docFooter._doToggleSynopsis(True)
+    docViewer.docFooter.aShowSynopsis.setChecked(True)
 
-    docViewer.docFooter._doToggleComments(False)
+    docViewer.docFooter.aShowComments.setChecked(False)
     noCommentLength = len(docViewer.toPlainText())
     assert noCommentLength < fullLength
-    docViewer.docFooter._doToggleComments(True)
+    docViewer.docFooter.aShowComments.setChecked(True)
 
-    docViewer.docFooter._doToggleNotes(False)
+    docViewer.docFooter.aShowNotes.setChecked(False)
     noNotesLength = len(docViewer.toPlainText())
     assert noNotesLength < fullLength
-    docViewer.docFooter._doToggleNotes(True)
+    docViewer.docFooter.aShowNotes.setChecked(True)
+
+    # The options menu pops up above the button, aligned by direction
+    optsButton = docViewer.docFooter.optsButton
+    optsMenu = docViewer.docFooter.optsMenu
+    buttonPos = optsButton.mapToGlobal(optsButton.rect().topLeft())
+    optsMenu.popup(buttonPos)
+    assert optsMenu.geometry().bottom() < buttonPos.y()
+    assert optsMenu.geometry().left() == buttonPos.x()
+    optsMenu.hide()
+
+    optsButton.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+    optsMenu.popup(buttonPos)
+    assert optsMenu.geometry().right() == buttonPos.x() + optsButton.width() - 1
+    optsMenu.hide()
+    optsButton.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
 
     # Crash the HTML rendering
     with monkeypatch.context() as mp:
