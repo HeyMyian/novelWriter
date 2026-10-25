@@ -533,6 +533,17 @@ class GuiPreferences(NDialog):
             unit=trPx,
         )
 
+        # Max Text Width in Focus Mode
+        self.focusWidth = NSpinBox(self, minVal=200, maxVal=10000, step=10)
+        self.focusWidth.setFixedNumbersWidth(5)
+        self.focusWidth.setValue(CONFIG.focusWidth)
+        self.mainForm.addRow(
+            self.tr('Maximum text width in "Focus Mode"'),
+            self.focusWidth,
+            self.tr("The maximum width cannot be disabled."),
+            unit=trPx,
+        )
+
         # Justify Text
         self.doJustify = NSwitch(self)
         self.doJustify.setChecked(CONFIG.doJustify)
@@ -573,25 +584,6 @@ class GuiPreferences(NDialog):
             self.lineHeight,
             self.tr("The relative line height in the editor and viewer."),
             unit=self.tr("em"),
-        )
-
-        # Focus Mode
-        # ==========
-
-        title = self.tr("Focus Mode")
-        section += 1
-        self.sidebar.addButton(title, section)
-        self.mainForm.addGroupLabel(title, section)
-
-        # Max Text Width in Focus Mode
-        self.focusWidth = NSpinBox(self, minVal=200, maxVal=10000, step=10)
-        self.focusWidth.setFixedNumbersWidth(5)
-        self.focusWidth.setValue(CONFIG.focusWidth)
-        self.mainForm.addRow(
-            self.tr('Maximum text width in "Focus Mode"'),
-            self.focusWidth,
-            self.tr("The maximum width cannot be disabled."),
-            unit=trPx,
         )
 
         # Focus Mode Footer
