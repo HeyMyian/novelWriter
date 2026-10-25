@@ -84,7 +84,7 @@ def testGuiDocViewer_OpenAndNavigate(qtbot: QtBot, nwGUI: GuiMain, projPath: Pat
     # Reload the text
     origText = docViewer.toPlainText()
     docViewer.setPlainText("Oops, all gone!")
-    docViewer.docHeader._refreshDocument()
+    docViewer.docHeader.refreshButton.click()
     assert docViewer.toPlainText() == origText
 
     # Open in editor
@@ -469,6 +469,12 @@ def testGuiDocViewer_MouseNavigation(
 
     # Return to the newest entry
     docViewer.navForward()
+    assert docViewer.docHandle == C.hSceneDoc
+
+    # Navigate with the header buttons
+    docViewer.docHeader.backButton.click()
+    assert docViewer.docHandle == C.hChapterDoc
+    docViewer.docHeader.forwardButton.click()
     assert docViewer.docHandle == C.hSceneDoc
 
 

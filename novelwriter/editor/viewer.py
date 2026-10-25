@@ -100,6 +100,13 @@ class GuiDocViewer(QTextBrowser):
 
         # Signals
         self.anchorClicked.connect(self._linkClicked)
+        self.docHeader.closeDocumentRequest.connect(self.closeDocumentRequest)
+        self.docHeader.navBackwardRequest.connect(self.navBackward)
+        self.docHeader.navForwardRequest.connect(self.navForward)
+        self.docHeader.navigateRequest.connect(self.navigateTo)
+        self.docHeader.openDocumentRequest.connect(self.openDocumentRequest)
+        self.docHeader.reloadDocumentRequest.connect(self.reloadDocumentRequest)
+        self.docHeader.requestProjectItemSelected.connect(self.requestProjectItemSelected)
 
         # Set Up Reference Tag Hover Card
         self._hoverCard = GuiDocHoverCard(self)

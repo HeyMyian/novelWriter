@@ -366,6 +366,10 @@ class GuiDocEditor(QTextEdit):
 
         # Connect Widget Signals
         self.docHeader.closeDocumentRequest.connect(self._closeCurrentDocument)
+        self.docHeader.gotoLineRequest.connect(self.setCursorLine)
+        self.docHeader.requestProjectItemSelected.connect(self.requestProjectItemSelected)
+        self.docHeader.toggleFocusModeRequest.connect(self.toggleFocusModeRequest)
+        self.docHeader.toggleSearchRequest.connect(self.toggleSearch)
         self.docHeader.toggleToolBarRequest.connect(self._toggleToolBarVisibility)
         self.docToolBar.requestDocAction.connect(self.docAction)
 
