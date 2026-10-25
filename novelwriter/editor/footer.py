@@ -335,6 +335,11 @@ class GuiDocViewFooter(GuiDocFooterBase):
         self.aShowNotes.setChecked(CONFIG.viewNotes)
         self.aShowNotes.toggled.connect(self._doToggleNotes)
 
+        self.aUseIndent = qtAddAction(self.optsMenu, self.tr("Use First Line Indent"))
+        self.aUseIndent.setCheckable(True)
+        self.aUseIndent.setChecked(CONFIG.viewFirstLineIndent)
+        self.aUseIndent.toggled.connect(self._doToggleFirstLineIndent)
+
         # Assemble Layout
         self.outerBox.setContentsMargins(4, 4, 4, 4)
         self.setLayout(self.outerBox)
@@ -351,20 +356,26 @@ class GuiDocViewFooter(GuiDocFooterBase):
 
     @pyqtSlot(bool)
     def _doToggleComments(self, state: bool) -> None:
-        """Toggle the view comments setting."""
+        """Toggle the viewer comments setting."""
         CONFIG.viewComments = state
         self.viewOptionsChanged.emit()
 
     @pyqtSlot(bool)
     def _doToggleSynopsis(self, state: bool) -> None:
-        """Toggle the view synopsis setting."""
+        """Toggle the viewer synopsis setting."""
         CONFIG.viewSynopsis = state
         self.viewOptionsChanged.emit()
 
     @pyqtSlot(bool)
     def _doToggleNotes(self, state: bool) -> None:
-        """Toggle the view notes setting."""
+        """Toggle the viewer notes setting."""
         CONFIG.viewNotes = state
+        self.viewOptionsChanged.emit()
+
+    @pyqtSlot(bool)
+    def _doToggleFirstLineIndent(self, state: bool) -> None:
+        """Toggle the viewer first line indent setting."""
+        CONFIG.viewFirstLineIndent = state
         self.viewOptionsChanged.emit()
 
 

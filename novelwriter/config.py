@@ -232,6 +232,7 @@ class Config:
         "verQtString",
         "verQtValue",
         "viewComments",
+        "viewFirstLineIndent",
         "viewNotes",
         "viewPanePos",
         "viewSynopsis",
@@ -415,6 +416,7 @@ class Config:
         self.viewComments = True  # Comments are shown in the viewer
         self.viewSynopsis = True  # Synopsis is shown in the viewer
         self.viewNotes = True  # Notes are shown in the viewer
+        self.viewFirstLineIndent = False  # Enable first line indent in the viewer
 
         # Search Box States
         self.searchAuto = False
@@ -926,6 +928,7 @@ class Config:
         self.viewComments = parser.getBool(sec, "viewComments", self.viewComments)
         self.viewSynopsis = parser.getBool(sec, "viewSynopsis", self.viewSynopsis)
         self.viewNotes = parser.getBool(sec, "viewNotes", self.viewNotes)
+        self.viewFirstLineIndent = parser.getBool(sec, "viewFirstLineIndent", self.viewFirstLineIndent)
         self.searchAuto = parser.getBool(sec, "searchAuto", self.searchAuto)
         self.searchCase = parser.getBool(sec, "searchCase", self.searchCase)
         self.searchWord = parser.getBool(sec, "searchWord", self.searchWord)
@@ -1074,6 +1077,7 @@ class Config:
             "viewComments": self.viewComments,
             "viewSynopsis": self.viewSynopsis,
             "viewNotes": self.viewNotes,
+            "viewFirstLineIndent": self.viewFirstLineIndent,
             "searchAuto": self.searchAuto,
             "searchCase": self.searchCase,
             "searchWord": self.searchWord,

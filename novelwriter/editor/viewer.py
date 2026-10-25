@@ -272,6 +272,7 @@ class GuiDocViewer(QTextBrowser):
         qDoc.setTextFont(CONFIG.textFont)
         qDoc.setFixedHeadings(True)
         qDoc.setLineHeight(CONFIG.lineHeight)
+        qDoc.setFirstLineIndent(CONFIG.viewFirstLineIndent, 1.4, False)
         qDoc.setTheme(self._docTheme)
         qDoc.initDocument()
         qDoc.setKeywords(True)

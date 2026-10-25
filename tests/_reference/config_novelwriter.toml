@@ -1,5 +1,5 @@
 [Meta]
-timeStamp = "2026-10-25 14:53:30"
+timeStamp = "2026-10-25 16:31:43"
 
 [Main]
 font = "Sans Serif,9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0"
@@ -98,6 +98,7 @@ showSessionTime = true
 viewComments = true
 viewSynopsis = true
 viewNotes = true
+viewFirstLineIndent = false
 searchAuto = false
 searchCase = false
 searchWord = false
