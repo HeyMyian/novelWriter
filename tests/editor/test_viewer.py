@@ -610,6 +610,11 @@ def testGuiDocViewer_FooterAndErrors(
     assert docViewer.docFooter.showHide.isVisible() is True
     assert nwGUI.docEditor.docFooter.showHide.isVisible() is False
 
+    # Both footers have the same height, set by the button row
+    footerHeight = docViewer.docFooter.sizeHint().height()
+    assert nwGUI.docEditor.docFooter.sizeHint().height() == footerHeight
+    assert footerHeight == docViewer.docFooter.showHide.height() + 8
+
     with qtbot.waitSignal(docViewer.togglePanelVisibility, timeout=1000):
         docViewer.docFooter.showHide.click()
 

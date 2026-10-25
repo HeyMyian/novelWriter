@@ -34,7 +34,7 @@ from novelwriter.common import qtAddAction
 from novelwriter.constants import nwLabels, nwStats, trStats
 from novelwriter.enum import nwVimMode
 from novelwriter.extensions.modified import NFlatIconButton
-from novelwriter.types import QtAlignLeftTop, QtBlack
+from novelwriter.types import QtAlignLeftMiddle, QtAlignLeftTop, QtAlignMiddle, QtBlack
 
 if TYPE_CHECKING:
     from novelwriter.core.item import ProjectItem
@@ -54,8 +54,6 @@ class GuiDocFooterBase(QWidget):
         self._docHandle: str | None = None
 
         iSz = SHARED.theme.baseIconSize
-        iPx = round(0.9 * SHARED.theme.baseIconHeight)
-        fPx = int(0.9 * SHARED.theme.fontPixelSize)
 
         # Main Widget Settings
         self.setAutoFillBackground(True)
@@ -72,25 +70,28 @@ class GuiDocFooterBase(QWidget):
         self.optsMenu = _PopUpMenu(self.optsButton)
         self.optsButton.setMenu(self.optsMenu)
 
+        # The button height sets the row height, also when hidden
+        rH = self.showHide.height()
+
         # Status
         self.statusIcon = QLabel("", self)
-        self.statusIcon.setFixedHeight(iPx)
-        self.statusIcon.setAlignment(QtAlignLeftTop)
+        self.statusIcon.setFixedHeight(rH)
+        self.statusIcon.setAlignment(QtAlignLeftMiddle)
 
         self.statusText = QLabel("", self)
         self.statusText.setAutoFillBackground(True)
-        self.statusText.setFixedHeight(fPx)
-        self.statusText.setAlignment(QtAlignLeftTop)
+        self.statusText.setFixedHeight(rH)
+        self.statusText.setAlignment(QtAlignLeftMiddle)
 
         # Counter
         self.wordsIcon = QLabel("", self)
-        self.wordsIcon.setFixedHeight(iPx)
-        self.wordsIcon.setAlignment(QtAlignLeftTop)
+        self.wordsIcon.setFixedHeight(rH)
+        self.wordsIcon.setAlignment(QtAlignLeftMiddle)
 
         self.wordsText = QLabel("", self)
         self.wordsText.setAutoFillBackground(True)
-        self.wordsText.setFixedHeight(fPx)
-        self.wordsText.setAlignment(QtAlignLeftTop)
+        self.wordsText.setFixedHeight(rH)
+        self.wordsText.setAlignment(QtAlignLeftMiddle)
 
         # Cached Translations
         self.initSettings()
@@ -102,6 +103,7 @@ class GuiDocFooterBase(QWidget):
         self.innerBox.setSpacing(4)
 
         self.outerBox = QHBoxLayout()
+        self.outerBox.setContentsMargins(4, 4, 4, 4)
         self.outerBox.setSpacing(4)
         self.outerBox.addWidget(self.showHide)
         self.outerBox.addWidget(self.optsButton)
@@ -154,6 +156,10 @@ class GuiDocFooterBase(QWidget):
             text = self._trMainCount.format("0", "+0")
         self.wordsText.setText(text)
 
+    def heightHint(self) -> int:
+        """Return the height to reserve for the footer."""
+        return 0 if self.isHidden() else self.sizeHint().height()
+
     def updateFont(self) -> None:
         """Update the font settings."""
         self.setFont(SHARED.theme.guiFont)
@@ -196,7 +202,7 @@ class GuiDocEditFooter(GuiDocFooterBase):
 
         logger.debug("Create: GuiDocEditFooter")
 
-        iPx = round(0.9 * SHARED.theme.baseIconHeight)
+        rH = self.showHide.height()
         fPx = int(0.9 * SHARED.theme.fontPixelSize)
 
         # Cached Translations
@@ -211,13 +217,13 @@ class GuiDocEditFooter(GuiDocFooterBase):
 
         # Lines
         self.linesIcon = QLabel("", self)
-        self.linesIcon.setFixedHeight(iPx)
-        self.linesIcon.setAlignment(QtAlignLeftTop)
+        self.linesIcon.setFixedHeight(rH)
+        self.linesIcon.setAlignment(QtAlignLeftMiddle)
 
         self.linesText = QLabel("", self)
         self.linesText.setAutoFillBackground(True)
-        self.linesText.setFixedHeight(fPx)
-        self.linesText.setAlignment(QtAlignLeftTop)
+        self.linesText.setFixedHeight(rH)
+        self.linesText.setAlignment(QtAlignLeftMiddle)
 
         # Vim mode status bar
         self.vimStatus = QLabel("", self)
@@ -228,13 +234,12 @@ class GuiDocEditFooter(GuiDocFooterBase):
         self._vimColor = SHARED.theme.getBaseColor("base")
         self._vimModes = {}
 
-        # Assemble Layout
+        # Assemble
         self.innerBox.addSpacing(6)
-        self.innerBox.addWidget(self.vimStatus)
+        self.innerBox.addWidget(self.vimStatus, 0, QtAlignMiddle)
         self.innerBox.addSpacing(6)
         self.innerBox.addWidget(self.linesIcon)
         self.innerBox.addWidget(self.linesText)
-        self.outerBox.setContentsMargins(8, 8, 8, 8)
 
         self.setLayout(self.outerBox)
 
@@ -340,8 +345,7 @@ class GuiDocViewFooter(GuiDocFooterBase):
         self.aUseIndent.setChecked(CONFIG.viewFirstLineIndent)
         self.aUseIndent.toggled.connect(self._doToggleFirstLineIndent)
 
-        # Assemble Layout
-        self.outerBox.setContentsMargins(4, 4, 4, 4)
+        # Assemble
         self.setLayout(self.outerBox)
 
         self.updateFont()

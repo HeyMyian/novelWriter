@@ -848,8 +848,8 @@ class GuiDocEditor(QTextEdit):
 
         tB = self.frameWidth()
         tW = wW - 2 * tB - sW
-        tH = self.docHeader.sizeHint().height()
-        fH = self.docFooter.sizeHint().height()
+        tH = self.docHeader.heightHint()
+        fH = self.docFooter.heightHint()
         fY = wH - fH - tB - sH
         self.docHeader.setGeometry(tB, tB, tW, tH)
         self.docFooter.setGeometry(tB, fY, tW, fH)

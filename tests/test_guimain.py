@@ -1189,6 +1189,15 @@ def testGuiMain_FocusMode(
     assert docHeader.itemTitle.isVisible() is True
     assert docHeader.closeButton.isVisible() is True
 
+    # A hidden footer reserves no space in focus mode
+    docFooter = nwGUI.docEditor.docFooter
+    CONFIG.hideFocusFooter = True
+    assert docFooter.heightHint() > 0
+    nwGUI.toggleFocusMode()
+    assert docFooter.heightHint() == 0
+    nwGUI.toggleFocusMode()
+    assert docFooter.heightHint() > 0
+
     # Closing editor disables focus mode
     nwGUI.toggleFocusMode()
     assert SHARED.focusMode is True
