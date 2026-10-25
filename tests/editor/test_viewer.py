@@ -84,7 +84,7 @@ def testGuiDocViewer_OpenAndNavigate(qtbot: QtBot, nwGUI: GuiMain, projPath: Pat
     # Reload the text
     origText = docViewer.toPlainText()
     docViewer.setPlainText("Oops, all gone!")
-    docViewer.docHeader._refreshDocument()
+    docViewer.docHeader.refreshButton.click()
     assert docViewer.toPlainText() == origText
 
     # Open in editor
@@ -207,6 +207,7 @@ def testGuiDocViewer_Selection(
     # Close document
     docViewer.docHeader._closeDocument()
     assert docViewer.docHandle is None
+    assert docViewer.docFooter.statusText.text() == ""
 
     # Action on no document
     assert docViewer.docAction(nwDocAction.COPY) is False
@@ -471,6 +472,12 @@ def testGuiDocViewer_MouseNavigation(
     docViewer.navForward()
     assert docViewer.docHandle == C.hSceneDoc
 
+    # Navigate with the header buttons
+    docViewer.docHeader.backButton.click()
+    assert docViewer.docHandle == C.hChapterDoc
+    docViewer.docHeader.forwardButton.click()
+    assert docViewer.docHandle == C.hSceneDoc
+
 
 @pytest.mark.gui
 def testGuiDocViewer_ScrollAndMargins(
@@ -589,29 +596,68 @@ def testGuiDocViewer_FooterAndErrors(
         "% A plain comment.\n\n"
         "%Note: A note about something.\n\n"
         "Some body text.\n\n"
+        "More body text.\n\n"
     )
     nwGUI.docPanes.saveDocument()
 
     nwGUI.docPanes.viewDocument(C.hSceneDoc)
     fullLength = len(docViewer.toPlainText())
 
+    # The footer shows the document status, counter, and the panel toggle
+    assert (item := SHARED.project.tree[C.hSceneDoc])
+    assert docViewer.docFooter.statusText.text() != ""
+    assert f"{item.mainCount:n}" in docViewer.docFooter.wordsText.text()
+    assert docViewer.docFooter.showHide.isVisible() is True
+    assert nwGUI.docEditor.docFooter.showHide.isVisible() is False
+
     with qtbot.waitSignal(docViewer.togglePanelVisibility, timeout=1000):
         docViewer.docFooter.showHide.click()
 
-    docViewer.docFooter._doToggleSynopsis(False)
+    docViewer.docFooter.aShowSynopsis.setChecked(False)
     noSynopLength = len(docViewer.toPlainText())
     assert noSynopLength < fullLength
-    docViewer.docFooter._doToggleSynopsis(True)
+    docViewer.docFooter.aShowSynopsis.setChecked(True)
 
-    docViewer.docFooter._doToggleComments(False)
+    docViewer.docFooter.aShowComments.setChecked(False)
     noCommentLength = len(docViewer.toPlainText())
     assert noCommentLength < fullLength
-    docViewer.docFooter._doToggleComments(True)
+    docViewer.docFooter.aShowComments.setChecked(True)
 
-    docViewer.docFooter._doToggleNotes(False)
+    docViewer.docFooter.aShowNotes.setChecked(False)
     noNotesLength = len(docViewer.toPlainText())
     assert noNotesLength < fullLength
-    docViewer.docFooter._doToggleNotes(True)
+    docViewer.docFooter.aShowNotes.setChecked(True)
+
+    # First line indent skips the first paragraph after the heading
+    def textIndent(text: str) -> float:
+        document = docViewer.document()
+        assert document is not None
+        return document.find(text).blockFormat().textIndent()
+
+    assert CONFIG.viewFirstLineIndent is False
+    assert textIndent("More body text.") == 0.0
+    docViewer.docFooter.aUseIndent.setChecked(True)
+    assert CONFIG.viewFirstLineIndent is True
+    assert textIndent("Some body text.") == 0.0
+    assert textIndent("More body text.") > 0.0
+    docViewer.docFooter.aUseIndent.setChecked(False)
+    assert CONFIG.viewFirstLineIndent is False
+    assert textIndent("More body text.") == 0.0
+
+    # The options menu pops up above the button, aligned by direction
+    optsButton = docViewer.docFooter.optsButton
+    optsMenu = docViewer.docFooter.optsMenu
+    buttonPos = optsButton.mapToGlobal(optsButton.rect().topLeft())
+    optsMenu.popup(buttonPos)
+    assert optsMenu.geometry().bottom() < buttonPos.y()
+    assert optsMenu.geometry().left() == buttonPos.x()
+    optsMenu.hide()
+
+    optsButton.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+    optsMenu.popup(buttonPos)
+    assert optsMenu.geometry().right() == buttonPos.x() + optsButton.width() - 1
+    optsMenu.hide()
+    optsButton.setLayoutDirection(Qt.LayoutDirection.LeftToRight)
 
     # Crash the HTML rendering
     with monkeypatch.context() as mp:

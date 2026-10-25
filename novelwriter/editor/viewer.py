@@ -100,6 +100,15 @@ class GuiDocViewer(QTextBrowser):
 
         # Signals
         self.anchorClicked.connect(self._linkClicked)
+        self.docFooter.togglePanelRequest.connect(self.togglePanelVisibility)
+        self.docFooter.viewOptionsChanged.connect(self.reloadText)
+        self.docHeader.closeDocumentRequest.connect(self.closeDocumentRequest)
+        self.docHeader.navBackwardRequest.connect(self.navBackward)
+        self.docHeader.navForwardRequest.connect(self.navForward)
+        self.docHeader.navigateRequest.connect(self.navigateTo)
+        self.docHeader.openDocumentRequest.connect(self.openDocumentRequest)
+        self.docHeader.reloadDocumentRequest.connect(self.reloadDocumentRequest)
+        self.docHeader.requestProjectItemSelected.connect(self.requestProjectItemSelected)
 
         # Set Up Reference Tag Hover Card
         self._hoverCard = GuiDocHoverCard(self)
@@ -154,6 +163,7 @@ class GuiDocViewer(QTextBrowser):
         self.setSearchPaths([""])
         self._docHandle = None
         self.docHeader.clearHeader()
+        self.docFooter.setHandle(None)
         self._timerHover.stop()
         self._hoverCard.hide()
         self._hoverCard.clearCache()
@@ -169,6 +179,7 @@ class GuiDocViewer(QTextBrowser):
         # Set the font. See issues #1862 and #1875.
         self.setFont(CONFIG.textFont)
         self.docHeader.updateFont()
+        self.docFooter.initSettings()
         self.docFooter.updateFont()
 
         # Set the widget colours to match syntax theme
@@ -234,6 +245,8 @@ class GuiDocViewer(QTextBrowser):
 
     def initSettings(self) -> None:
         """Initialise non-expensive settings."""
+        self.docFooter.initSettings()
+        self.docFooter.updateMainCount(0, False)
         if self._docHandle:
             self.docHeader.setHandle(self._docHandle)
 
@@ -259,6 +272,7 @@ class GuiDocViewer(QTextBrowser):
         qDoc.setTextFont(CONFIG.textFont)
         qDoc.setFixedHeadings(True)
         qDoc.setLineHeight(CONFIG.lineHeight)
+        qDoc.setFirstLineIndent(CONFIG.viewFirstLineIndent, 1.4, False)
         qDoc.setTheme(self._docTheme)
         qDoc.initDocument()
         qDoc.setKeywords(True)
@@ -299,6 +313,7 @@ class GuiDocViewer(QTextBrowser):
         self._docHandle = tHandle
         SHARED.project.data.setLastHandle(tHandle, "viewer")
         self.docHeader.setHandle(tHandle)
+        self.docFooter.setHandle(tHandle)
         self.docHeader.setOutline({
             sTitle: (hItem.title, nwStyles.H_LEVEL.get(hItem.level, 0))
             for sTitle, hItem in SHARED.project.index.iterItemHeadings(tHandle)
@@ -361,8 +376,8 @@ class GuiDocViewer(QTextBrowser):
 
         tB = self.frameWidth()
         tW = wW - 2 * tB - sW
-        tH = self.docHeader.height()
-        fH = self.docFooter.height()
+        tH = self.docHeader.sizeHint().height()
+        fH = self.docFooter.sizeHint().height()
         fY = wH - fH - tB - sH
 
         self.docHeader.setGeometry(tB, tB, tW, tH)
@@ -387,6 +402,8 @@ class GuiDocViewer(QTextBrowser):
         """Update the header title bar if needed."""
         if tHandle == self._docHandle and change == nwChange.UPDATE:
             self.docHeader.setHandle(tHandle)
+            self.docFooter.updateInfo()
+            self.docFooter.updateMainCount(0, False)
             self.updateDocMargins()
 
     @pyqtSlot(str)

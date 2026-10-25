@@ -366,6 +366,10 @@ class GuiDocEditor(QTextEdit):
 
         # Connect Widget Signals
         self.docHeader.closeDocumentRequest.connect(self._closeCurrentDocument)
+        self.docHeader.gotoLineRequest.connect(self.setCursorLine)
+        self.docHeader.requestProjectItemSelected.connect(self.requestProjectItemSelected)
+        self.docHeader.toggleFocusModeRequest.connect(self.toggleFocusModeRequest)
+        self.docHeader.toggleSearchRequest.connect(self.toggleSearch)
         self.docHeader.toggleToolBarRequest.connect(self._toggleToolBarVisibility)
         self.docToolBar.requestDocAction.connect(self.docAction)
 
@@ -844,8 +848,8 @@ class GuiDocEditor(QTextEdit):
 
         tB = self.frameWidth()
         tW = wW - 2 * tB - sW
-        tH = self.docHeader.height()
-        fH = self.docFooter.height()
+        tH = self.docHeader.sizeHint().height()
+        fH = self.docFooter.sizeHint().height()
         fY = wH - fH - tB - sH
         self.docHeader.setGeometry(tB, tB, tW, tH)
         self.docFooter.setGeometry(tB, fY, tW, fH)

@@ -544,15 +544,6 @@ class GuiPreferences(NDialog):
             unit=trPx,
         )
 
-        # Focus Mode Footer
-        self.hideFocusFooter = NSwitch(self)
-        self.hideFocusFooter.setChecked(CONFIG.hideFocusFooter)
-        self.mainForm.addRow(
-            self.tr('Hide document footer in "Focus Mode"'),
-            self.hideFocusFooter,
-            self.tr("Hide the information bar in the document editor."),
-        )
-
         # Justify Text
         self.doJustify = NSwitch(self)
         self.doJustify.setChecked(CONFIG.doJustify)
@@ -593,6 +584,24 @@ class GuiPreferences(NDialog):
             self.lineHeight,
             self.tr("The relative line height in the editor and viewer."),
             unit=self.tr("em"),
+        )
+
+        # Focus Mode Footer
+        self.hideFocusFooter = NSwitch(self)
+        self.hideFocusFooter.setChecked(CONFIG.hideFocusFooter)
+        self.mainForm.addRow(
+            self.tr('Hide document footer in "Focus Mode"'),
+            self.hideFocusFooter,
+            self.tr("Hides the entire document footer."),
+        )
+
+        # Focus Mode Header
+        self.cleanFocusHeader = NSwitch(self)
+        self.cleanFocusHeader.setChecked(CONFIG.cleanFocusHeader)
+        self.mainForm.addRow(
+            self.tr('Minimal document header in "Focus Mode"'),
+            self.cleanFocusHeader,
+            self.tr("Hides the title and most buttons."),
         )
 
         # Text Editing
@@ -1276,6 +1285,7 @@ class GuiPreferences(NDialog):
         CONFIG.textWidth = textWidth
         CONFIG.focusWidth = focusWidth
         CONFIG.hideFocusFooter = self.hideFocusFooter.isChecked()
+        CONFIG.cleanFocusHeader = self.cleanFocusHeader.isChecked()
         CONFIG.doJustify = doJustify
         CONFIG.textMargin = textMargin
         CONFIG.tabWidth = tabWidth
