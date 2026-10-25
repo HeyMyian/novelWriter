@@ -152,6 +152,8 @@ class Config:
         "doReplaceDots",
         "doReplaceSQuote",
         "dottedModCodes",
+        "editShowLineEndings",
+        "editShowTabsNSpaces",
         "emphLabels",
         "fmtApostrophe",
         "fmtDQuoteClose",
@@ -217,10 +219,8 @@ class Config:
         "showDetailsPanel",
         "showEditToolBar",
         "showFullPath",
-        "showLineEndings",
         "showMultiSpaces",
         "showSessionTime",
-        "showTabsNSpaces",
         "showViewerPanel",
         "singleStarBold",
         "spellLanguage",
@@ -369,8 +369,6 @@ class Config:
         self.autoSelect = True  # Auto-select word when applying format with no selection
 
         self.doJustify = False  # Justify text
-        self.showTabsNSpaces = False  # Show tabs and spaces in editor
-        self.showLineEndings = False  # Show line endings in editor
         self.showMultiSpaces = False  # Highlight multiple spaces in the text
         self.scaleHeadings = True  # Use a larger size for headings
         self.singleStarBold = False  # Allow single asterisk bold
@@ -425,6 +423,8 @@ class Config:
         self.viewSynopsis = True  # Synopsis is shown in the viewer
         self.viewNotes = True  # Notes are shown in the viewer
         self.viewFirstLineIndent = False  # Enable first line indent in the viewer
+        self.editShowTabsNSpaces = False  # Show tabs and spaces in the editor
+        self.editShowLineEndings = False  # Show line endings in the editor
 
         # Search Box States
         self.searchAuto = False
@@ -908,8 +908,6 @@ class Config:
         self.fmtPadAfter = uniqueCompact(parser.getStr(sec, "fmtPadAfter", self.fmtPadAfter))
         self.fmtPadThin = parser.getBool(sec, "fmtPadThin", self.fmtPadThin)
         self.spellLanguage = parser.getStr(sec, "spellCheck", self.spellLanguage)
-        self.showTabsNSpaces = parser.getBool(sec, "showTabsNSpaces", self.showTabsNSpaces)
-        self.showLineEndings = parser.getBool(sec, "showLineEndings", self.showLineEndings)
         self.showMultiSpaces = parser.getBool(sec, "showMultiSpaces", self.showMultiSpaces)
         self.scaleHeadings = parser.getBool(sec, "scaleHeadings", self.scaleHeadings)
         self.singleStarBold = parser.getBool(sec, "singleStarBold", self.singleStarBold)
@@ -938,6 +936,8 @@ class Config:
         self.viewSynopsis = parser.getBool(sec, "viewSynopsis", self.viewSynopsis)
         self.viewNotes = parser.getBool(sec, "viewNotes", self.viewNotes)
         self.viewFirstLineIndent = parser.getBool(sec, "viewFirstLineIndent", self.viewFirstLineIndent)
+        self.editShowTabsNSpaces = parser.getBool(sec, "editShowTabsNSpaces", self.editShowTabsNSpaces)
+        self.editShowLineEndings = parser.getBool(sec, "editShowLineEndings", self.editShowLineEndings)
         self.searchAuto = parser.getBool(sec, "searchAuto", self.searchAuto)
         self.searchCase = parser.getBool(sec, "searchCase", self.searchCase)
         self.searchWord = parser.getBool(sec, "searchWord", self.searchWord)
@@ -1058,8 +1058,6 @@ class Config:
             "fmtPadAfter": self.fmtPadAfter,
             "fmtPadThin": self.fmtPadThin,
             "spellCheck": self.spellLanguage,
-            "showTabsNSpaces": self.showTabsNSpaces,
-            "showLineEndings": self.showLineEndings,
             "showMultiSpaces": self.showMultiSpaces,
             "scaleHeadings": self.scaleHeadings,
             "singleStarBold": self.singleStarBold,
@@ -1088,6 +1086,8 @@ class Config:
             "viewSynopsis": self.viewSynopsis,
             "viewNotes": self.viewNotes,
             "viewFirstLineIndent": self.viewFirstLineIndent,
+            "editShowTabsNSpaces": self.editShowTabsNSpaces,
+            "editShowLineEndings": self.editShowLineEndings,
             "searchAuto": self.searchAuto,
             "searchCase": self.searchCase,
             "searchWord": self.searchWord,

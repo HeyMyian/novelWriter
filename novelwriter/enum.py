@@ -299,8 +299,9 @@ class nwStdUnit(Enum):
     WORDS = 1
     LINES = 2
     PIXELS = 3
-    SECONDS = 4
-    MINUTES = 5
+    POINTS = 4
+    SECONDS = 5
+    MINUTES = 6
 
 
 class nwProjectKind(StrEnum):

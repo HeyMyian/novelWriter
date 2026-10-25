@@ -116,6 +116,10 @@ class GuiDocHeaderBase(QWidget):
         self.outlineButton.setVisible(False)
         self.closeButton.setVisible(False)
 
+    def heightHint(self) -> int:
+        """Return the height to reserve for the header."""
+        return 0 if self.isHidden() else self.sizeHint().height()
+
     def updateFont(self) -> None:
         """Update the font settings."""
         self.setFont(SHARED.theme.guiFont)
@@ -232,7 +236,7 @@ class GuiDocEditHeader(GuiDocHeaderBase):
         # Keep the header height stable when no document is open
         self._retainSizeWhenHidden(self.minmaxButton)
 
-        # Assemble Layout
+        # Assemble
         self.outerBox.addWidget(self.tbButton, 0, QtAlignMiddle)
         self.outerBox.addWidget(self.outlineButton, 0, QtAlignMiddle)
         self.outerBox.addWidget(self.searchButton, 0, QtAlignMiddle)
@@ -367,7 +371,7 @@ class GuiDocViewHeader(GuiDocHeaderBase):
         # Keep the header height stable when no document is open
         self._retainSizeWhenHidden(self.closeButton)
 
-        # Assemble Layout
+        # Assemble
         self.outerBox.addWidget(self.outlineButton, 0, QtAlignMiddle)
         self.outerBox.addWidget(self.backButton, 0, QtAlignMiddle)
         self.outerBox.addWidget(self.forwardButton, 0, QtAlignMiddle)

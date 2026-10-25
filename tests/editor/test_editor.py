@@ -139,13 +139,24 @@ def testGuiDocEditor_Init(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, ipsumTex
     # Check that editor handles settings
     CONFIG.textFont = QFont()
     CONFIG.doJustify = True
-    CONFIG.showTabsNSpaces = True
-    CONFIG.showLineEndings = True
     CONFIG.hideVScroll = True
     CONFIG.hideHScroll = True
     CONFIG.fmtPadThin = True
     CONFIG.showFullPath = False
     SHARED.project.setProjectLang(None, True)
+
+    # Whitespace display is toggled live from the footer options menu
+    docFooter = docEditor.docFooter
+    assert docFooter.optsButton.isHidden() is False
+    assert not qDoc.defaultTextOption().flags() & QTextOption.Flag.ShowTabsAndSpaces
+    docFooter.aShowTabsNSpaces.setChecked(True)
+    assert CONFIG.editShowTabsNSpaces is True
+    assert qDoc.defaultTextOption().flags() & QTextOption.Flag.ShowTabsAndSpaces
+    assert not qDoc.defaultTextOption().flags() & QTextOption.Flag.ShowLineAndParagraphSeparators
+    docFooter.aShowLineEndings.setChecked(True)
+    assert CONFIG.editShowLineEndings is True
+    assert qDoc.defaultTextOption().flags() & QTextOption.Flag.ShowLineAndParagraphSeparators
+    assert docEditor.isReadOnly() is False
 
     docEditor.initEditor()
 
@@ -218,6 +229,14 @@ def testGuiDocEditor_Init(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, ipsumTex
     assert docEditor.docHeader.closeButton.isVisible() is False
     assert docEditor.docHeader.minmaxButton.isVisible() is False
     assert docEditor.docHeader.itemTitle.text() == ""
+
+    # With no document open, a toggle leaves the editor read-only
+    assert docEditor.docHandle is None
+    assert docEditor.isReadOnly() is True
+    docFooter.aShowTabsNSpaces.setChecked(False)
+    assert CONFIG.editShowTabsNSpaces is False
+    assert not docEditor._qDocument.defaultTextOption().flags() & QTextOption.Flag.ShowTabsAndSpaces
+    assert docEditor.isReadOnly() is True
 
     # qtbot.stop()
 
@@ -1557,6 +1576,24 @@ def testGuiDocEditor_Zoom(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd:
 
     assert docEditor.docAction(nwDocAction.ZOOM_RESET) is True
     assert docEditor.font().pointSizeF() == basePt
+
+    # Zoom with the footer buttons, and show the font size in the footer
+    docFooter = docEditor.docFooter
+    assert docFooter.zoomLabel.text().startswith(f"{basePt:n}")
+    docFooter.zoomInButton.click()
+    assert docEditor.font().pointSizeF() == basePt + 1
+    assert docFooter.zoomLabel.text().startswith(f"{basePt + 1:n}")
+    docFooter.zoomOutButton.click()
+    assert docEditor.font().pointSizeF() == basePt
+    assert docFooter.zoomLabel.text().startswith(f"{basePt:n}")
+
+    # Clicking the zoom label resets the zoom
+    docFooter.zoomInButton.click()
+    docFooter.zoomInButton.click()
+    assert docEditor.font().pointSizeF() == basePt + 2
+    qtbot.mouseClick(docFooter.zoomLabel, QtMouseLeft)
+    assert docEditor.font().pointSizeF() == basePt
+    assert docFooter.zoomLabel.text().startswith(f"{basePt:n}")
 
     # Zoom in and out with Ctrl+Scroll wheel
     position = QPointF(10, 10)
