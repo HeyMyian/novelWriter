@@ -373,6 +373,7 @@ class GuiDocEditor(QTextEdit):
         self.docHeader.toggleToolBarRequest.connect(self._toggleToolBarVisibility)
         self.docFooter.zoomInRequest.connect(self.zoomIn)
         self.docFooter.zoomOutRequest.connect(self.zoomOut)
+        self.docFooter.zoomResetRequest.connect(self.zoomReset)
         self.docToolBar.requestDocAction.connect(self.docAction)
 
         # Context Menu

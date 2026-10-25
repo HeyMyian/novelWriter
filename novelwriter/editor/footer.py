@@ -33,7 +33,7 @@ from novelwriter import CONFIG, SHARED
 from novelwriter.common import qtAddAction
 from novelwriter.constants import nwLabels, nwStats, nwUnicode, trStats, trUnit
 from novelwriter.enum import nwStdUnit, nwVimMode
-from novelwriter.extensions.modified import NFlatIconButton
+from novelwriter.extensions.modified import NClickableLabel, NFlatIconButton
 from novelwriter.types import QtAlignCenter, QtAlignLeftMiddle, QtAlignLeftTop, QtAlignMiddle, QtBlack
 
 if TYPE_CHECKING:
@@ -48,6 +48,7 @@ class GuiDocFooterBase(QWidget):
     togglePanelRequest = pyqtSignal()
     zoomInRequest = pyqtSignal()
     zoomOutRequest = pyqtSignal()
+    zoomResetRequest = pyqtSignal()
 
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent=parent)
@@ -102,6 +103,7 @@ class GuiDocFooterBase(QWidget):
         self.vimStatus.setFixedHeight(fPx)
         self.vimStatus.setAlignment(QtAlignLeftTop)
         self.vimStatus.setVisible(False)
+
         self._vimMode: nwVimMode | None = None
         self._vimColor = SHARED.theme.getBaseColor("base")
         self._vimModes = {}
@@ -111,10 +113,12 @@ class GuiDocFooterBase(QWidget):
         self.zoomOutButton.setToolTip(self.tr("Zoom Out"))
         self.zoomOutButton.clicked.connect(self.zoomOutRequest)
 
-        self.zoomLabel = QLabel("", self)
+        self.zoomLabel = NClickableLabel("", self)
         self.zoomLabel.setAutoFillBackground(True)
         self.zoomLabel.setFixedHeight(rH)
         self.zoomLabel.setAlignment(QtAlignCenter)
+        self.zoomLabel.setToolTip(self.tr("Reset Zoom"), "Ctrl+0")
+        self.zoomLabel.mouseClicked.connect(self.zoomResetRequest)
 
         self.zoomInButton = NFlatIconButton(self, iSz, "zoom_in:default")
         self.zoomInButton.setToolTip(self.tr("Zoom In"))
@@ -128,10 +132,12 @@ class GuiDocFooterBase(QWidget):
         # Layout
         self.outerBox = QHBoxLayout()
         self.outerBox.setContentsMargins(4, 4, 4, 4)
-        self.outerBox.setSpacing(4)
+        self.outerBox.setSpacing(0)
         self.outerBox.addWidget(self.showHide)
         self.outerBox.addWidget(self.optsButton)
+        self.outerBox.addSpacing(4)
         self.outerBox.addWidget(self.statusIcon)
+        self.outerBox.addSpacing(2)
         self.outerBox.addWidget(self.statusText)
         self.outerBox.addStretch(1)
         self.outerBox.addWidget(self.vimStatus, 0, QtAlignMiddle)
@@ -141,6 +147,7 @@ class GuiDocFooterBase(QWidget):
         self.outerBox.addWidget(self.zoomInButton)
         self.outerBox.addSpacing(6)
         self.outerBox.addWidget(self.wordsIcon)
+        self.outerBox.addSpacing(2)
         self.outerBox.addWidget(self.wordsText)
 
     ##

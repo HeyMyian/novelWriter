@@ -104,6 +104,7 @@ class GuiDocViewer(QTextBrowser):
         self.docFooter.viewOptionsChanged.connect(self.reloadText)
         self.docFooter.zoomInRequest.connect(self.zoomIn)
         self.docFooter.zoomOutRequest.connect(self.zoomOut)
+        self.docFooter.zoomResetRequest.connect(self.zoomReset)
         self.docHeader.closeDocumentRequest.connect(self.closeDocumentRequest)
         self.docHeader.navBackwardRequest.connect(self.navBackward)
         self.docHeader.navForwardRequest.connect(self.navForward)

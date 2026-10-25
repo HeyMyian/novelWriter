@@ -1568,6 +1568,14 @@ def testGuiDocEditor_Zoom(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd:
     assert docEditor.font().pointSizeF() == basePt
     assert docFooter.zoomLabel.text().startswith(f"{basePt:n}")
 
+    # Clicking the zoom label resets the zoom
+    docFooter.zoomInButton.click()
+    docFooter.zoomInButton.click()
+    assert docEditor.font().pointSizeF() == basePt + 2
+    qtbot.mouseClick(docFooter.zoomLabel, QtMouseLeft)
+    assert docEditor.font().pointSizeF() == basePt
+    assert docFooter.zoomLabel.text().startswith(f"{basePt:n}")
+
     # Zoom in and out with Ctrl+Scroll wheel
     position = QPointF(10, 10)
     zoomInEvent = QWheelEvent(

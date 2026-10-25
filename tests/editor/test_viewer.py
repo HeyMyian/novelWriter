@@ -253,6 +253,14 @@ def testGuiDocViewer_Zoom(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd:
     assert docViewer.font().pointSizeF() == basePt
     assert docFooter.zoomLabel.text().startswith(f"{basePt:n}")
 
+    # Clicking the zoom label resets the zoom
+    docFooter.zoomInButton.click()
+    docFooter.zoomInButton.click()
+    assert docViewer.font().pointSizeF() == basePt + 2
+    qtbot.mouseClick(docFooter.zoomLabel, QtMouseLeft)
+    assert docViewer.font().pointSizeF() == basePt
+    assert docFooter.zoomLabel.text().startswith(f"{basePt:n}")
+
 
 @pytest.mark.gui
 def testGuiDocViewer_Links(
