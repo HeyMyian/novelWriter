@@ -243,6 +243,16 @@ def testGuiDocViewer_Zoom(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd:
     assert docViewer.docAction(nwDocAction.ZOOM_RESET) is True
     assert docViewer.font().pointSizeF() == basePt
 
+    # Zoom with the footer buttons, and show the font size in the footer
+    docFooter = docViewer.docFooter
+    assert docFooter.zoomLabel.text().startswith(f"{basePt:n}")
+    docFooter.zoomInButton.click()
+    assert docViewer.font().pointSizeF() == basePt + 1
+    assert docFooter.zoomLabel.text().startswith(f"{basePt + 1:n}")
+    docFooter.zoomOutButton.click()
+    assert docViewer.font().pointSizeF() == basePt
+    assert docFooter.zoomLabel.text().startswith(f"{basePt:n}")
+
 
 @pytest.mark.gui
 def testGuiDocViewer_Links(

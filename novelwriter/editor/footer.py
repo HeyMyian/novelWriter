@@ -31,10 +31,10 @@ from PyQt6.QtWidgets import QHBoxLayout, QLabel, QMenu, QWidget
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import qtAddAction
-from novelwriter.constants import nwLabels, nwStats, trStats
-from novelwriter.enum import nwVimMode
+from novelwriter.constants import nwLabels, nwStats, nwUnicode, trStats, trUnit
+from novelwriter.enum import nwStdUnit, nwVimMode
 from novelwriter.extensions.modified import NFlatIconButton
-from novelwriter.types import QtAlignLeftMiddle, QtAlignLeftTop, QtAlignMiddle, QtBlack
+from novelwriter.types import QtAlignCenter, QtAlignLeftMiddle, QtAlignLeftTop, QtAlignMiddle, QtBlack
 
 if TYPE_CHECKING:
     from novelwriter.core.item import ProjectItem
@@ -46,6 +46,8 @@ class GuiDocFooterBase(QWidget):
     """The Embedded Document Footer Base Class."""
 
     togglePanelRequest = pyqtSignal()
+    zoomInRequest = pyqtSignal()
+    zoomOutRequest = pyqtSignal()
 
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent=parent)
@@ -104,9 +106,24 @@ class GuiDocFooterBase(QWidget):
         self._vimColor = SHARED.theme.getBaseColor("base")
         self._vimModes = {}
 
+        # Zoom
+        self.zoomOutButton = NFlatIconButton(self, iSz, "zoom_out:default")
+        self.zoomOutButton.setToolTip(self.tr("Zoom Out"))
+        self.zoomOutButton.clicked.connect(self.zoomOutRequest)
+
+        self.zoomLabel = QLabel("", self)
+        self.zoomLabel.setAutoFillBackground(True)
+        self.zoomLabel.setFixedHeight(rH)
+        self.zoomLabel.setAlignment(QtAlignCenter)
+
+        self.zoomInButton = NFlatIconButton(self, iSz, "zoom_in:default")
+        self.zoomInButton.setToolTip(self.tr("Zoom In"))
+        self.zoomInButton.clicked.connect(self.zoomInRequest)
+
         # Cached Translations
         self.initSettings()
         self._trSelectCount = self.tr("Selected: {0}")
+        self._trPoints = trUnit(nwStdUnit.POINTS)
 
         # Layout
         self.outerBox = QHBoxLayout()
@@ -118,6 +135,10 @@ class GuiDocFooterBase(QWidget):
         self.outerBox.addWidget(self.statusText)
         self.outerBox.addStretch(1)
         self.outerBox.addWidget(self.vimStatus, 0, QtAlignMiddle)
+        self.outerBox.addSpacing(6)
+        self.outerBox.addWidget(self.zoomOutButton)
+        self.outerBox.addWidget(self.zoomLabel)
+        self.outerBox.addWidget(self.zoomInButton)
         self.outerBox.addSpacing(6)
         self.outerBox.addWidget(self.wordsIcon)
         self.outerBox.addWidget(self.wordsText)
@@ -179,6 +200,10 @@ class GuiDocFooterBase(QWidget):
             self.vimStatus.setVisible(True)
             self._vimMode = mode
 
+    def updateZoom(self, pointSize: float) -> None:
+        """Update the zoom label with the document font size."""
+        self.zoomLabel.setText(f"{pointSize:n}{nwUnicode.U_THNBSP}{self._trPoints}")
+
     def heightHint(self) -> int:
         """Return the height to reserve for the footer."""
         return 0 if self.isHidden() else self.sizeHint().height()
@@ -189,13 +214,23 @@ class GuiDocFooterBase(QWidget):
         self.statusText.setFont(SHARED.theme.guiFontSmall)
         self.wordsText.setFont(SHARED.theme.guiFontSmall)
         self.vimStatus.setFont(SHARED.theme.guiFontSmall)
+        self.zoomLabel.setFont(SHARED.theme.guiFontSmall)
+
+        # Fixed width so the zoom buttons don't move as the value changes
+        self.zoomLabel.setFixedWidth(
+            self.zoomLabel.fontMetrics().horizontalAdvance(f"88.8{nwUnicode.U_THNBSP}{self._trPoints}")
+        )
 
     def updateTheme(self, *, init: bool = False) -> None:
         """Update theme elements."""
         if not init:
             self.showHide.refreshTheme()
             self.optsButton.refreshTheme()
+            self.zoomOutButton.refreshTheme()
+            self.zoomInButton.refreshTheme()
+
         iPx = round(0.9 * SHARED.theme.baseIconHeight)
+
         self.wordsIcon.setPixmap(SHARED.theme.getPixmap("stats", iPx, iPx))
         self._vimColor = SHARED.theme.getBaseColor("base")
         self._vimModes = {
@@ -219,6 +254,7 @@ class GuiDocFooterBase(QWidget):
 
         self.statusText.setPalette(palette)
         self.wordsText.setPalette(palette)
+        self.zoomLabel.setPalette(palette)
 
 
 class GuiDocEditFooter(GuiDocFooterBase):

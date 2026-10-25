@@ -102,6 +102,8 @@ class GuiDocViewer(QTextBrowser):
         self.anchorClicked.connect(self._linkClicked)
         self.docFooter.togglePanelRequest.connect(self.togglePanelVisibility)
         self.docFooter.viewOptionsChanged.connect(self.reloadText)
+        self.docFooter.zoomInRequest.connect(self.zoomIn)
+        self.docFooter.zoomOutRequest.connect(self.zoomOut)
         self.docHeader.closeDocumentRequest.connect(self.closeDocumentRequest)
         self.docHeader.navBackwardRequest.connect(self.navBackward)
         self.docHeader.navForwardRequest.connect(self.navForward)
@@ -524,6 +526,12 @@ class GuiDocViewer(QTextBrowser):
             self._timerHover.stop()
             self._hoverCard.scheduleHide()
         super().mouseMoveEvent(event)
+
+    def changeEvent(self, event: QEvent) -> None:
+        """Update the zoom level when the font changes."""
+        super().changeEvent(event)
+        if event.type() == QEvent.Type.FontChange:
+            self.docFooter.updateZoom(self.font().pointSizeF())
 
     def leaveEvent(self, event: QEvent) -> None:
         """Request that the hover card be hidden when the mouse leaves

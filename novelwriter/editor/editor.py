@@ -371,6 +371,8 @@ class GuiDocEditor(QTextEdit):
         self.docHeader.toggleFocusModeRequest.connect(self.toggleFocusModeRequest)
         self.docHeader.toggleSearchRequest.connect(self.toggleSearch)
         self.docHeader.toggleToolBarRequest.connect(self._toggleToolBarVisibility)
+        self.docFooter.zoomInRequest.connect(self.zoomIn)
+        self.docFooter.zoomOutRequest.connect(self.zoomOut)
         self.docToolBar.requestDocAction.connect(self.docAction)
 
         # Context Menu
@@ -1385,6 +1387,12 @@ class GuiDocEditor(QTextEdit):
             self._timerHover.stop()
             self._hoverCard.scheduleHide()
         super().mouseMoveEvent(event)
+
+    def changeEvent(self, event: QEvent) -> None:
+        """Update the zoom level when the font changes."""
+        super().changeEvent(event)
+        if event.type() == QEvent.Type.FontChange:
+            self.docFooter.updateZoom(self.font().pointSizeF())
 
     def leaveEvent(self, event: QEvent) -> None:
         """Request that the hover card be hidden when the mouse leaves
