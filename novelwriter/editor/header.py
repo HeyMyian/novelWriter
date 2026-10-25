@@ -82,6 +82,11 @@ class GuiDocEditHeader(QWidget):
         self.itemTitle.setFixedHeight(fPx)
         self.itemTitle.linkActivated.connect(self._processLabelLink)
 
+        # Keep as spacer in focus mode
+        policy = self.itemTitle.sizePolicy()
+        policy.setRetainSizeWhenHidden(True)
+        self.itemTitle.setSizePolicy(policy)
+
         # Other Widgets
         self.outlineMenu = QMenu(self)
         self.outlineMenu.triggered.connect(self._gotoBlock)
@@ -140,6 +145,32 @@ class GuiDocEditHeader(QWidget):
         self.updateTheme(init=True)
 
         logger.debug("Ready: GuiDocEditHeader")
+
+    ##
+    #  Setters
+    ##
+
+    def setHandle(self, tHandle: str) -> None:
+        """Set the document title from the handle, or alternatively, set
+        the whole document path within the project.
+        """
+        self._docHandle = tHandle
+        if CONFIG.showFullPath:
+            self.itemTitle.setText(SHARED.project.tree.itemPath(tHandle, withName=True))
+        elif item := SHARED.project.tree[tHandle]:
+            self.itemTitle.setText([(item.itemHandle, item.itemName)])
+
+        self.tbButton.setVisible(True)
+        self.minmaxButton.setVisible(True)
+        self.setFocusMode(SHARED.focusMode)
+
+    def setFocusMode(self, focusMode: bool) -> None:
+        """Update the header when in Focus Mode."""
+        isShown = not (focusMode and CONFIG.cleanFocusHeader)
+        self.outlineButton.setVisible(isShown)
+        self.searchButton.setVisible(isShown)
+        self.itemTitle.setVisible(isShown)
+        self.closeButton.setVisible(isShown)
 
     ##
     #  Methods
@@ -211,22 +242,6 @@ class GuiDocEditHeader(QWidget):
         """Flash a red colour for the header for a moment."""
         self.itemTitle.setColorState(nwState.ERROR)
         QTimer.singleShot(250, self._resetColourState)
-
-    def setHandle(self, tHandle: str) -> None:
-        """Set the document title from the handle, or alternatively, set
-        the whole document path within the project.
-        """
-        self._docHandle = tHandle
-        if CONFIG.showFullPath:
-            self.itemTitle.setText(SHARED.project.tree.itemPath(tHandle, withName=True))
-        elif item := SHARED.project.tree[tHandle]:
-            self.itemTitle.setText([(item.itemHandle, item.itemName)])
-
-        self.tbButton.setVisible(True)
-        self.searchButton.setVisible(True)
-        self.outlineButton.setVisible(True)
-        self.closeButton.setVisible(True)
-        self.minmaxButton.setVisible(True)
 
     ##
     #  Private Slots

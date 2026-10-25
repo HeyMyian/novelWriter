@@ -533,26 +533,6 @@ class GuiPreferences(NDialog):
             unit=trPx,
         )
 
-        # Max Text Width in Focus Mode
-        self.focusWidth = NSpinBox(self, minVal=200, maxVal=10000, step=10)
-        self.focusWidth.setFixedNumbersWidth(5)
-        self.focusWidth.setValue(CONFIG.focusWidth)
-        self.mainForm.addRow(
-            self.tr('Maximum text width in "Focus Mode"'),
-            self.focusWidth,
-            self.tr("The maximum width cannot be disabled."),
-            unit=trPx,
-        )
-
-        # Focus Mode Footer
-        self.hideFocusFooter = NSwitch(self)
-        self.hideFocusFooter.setChecked(CONFIG.hideFocusFooter)
-        self.mainForm.addRow(
-            self.tr('Hide document footer in "Focus Mode"'),
-            self.hideFocusFooter,
-            self.tr("Hide the information bar in the document editor."),
-        )
-
         # Justify Text
         self.doJustify = NSwitch(self)
         self.doJustify.setChecked(CONFIG.doJustify)
@@ -593,6 +573,43 @@ class GuiPreferences(NDialog):
             self.lineHeight,
             self.tr("The relative line height in the editor and viewer."),
             unit=self.tr("em"),
+        )
+
+        # Focus Mode
+        # ==========
+
+        title = self.tr("Focus Mode")
+        section += 1
+        self.sidebar.addButton(title, section)
+        self.mainForm.addGroupLabel(title, section)
+
+        # Max Text Width in Focus Mode
+        self.focusWidth = NSpinBox(self, minVal=200, maxVal=10000, step=10)
+        self.focusWidth.setFixedNumbersWidth(5)
+        self.focusWidth.setValue(CONFIG.focusWidth)
+        self.mainForm.addRow(
+            self.tr('Maximum text width in "Focus Mode"'),
+            self.focusWidth,
+            self.tr("The maximum width cannot be disabled."),
+            unit=trPx,
+        )
+
+        # Focus Mode Footer
+        self.hideFocusFooter = NSwitch(self)
+        self.hideFocusFooter.setChecked(CONFIG.hideFocusFooter)
+        self.mainForm.addRow(
+            self.tr('Hide document footer in "Focus Mode"'),
+            self.hideFocusFooter,
+            self.tr("Hides the entire document footer."),
+        )
+
+        # Focus Mode Header
+        self.cleanFocusHeader = NSwitch(self)
+        self.cleanFocusHeader.setChecked(CONFIG.cleanFocusHeader)
+        self.mainForm.addRow(
+            self.tr('Minimal document header in "Focus Mode"'),
+            self.cleanFocusHeader,
+            self.tr("Hides the title and most buttons."),
         )
 
         # Text Editing
@@ -1276,6 +1293,7 @@ class GuiPreferences(NDialog):
         CONFIG.textWidth = textWidth
         CONFIG.focusWidth = focusWidth
         CONFIG.hideFocusFooter = self.hideFocusFooter.isChecked()
+        CONFIG.cleanFocusHeader = self.cleanFocusHeader.isChecked()
         CONFIG.doJustify = doJustify
         CONFIG.textMargin = textMargin
         CONFIG.tabWidth = tabWidth

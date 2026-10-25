@@ -133,6 +133,7 @@ class Config:
         "buildFormat",
         "buildTime",
         "buildType",
+        "cleanFocusHeader",
         "countUnit",
         "cursorWidth",
         "darkTheme",
@@ -354,6 +355,7 @@ class Config:
 
         self.focusWidth = 800  # Focus Mode text width
         self.hideFocusFooter = False  # Hide document footer in Focus Mode
+        self.cleanFocusHeader = False  # Hide most header content in Focus Mode
         self.showFullPath = True  # Show full document path in editor header
         self.autoSelect = True  # Auto-select word when applying format with no selection
 
@@ -876,6 +878,7 @@ class Config:
         self.lineHighlight = parser.getBool(sec, "lineHighlight", self.lineHighlight)
         self.focusWidth = parser.getInt(sec, "focusWidth", self.focusWidth)
         self.hideFocusFooter = parser.getBool(sec, "hideFocusFooter", self.hideFocusFooter)
+        self.cleanFocusHeader = parser.getBool(sec, "cleanFocusHeader", self.cleanFocusHeader)
         self.doJustify = parser.getBool(sec, "justify", self.doJustify)
         self.autoSelect = parser.getBool(sec, "autoSelect", self.autoSelect)
         self.doReplace = parser.getBool(sec, "autoReplace", self.doReplace)
@@ -1023,6 +1026,7 @@ class Config:
             "lineHighlight": self.lineHighlight,
             "focusWidth": self.focusWidth,
             "hideFocusFooter": self.hideFocusFooter,
+            "cleanFocusHeader": self.cleanFocusHeader,
             "justify": self.doJustify,
             "autoSelect": self.autoSelect,
             "autoReplace": self.doReplace,
