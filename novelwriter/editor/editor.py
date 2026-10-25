@@ -371,6 +371,10 @@ class GuiDocEditor(QTextEdit):
         self.docHeader.toggleFocusModeRequest.connect(self.toggleFocusModeRequest)
         self.docHeader.toggleSearchRequest.connect(self.toggleSearch)
         self.docHeader.toggleToolBarRequest.connect(self._toggleToolBarVisibility)
+        self.docFooter.zoomInRequest.connect(self.zoomIn)
+        self.docFooter.zoomOutRequest.connect(self.zoomOut)
+        self.docFooter.zoomResetRequest.connect(self.zoomReset)
+        self.docFooter.editOptionsChanged.connect(self._editOptionsChanged)
         self.docToolBar.requestDocAction.connect(self.docAction)
 
         # Context Menu
@@ -622,14 +626,7 @@ class GuiDocEditor(QTextEdit):
         self.initViewport()
 
         # Also set the document text options for the document text flow
-        options = QTextOption()
-        if CONFIG.doJustify:
-            options.setAlignment(QtAlignJustify)
-        if CONFIG.showTabsNSpaces:
-            options.setFlags(options.flags() | QTextOption.Flag.ShowTabsAndSpaces)
-        if CONFIG.showLineEndings:
-            options.setFlags(options.flags() | QTextOption.Flag.ShowLineAndParagraphSeparators)
-        self._qDocument.setDefaultTextOption(options)
+        self._applyTextOptions()
 
         # Refresh sizes
         self.setTabStopDistance(CONFIG.tabWidth)
@@ -849,8 +846,8 @@ class GuiDocEditor(QTextEdit):
 
         tB = self.frameWidth()
         tW = wW - 2 * tB - sW
-        tH = self.docHeader.sizeHint().height()
-        fH = self.docFooter.sizeHint().height()
+        tH = self.docHeader.heightHint()
+        fH = self.docFooter.heightHint()
         fY = wH - fH - tB - sH
         self.docHeader.setGeometry(tB, tB, tW, tH)
         self.docFooter.setGeometry(tB, fY, tW, fH)
@@ -1387,6 +1384,12 @@ class GuiDocEditor(QTextEdit):
             self._hoverCard.scheduleHide()
         super().mouseMoveEvent(event)
 
+    def changeEvent(self, event: QEvent) -> None:
+        """Update the zoom level when the font changes."""
+        super().changeEvent(event)
+        if event.type() == QEvent.Type.FontChange:
+            self.docFooter.updateZoom(self.font().pointSizeF())
+
     def leaveEvent(self, event: QEvent) -> None:
         """Request that the hover card be hidden when the mouse leaves
         the editor. The hide is delayed rather than immediate, so the
@@ -1624,7 +1627,6 @@ class GuiDocEditor(QTextEdit):
     def _cursorMoved(self) -> None:
         """Triggered when the cursor moved in the editor."""
         self._hideHoverCard()
-        self.docFooter.updateLineCount(self.textCursor())
         if self._suppressed:
             # An underline was suppressed at the previous cursor
             # position, so the underlines must be refreshed
@@ -2008,6 +2010,14 @@ class GuiDocEditor(QTextEdit):
         state = not self.docToolBar.isVisible()
         self.docToolBar.setVisible(state)
         CONFIG.showEditToolBar = state
+
+    @pyqtSlot()
+    def _editOptionsChanged(self) -> None:
+        """Apply changed editor options to the open document."""
+        if self._docHandle:
+            self._qDocument.markLayoutBusy()
+            self.setReadOnly(self._qDocument.isLayoutBusy())
+        self._applyTextOptions()
 
     ##
     #  Search & Replace
@@ -3042,6 +3052,17 @@ class GuiDocEditor(QTextEdit):
     ##
     #  Internal Functions
     ##
+
+    def _applyTextOptions(self) -> None:
+        """Set the document text options from the user settings."""
+        options = QTextOption()
+        if CONFIG.doJustify:
+            options.setAlignment(QtAlignJustify)
+        if CONFIG.editShowTabsNSpaces:
+            options.setFlags(options.flags() | QTextOption.Flag.ShowTabsAndSpaces)
+        if CONFIG.editShowLineEndings:
+            options.setFlags(options.flags() | QTextOption.Flag.ShowLineAndParagraphSeparators)
+        self._qDocument.setDefaultTextOption(options)
 
     def _dispatchKeyPress(self, event: QKeyEvent) -> None:
         """Send a key event to the base class, except plain Return.

@@ -438,6 +438,7 @@ class nwLabels:
         nwStdUnit.WORDS: QT_TRANSLATE_NOOP("Units", "words"),
         nwStdUnit.LINES: QT_TRANSLATE_NOOP("Units", "lines"),
         nwStdUnit.PIXELS: QT_TRANSLATE_NOOP("Units", "px"),
+        nwStdUnit.POINTS: QT_TRANSLATE_NOOP("Units", "pt"),
         nwStdUnit.SECONDS: QT_TRANSLATE_NOOP("Units", "seconds"),
         nwStdUnit.MINUTES: QT_TRANSLATE_NOOP("Units", "minutes"),
     }

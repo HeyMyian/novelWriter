@@ -26,15 +26,15 @@ import logging
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QEvent, QPoint, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QPalette, QPixmap, QTextCursor
+from PyQt6.QtGui import QPalette, QPixmap
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QMenu, QWidget
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import qtAddAction
-from novelwriter.constants import nwLabels, nwStats, trStats
-from novelwriter.enum import nwVimMode
-from novelwriter.extensions.modified import NFlatIconButton
-from novelwriter.types import QtAlignLeftTop, QtBlack
+from novelwriter.constants import nwLabels, nwStats, nwUnicode, trStats, trUnit
+from novelwriter.enum import nwStdUnit, nwVimMode
+from novelwriter.extensions.modified import NClickableLabel, NFlatIconButton
+from novelwriter.types import QtAlignCenter, QtAlignLeftMiddle, QtAlignLeftTop, QtAlignMiddle, QtBlack
 
 if TYPE_CHECKING:
     from novelwriter.core.item import ProjectItem
@@ -46,6 +46,9 @@ class GuiDocFooterBase(QWidget):
     """The Embedded Document Footer Base Class."""
 
     togglePanelRequest = pyqtSignal()
+    zoomInRequest = pyqtSignal()
+    zoomOutRequest = pyqtSignal()
+    zoomResetRequest = pyqtSignal()
 
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent=parent)
@@ -54,7 +57,6 @@ class GuiDocFooterBase(QWidget):
         self._docHandle: str | None = None
 
         iSz = SHARED.theme.baseIconSize
-        iPx = round(0.9 * SHARED.theme.baseIconHeight)
         fPx = int(0.9 * SHARED.theme.fontPixelSize)
 
         # Main Widget Settings
@@ -72,45 +74,80 @@ class GuiDocFooterBase(QWidget):
         self.optsMenu = _PopUpMenu(self.optsButton)
         self.optsButton.setMenu(self.optsMenu)
 
+        # The button height sets the row height, also when hidden
+        rH = self.showHide.height()
+
         # Status
         self.statusIcon = QLabel("", self)
-        self.statusIcon.setFixedHeight(iPx)
-        self.statusIcon.setAlignment(QtAlignLeftTop)
+        self.statusIcon.setFixedHeight(rH)
+        self.statusIcon.setAlignment(QtAlignLeftMiddle)
 
         self.statusText = QLabel("", self)
         self.statusText.setAutoFillBackground(True)
-        self.statusText.setFixedHeight(fPx)
-        self.statusText.setAlignment(QtAlignLeftTop)
+        self.statusText.setFixedHeight(rH)
+        self.statusText.setAlignment(QtAlignLeftMiddle)
 
         # Counter
         self.wordsIcon = QLabel("", self)
-        self.wordsIcon.setFixedHeight(iPx)
-        self.wordsIcon.setAlignment(QtAlignLeftTop)
+        self.wordsIcon.setFixedHeight(rH)
+        self.wordsIcon.setAlignment(QtAlignLeftMiddle)
 
         self.wordsText = QLabel("", self)
         self.wordsText.setAutoFillBackground(True)
-        self.wordsText.setFixedHeight(fPx)
-        self.wordsText.setAlignment(QtAlignLeftTop)
+        self.wordsText.setFixedHeight(rH)
+        self.wordsText.setAlignment(QtAlignLeftMiddle)
+
+        # Vim Mode
+        self.vimStatus = QLabel("", self)
+        self.vimStatus.setAutoFillBackground(True)
+        self.vimStatus.setFixedHeight(fPx)
+        self.vimStatus.setAlignment(QtAlignLeftTop)
+        self.vimStatus.setVisible(False)
+
+        self._vimMode: nwVimMode | None = None
+        self._vimColor = SHARED.theme.getBaseColor("base")
+        self._vimModes = {}
+
+        # Zoom
+        self.zoomOutButton = NFlatIconButton(self, iSz, "zoom_out:default")
+        self.zoomOutButton.setToolTip(self.tr("Zoom Out"))
+        self.zoomOutButton.clicked.connect(self.zoomOutRequest)
+
+        self.zoomLabel = NClickableLabel("", self)
+        self.zoomLabel.setAutoFillBackground(True)
+        self.zoomLabel.setFixedHeight(rH)
+        self.zoomLabel.setAlignment(QtAlignCenter)
+        self.zoomLabel.setToolTip(self.tr("Reset Zoom"), "Ctrl+0")
+        self.zoomLabel.mouseClicked.connect(self.zoomResetRequest)
+
+        self.zoomInButton = NFlatIconButton(self, iSz, "zoom_in:default")
+        self.zoomInButton.setToolTip(self.tr("Zoom In"))
+        self.zoomInButton.clicked.connect(self.zoomInRequest)
 
         # Cached Translations
         self.initSettings()
         self._trSelectCount = self.tr("Selected: {0}")
+        self._trPoints = trUnit(nwStdUnit.POINTS)
 
         # Layout
-        self.innerBox = QHBoxLayout()
-        self.innerBox.setContentsMargins(0, 0, 0, 0)
-        self.innerBox.setSpacing(4)
-
         self.outerBox = QHBoxLayout()
-        self.outerBox.setSpacing(4)
+        self.outerBox.setContentsMargins(4, 4, 4, 4)
+        self.outerBox.setSpacing(0)
         self.outerBox.addWidget(self.showHide)
         self.outerBox.addWidget(self.optsButton)
+        self.outerBox.addSpacing(4)
         self.outerBox.addWidget(self.statusIcon)
+        self.outerBox.addSpacing(2)
         self.outerBox.addWidget(self.statusText)
         self.outerBox.addStretch(1)
-        self.outerBox.addLayout(self.innerBox)
+        self.outerBox.addWidget(self.vimStatus, 0, QtAlignMiddle)
+        self.outerBox.addSpacing(6)
+        self.outerBox.addWidget(self.zoomOutButton)
+        self.outerBox.addWidget(self.zoomLabel)
+        self.outerBox.addWidget(self.zoomInButton)
         self.outerBox.addSpacing(6)
         self.outerBox.addWidget(self.wordsIcon)
+        self.outerBox.addSpacing(2)
         self.outerBox.addWidget(self.wordsText)
 
     ##
@@ -154,140 +191,6 @@ class GuiDocFooterBase(QWidget):
             text = self._trMainCount.format("0", "+0")
         self.wordsText.setText(text)
 
-    def updateFont(self) -> None:
-        """Update the font settings."""
-        self.setFont(SHARED.theme.guiFont)
-        self.statusText.setFont(SHARED.theme.guiFontSmall)
-        self.wordsText.setFont(SHARED.theme.guiFontSmall)
-
-    def updateTheme(self, *, init: bool = False) -> None:
-        """Update theme elements."""
-        if not init:
-            self.showHide.refreshTheme()
-            self.optsButton.refreshTheme()
-        iPx = round(0.9 * SHARED.theme.baseIconHeight)
-        self.wordsIcon.setPixmap(SHARED.theme.getPixmap("stats", iPx, iPx))
-        self.matchColors()
-
-    def matchColors(self) -> None:
-        """Update the colours of the widget to match those of the syntax
-        theme rather than the main GUI.
-        """
-        syntax = SHARED.theme.syntaxTheme
-        palette = self.palette()
-        palette.setColor(QPalette.ColorRole.Window, syntax.back)
-        palette.setColor(QPalette.ColorRole.WindowText, syntax.text)
-        palette.setColor(QPalette.ColorRole.Text, syntax.text)
-        self.setPalette(palette)
-
-        self.statusText.setPalette(palette)
-        self.wordsText.setPalette(palette)
-
-
-class GuiDocEditFooter(GuiDocFooterBase):
-    """The Embedded Document Footer.
-
-    Only used by DocEditor, and is at a fixed position in the
-    QTextEdit's viewport.
-    """
-
-    def __init__(self, parent: QWidget) -> None:
-        super().__init__(parent)
-
-        logger.debug("Create: GuiDocEditFooter")
-
-        iPx = round(0.9 * SHARED.theme.baseIconHeight)
-        fPx = int(0.9 * SHARED.theme.fontPixelSize)
-
-        # Cached Translations
-        self._trLineCount = self.tr("Line: {0} ({1})")
-
-        self._lineNo = -1
-        self._linePc = -1
-
-        # Not used by the editor yet
-        self.showHide.setVisible(False)
-        self.optsButton.setVisible(False)
-
-        # Lines
-        self.linesIcon = QLabel("", self)
-        self.linesIcon.setFixedHeight(iPx)
-        self.linesIcon.setAlignment(QtAlignLeftTop)
-
-        self.linesText = QLabel("", self)
-        self.linesText.setAutoFillBackground(True)
-        self.linesText.setFixedHeight(fPx)
-        self.linesText.setAlignment(QtAlignLeftTop)
-
-        # Vim mode status bar
-        self.vimStatus = QLabel("", self)
-        self.vimStatus.setAutoFillBackground(True)
-        self.vimStatus.setFixedHeight(fPx)
-        self.vimStatus.setAlignment(QtAlignLeftTop)
-        self._vimMode: nwVimMode | None = None
-        self._vimColor = SHARED.theme.getBaseColor("base")
-        self._vimModes = {}
-
-        # Assemble Layout
-        self.innerBox.addSpacing(6)
-        self.innerBox.addWidget(self.vimStatus)
-        self.innerBox.addSpacing(6)
-        self.innerBox.addWidget(self.linesIcon)
-        self.innerBox.addWidget(self.linesText)
-        self.outerBox.setContentsMargins(8, 8, 8, 8)
-
-        self.setLayout(self.outerBox)
-
-        # Fix the Colours
-        self.updateFont()
-        self.updateTheme(init=True)
-
-        # Initialise Info
-        self.updateMainCount(0, False)
-
-        logger.debug("Ready: GuiDocEditFooter")
-
-    ##
-    #  Methods
-    ##
-
-    def updateFont(self) -> None:
-        """Update the font settings."""
-        super().updateFont()
-        self.linesText.setFont(SHARED.theme.guiFontSmall)
-        self.vimStatus.setFont(SHARED.theme.guiFontSmall)
-
-    def updateTheme(self, *, init: bool = False) -> None:
-        """Update theme elements."""
-        logger.debug("Theme Update: GuiDocEditFooter")
-
-        iPx = round(0.9 * SHARED.theme.baseIconHeight)
-        self.linesIcon.setPixmap(SHARED.theme.getPixmap("lines", iPx, iPx))
-        self._vimColor = SHARED.theme.getBaseColor("base")
-        self._vimModes = {
-            nwVimMode.NORMAL: (self.tr("NORMAL"), SHARED.theme.getBaseColor("green")),
-            nwVimMode.INSERT: (self.tr("INSERT"), SHARED.theme.getBaseColor("blue")),
-            nwVimMode.VISUAL: (self.tr("VISUAL"), SHARED.theme.getBaseColor("orange")),
-            nwVimMode.V_LINE: (self.tr("V-LINE"), SHARED.theme.getBaseColor("orange")),
-        }
-        super().updateTheme(init=init)
-
-    def matchColors(self) -> None:
-        """Update the colours of the widget and its labels."""
-        super().matchColors()
-        palette = self.palette()
-        self.linesText.setPalette(palette)
-
-    def updateLineCount(self, cursor: QTextCursor) -> None:
-        """Update the line and document position counter."""
-        if document := cursor.document():  # pragma: no branch
-            lineNo = cursor.blockNumber() + 1
-            linePc = 100 * (cursor.position() + 1) // max(document.characterCount(), 1)
-            if lineNo != self._lineNo or linePc != self._linePc:
-                self.linesText.setText(self._trLineCount.format(f"{lineNo:n}", f"{linePc:d}\u202f%"))
-                self._lineNo = lineNo
-                self._linePc = linePc
-
     def updateVimModeStatusBar(self, mode: nwVimMode | None) -> None:
         """Update the vim Mode status information."""
         if mode is None:
@@ -303,6 +206,119 @@ class GuiDocEditFooter(GuiDocFooterBase):
             self.vimStatus.setPalette(palette)
             self.vimStatus.setVisible(True)
             self._vimMode = mode
+
+    def updateZoom(self, pointSize: float) -> None:
+        """Update the zoom label with the document font size."""
+        self.zoomLabel.setText(f"{pointSize:n}{nwUnicode.U_THNBSP}{self._trPoints}")
+
+    def heightHint(self) -> int:
+        """Return the height to reserve for the footer."""
+        return 0 if self.isHidden() else self.sizeHint().height()
+
+    def updateFont(self) -> None:
+        """Update the font settings."""
+        self.setFont(SHARED.theme.guiFont)
+        self.statusText.setFont(SHARED.theme.guiFontSmall)
+        self.wordsText.setFont(SHARED.theme.guiFontSmall)
+        self.vimStatus.setFont(SHARED.theme.guiFontSmall)
+        self.zoomLabel.setFont(SHARED.theme.guiFontSmall)
+
+        # Fixed width so the zoom buttons don't move as the value changes
+        self.zoomLabel.setFixedWidth(
+            self.zoomLabel.fontMetrics().horizontalAdvance(f"88.8{nwUnicode.U_THNBSP}{self._trPoints}")
+        )
+
+    def updateTheme(self, *, init: bool = False) -> None:
+        """Update theme elements."""
+        if not init:
+            self.showHide.refreshTheme()
+            self.optsButton.refreshTheme()
+            self.zoomOutButton.refreshTheme()
+            self.zoomInButton.refreshTheme()
+
+        iPx = round(0.9 * SHARED.theme.baseIconHeight)
+
+        self.wordsIcon.setPixmap(SHARED.theme.getPixmap("stats", iPx, iPx))
+        self._vimColor = SHARED.theme.getBaseColor("base")
+        self._vimModes = {
+            nwVimMode.NORMAL: (self.tr("NORMAL"), SHARED.theme.getBaseColor("green")),
+            nwVimMode.INSERT: (self.tr("INSERT"), SHARED.theme.getBaseColor("blue")),
+            nwVimMode.VISUAL: (self.tr("VISUAL"), SHARED.theme.getBaseColor("orange")),
+            nwVimMode.V_LINE: (self.tr("V-LINE"), SHARED.theme.getBaseColor("orange")),
+        }
+        self.matchColors()
+
+    def matchColors(self) -> None:
+        """Update the colours of the widget to match those of the syntax
+        theme rather than the main GUI.
+        """
+        syntax = SHARED.theme.syntaxTheme
+        palette = self.palette()
+        palette.setColor(QPalette.ColorRole.Window, syntax.back)
+        palette.setColor(QPalette.ColorRole.WindowText, syntax.text)
+        palette.setColor(QPalette.ColorRole.Text, syntax.text)
+        self.setPalette(palette)
+
+        self.statusText.setPalette(palette)
+        self.wordsText.setPalette(palette)
+        self.zoomLabel.setPalette(palette)
+
+
+class GuiDocEditFooter(GuiDocFooterBase):
+    """The Embedded Document Footer.
+
+    Only used by DocEditor, and is at a fixed position in the
+    QTextEdit's viewport.
+    """
+
+    editOptionsChanged = pyqtSignal()
+
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__(parent)
+
+        logger.debug("Create: GuiDocEditFooter")
+
+        # Not used by the editor yet
+        self.showHide.setVisible(False)
+
+        # Options
+        self.aShowTabsNSpaces = qtAddAction(self.optsMenu, self.tr("Show Tabs and Spaces"))
+        self.aShowTabsNSpaces.setCheckable(True)
+        self.aShowTabsNSpaces.setChecked(CONFIG.editShowTabsNSpaces)
+        self.aShowTabsNSpaces.toggled.connect(self._doToggleTabsNSpaces)
+
+        self.aShowLineEndings = qtAddAction(self.optsMenu, self.tr("Show Line Endings"))
+        self.aShowLineEndings.setCheckable(True)
+        self.aShowLineEndings.setChecked(CONFIG.editShowLineEndings)
+        self.aShowLineEndings.toggled.connect(self._doToggleLineEndings)
+
+        # Assemble
+        self.setLayout(self.outerBox)
+
+        # Fix the Colours
+        self.updateFont()
+        self.updateTheme(init=True)
+
+        # Initialise Info
+        self.updateMainCount(0, False)
+
+        logger.debug("Ready: GuiDocEditFooter")
+
+    ##
+    #  Private Slots
+    ##
+
+    @pyqtSlot(bool)
+    def _doToggleTabsNSpaces(self, state: bool) -> None:
+        """Toggle the editor tabs and spaces setting."""
+        CONFIG.editShowTabsNSpaces = state
+        self.editOptionsChanged.emit()
+
+    @pyqtSlot(bool)
+    def _doToggleLineEndings(self, state: bool) -> None:
+        """Toggle the editor line endings setting."""
+        CONFIG.editShowLineEndings = state
+        self.editOptionsChanged.emit()
 
 
 class GuiDocViewFooter(GuiDocFooterBase):
@@ -340,8 +356,7 @@ class GuiDocViewFooter(GuiDocFooterBase):
         self.aUseIndent.setChecked(CONFIG.viewFirstLineIndent)
         self.aUseIndent.toggled.connect(self._doToggleFirstLineIndent)
 
-        # Assemble Layout
-        self.outerBox.setContentsMargins(4, 4, 4, 4)
+        # Assemble
         self.setLayout(self.outerBox)
 
         self.updateFont()

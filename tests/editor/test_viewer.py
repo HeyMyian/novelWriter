@@ -243,6 +243,24 @@ def testGuiDocViewer_Zoom(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd:
     assert docViewer.docAction(nwDocAction.ZOOM_RESET) is True
     assert docViewer.font().pointSizeF() == basePt
 
+    # Zoom with the footer buttons, and show the font size in the footer
+    docFooter = docViewer.docFooter
+    assert docFooter.zoomLabel.text().startswith(f"{basePt:n}")
+    docFooter.zoomInButton.click()
+    assert docViewer.font().pointSizeF() == basePt + 1
+    assert docFooter.zoomLabel.text().startswith(f"{basePt + 1:n}")
+    docFooter.zoomOutButton.click()
+    assert docViewer.font().pointSizeF() == basePt
+    assert docFooter.zoomLabel.text().startswith(f"{basePt:n}")
+
+    # Clicking the zoom label resets the zoom
+    docFooter.zoomInButton.click()
+    docFooter.zoomInButton.click()
+    assert docViewer.font().pointSizeF() == basePt + 2
+    qtbot.mouseClick(docFooter.zoomLabel, QtMouseLeft)
+    assert docViewer.font().pointSizeF() == basePt
+    assert docFooter.zoomLabel.text().startswith(f"{basePt:n}")
+
 
 @pytest.mark.gui
 def testGuiDocViewer_Links(
@@ -609,6 +627,11 @@ def testGuiDocViewer_FooterAndErrors(
     assert f"{item.mainCount:n}" in docViewer.docFooter.wordsText.text()
     assert docViewer.docFooter.showHide.isVisible() is True
     assert nwGUI.docEditor.docFooter.showHide.isVisible() is False
+
+    # Both footers have the same height, set by the button row
+    footerHeight = docViewer.docFooter.sizeHint().height()
+    assert nwGUI.docEditor.docFooter.sizeHint().height() == footerHeight
+    assert footerHeight == docViewer.docFooter.showHide.height() + 8
 
     with qtbot.waitSignal(docViewer.togglePanelVisibility, timeout=1000):
         docViewer.docFooter.showHide.click()

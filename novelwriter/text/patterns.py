@@ -110,7 +110,7 @@ class RegExPatterns:
                     rx.append(f"(?:\\B{qO}[^{qO}]+{qC}\\B(?={qO}|\\s*))")
                 else:
                     rx.append(f"(?:{qO}[^{qO}]+{qC})")
-                if CONFIG.allowOpenDial:
+                if CONFIG.allowOpenDialog:
                     rx.append(f"(?:{qO}.+?$)")
             if CONFIG.dialogStyle in (2, 3):
                 qO = CONFIG.fmtDQuoteOpen.strip()[:1]
@@ -121,7 +121,7 @@ class RegExPatterns:
                     rx.append(f"(?:\\B{qO}[^{qO}]+{qC}\\B(?={qO}|\\s*))")
                 else:
                     rx.append(f"(?:{qO}[^{qO}]+{qC})")
-                if CONFIG.allowOpenDial:
+                if CONFIG.allowOpenDialog:
                     rx.append(f"(?:{qO}.+?$)")
             return re.compile("|".join(rx))
         return None

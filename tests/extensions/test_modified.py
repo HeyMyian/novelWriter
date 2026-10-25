@@ -322,6 +322,17 @@ def testNClickableLabel_Main(qtbot: QtBot):
     widget.mousePressEvent(rightEvent)
     assert received == []
 
+    # Tooltips are used as accessible names, without the shortcut
+    widget.setToolTip("Reset Zoom", "Ctrl+0")
+    assert widget.toolTip() == "Reset Zoom [Ctrl+0]"
+    assert widget.accessibleName() == "Reset Zoom"
+    widget.setToolTip("Zoom")
+    assert widget.toolTip() == "Zoom"
+    assert widget.accessibleName() == "Zoom"
+    widget.setToolTip(None)
+    assert widget.toolTip() == ""
+    assert widget.accessibleName() == ""
+
 
 @pytest.mark.gui
 def testNFlatButtons_Main(qtbot: QtBot, mockGUIwithTheme: MockGuiMain):

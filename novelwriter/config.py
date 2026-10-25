@@ -68,7 +68,7 @@ from novelwriter.constants import nwFiles, nwQuotes, nwUnicode, trStats
 from novelwriter.enum import nwTheme
 from novelwriter.error import formatException, logException
 from novelwriter.formats.configparser import NConfigParser
-from novelwriter.formats.tomlparser import NTomlParser
+from novelwriter.formats.tomlparser import NTomlParser, T_ConfigMap
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -83,6 +83,12 @@ DEF_GUI_DARK = "default_dark"
 DEF_GUI_LIGHT = "default_light"
 DEF_ICONS = "material_rounded_normal"
 DEF_TREECOL = "theme"
+
+# Maps the current location of an option to its old location
+MOVED_CONFIGS: T_ConfigMap = {
+    ("Main", "hideFocusFooter"): ("Editor", "hideFocusFooter"),
+    ("Editor", "allowOpenDialog"): ("Editor", "allowOpenDial"),
+}
 
 
 class Config:
@@ -116,7 +122,7 @@ class Config:
         "_recentPaths",
         "_recentProjects",
         "_splash",
-        "allowOpenDial",
+        "allowOpenDialog",
         "altDialogClose",
         "altDialogOpen",
         "appHandle",
@@ -146,6 +152,8 @@ class Config:
         "doReplaceDots",
         "doReplaceSQuote",
         "dottedModCodes",
+        "editShowLineEndings",
+        "editShowTabsNSpaces",
         "emphLabels",
         "fmtApostrophe",
         "fmtDQuoteClose",
@@ -158,6 +166,7 @@ class Config:
         "focusWidth",
         "fontWinSize",
         "forceUnixLineEndings",
+        "goalInFocusMode",
         "guiFont",
         "guiForceRTL",
         "guiLocale",
@@ -210,10 +219,8 @@ class Config:
         "showDetailsPanel",
         "showEditToolBar",
         "showFullPath",
-        "showLineEndings",
         "showMultiSpaces",
         "showSessionTime",
-        "showTabsNSpaces",
         "showViewerPanel",
         "singleStarBold",
         "spellLanguage",
@@ -314,6 +321,7 @@ class Config:
         self.hideHScroll = False  # Hide horizontal scroll bars on main widgets
         self.lastNotes = "0x0"  # The latest release notes that have been shown
         self.nativeFont = True  # Use native font dialog
+        self.goalInFocusMode = False  # Show project goal when in focus mode
         self.useCharCount = False  # Use character count as primary count
         self.countUnit = "words"  # Primary count unit
         self.vimMode = False  # Enable Vim mode
@@ -361,8 +369,6 @@ class Config:
         self.autoSelect = True  # Auto-select word when applying format with no selection
 
         self.doJustify = False  # Justify text
-        self.showTabsNSpaces = False  # Show tabs and spaces in editor
-        self.showLineEndings = False  # Show line endings in editor
         self.showMultiSpaces = False  # Highlight multiple spaces in the text
         self.scaleHeadings = True  # Use a larger size for headings
         self.singleStarBold = False  # Allow single asterisk bold
@@ -378,7 +384,7 @@ class Config:
         self.scrollPastEnd = True  # Scroll past end of document, and centre cursor
 
         self.dialogStyle = 2  # Quote type to use for dialogue
-        self.allowOpenDial = True  # Allow open-ended dialogue quotes
+        self.allowOpenDialog = True  # Allow open-ended dialogue quotes
         self.dialogLine = ""  # Symbol to use for dialogue line
         self.narratorBreak = ""  # Symbol to use for narrator break
         self.narratorDialog = ""  # Symbol for alternating between dialogue and narrator
@@ -417,6 +423,8 @@ class Config:
         self.viewSynopsis = True  # Synopsis is shown in the viewer
         self.viewNotes = True  # Notes are shown in the viewer
         self.viewFirstLineIndent = False  # Enable first line indent in the viewer
+        self.editShowTabsNSpaces = False  # Show tabs and spaces in the editor
+        self.editShowLineEndings = False  # Show line endings in the editor
 
         # Search Box States
         self.searchAuto = False
@@ -804,10 +812,10 @@ class Config:
 
         if safeExists(path := self._confPath / nwFiles.CONF_FILE):
             confPath = path
-            parser = NTomlParser()
+            parser = NTomlParser(confMap=MOVED_CONFIGS)
         elif safeExists(path := self._confPath / nwFiles.CONF_FILE_OLD):
             confPath = path
-            parser = NConfigParser()
+            parser = NConfigParser(confMap=MOVED_CONFIGS)
             convertOld = True
         else:
             # Initial file, so we just create one from defaults
@@ -841,6 +849,9 @@ class Config:
         self.hideHScroll = parser.getBool(sec, "hideHScroll", self.hideHScroll)
         self.lastNotes = parser.getStr(sec, "lastNotes", self.lastNotes)
         self.nativeFont = parser.getBool(sec, "nativeFont", self.nativeFont)
+        self.hideFocusFooter = parser.getBool(sec, "hideFocusFooter", self.hideFocusFooter)
+        self.cleanFocusHeader = parser.getBool(sec, "cleanFocusHeader", self.cleanFocusHeader)
+        self.goalInFocusMode = parser.getBool(sec, "goalInFocusMode", self.goalInFocusMode)
         self.useCharCount = parser.getBool(sec, "useCharCount", self.useCharCount)
         self.vimMode = parser.getBool(sec, "vimMode", self.vimMode)
 
@@ -879,8 +890,6 @@ class Config:
         self.cursorWidth = parser.getInt(sec, "cursorWidth", self.cursorWidth)
         self.lineHighlight = parser.getBool(sec, "lineHighlight", self.lineHighlight)
         self.focusWidth = parser.getInt(sec, "focusWidth", self.focusWidth)
-        self.hideFocusFooter = parser.getBool(sec, "hideFocusFooter", self.hideFocusFooter)
-        self.cleanFocusHeader = parser.getBool(sec, "cleanFocusHeader", self.cleanFocusHeader)
         self.doJustify = parser.getBool(sec, "justify", self.doJustify)
         self.autoSelect = parser.getBool(sec, "autoSelect", self.autoSelect)
         self.doReplace = parser.getBool(sec, "autoReplace", self.doReplace)
@@ -899,15 +908,13 @@ class Config:
         self.fmtPadAfter = uniqueCompact(parser.getStr(sec, "fmtPadAfter", self.fmtPadAfter))
         self.fmtPadThin = parser.getBool(sec, "fmtPadThin", self.fmtPadThin)
         self.spellLanguage = parser.getStr(sec, "spellCheck", self.spellLanguage)
-        self.showTabsNSpaces = parser.getBool(sec, "showTabsNSpaces", self.showTabsNSpaces)
-        self.showLineEndings = parser.getBool(sec, "showLineEndings", self.showLineEndings)
         self.showMultiSpaces = parser.getBool(sec, "showMultiSpaces", self.showMultiSpaces)
         self.scaleHeadings = parser.getBool(sec, "scaleHeadings", self.scaleHeadings)
         self.singleStarBold = parser.getBool(sec, "singleStarBold", self.singleStarBold)
         self.incNotesWCount = parser.getBool(sec, "incNotesWCount", self.incNotesWCount)
         self.showFullPath = parser.getBool(sec, "showFullPath", self.showFullPath)
         self.dialogStyle = parser.getInt(sec, "dialogStyle", self.dialogStyle)
-        self.allowOpenDial = parser.getBool(sec, "allowOpenDial", self.allowOpenDial)
+        self.allowOpenDialog = parser.getBool(sec, "allowOpenDialog", self.allowOpenDialog)
         dialogLine = parser.getStr(sec, "dialogLine", self.dialogLine)
         narratorBreak = parser.getStr(sec, "narratorBreak", self.narratorBreak)
         narratorDialog = parser.getStr(sec, "narratorDialog", self.narratorDialog)
@@ -929,6 +936,8 @@ class Config:
         self.viewSynopsis = parser.getBool(sec, "viewSynopsis", self.viewSynopsis)
         self.viewNotes = parser.getBool(sec, "viewNotes", self.viewNotes)
         self.viewFirstLineIndent = parser.getBool(sec, "viewFirstLineIndent", self.viewFirstLineIndent)
+        self.editShowTabsNSpaces = parser.getBool(sec, "editShowTabsNSpaces", self.editShowTabsNSpaces)
+        self.editShowLineEndings = parser.getBool(sec, "editShowLineEndings", self.editShowLineEndings)
         self.searchAuto = parser.getBool(sec, "searchAuto", self.searchAuto)
         self.searchCase = parser.getBool(sec, "searchCase", self.searchCase)
         self.searchWord = parser.getBool(sec, "searchWord", self.searchWord)
@@ -990,6 +999,9 @@ class Config:
             "hideHScroll": self.hideHScroll,
             "lastNotes": self.lastNotes,
             "nativeFont": self.nativeFont,
+            "hideFocusFooter": self.hideFocusFooter,
+            "cleanFocusHeader": self.cleanFocusHeader,
+            "goalInFocusMode": self.goalInFocusMode,
             "useCharCount": self.useCharCount,
             "vimMode": self.vimMode,
         }
@@ -1028,8 +1040,6 @@ class Config:
             "cursorWidth": self.cursorWidth,
             "lineHighlight": self.lineHighlight,
             "focusWidth": self.focusWidth,
-            "hideFocusFooter": self.hideFocusFooter,
-            "cleanFocusHeader": self.cleanFocusHeader,
             "justify": self.doJustify,
             "autoSelect": self.autoSelect,
             "autoReplace": self.doReplace,
@@ -1048,15 +1058,13 @@ class Config:
             "fmtPadAfter": self.fmtPadAfter,
             "fmtPadThin": self.fmtPadThin,
             "spellCheck": self.spellLanguage,
-            "showTabsNSpaces": self.showTabsNSpaces,
-            "showLineEndings": self.showLineEndings,
             "showMultiSpaces": self.showMultiSpaces,
             "scaleHeadings": self.scaleHeadings,
             "singleStarBold": self.singleStarBold,
             "incNotesWCount": self.incNotesWCount,
             "showFullPath": self.showFullPath,
             "dialogStyle": self.dialogStyle,
-            "allowOpenDial": self.allowOpenDial,
+            "allowOpenDialog": self.allowOpenDialog,
             "dialogLine": self.dialogLine,
             "narratorBreak": self.narratorBreak,
             "narratorDialog": self.narratorDialog,
@@ -1078,6 +1086,8 @@ class Config:
             "viewSynopsis": self.viewSynopsis,
             "viewNotes": self.viewNotes,
             "viewFirstLineIndent": self.viewFirstLineIndent,
+            "editShowTabsNSpaces": self.editShowTabsNSpaces,
+            "editShowLineEndings": self.editShowLineEndings,
             "searchAuto": self.searchAuto,
             "searchCase": self.searchCase,
             "searchWord": self.searchWord,
