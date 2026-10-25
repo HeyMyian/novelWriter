@@ -198,6 +198,13 @@ def testGuiDocEditor_Init(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, ipsumTex
     with qtbot.waitSignal(docEditor.docHeader.toggleToolBarRequest, timeout=1000):
         docEditor.docHeader.tbButton.click()
 
+    # Toggle search from header
+    assert docEditor.searchVisible() is False
+    docEditor.docHeader.searchButton.click()
+    assert docEditor.searchVisible() is True
+    docEditor.docHeader.searchButton.click()
+    assert docEditor.searchVisible() is False
+
     # Toggle focus mode from header
     with qtbot.waitSignal(docEditor.toggleFocusModeRequest, timeout=1000):
         docEditor.docHeader.minmaxButton.click()

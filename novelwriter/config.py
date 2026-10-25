@@ -133,6 +133,7 @@ class Config:
         "buildFormat",
         "buildTime",
         "buildType",
+        "cleanFocusHeader",
         "countUnit",
         "cursorWidth",
         "darkTheme",
@@ -231,6 +232,7 @@ class Config:
         "verQtString",
         "verQtValue",
         "viewComments",
+        "viewFirstLineIndent",
         "viewNotes",
         "viewPanePos",
         "viewSynopsis",
@@ -354,6 +356,7 @@ class Config:
 
         self.focusWidth = 800  # Focus Mode text width
         self.hideFocusFooter = False  # Hide document footer in Focus Mode
+        self.cleanFocusHeader = False  # Hide most header content in Focus Mode
         self.showFullPath = True  # Show full document path in editor header
         self.autoSelect = True  # Auto-select word when applying format with no selection
 
@@ -413,6 +416,7 @@ class Config:
         self.viewComments = True  # Comments are shown in the viewer
         self.viewSynopsis = True  # Synopsis is shown in the viewer
         self.viewNotes = True  # Notes are shown in the viewer
+        self.viewFirstLineIndent = False  # Enable first line indent in the viewer
 
         # Search Box States
         self.searchAuto = False
@@ -876,6 +880,7 @@ class Config:
         self.lineHighlight = parser.getBool(sec, "lineHighlight", self.lineHighlight)
         self.focusWidth = parser.getInt(sec, "focusWidth", self.focusWidth)
         self.hideFocusFooter = parser.getBool(sec, "hideFocusFooter", self.hideFocusFooter)
+        self.cleanFocusHeader = parser.getBool(sec, "cleanFocusHeader", self.cleanFocusHeader)
         self.doJustify = parser.getBool(sec, "justify", self.doJustify)
         self.autoSelect = parser.getBool(sec, "autoSelect", self.autoSelect)
         self.doReplace = parser.getBool(sec, "autoReplace", self.doReplace)
@@ -923,6 +928,7 @@ class Config:
         self.viewComments = parser.getBool(sec, "viewComments", self.viewComments)
         self.viewSynopsis = parser.getBool(sec, "viewSynopsis", self.viewSynopsis)
         self.viewNotes = parser.getBool(sec, "viewNotes", self.viewNotes)
+        self.viewFirstLineIndent = parser.getBool(sec, "viewFirstLineIndent", self.viewFirstLineIndent)
         self.searchAuto = parser.getBool(sec, "searchAuto", self.searchAuto)
         self.searchCase = parser.getBool(sec, "searchCase", self.searchCase)
         self.searchWord = parser.getBool(sec, "searchWord", self.searchWord)
@@ -1023,6 +1029,7 @@ class Config:
             "lineHighlight": self.lineHighlight,
             "focusWidth": self.focusWidth,
             "hideFocusFooter": self.hideFocusFooter,
+            "cleanFocusHeader": self.cleanFocusHeader,
             "justify": self.doJustify,
             "autoSelect": self.autoSelect,
             "autoReplace": self.doReplace,
@@ -1070,6 +1077,7 @@ class Config:
             "viewComments": self.viewComments,
             "viewSynopsis": self.viewSynopsis,
             "viewNotes": self.viewNotes,
+            "viewFirstLineIndent": self.viewFirstLineIndent,
             "searchAuto": self.searchAuto,
             "searchCase": self.searchCase,
             "searchWord": self.searchWord,

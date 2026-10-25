@@ -277,6 +277,7 @@ def testGuiPreferences_Settings(
     prefs.textWidth.stepDown()
     prefs.focusWidth.stepDown()
     prefs.hideFocusFooter.setChecked(True)
+    prefs.cleanFocusHeader.setChecked(True)
     prefs.doJustify.setChecked(True)
     prefs.textMargin.stepUp()
     prefs.tabWidth.stepUp()
@@ -285,6 +286,7 @@ def testGuiPreferences_Settings(
     assert CONFIG.textWidth == 700
     assert CONFIG.focusWidth == 800
     assert CONFIG.hideFocusFooter is False
+    assert CONFIG.cleanFocusHeader is False
     assert CONFIG.doJustify is False
     assert CONFIG.textMargin == 40
     assert CONFIG.tabWidth == 40
@@ -473,6 +475,7 @@ def testGuiPreferences_Settings(
     assert CONFIG.textWidth == 690
     assert CONFIG.focusWidth == 790
     assert CONFIG.hideFocusFooter is True
+    assert CONFIG.cleanFocusHeader is True
     assert CONFIG.doJustify is True
     assert CONFIG.textMargin == 41
     assert CONFIG.tabWidth == 41
