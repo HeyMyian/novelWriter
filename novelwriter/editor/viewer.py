@@ -100,6 +100,8 @@ class GuiDocViewer(QTextBrowser):
 
         # Signals
         self.anchorClicked.connect(self._linkClicked)
+        self.docFooter.togglePanelRequest.connect(self.togglePanelVisibility)
+        self.docFooter.viewOptionsChanged.connect(self.reloadText)
         self.docHeader.closeDocumentRequest.connect(self.closeDocumentRequest)
         self.docHeader.navBackwardRequest.connect(self.navBackward)
         self.docHeader.navForwardRequest.connect(self.navForward)

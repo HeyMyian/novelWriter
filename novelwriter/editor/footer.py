@@ -1,6 +1,6 @@
 """
-novelWriter - GUI Editor Footer
-===============================
+novelWriter - GUI Document Footer
+=================================
 
 This file is a part of novelWriter
 Copyright (C) 2026 Veronica Berglyd Olsen and novelWriter contributors
@@ -23,26 +23,49 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING
-
-from PyQt6.QtCore import pyqtSlot
+from PyQt6.QtCore import pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QPalette, QPixmap, QTextCursor
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QWidget
 
 from novelwriter import CONFIG, SHARED
-from novelwriter.common import qtWeakLambda
 from novelwriter.constants import nwLabels, nwStats, trLabel, trStats
 from novelwriter.enum import nwStdLabel, nwVimMode
 from novelwriter.extensions.modified import NFlatIconButton, NFlatIconTextButton
 from novelwriter.types import QtAlignLeftTop, QtBlack
 
-if TYPE_CHECKING:
-    from novelwriter.editor.viewer import GuiDocViewer
-
 logger = logging.getLogger(__name__)
 
 
-class GuiDocEditFooter(QWidget):
+class GuiDocFooterBase(QWidget):
+    """The Embedded Document Footer Base Class."""
+
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__(parent=parent)
+
+        # Main Widget Settings
+        self.setAutoFillBackground(True)
+
+        # Layout
+        self.outerBox = QHBoxLayout()
+        self.outerBox.setSpacing(4)
+
+    def updateFont(self) -> None:
+        """Update the font settings."""
+        self.setFont(SHARED.theme.guiFont)
+
+    def matchColors(self) -> None:
+        """Update the colours of the widget to match those of the syntax
+        theme rather than the main GUI.
+        """
+        syntax = SHARED.theme.syntaxTheme
+        palette = self.palette()
+        palette.setColor(QPalette.ColorRole.Window, syntax.back)
+        palette.setColor(QPalette.ColorRole.WindowText, syntax.text)
+        palette.setColor(QPalette.ColorRole.Text, syntax.text)
+        self.setPalette(palette)
+
+
+class GuiDocEditFooter(GuiDocFooterBase):
     """The Embedded Document Footer.
 
     Only used by DocEditor, and is at a fixed position in the
@@ -50,7 +73,7 @@ class GuiDocEditFooter(QWidget):
     """
 
     def __init__(self, parent: QWidget) -> None:
-        super().__init__(parent=parent)
+        super().__init__(parent)
 
         logger.debug("Create: GuiDocEditFooter")
 
@@ -67,9 +90,6 @@ class GuiDocEditFooter(QWidget):
 
         self._lineNo = -1
         self._linePc = -1
-
-        # Main Widget Settings
-        self.setAutoFillBackground(True)
 
         # Status
         self.statusIcon = QLabel("", self)
@@ -111,8 +131,6 @@ class GuiDocEditFooter(QWidget):
         self._vimModes = {}
 
         # Assemble Layout
-        self.outerBox = QHBoxLayout()
-        self.outerBox.setSpacing(4)
         self.outerBox.addWidget(self.statusIcon)
         self.outerBox.addWidget(self.statusText)
         self.outerBox.addStretch(1)
@@ -147,7 +165,7 @@ class GuiDocEditFooter(QWidget):
 
     def updateFont(self) -> None:
         """Update the font settings."""
-        self.setFont(SHARED.theme.guiFont)
+        super().updateFont()
         self.statusText.setFont(SHARED.theme.guiFontSmall)
         self.linesText.setFont(SHARED.theme.guiFontSmall)
         self.wordsText.setFont(SHARED.theme.guiFontSmall)
@@ -170,17 +188,9 @@ class GuiDocEditFooter(QWidget):
         }
 
     def matchColors(self) -> None:
-        """Update the colours of the widget to match those of the syntax
-        theme rather than the main GUI.
-        """
-        syntax = SHARED.theme.syntaxTheme
-
+        """Update the colours of the widget and its labels."""
+        super().matchColors()
         palette = self.palette()
-        palette.setColor(QPalette.ColorRole.Window, syntax.back)
-        palette.setColor(QPalette.ColorRole.WindowText, syntax.text)
-        palette.setColor(QPalette.ColorRole.Text, syntax.text)
-
-        self.setPalette(palette)
         self.statusText.setPalette(palette)
         self.linesText.setPalette(palette)
         self.wordsText.setPalette(palette)
@@ -250,32 +260,27 @@ class GuiDocEditFooter(QWidget):
             self._vimMode = mode
 
 
-class GuiDocViewFooter(QWidget):
+class GuiDocViewFooter(GuiDocFooterBase):
     """The Embedded Document Footer.
 
     Only used by DocViewer, and is at a fixed position in the
     QTextBrowser's viewport.
     """
 
-    def __init__(self, docViewer: GuiDocViewer) -> None:
-        super().__init__(parent=docViewer)
+    togglePanelRequest = pyqtSignal()
+    viewOptionsChanged = pyqtSignal()
+
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__(parent)
 
         logger.debug("Create: GuiDocViewFooter")
 
-        self.docViewer = docViewer
-
-        # Internal Variables
-        self._docHandle = None
-
         iSz = SHARED.theme.baseIconSize
-
-        # Main Widget Settings
-        self.setAutoFillBackground(True)
 
         # Show/Hide Details
         self.showHide = NFlatIconButton(self, iSz, "panel:default")
         self.showHide.setToolTip(self.tr("Show/Hide Viewer Panel"))
-        self.showHide.clicked.connect(qtWeakLambda(self._emitTogglePanelVisibility))
+        self.showHide.clicked.connect(self.togglePanelRequest)
 
         # Show Comments
         self.showComments = NFlatIconTextButton(self, iSz, "toggle-bullet:action", self.tr("Comments"))
@@ -302,14 +307,12 @@ class GuiDocViewFooter(QWidget):
         self.showNotes.toggled.connect(self._doToggleNotes)
 
         # Assemble Layout
-        self.outerBox = QHBoxLayout()
         self.outerBox.addWidget(self.showHide, 0)
         self.outerBox.addStretch(1)
         self.outerBox.addWidget(self.showComments, 0)
         self.outerBox.addWidget(self.showSynopsis, 0)
         self.outerBox.addWidget(self.showNotes, 0)
         self.outerBox.setContentsMargins(4, 4, 4, 4)
-        self.outerBox.setSpacing(4)
         self.setLayout(self.outerBox)
 
         self.updateFont()
@@ -323,7 +326,7 @@ class GuiDocViewFooter(QWidget):
 
     def updateFont(self) -> None:
         """Update the font settings."""
-        self.setFont(SHARED.theme.guiFont)
+        super().updateFont()
         self.showComments.setFont(SHARED.theme.guiFontSmall)
         self.showSynopsis.setFont(SHARED.theme.guiFontSmall)
         self.showNotes.setFont(SHARED.theme.guiFontSmall)
@@ -340,40 +343,24 @@ class GuiDocViewFooter(QWidget):
 
         self.matchColors()
 
-    def matchColors(self) -> None:
-        """Update the colours of the widget to match those of the syntax
-        theme rather than the main GUI.
-        """
-        syntax = SHARED.theme.syntaxTheme
-        palette = self.palette()
-        palette.setColor(QPalette.ColorRole.Window, syntax.back)
-        palette.setColor(QPalette.ColorRole.WindowText, syntax.text)
-        palette.setColor(QPalette.ColorRole.Text, syntax.text)
-        self.setPalette(palette)
-
     ##
     #  Private Slots
     ##
 
-    @pyqtSlot()
-    def _emitTogglePanelVisibility(self) -> None:
-        """Forward a toggle panel visibility request."""
-        self.docViewer.togglePanelVisibility.emit()
-
     @pyqtSlot(bool)
     def _doToggleComments(self, state: bool) -> None:
-        """Toggle the view comment button and reload the document."""
+        """Toggle the view comments setting."""
         CONFIG.viewComments = state
-        self.docViewer.reloadText()
+        self.viewOptionsChanged.emit()
 
     @pyqtSlot(bool)
     def _doToggleSynopsis(self, state: bool) -> None:
-        """Toggle the view synopsis button and reload the document."""
+        """Toggle the view synopsis setting."""
         CONFIG.viewSynopsis = state
-        self.docViewer.reloadText()
+        self.viewOptionsChanged.emit()
 
     @pyqtSlot(bool)
     def _doToggleNotes(self, state: bool) -> None:
-        """Toggle the view notes button and reload the document."""
+        """Toggle the view notes setting."""
         CONFIG.viewNotes = state
-        self.docViewer.reloadText()
+        self.viewOptionsChanged.emit()
