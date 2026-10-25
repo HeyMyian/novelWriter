@@ -687,22 +687,7 @@ class GuiPreferences(NDialog):
         self.mainForm.addRow(
             self.tr("Highlight current line"),
             self.lineHighlight,
-        )
-
-        # Show Tabs and Spaces
-        self.showTabsNSpaces = NSwitch(self)
-        self.showTabsNSpaces.setChecked(CONFIG.showTabsNSpaces)
-        self.mainForm.addRow(
-            self.tr("Show tabs and spaces"),
-            self.showTabsNSpaces,
-        )
-
-        # Show Line Endings
-        self.showLineEndings = NSwitch(self)
-        self.showLineEndings.setChecked(CONFIG.showLineEndings)
-        self.mainForm.addRow(
-            self.tr("Show line endings"),
-            self.showLineEndings,
+            self.tr("Shows the line of the cursor in a different background colour."),
         )
 
         # Editor Scrolling
@@ -1308,15 +1293,11 @@ class GuiPreferences(NDialog):
         scaleHeadings = self.scaleHeadings.isChecked()
         singleStarBold = self.singleStarBold.isChecked()
         lineHighlight = self.lineHighlight.isChecked()
-        showTabsNSpaces = self.showTabsNSpaces.isChecked()
-        showLineEndings = self.showLineEndings.isChecked()
 
         updateSyntax |= CONFIG.scaleHeadings != scaleHeadings
         updateSyntax |= CONFIG.singleStarBold != singleStarBold
         updateSyntax |= CONFIG.lineHighlight != lineHighlight
         initEditor |= CONFIG.cursorWidth != cursorWidth
-        initEditor |= CONFIG.showTabsNSpaces != showTabsNSpaces
-        initEditor |= CONFIG.showLineEndings != showLineEndings
         updateSpelling |= CONFIG.spellLanguage != spellLanguage
 
         CONFIG.spellLanguage = spellLanguage
@@ -1325,8 +1306,6 @@ class GuiPreferences(NDialog):
         CONFIG.scaleHeadings = scaleHeadings
         CONFIG.singleStarBold = singleStarBold
         CONFIG.lineHighlight = lineHighlight
-        CONFIG.showTabsNSpaces = showTabsNSpaces
-        CONFIG.showLineEndings = showLineEndings
 
         # Editor Scrolling
         scrollPastEnd = self.scrollPastEnd.isChecked()

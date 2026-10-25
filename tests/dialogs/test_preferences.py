@@ -301,8 +301,6 @@ def testGuiPreferences_Settings(
     prefs.scaleHeadings.setChecked(False)
     prefs.singleStarBold.setChecked(True)
     prefs.lineHighlight.setChecked(False)
-    prefs.showTabsNSpaces.setChecked(True)
-    prefs.showLineEndings.setChecked(True)
 
     assert CONFIG.spellLanguage != "de"
     assert CONFIG.autoSelect is True
@@ -310,8 +308,6 @@ def testGuiPreferences_Settings(
     assert CONFIG.scaleHeadings is True
     assert CONFIG.singleStarBold is False
     assert CONFIG.lineHighlight is True
-    assert CONFIG.showTabsNSpaces is False
-    assert CONFIG.showLineEndings is False
 
     # Editor Scrolling
     prefs.scrollPastEnd.setChecked(False)
@@ -491,8 +487,6 @@ def testGuiPreferences_Settings(
     assert CONFIG.scaleHeadings is False
     assert CONFIG.singleStarBold is True
     assert CONFIG.lineHighlight is False
-    assert CONFIG.showTabsNSpaces is True
-    assert CONFIG.showLineEndings is True
 
     # Editor Scrolling
     assert CONFIG.scrollPastEnd is False

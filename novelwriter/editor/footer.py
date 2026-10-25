@@ -271,6 +271,8 @@ class GuiDocEditFooter(GuiDocFooterBase):
     QTextEdit's viewport.
     """
 
+    editOptionsChanged = pyqtSignal()
+
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
 
@@ -278,7 +280,17 @@ class GuiDocEditFooter(GuiDocFooterBase):
 
         # Not used by the editor yet
         self.showHide.setVisible(False)
-        self.optsButton.setVisible(False)
+
+        # Options
+        self.aShowTabsNSpaces = qtAddAction(self.optsMenu, self.tr("Show Tabs and Spaces"))
+        self.aShowTabsNSpaces.setCheckable(True)
+        self.aShowTabsNSpaces.setChecked(CONFIG.editShowTabsNSpaces)
+        self.aShowTabsNSpaces.toggled.connect(self._doToggleTabsNSpaces)
+
+        self.aShowLineEndings = qtAddAction(self.optsMenu, self.tr("Show Line Endings"))
+        self.aShowLineEndings.setCheckable(True)
+        self.aShowLineEndings.setChecked(CONFIG.editShowLineEndings)
+        self.aShowLineEndings.toggled.connect(self._doToggleLineEndings)
 
         # Assemble
         self.setLayout(self.outerBox)
@@ -291,6 +303,22 @@ class GuiDocEditFooter(GuiDocFooterBase):
         self.updateMainCount(0, False)
 
         logger.debug("Ready: GuiDocEditFooter")
+
+    ##
+    #  Private Slots
+    ##
+
+    @pyqtSlot(bool)
+    def _doToggleTabsNSpaces(self, state: bool) -> None:
+        """Toggle the editor tabs and spaces setting."""
+        CONFIG.editShowTabsNSpaces = state
+        self.editOptionsChanged.emit()
+
+    @pyqtSlot(bool)
+    def _doToggleLineEndings(self, state: bool) -> None:
+        """Toggle the editor line endings setting."""
+        CONFIG.editShowLineEndings = state
+        self.editOptionsChanged.emit()
 
 
 class GuiDocViewFooter(GuiDocFooterBase):

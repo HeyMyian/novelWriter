@@ -374,6 +374,7 @@ class GuiDocEditor(QTextEdit):
         self.docFooter.zoomInRequest.connect(self.zoomIn)
         self.docFooter.zoomOutRequest.connect(self.zoomOut)
         self.docFooter.zoomResetRequest.connect(self.zoomReset)
+        self.docFooter.editOptionsChanged.connect(self._editOptionsChanged)
         self.docToolBar.requestDocAction.connect(self.docAction)
 
         # Context Menu
@@ -625,14 +626,7 @@ class GuiDocEditor(QTextEdit):
         self.initViewport()
 
         # Also set the document text options for the document text flow
-        options = QTextOption()
-        if CONFIG.doJustify:
-            options.setAlignment(QtAlignJustify)
-        if CONFIG.showTabsNSpaces:
-            options.setFlags(options.flags() | QTextOption.Flag.ShowTabsAndSpaces)
-        if CONFIG.showLineEndings:
-            options.setFlags(options.flags() | QTextOption.Flag.ShowLineAndParagraphSeparators)
-        self._qDocument.setDefaultTextOption(options)
+        self._applyTextOptions()
 
         # Refresh sizes
         self.setTabStopDistance(CONFIG.tabWidth)
@@ -2016,6 +2010,14 @@ class GuiDocEditor(QTextEdit):
         self.docToolBar.setVisible(state)
         CONFIG.showEditToolBar = state
 
+    @pyqtSlot()
+    def _editOptionsChanged(self) -> None:
+        """Apply changed editor options to the open document."""
+        if self._docHandle:
+            self._qDocument.markLayoutBusy()
+            self.setReadOnly(self._qDocument.isLayoutBusy())
+        self._applyTextOptions()
+
     ##
     #  Search & Replace
     ##
@@ -3049,6 +3051,17 @@ class GuiDocEditor(QTextEdit):
     ##
     #  Internal Functions
     ##
+
+    def _applyTextOptions(self) -> None:
+        """Set the document text options from the user settings."""
+        options = QTextOption()
+        if CONFIG.doJustify:
+            options.setAlignment(QtAlignJustify)
+        if CONFIG.editShowTabsNSpaces:
+            options.setFlags(options.flags() | QTextOption.Flag.ShowTabsAndSpaces)
+        if CONFIG.editShowLineEndings:
+            options.setFlags(options.flags() | QTextOption.Flag.ShowLineAndParagraphSeparators)
+        self._qDocument.setDefaultTextOption(options)
 
     def _dispatchKeyPress(self, event: QKeyEvent) -> None:
         """Send a key event to the base class, except plain Return.
