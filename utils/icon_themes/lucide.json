@@ -145,5 +145,7 @@
     "timer_off": "timer-off",
     "timer": "timer",
     "unchecked": "circle-x",
-    "view": "eye"
+    "view": "eye",
+    "zoom_in": "zoom-in",
+    "zoom_out": "zoom-out"
 }

@@ -145,5 +145,7 @@
     "timer_off",
     "timer",
     "unchecked",
-    "view"
+    "view",
+    "zoom_in",
+    "zoom_out"
 ]

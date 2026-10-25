@@ -145,5 +145,7 @@
     "timer_off": "timer_off",
     "timer": "timer",
     "unchecked": "disabled_by_default",
-    "view": "visibility"
+    "view": "visibility",
+    "zoom_in": "zoom_in",
+    "zoom_out": "zoom_out"
 }

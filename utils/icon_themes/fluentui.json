@@ -145,5 +145,7 @@
     "timer_off": "Timer Off",
     "timer": "Timer",
     "unchecked": "Dismiss Square",
-    "view": "Eye"
+    "view": "Eye",
+    "zoom_in": "Zoom In",
+    "zoom_out": "Zoom Out"
 }
