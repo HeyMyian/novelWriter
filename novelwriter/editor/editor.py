@@ -1623,7 +1623,6 @@ class GuiDocEditor(QTextEdit):
     def _cursorMoved(self) -> None:
         """Triggered when the cursor moved in the editor."""
         self._hideHoverCard()
-        self.docFooter.updateLineCount(self.textCursor())
         if self._suppressed:
             # An underline was suppressed at the previous cursor
             # position, so the underlines must be refreshed

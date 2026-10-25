@@ -26,7 +26,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from PyQt6.QtCore import QEvent, QPoint, pyqtSignal, pyqtSlot
-from PyQt6.QtGui import QPalette, QPixmap, QTextCursor
+from PyQt6.QtGui import QPalette, QPixmap
 from PyQt6.QtWidgets import QHBoxLayout, QLabel, QMenu, QWidget
 
 from novelwriter import CONFIG, SHARED
@@ -202,28 +202,11 @@ class GuiDocEditFooter(GuiDocFooterBase):
 
         logger.debug("Create: GuiDocEditFooter")
 
-        rH = self.showHide.height()
         fPx = int(0.9 * SHARED.theme.fontPixelSize)
-
-        # Cached Translations
-        self._trLineCount = self.tr("Line: {0} ({1})")
-
-        self._lineNo = -1
-        self._linePc = -1
 
         # Not used by the editor yet
         self.showHide.setVisible(False)
         self.optsButton.setVisible(False)
-
-        # Lines
-        self.linesIcon = QLabel("", self)
-        self.linesIcon.setFixedHeight(rH)
-        self.linesIcon.setAlignment(QtAlignLeftMiddle)
-
-        self.linesText = QLabel("", self)
-        self.linesText.setAutoFillBackground(True)
-        self.linesText.setFixedHeight(rH)
-        self.linesText.setAlignment(QtAlignLeftMiddle)
 
         # Vim mode status bar
         self.vimStatus = QLabel("", self)
@@ -237,9 +220,6 @@ class GuiDocEditFooter(GuiDocFooterBase):
         # Assemble
         self.innerBox.addSpacing(6)
         self.innerBox.addWidget(self.vimStatus, 0, QtAlignMiddle)
-        self.innerBox.addSpacing(6)
-        self.innerBox.addWidget(self.linesIcon)
-        self.innerBox.addWidget(self.linesText)
 
         self.setLayout(self.outerBox)
 
@@ -259,15 +239,12 @@ class GuiDocEditFooter(GuiDocFooterBase):
     def updateFont(self) -> None:
         """Update the font settings."""
         super().updateFont()
-        self.linesText.setFont(SHARED.theme.guiFontSmall)
         self.vimStatus.setFont(SHARED.theme.guiFontSmall)
 
     def updateTheme(self, *, init: bool = False) -> None:
         """Update theme elements."""
         logger.debug("Theme Update: GuiDocEditFooter")
 
-        iPx = round(0.9 * SHARED.theme.baseIconHeight)
-        self.linesIcon.setPixmap(SHARED.theme.getPixmap("lines", iPx, iPx))
         self._vimColor = SHARED.theme.getBaseColor("base")
         self._vimModes = {
             nwVimMode.NORMAL: (self.tr("NORMAL"), SHARED.theme.getBaseColor("green")),
@@ -276,22 +253,6 @@ class GuiDocEditFooter(GuiDocFooterBase):
             nwVimMode.V_LINE: (self.tr("V-LINE"), SHARED.theme.getBaseColor("orange")),
         }
         super().updateTheme(init=init)
-
-    def matchColors(self) -> None:
-        """Update the colours of the widget and its labels."""
-        super().matchColors()
-        palette = self.palette()
-        self.linesText.setPalette(palette)
-
-    def updateLineCount(self, cursor: QTextCursor) -> None:
-        """Update the line and document position counter."""
-        if document := cursor.document():  # pragma: no branch
-            lineNo = cursor.blockNumber() + 1
-            linePc = 100 * (cursor.position() + 1) // max(document.characterCount(), 1)
-            if lineNo != self._lineNo or linePc != self._linePc:
-                self.linesText.setText(self._trLineCount.format(f"{lineNo:n}", f"{linePc:d}\u202f%"))
-                self._lineNo = lineNo
-                self._linePc = linePc
 
     def updateVimModeStatusBar(self, mode: nwVimMode | None) -> None:
         """Update the vim Mode status information."""
