@@ -136,8 +136,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["ANN", "D101", "D102", "D105", "PLC2701", "RUF069", "SLF", "TC"]
-"utils/*" = ["ANN", "SLF", "TC"]
+"tests/*" = ["ANN201", "ANN202", "ANN204", "ANN205", "PLC2701", "RUF069", "SLF", "TC"]
+"utils/*" = ["SLF", "TC"]
 
 [tool.ruff.lint.pydocstyle]
 ignore-decorators = [
@@ -161,7 +161,7 @@ quote-style = "double"
 preview = true
 
 [tool.pyright]
-include = ["novelwriter"]
+include = ["novelwriter", "tests"]
 reportIncompatibleMethodOverride = false
 pythonVersion = "3.11"
 

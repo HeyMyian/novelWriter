@@ -28,7 +28,8 @@ i18n/*.qph
 /novelwriter/assets/manual*.pdf
 .~lock.*
 
-# Python Temp
+# Python
+/.python-version
 __pycache__
 *.pyc
 
@@ -38,6 +39,7 @@ __pycache__
 /sample/**/*.bak
 /sample/*.lock
 /sample/ToC.txt
+/sample/manifest.json
 
 # PyTest
 /prof/

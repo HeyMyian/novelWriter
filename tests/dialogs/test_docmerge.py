@@ -21,19 +21,29 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from PyQt6.QtCore import Qt
+from pytestqt.qtbot import QtBot
 
 from novelwriter.core.project import NWProject
 from novelwriter.dialogs.docmerge import GuiDocMerge
+from novelwriter.guimain import GuiMain
 from novelwriter.types import QtAccepted, QtRejected, QtUserRole
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, MockRnd, buildTestProject
 
 
 @pytest.mark.gui
-def testGuiDocMerge_Main(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiDocMerge_Main(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the merge documents tool."""
     monkeypatch.setattr(GuiDocMerge, "exec", lambda *a: None)
     buildTestProject(NWProject(), projPath)

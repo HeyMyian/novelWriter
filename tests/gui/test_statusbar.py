@@ -23,16 +23,27 @@ from __future__ import annotations
 
 import time
 
+from pathlib import Path
+
 import pytest
+
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.core.project import NWProject
+from novelwriter.guimain import GuiMain
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, MockRnd, buildTestProject
 
 
 @pytest.mark.gui
-def testGuiStatusBar_Main(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiStatusBar_Main(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the various features of the status bar."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
@@ -51,10 +62,14 @@ def testGuiStatusBar_Main(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     # Project Status
     status.setProjectStatus(None)
     assert status.projIcon.state is None
+    assert status.projIcon.accessibleName() == "Project"
     status.setProjectStatus(False)
     assert status.projIcon.state is False
+    assert status.projIcon.accessibleName() == "Project: Unsaved"
     status.setProjectStatus(True)
     assert status.projIcon.state is True
+    assert status.projIcon.accessibleName() == "Project: Saved"
+    assert status.projIcon.toolTip() == "Project: Saved"
 
     # Document Status
     status.setDocumentStatus(None)
@@ -63,6 +78,7 @@ def testGuiStatusBar_Main(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
     assert status.docIcon.state is False
     status.setDocumentStatus(True)
     assert status.docIcon.state is True
+    assert status.docIcon.accessibleName() == "Editor: Saved"
 
     # Idle Status
     CONFIG.stopWhenIdle = False

@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import sys
 
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -31,20 +32,28 @@ from PyQt6.QtCore import QUrl, pyqtSlot
 from PyQt6.QtGui import QAction, QDesktopServices
 from PyQt6.QtPrintSupport import QPrintPreviewDialog
 from PyQt6.QtWidgets import QListWidgetItem
+from pytestqt.qtbot import QtBot
 
 from novelwriter import SHARED
 from novelwriter.constants import nwHeadFmt, nwStats
 from novelwriter.core.project import NWProject
+from novelwriter.guimain import GuiMain
 from novelwriter.manuscript.buildsettings import BuildSettings
 from novelwriter.manuscript.manusbuild import GuiManuscriptBuild
 from novelwriter.manuscript.manuscript import GuiManuscript
 from novelwriter.manuscript.manussettings import GuiBuildSettings
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, MockRnd, buildTestProject
 
 
 @pytest.mark.gui
-def testGuiManuscript_Init(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
+def testGuiManuscript_Init(
+    monkeypatch: pytest.MonkeyPatch,
+    qtbot: QtBot,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the init/main functionality of the GuiManuscript dialog."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
@@ -83,7 +92,7 @@ def testGuiManuscript_Init(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiManuscript_Builds(qtbot, nwGUI, projPath):
+def testGuiManuscript_Builds(qtbot: QtBot, nwGUI: GuiMain, projPath: Path):
     """Test the handling of builds in the GuiManuscript dialog."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
@@ -216,12 +225,18 @@ def testGuiManuscript_Builds(qtbot, nwGUI, projPath):
 
 
 @pytest.mark.gui
-def testGuiManuscript_Features(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
+def testGuiManuscript_Features(
+    monkeypatch: pytest.MonkeyPatch,
+    qtbot: QtBot,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test other features of the GuiManuscript dialog."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
 
-    nwGUI.openDocument(C.hTitlePage)
+    nwGUI.docPanes.openDocument(C.hTitlePage)
     nwGUI.docEditor.setPlainText(
         "#! My Novel\n\n"
         "# Part One\n\n"
@@ -238,7 +253,7 @@ def testGuiManuscript_Features(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
         "#### Section\n\n"
         "Text\n\n"
     )
-    nwGUI.saveDocument()
+    nwGUI.docPanes.saveDocument()
     # qtbot.stop()
 
     manus = GuiManuscript(nwGUI)
@@ -396,7 +411,7 @@ def testGuiManuscript_Features(monkeypatch, qtbot, nwGUI, projPath, mockRnd):
 
 @pytest.mark.gui
 @pytest.mark.skipif(sys.platform.startswith("darwin"), reason="Not running on Darwin")
-def testGuiManuscript_Print(monkeypatch, qtbot, nwGUI, projPath):
+def testGuiManuscript_Print(monkeypatch: pytest.MonkeyPatch, qtbot: QtBot, nwGUI: GuiMain, projPath: Path):
     """Test the print feature of the GuiManuscript dialog."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)

@@ -23,29 +23,38 @@ from __future__ import annotations
 
 from pathlib import Path
 from shutil import copyfile
+from typing import Any
 
 import pytest
 
 from PyQt6.QtCore import QAbstractAnimation
 from PyQt6.QtWidgets import QFileDialog, QLabel
+from pytestqt.qtbot import QtBot
 
 from novelwriter import SHARED
 from novelwriter.constants import nwFiles
-from novelwriter.enum import nwChange, nwView
+from novelwriter.enum import nwChange, nwFocus, nwView
+from novelwriter.guimain import GuiMain
 from novelwriter.shared import _GuiAlert
 from novelwriter.story.outline import GuiOutlineViewSettings, GuiStoryOutlineView
 from novelwriter.story.storysettings import OutlineViewSettings, StoryViewCollection, StoryViewSettings
 from novelwriter.story.storyviewbase import GuiStorySettingsBase, GuiStoryViewBase
 
-from tests.helpers import cmpFiles
+from tests.helpers import TstPaths, cmpFiles
 
 
 @pytest.mark.gui
-def testStoryView_ExportData(monkeypatch, nwGUI, prjLipsum, fncPath, tstPaths):
+def testStoryView_ExportData(
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    prjLipsum: Path,
+    fncPath: Path,
+    tstPaths: TstPaths,
+):
     """Test exporting the story view outline data to a CSV file."""
     assert nwGUI.openProject(prjLipsum)
     nwGUI.rebuildIndex()
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
 
     storyView = nwGUI.storyView
     csvFile = fncPath / "outline.csv"
@@ -69,13 +78,13 @@ def testStoryView_ExportData(monkeypatch, nwGUI, prjLipsum, fncPath, tstPaths):
 
 
 @pytest.mark.gui
-def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
+def testStoryView_ManageViews(monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, prjLipsum: Path):
     """Test adding, copying, moving and deleting story views."""
     storyView = nwGUI.storyView
     tabMain = storyView.tabMain
 
     # No views are loaded or added without a project
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     storyView.addView.click()
     assert storyView._views is None
     assert tabMain.count() == 0
@@ -100,10 +109,14 @@ def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
     assert not viewsFile.exists()
 
     # A default outline view is created on first show
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert tabNames() == ["Outline"]
     assert savedNames() == ["Outline"]
     assert isinstance(tabMain.currentWidget(), GuiStoryOutlineView)
+
+    # A single tab is not cycled
+    storyView.cycleTabs()
+    assert tabMain.currentIndex() == 0
 
     # Only known view kinds get a tab
     assert storyView._addTab(StoryViewSettings()) == -1
@@ -126,8 +139,19 @@ def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
     assert savedNames() == ["Outline", "Outline", "Outline 2"]
 
     # Showing the view again does not reload the views
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert tabMain.count() == 3
+
+    # The focus shortcut shows the story view, then cycles its tabs
+    nwGUI.changeView(nwView.EDITOR)
+    tabMain.setCurrentIndex(1)
+    nwGUI._switchFocus(nwFocus.STORY)
+    assert nwGUI.mainStack.currentWidget() is storyView
+    assert tabMain.currentIndex() == 1
+    nwGUI._switchFocus(nwFocus.STORY)
+    assert tabMain.currentIndex() == 2
+    nwGUI._switchFocus(nwFocus.STORY)
+    assert tabMain.currentIndex() == 0
 
     # Refresh and theme update
     storyView.refreshView.click()
@@ -156,7 +180,7 @@ def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
     assert storyView.novelValue.isEnabled() is False
     assert storyView.addView.isEnabled() is False
     assert nwGUI.openProject(prjLipsum)
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert [tabMain.widget(i).settings.viewID for i in range(tabMain.count())] == viewIDs  # type: ignore
     assert tabMain.currentIndex() == 1
 
@@ -185,7 +209,7 @@ def testStoryView_ManageViews(monkeypatch, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryView_SettingsDialog(monkeypatch, nwGUI, prjLipsum):
+def testStoryView_SettingsDialog(monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, prjLipsum: Path):
     """Test editing story views with the settings dialog."""
     assert nwGUI.openProject(prjLipsum)
     storyView = nwGUI.storyView
@@ -193,7 +217,7 @@ def testStoryView_SettingsDialog(monkeypatch, nwGUI, prjLipsum):
     viewsFile = SHARED.project.storage.getMetaFile(nwFiles.VIEWS_FILE)
     assert isinstance(viewsFile, Path)
     viewsFile.unlink(missing_ok=True)
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
 
     def openDialog() -> GuiOutlineViewSettings:
         storyView.editView.click()
@@ -209,12 +233,12 @@ def testStoryView_SettingsDialog(monkeypatch, nwGUI, prjLipsum):
     answer = True
     rebuilt = 0
 
-    def question(*args, **kwargs) -> bool:
+    def question(*args: Any, **kwargs: Any) -> bool:
         nonlocal asked
         asked += 1
         return answer
 
-    def refresh(self, rootHandle, force=False) -> None:
+    def refresh(self: GuiStoryOutlineView, rootHandle: str | None, force: bool = False) -> None:
         nonlocal rebuilt
         rebuilt += int(force)
 
@@ -312,13 +336,13 @@ def testStoryView_SettingsDialog(monkeypatch, nwGUI, prjLipsum):
     # A view that is hidden when its settings change is rebuilt when shown
     dialog = openDialog()
     dialog.showSections.setChecked(True)
-    nwGUI._changeView(nwView.PROJECT)
+    nwGUI.changeView(nwView.PROJECT)
     dialog.btnSave.click()
     assert rebuilt == 1
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert rebuilt == 2
-    nwGUI._changeView(nwView.PROJECT)
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.PROJECT)
+    nwGUI.changeView(nwView.STORY)
     assert rebuilt == 2
 
     # Deleting a view discards only its own open dialog, without asking
@@ -350,7 +374,7 @@ def testStoryView_SettingsDialog(monkeypatch, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryView_LastHandle(nwGUI, prjLipsum):
+def testStoryView_LastHandle(nwGUI: GuiMain, prjLipsum: Path):
     """Test that the selected novel folder is restored on reopen."""
     assert nwGUI.openProject(prjLipsum)
     storyView = nwGUI.storyView
@@ -377,7 +401,7 @@ def testStoryView_LastHandle(nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryView_LazyLoad(nwGUI, prjLipsum):
+def testStoryView_LazyLoad(nwGUI: GuiMain, prjLipsum: Path):
     """Test that views are only built when shown."""
     assert nwGUI.openProject(prjLipsum)
     storyView = nwGUI.storyView
@@ -390,7 +414,7 @@ def testStoryView_LazyLoad(nwGUI, prjLipsum):
         return [tabMain.widget(i).outlineContent._built for i in range(tabMain.count())]  # type: ignore
 
     # Create two extra views, and reopen with the first view active
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     storyView.addView.click()
     storyView.addView.click()
     tabMain.setCurrentIndex(0)
@@ -399,7 +423,7 @@ def testStoryView_LazyLoad(nwGUI, prjLipsum):
     assert tabMain.count() == 0
 
     # Only the active view is built when the story view is first shown
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert built() == [True, False, False]
 
     # Other views are built when switched to
@@ -412,12 +436,12 @@ def testStoryView_LazyLoad(nwGUI, prjLipsum):
 
     # Changing the novel while hidden does not rebuild the view
     current = tabMain.currentWidget().outlineContent  # type: ignore
-    nwGUI._changeView(nwView.PROJECT)
+    nwGUI.changeView(nwView.PROJECT)
     novelValue.setCurrentIndex(novelValue.findData(rootHandle))
     assert current._lastHandle is None
 
     # It is rebuilt when the story view is shown again
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert current._lastHandle == rootHandle
 
     # Rebuilding the index while visible rebuilds the current view
@@ -428,7 +452,7 @@ def testStoryView_LazyLoad(nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryView_Highlight(qtbot, nwGUI, prjLipsum):
+def testStoryView_Highlight(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
     """Test highlighting a reference in the views."""
     assert nwGUI.openProject(prjLipsum)
     storyView = nwGUI.storyView
@@ -441,7 +465,7 @@ def testStoryView_Highlight(qtbot, nwGUI, prjLipsum):
         return [tabMain.widget(i).outlineContent._delegate._highlight for i in range(tabMain.count())]  # type: ignore
 
     # The references are listed when the view is shown
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert [combo.itemData(i) for i in range(combo.count())] == ["", "bod", "europe", "main"]
     assert [combo.itemText(i) for i in range(combo.count())] == ["", "Bod", "Europe", "Main"]
 
@@ -496,7 +520,7 @@ def testStoryView_Highlight(qtbot, nwGUI, prjLipsum):
 
     # The highlight is restored when the views are loaded
     assert nwGUI.openProject(prjLipsum)
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     assert combo.currentData() == "bod"
     assert highlights() == [{"bod"}, {"bod"}]
 
@@ -506,7 +530,7 @@ def testStoryView_Highlight(qtbot, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryView_BaseClass(qtbot, nwGUI):
+def testStoryView_BaseClass(qtbot: QtBot, nwGUI: GuiMain):
     """Test the story view base class."""
     settings = OutlineViewSettings()
     view = GuiStoryViewBase(nwGUI, settings)
@@ -523,7 +547,7 @@ def testStoryView_BaseClass(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testStoryView_SettingsPages(qtbot, nwGUI):
+def testStoryView_SettingsPages(qtbot: QtBot, nwGUI: GuiMain):
     """Test the story view settings dialog base class pages."""
 
     class Dialog(GuiStorySettingsBase):

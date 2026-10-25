@@ -21,11 +21,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from PyQt6.QtCore import QEvent, Qt
 from PyQt6.QtGui import QAction, QFont, QFontDatabase, QKeyEvent
 from PyQt6.QtWidgets import QFileDialog
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.config import DEF_GUI_DARK, DEF_GUI_LIGHT, DEF_TREECOL
@@ -35,15 +38,16 @@ from novelwriter.dialogs.preferences import GuiNeedsUpdate, GuiPreferences
 from novelwriter.dialogs.quotes import GuiQuoteSelect
 from novelwriter.extensions.modified import NFontDialog
 from novelwriter.gui.theme import ThemeEntry
+from novelwriter.guimain import GuiMain
 from novelwriter.types import QtKeyEscape, QtModNone
 
-from tests.helpers import checkDialogFreedOnClose
+from tests.helpers import TstPaths, checkDialogFreedOnClose
 
 KEY_DELAY = 1
 
 
 @pytest.mark.gui
-def testGuiPreferences_Main(qtbot, monkeypatch, nwGUI, tstPaths):
+def testGuiPreferences_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, tstPaths: TstPaths):
     """Test the preferences dialog loading."""
     monkeypatch.setattr(SpellEnchant, "listDictionaries", lambda *a: [("en", "English [en]")])
     monkeypatch.setattr(GuiPreferences, "exec", lambda *a: None)
@@ -90,7 +94,7 @@ def testGuiPreferences_Main(qtbot, monkeypatch, nwGUI, tstPaths):
 
 
 @pytest.mark.gui
-def testGuiPreferences_Actions(qtbot, monkeypatch, nwGUI):
+def testGuiPreferences_Actions(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain):
     """Test the preferences dialog actions."""
     monkeypatch.setattr(SpellEnchant, "listDictionaries", lambda *a: [("en", "English [en]")])
     prefs = GuiPreferences(nwGUI)
@@ -103,14 +107,17 @@ def testGuiPreferences_Actions(qtbot, monkeypatch, nwGUI):
     old = -1
     with qtbot.waitSignal(vBar.valueChanged) as value:
         prefs.sidebar.button(1).click()
+        assert value.args is not None
         assert value.args[0] > old
         old = value.args[0]
     with qtbot.waitSignal(vBar.valueChanged) as value:
         prefs.sidebar.button(2).click()
+        assert value.args is not None
         assert value.args[0] > old
         old = value.args[0]
     with qtbot.waitSignal(vBar.valueChanged) as value:
         prefs.sidebar.button(3).click()
+        assert value.args is not None
         assert value.args[0] > old
         old = value.args[0]
 
@@ -118,12 +125,14 @@ def testGuiPreferences_Actions(qtbot, monkeypatch, nwGUI):
     prefs.searchText.setText("Display language")
     with qtbot.waitSignal(vBar.valueChanged) as value:
         prefs._gotoSearch()
+        assert value.args is not None
         assert value.args[0] < old
 
     # Check Save Button
     prefs.show()
     with qtbot.waitSignal(prefs.newPreferencesReady) as signal:
         prefs.btnSave.click()
+        assert signal.args is not None
         assert len(signal.args) == 1
         assert isinstance(signal.args[0], GuiNeedsUpdate)
 
@@ -148,7 +157,13 @@ def testGuiPreferences_Actions(qtbot, monkeypatch, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiPreferences_Settings(qtbot, monkeypatch, nwGUI, fncPath, tstPaths):
+def testGuiPreferences_Settings(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+    tstPaths: TstPaths,
+):
     """Test the preferences dialog settings."""
     spelling = [("en", "English [en]"), ("de", "Deutch [de]")]
     monkeypatch.setattr(SpellEnchant, "listDictionaries", lambda *a: spelling)
@@ -180,11 +195,13 @@ def testGuiPreferences_Settings(qtbot, monkeypatch, nwGUI, fncPath, tstPaths):
         prefs.nativeFont.setChecked(True)  # Use OS font dialog
         prefs.guiFontButton.click()
 
+    prefs.guiForceRTL.setChecked(True)
     prefs.hideVScroll.setChecked(True)
     prefs.hideHScroll.setChecked(True)
     prefs.useCharCount.setChecked(True)
 
     assert CONFIG.guiLocale != "en_US"
+    assert CONFIG.guiForceRTL is False
     assert CONFIG.lightTheme == "default_light"
     assert CONFIG.darkTheme == "default_dark"
     assert CONFIG.guiFont.family() != ""
@@ -389,6 +406,11 @@ def testGuiPreferences_Settings(qtbot, monkeypatch, nwGUI, fncPath, tstPaths):
 
     prefs.vimMode.setChecked(True)
 
+    # Advanced
+    assert CONFIG.forceUnixLineEndings is False
+
+    prefs.forceUnixLineEndings.setChecked(True)
+
     # Save Settings
     with monkeypatch.context() as mp:
         mp.setattr(QFontDatabase, "families", lambda *a: ["TestFont"])
@@ -416,6 +438,7 @@ def testGuiPreferences_Settings(qtbot, monkeypatch, nwGUI, fncPath, tstPaths):
     assert CONFIG.lightTheme == "theme1"
     assert CONFIG.darkTheme == "theme3"
     assert CONFIG.guiFont == QFont()
+    assert CONFIG.guiForceRTL is True
     assert CONFIG.hideVScroll is True
     assert CONFIG.hideHScroll is True
     assert CONFIG.useCharCount is True
@@ -505,11 +528,14 @@ def testGuiPreferences_Settings(qtbot, monkeypatch, nwGUI, fncPath, tstPaths):
         "This changes how the editor accepts input.",
     ]
 
+    # Advanced
+    assert CONFIG.forceUnixLineEndings is True
+
     # qtbot.stop()
 
 
 @pytest.mark.gui
-def testGuiPreferences_MemoryLeakRegression(qtbot, monkeypatch, nwGUI):
+def testGuiPreferences_MemoryLeakRegression(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain):
     """Test that the dialog is freed when it is closed."""
     monkeypatch.setattr(SpellEnchant, "listDictionaries", lambda *a: [("en", "English [en]")])
     checkDialogFreedOnClose(qtbot, lambda: GuiPreferences(nwGUI))

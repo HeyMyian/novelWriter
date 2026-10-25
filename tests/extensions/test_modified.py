@@ -26,8 +26,9 @@ from unittest.mock import Mock
 import pytest
 
 from PyQt6.QtCore import QEvent, QPoint, QPointF, QSize, Qt
-from PyQt6.QtGui import QFont, QKeyEvent, QMouseEvent, QStandardItem, QStandardItemModel, QWheelEvent
+from PyQt6.QtGui import QCloseEvent, QFont, QKeyEvent, QMouseEvent, QStandardItem, QStandardItemModel, QWheelEvent
 from PyQt6.QtWidgets import QFontDialog, QSplitter, QWidget
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG
 from novelwriter.extensions.modified import (
@@ -38,18 +39,25 @@ from novelwriter.extensions.modified import (
     NFlatIconButton,
     NFlatIconTextButton,
     NFontDialog,
+    NHRadioGroup,
+    NIconButton,
     NNonBlockingDialog,
+    NRadioButton,
     NSpinBox,
     NSplitterHandle,
     NToolDialog,
     NTreeView,
 )
+from novelwriter.guimain import GuiMain
 from novelwriter.types import QtKeyEscape, QtModNone, QtMouseLeft, QtMouseMiddle, QtRejected
 
 from tests.helpers import SimpleDialog
+from tests.mocked import MockGuiMain
 
 
 class MockWheelEvent(QWheelEvent):
+    """Mock wheel event that records being ignored."""
+
     def __init__(self):
         super().__init__(
             QPointF(0, 0),
@@ -64,12 +72,13 @@ class MockWheelEvent(QWheelEvent):
         self.ignored = False
 
     def ignore(self):
+        """Ignore the event and record it."""
         super().ignore()
         self.ignored = True
 
 
 @pytest.mark.gui
-def testNDialog_Main(qtbot, monkeypatch):
+def testNDialog_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch):
     """Test the NDialog class."""
     widget = QWidget()
     dialog = NDialog(widget)
@@ -84,7 +93,7 @@ def testNDialog_Main(qtbot, monkeypatch):
 
 
 @pytest.mark.gui
-def testNToolDialog_Main(qtbot, nwGUI):
+def testNToolDialog_Main(qtbot: QtBot, nwGUI: GuiMain):
     """Test the NToolDialog class."""
     dialog = NToolDialog(nwGUI)
     qtbot.addWidget(dialog)
@@ -105,7 +114,7 @@ def testNToolDialog_Main(qtbot, nwGUI):
     # Escape closes the dialog via a closeEvent override
     closed = False
 
-    def closeEvent(event):
+    def closeEvent(event: QCloseEvent) -> None:
         nonlocal closed
         closed = True
         event.accept()
@@ -120,7 +129,7 @@ def testNToolDialog_Main(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testNNonBlockingDialog_Main(qtbot):
+def testNNonBlockingDialog_Main(qtbot: QtBot):
     """Test the NNonBlockingDialog class."""
     dialog = NNonBlockingDialog()
     qtbot.addWidget(dialog)
@@ -128,7 +137,7 @@ def testNNonBlockingDialog_Main(qtbot):
     dialog.close()
 
 
-def testNFontDialog_Main(qtbot, monkeypatch, nwGUI):
+def testNFontDialog_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain):
     """Test the NFontDialog class."""
     current = QFont()
     other = QFont()
@@ -167,7 +176,7 @@ def testNFontDialog_Main(qtbot, monkeypatch, nwGUI):
 
 
 @pytest.mark.gui
-def testNTreeView_Main(qtbot, monkeypatch):
+def testNTreeView_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch):
     """Test the NTreeView class."""
     model = QStandardItemModel(1, 1)
     model.insertRow(0, QStandardItem("Hello World"))
@@ -206,7 +215,7 @@ def testNTreeView_Main(qtbot, monkeypatch):
 
 
 @pytest.mark.gui
-def testNComboBox_Main(qtbot, monkeypatch):
+def testNComboBox_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch):
     """Test the NComboBox class."""
     widget = NComboBox()
     widget.addItem("Item 1", 1)
@@ -231,7 +240,7 @@ def testNComboBox_Main(qtbot, monkeypatch):
 
 
 @pytest.mark.gui
-def testNSpinBox_Main(qtbot, monkeypatch):
+def testNSpinBox_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch):
     """Test the NSpinBox class."""
     widget = NSpinBox()
     widget.setMinimum(0)
@@ -257,7 +266,7 @@ def testNSpinBox_Main(qtbot, monkeypatch):
 
 
 @pytest.mark.gui
-def testNDoubleSpinBox_Main(qtbot, monkeypatch):
+def testNDoubleSpinBox_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch):
     """Test the NDoubleSpinBox class."""
     widget = NDoubleSpinBox()
     widget.setMinimum(0.0)
@@ -283,7 +292,7 @@ def testNDoubleSpinBox_Main(qtbot, monkeypatch):
 
 
 @pytest.mark.gui
-def testNClickableLabel_Main(qtbot):
+def testNClickableLabel_Main(qtbot: QtBot):
     """Test the NClickableLabel class."""
     widget = NClickableLabel()
     dialog = SimpleDialog(widget)
@@ -306,7 +315,7 @@ def testNClickableLabel_Main(qtbot):
 
 
 @pytest.mark.gui
-def testNFlatButtons_Main(qtbot, mockGUI):
+def testNFlatButtons_Main(qtbot: QtBot, mockGUI: MockGuiMain):
     """Test the NFlatIconButton and NFlatIconTextButton classes."""
     dialog = SimpleDialog(None)
 
@@ -330,9 +339,80 @@ def testNFlatButtons_Main(qtbot, mockGUI):
     button1.setCheckable(False)
     assert button1.isCheckable() is False
 
+    # Tooltips are used as accessible names, without the shortcut
+    button1.setToolTip("Project Tree View", "Ctrl+T")
+    assert button1.toolTip() == "Project Tree View [Ctrl+T]"
+    assert button1.accessibleName() == "Project Tree View"
+    button1.setToolTip("Settings")
+    assert button1.toolTip() == "Settings"
+    assert button1.accessibleName() == "Settings"
+    button1.setToolTip(None)
+    assert button1.toolTip() == ""
+    assert button1.accessibleName() == ""
+
+    button3 = NIconButton(dialog, size, "add:add")
+    button3.setToolTip("Add", "Ctrl+N")
+    assert button3.toolTip() == "Add [Ctrl+N]"
+    assert button3.accessibleName() == "Add"
+
 
 @pytest.mark.gui
-def testNSplitterHandle_Main(qtbot):
+def testNRadioButton_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, mockGUI: MockGuiMain):
+    """Test the NRadioButton class."""
+    button = NRadioButton("Text", None)
+    dialog = SimpleDialog(button)
+    dialog.show()
+
+    # Paint unchecked and checked
+    assert button.isChecked() is False
+    assert button.grab().isNull() is False
+    button.setChecked(True)
+    assert button.grab().isNull() is False
+
+    # Disabled
+    button.setEnabled(False)
+    assert button.grab().isNull() is False
+
+    # No style
+    with monkeypatch.context() as mp:
+        mp.setattr(button, "style", lambda: None)
+        assert button.grab().isNull() is False
+
+
+@pytest.mark.gui
+def testNHRadioGroup_Main(qtbot: QtBot, mockGUI: MockGuiMain):
+    """Test the NHRadioGroup class."""
+    dialog = SimpleDialog(None)
+    group = NHRadioGroup(dialog, "Label", {0: "None", 1: "One", 2: "Two"})
+    dialog.addWidget(group)
+    dialog.show()
+
+    # The buttons are labelled, and nothing is checked initially
+    buttons = group._group.buttons()
+    assert [b.text() for b in buttons] == ["None", "One", "Two"]
+    assert [b.accessibleName() for b in buttons] == ["Label: None", "Label: One", "Label: Two"]
+    assert group.checkedId() == -1
+
+    # Set by ID
+    group.setCheckedId(2)
+    assert group.checkedId() == 2
+
+    # An unknown ID is ignored
+    group.setCheckedId(9)
+    assert group.checkedId() == 2
+
+    # Clicking a button changes the checked ID
+    buttons[1].click()
+    assert group.checkedId() == 1
+
+    # An empty group has nothing to check
+    empty = NHRadioGroup(dialog, "Empty", {})
+    empty.setCheckedId(0)
+    assert empty.checkedId() == -1
+
+
+@pytest.mark.gui
+def testNSplitterHandle_Main(qtbot: QtBot):
     """Test the NSplitterHandle class."""
     splitter = QSplitter(Qt.Orientation.Vertical)
     handle = NSplitterHandle(Qt.Orientation.Vertical, splitter)

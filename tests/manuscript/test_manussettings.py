@@ -21,25 +21,35 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from PyQt6.QtCore import pyqtSlot
 from PyQt6.QtGui import QAction, QFont
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import describeFont
 from novelwriter.constants import nwHeadFmt, nwStyles, nwUnicode
 from novelwriter.core.project import NWProject
 from novelwriter.extensions.modified import NFontDialog
+from novelwriter.guimain import GuiMain
 from novelwriter.manuscript.buildsettings import BuildSettings, FilterMode
 from novelwriter.manuscript.manussettings import GuiBuildSettings, _FilterTab, _FormattingTab, _HeadingsTab
 from novelwriter.shared import _GuiAlert
 
-from tests.helpers import C, buildTestProject, checkDialogFreedOnClose
+from tests.helpers import C, MockRnd, buildTestProject, checkDialogFreedOnClose
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_Init(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
+def testGuiBuildSettings_Init(
+    qtbot: QtBot,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the initialisation of the GuiBuildSettings dialog."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
@@ -120,7 +130,7 @@ def testGuiBuildSettings_Init(qtbot, monkeypatch, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_Filter(qtbot, nwGUI, projPath, mockRnd):
+def testGuiBuildSettings_Filter(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd: MockRnd):
     """Test the Filter Tab of the GuiBuildSettings dialog."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
@@ -347,7 +357,7 @@ def testGuiBuildSettings_Filter(qtbot, nwGUI, projPath, mockRnd):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_Headings(qtbot, nwGUI):
+def testGuiBuildSettings_Headings(qtbot: QtBot, nwGUI: GuiMain):
     """Test the Headings Tab of the GuiBuildSettings dialog."""
     build = BuildSettings()
 
@@ -366,6 +376,8 @@ def testGuiBuildSettings_Headings(qtbot, nwGUI):
     build.setValue("headings.fmtSection", sxTitle)
     build.setValue("headings.hideScene", False)
     build.setValue("headings.hideSection", False)
+    build.setValue("headings.breakTitle", 2)
+    build.setValue("headings.breakScene", 9)
 
     # Create the dialog and populate it
     bSettings = GuiBuildSettings(nwGUI, build)
@@ -387,6 +399,10 @@ def testGuiBuildSettings_Headings(qtbot, nwGUI):
     assert headTab.fmtSection.text() == sxTitle
     assert headTab.swtScene.isChecked() is False
     assert headTab.swtSection.isChecked() is False
+    assert headTab.breakTitle.checkedId() == 2
+    assert headTab.breakPart.checkedId() == 1
+    assert headTab.breakChapter.checkedId() == 1
+    assert headTab.breakScene.checkedId() == -1  # Invalid value
 
     # Edit in Turn
     # ============
@@ -535,13 +551,25 @@ def testGuiBuildSettings_Headings(qtbot, nwGUI):
     assert sBuild.getBool("headings.hideAltScene") is True
     assert sBuild.getBool("headings.hideSection") is True
 
+    # Check page break buttons
+    headTab.breakTitle.setCheckedId(0)
+    headTab.breakPart.setCheckedId(2)
+    headTab.breakChapter.setCheckedId(2)
+    headTab.breakScene.setCheckedId(1)
+    headTab.saveContent()
+
+    assert sBuild.getInt("headings.breakTitle") == 0
+    assert sBuild.getInt("headings.breakPart") == 2
+    assert sBuild.getInt("headings.breakChapter") == 2
+    assert sBuild.getInt("headings.breakScene") == 1
+
     # Finish
     bSettings._dialogButtonClicked(bSettings.btnClose)
     # qtbot.stop()
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_HeadingsAutoReplace(qtbot, nwGUI):
+def testGuiBuildSettings_HeadingsAutoReplace(qtbot: QtBot, nwGUI: GuiMain):
     """Test the auto-replace symbols feature of the heading edit box."""
     build = BuildSettings()
 
@@ -579,7 +607,7 @@ def testGuiBuildSettings_HeadingsAutoReplace(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_FormatTextContent(qtbot, nwGUI):
+def testGuiBuildSettings_FormatTextContent(qtbot: QtBot, nwGUI: GuiMain):
     """Test the Text Content settings."""
     build = BuildSettings()
 
@@ -662,7 +690,7 @@ def testGuiBuildSettings_FormatTextContent(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_FormatTextFormat(monkeypatch, qtbot, nwGUI):
+def testGuiBuildSettings_FormatTextFormat(monkeypatch: pytest.MonkeyPatch, qtbot: QtBot, nwGUI: GuiMain):
     """Test the Text Format settings."""
     build = BuildSettings()
 
@@ -748,13 +776,14 @@ def testGuiBuildSettings_FormatTextFormat(monkeypatch, qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_FormatHeadingFormat(monkeypatch, qtbot, nwGUI):
+def testGuiBuildSettings_FormatHeadingFormat(monkeypatch: pytest.MonkeyPatch, qtbot: QtBot, nwGUI: GuiMain):
     """Test the Heading Format settings."""
     build = BuildSettings()
 
     build.setValue("format.colorHeadings", True)
     build.setValue("format.boldHeadings", True)
     build.setValue("format.upperHeadings", False)
+    build.setValue("format.showStatus", False)
 
     # Create the dialog and populate it
     bSettings = GuiBuildSettings(nwGUI, build)
@@ -771,11 +800,13 @@ def testGuiBuildSettings_FormatHeadingFormat(monkeypatch, qtbot, nwGUI):
     assert fmtTab.colorHeadings.isChecked() is True
     assert fmtTab.boldHeadings.isChecked() is True
     assert fmtTab.upperHeadings.isChecked() is False
+    assert fmtTab.showStatus.isChecked() is False
 
     # Change values
     fmtTab.colorHeadings.setChecked(False)
     fmtTab.boldHeadings.setChecked(False)
     fmtTab.upperHeadings.setChecked(True)
+    fmtTab.showStatus.setChecked(True)
 
     # Save values
     fmtTab.saveContent()
@@ -785,6 +816,7 @@ def testGuiBuildSettings_FormatHeadingFormat(monkeypatch, qtbot, nwGUI):
     assert sBuild.getBool("format.colorHeadings") is False
     assert sBuild.getBool("format.boldHeadings") is False
     assert sBuild.getBool("format.upperHeadings") is True
+    assert sBuild.getBool("format.showStatus") is True
 
     # Finish
     bSettings._dialogButtonClicked(bSettings.btnClose)
@@ -792,7 +824,7 @@ def testGuiBuildSettings_FormatHeadingFormat(monkeypatch, qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_FormatFirstLineIndent(monkeypatch, qtbot, nwGUI):
+def testGuiBuildSettings_FormatFirstLineIndent(monkeypatch: pytest.MonkeyPatch, qtbot: QtBot, nwGUI: GuiMain):
     """Test the First Line Indent settings."""
     build = BuildSettings()
 
@@ -835,7 +867,7 @@ def testGuiBuildSettings_FormatFirstLineIndent(monkeypatch, qtbot, nwGUI):
     # qtbot.stop()
 
 
-def testGuiBuildSettings_SizeAndMargins(monkeypatch, qtbot, nwGUI):
+def testGuiBuildSettings_SizeAndMargins(monkeypatch: pytest.MonkeyPatch, qtbot: QtBot, nwGUI: GuiMain):
     """Test the Size & Margins settings."""
     build = BuildSettings()
 
@@ -972,7 +1004,7 @@ def testGuiBuildSettings_SizeAndMargins(monkeypatch, qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_FormatPageLayout(monkeypatch, qtbot, nwGUI):
+def testGuiBuildSettings_FormatPageLayout(monkeypatch: pytest.MonkeyPatch, qtbot: QtBot, nwGUI: GuiMain):
     """Test the First Line Indent settings."""
     build = BuildSettings()
 
@@ -1037,11 +1069,12 @@ def testGuiBuildSettings_FormatPageLayout(monkeypatch, qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_FormatOutput(qtbot, nwGUI):
+def testGuiBuildSettings_FormatOutput(qtbot: QtBot, nwGUI: GuiMain):
     """Test the format-specific settings."""
     build = BuildSettings()
 
-    build.setValue("doc.pageHeader", nwHeadFmt.DOC_AUTO)
+    build.setValue("doc.pageHeader", nwHeadFmt.DOC_AUTO_ODD)
+    build.setValue("doc.pageHeaderEven", nwHeadFmt.DOC_AUTO_EVEN)
     build.setValue("doc.pageCountOffset", 0)
 
     build.setValue("html.addStyles", False)
@@ -1059,8 +1092,16 @@ def testGuiBuildSettings_FormatOutput(qtbot, nwGUI):
     assert bSettings.toolStack.currentWidget() is fmtTab
 
     # Check initial values
-    assert fmtTab.pageHeader.text() == nwHeadFmt.DOC_AUTO
+    assert fmtTab.pageHeader.text() == nwHeadFmt.DOC_AUTO_ODD
+    assert fmtTab.pageHeaderEven.text() == nwHeadFmt.DOC_AUTO_EVEN
     assert fmtTab.pageCountOffset.value() == 0
+
+    # The even page header is only enabled for double pages
+    assert fmtTab.pageHeaderEven.isEnabled() is False
+    assert fmtTab.btnPageHeaderEven.isEnabled() is False
+    fmtTab.doublePages.click()
+    assert fmtTab.pageHeaderEven.isEnabled() is True
+    assert fmtTab.btnPageHeaderEven.isEnabled() is True
 
     assert fmtTab.htmlAddStyles.isChecked() is False
     assert fmtTab.htmlPreserveTabs.isChecked() is False
@@ -1068,6 +1109,7 @@ def testGuiBuildSettings_FormatOutput(qtbot, nwGUI):
     # Change Values
     fmtTab.pageCountOffset.setValue(1)
     fmtTab.pageHeader.setText("Stuff")
+    fmtTab.pageHeaderEven.setText("Even Stuff")
     fmtTab.metaLanguage.setText("en-gb")
 
     fmtTab._refreshMetaLang()
@@ -1083,6 +1125,7 @@ def testGuiBuildSettings_FormatOutput(qtbot, nwGUI):
     assert sBuild.buildID == build.buildID
 
     assert sBuild.getStr("doc.pageHeader") == "Stuff"
+    assert sBuild.getStr("doc.pageHeaderEven") == "Even Stuff"
     assert sBuild.getInt("doc.pageCountOffset") == 1
     assert sBuild.getStr("doc.metaLanguage") == "en-GB"
 
@@ -1091,7 +1134,9 @@ def testGuiBuildSettings_FormatOutput(qtbot, nwGUI):
 
     # Reset header format
     fmtTab.btnPageHeader.click()
-    assert fmtTab.pageHeader.text() == nwHeadFmt.DOC_AUTO
+    assert fmtTab.pageHeader.text() == nwHeadFmt.DOC_AUTO_ODD
+    fmtTab.btnPageHeaderEven.click()
+    assert fmtTab.pageHeaderEven.text() == nwHeadFmt.DOC_AUTO_EVEN
 
     # Finish
     bSettings._dialogButtonClicked(bSettings.btnClose)
@@ -1099,7 +1144,7 @@ def testGuiBuildSettings_FormatOutput(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiBuildSettings_MemoryLeakRegression(qtbot, nwGUI, projPath, mockRnd):
+def testGuiBuildSettings_MemoryLeakRegression(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd: MockRnd):
     """Test that the dialog is freed when it is closed."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)

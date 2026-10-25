@@ -25,6 +25,7 @@ import ctypes
 import logging
 import sys
 
+from pathlib import Path
 from types import ModuleType
 from unittest.mock import Mock
 
@@ -39,7 +40,7 @@ from tests.helpers import clearLogHandlers
 
 
 @pytest.mark.base
-def testInit_Launch(caplog, monkeypatch, fncPath):
+def testInit_Launch(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Check launching the main GUI."""
     monkeypatch.setattr(NSplashScreen, "show", lambda *a: None)
     monkeypatch.setattr(NSplashScreen, "finish", lambda *a: None)
@@ -93,7 +94,7 @@ def testInit_Launch(caplog, monkeypatch, fncPath):
 
 
 @pytest.mark.base
-def testInit_CreateApp(caplog, monkeypatch, fncPath):
+def testInit_CreateApp(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Check creating the Qt app."""
     monkeypatch.setattr("PyQt6.QtWidgets.QApplication.__init__", lambda *a: None)
     monkeypatch.setattr("PyQt6.QtWidgets.QApplication.setApplicationName", lambda *a: None)
@@ -107,7 +108,7 @@ def testInit_CreateApp(caplog, monkeypatch, fncPath):
 
 
 @pytest.mark.base
-def testInit_Options(monkeypatch, fncPath):
+def testInit_Options(monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Test command line options for logging level."""
     monkeypatch.setattr(NSplashScreen, "show", lambda *a: None)
     monkeypatch.setattr(NSplashScreen, "finish", lambda *a: None)
@@ -197,7 +198,7 @@ def testInit_Options(monkeypatch, fncPath):
 
 
 @pytest.mark.base
-def testInit_Imports(caplog, monkeypatch, fncPath):
+def testInit_Imports(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch, fncPath: Path):
     """Check import error handling."""
     monkeypatch.setattr("novelwriter._createApp", lambda *a: Mock())
     monkeypatch.setattr("novelwriter.guimain.GuiMain", lambda *a: Mock())

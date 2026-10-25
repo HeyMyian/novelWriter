@@ -253,6 +253,7 @@ class GuiDocViewer(QTextBrowser):
         sPos = vBar.value() if vBar else 0
 
         qDoc = ToQTextDocument(SHARED.project)
+        qDoc.setLanguage(None, SHARED.project.data.isRTL)
         qDoc.setJustify(CONFIG.doJustify, False)
         qDoc.setDialogHighlight(True)
         qDoc.setTextFont(CONFIG.textFont)
@@ -337,10 +338,6 @@ class GuiDocViewer(QTextBrowser):
             return False
         return True
 
-    def anyFocus(self) -> bool:
-        """Check if any widget or child widget has focus."""
-        return self.hasFocus() or self.isAncestorOf(QApplication.focusWidget())
-
     def clearNavHistory(self) -> None:
         """Clear the navigation history."""
         self.docHistory.clear()
@@ -412,6 +409,11 @@ class GuiDocViewer(QTextBrowser):
         """Tags have changed, so just in case we rehighlight them."""
         if updated or deleted:
             self._hoverCard.pruneCache(updated + deleted)
+
+    @pyqtSlot()
+    def indexHasAppeared(self) -> None:
+        """Clear cached tag data after the index has been loaded or rebuilt."""
+        self._hoverCard.clearCache()
 
     ##
     #  Private Slots

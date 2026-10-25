@@ -19,7 +19,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """  # noqa
 
-from enum import Enum
+from enum import Enum, StrEnum
 
 
 class nwItemType(Enum):
@@ -301,3 +301,11 @@ class nwStdUnit(Enum):
     PIXELS = 3
     SECONDS = 4
     MINUTES = 5
+
+
+class nwProjectKind(StrEnum):
+    """Enum: Project Kind."""
+
+    PROJECT = "project"
+    BACKUP = "backup"
+    TEMPLATE = "template"

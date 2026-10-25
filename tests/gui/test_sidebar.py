@@ -23,13 +23,17 @@ from __future__ import annotations
 
 import pytest
 
+from PyQt6.QtCore import QPoint, Qt
+from pytestqt.qtbot import QtBot
+
 from novelwriter import CONFIG
 from novelwriter.constants import nwLabels
 from novelwriter.enum import nwTheme, nwView
+from novelwriter.guimain import GuiMain
 
 
 @pytest.mark.gui
-def testGuiSideBar_ViewChange(qtbot, nwGUI):
+def testGuiSideBar_ViewChange(qtbot: QtBot, nwGUI: GuiMain):
     """Test the view change buttons on the side bar."""
     sidebar = nwGUI.sideBar
     buttons = [
@@ -45,7 +49,7 @@ def testGuiSideBar_ViewChange(qtbot, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiSideBar_CycleColourTheme(monkeypatch, nwGUI):
+def testGuiSideBar_CycleColourTheme(monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain):
     """Test theme cycle feature on the side bar."""
     CONFIG.themeMode = nwTheme.AUTO
     sidebar = nwGUI.sideBar
@@ -67,3 +71,21 @@ def testGuiSideBar_CycleColourTheme(monkeypatch, nwGUI):
         sidebar._cycleColorTheme()
         assert CONFIG.themeMode == nwTheme.AUTO
         assert sidebar.tbTheme.toolTip() == nwLabels.THEME_MODE_LABEL[nwTheme.AUTO]
+
+
+@pytest.mark.gui
+def testGuiSideBar_MenuPosition(qtbot: QtBot, nwGUI: GuiMain):
+    """Test that the settings menu opens away from the side bar."""
+    button = nwGUI.sideBar.tbSettings
+    menu = nwGUI.sideBar.mSettings
+
+    # LTR opens to the right of the button
+    menu.show()
+    assert menu.x() == button.mapToGlobal(QPoint(button.width(), 0)).x()
+    menu.hide()
+
+    # RTL opens to the left of the button
+    button.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+    menu.show()
+    assert menu.x() == button.mapToGlobal(QPoint(-menu.width(), 0)).x()
+    menu.hide()

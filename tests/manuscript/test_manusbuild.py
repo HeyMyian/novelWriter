@@ -21,25 +21,36 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from PyQt6.QtCore import QUrl
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import QFileDialog, QListWidgetItem, QPushButton
+from pytestqt.qtbot import QtBot
 
 from novelwriter import SHARED
 from novelwriter.constants import nwLabels
 from novelwriter.core.project import NWProject
 from novelwriter.enum import nwBuildFmt
+from novelwriter.guimain import GuiMain
 from novelwriter.manuscript.buildsettings import BuildSettings
 from novelwriter.manuscript.manusbuild import GuiManuscriptBuild
 from novelwriter.shared import _GuiAlert
 
-from tests.helpers import C, buildTestProject
+from tests.helpers import C, MockRnd, buildTestProject
 
 
 @pytest.mark.gui
-def testGuiManuscriptBuild_Main(monkeypatch, qtbot, nwGUI, fncPath, projPath, mockRnd):
+def testGuiManuscriptBuild_Main(
+    monkeypatch: pytest.MonkeyPatch,
+    qtbot: QtBot,
+    nwGUI: GuiMain,
+    fncPath: Path,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test the GuiManuscriptBuild dialog."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
@@ -73,7 +84,7 @@ def testGuiManuscriptBuild_Main(monkeypatch, qtbot, nwGUI, fncPath, projPath, mo
     manus.buildName.setText("TestBuild")
 
     # Helper function
-    def selectFormat(fmt):
+    def selectFormat(fmt: nwBuildFmt) -> None:
         for i in range(manus.listFormats.count()):
             item = manus.listFormats.item(i)
             assert isinstance(item, QListWidgetItem)
@@ -100,7 +111,14 @@ def testGuiManuscriptBuild_Main(monkeypatch, qtbot, nwGUI, fncPath, projPath, mo
 
 
 @pytest.mark.gui
-def testGuiManuscriptBuild_ErrorHandling(monkeypatch, qtbot, nwGUI, fncPath, projPath, mockRnd):
+def testGuiManuscriptBuild_ErrorHandling(
+    monkeypatch: pytest.MonkeyPatch,
+    qtbot: QtBot,
+    nwGUI: GuiMain,
+    fncPath: Path,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test error handling in the GuiManuscriptBuild dialog."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)
@@ -113,7 +131,7 @@ def testGuiManuscriptBuild_ErrorHandling(monkeypatch, qtbot, nwGUI, fncPath, pro
     manus = GuiManuscriptBuild(nwGUI, build)
     manus.show()
 
-    def selectFormat(fmt):
+    def selectFormat(fmt: nwBuildFmt) -> None:
         for i in range(manus.listFormats.count()):
             item = manus.listFormats.item(i)
             assert isinstance(item, QListWidgetItem)
@@ -169,7 +187,14 @@ def testGuiManuscriptBuild_ErrorHandling(monkeypatch, qtbot, nwGUI, fncPath, pro
 
 
 @pytest.mark.gui
-def testGuiManuscriptBuild_EdgeCases(monkeypatch, qtbot, nwGUI, fncPath, projPath, mockRnd):
+def testGuiManuscriptBuild_EdgeCases(
+    monkeypatch: pytest.MonkeyPatch,
+    qtbot: QtBot,
+    nwGUI: GuiMain,
+    fncPath: Path,
+    projPath: Path,
+    mockRnd: MockRnd,
+):
     """Test edge cases in the GuiManuscriptBuild dialog."""
     buildTestProject(NWProject(), projPath)
     nwGUI.openProject(projPath)

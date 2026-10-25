@@ -21,19 +21,23 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
-from PyQt6.QtCore import QEvent, QModelIndex, QPoint, QPointF, Qt
-from PyQt6.QtGui import QDropEvent, QHelpEvent, QPainter, QPixmap, QWheelEvent
+from PyQt6.QtCore import QEvent, QModelIndex, QPoint, QPointF, QRect, Qt
+from PyQt6.QtGui import QDropEvent, QHelpEvent, QPainter, QPixmap, QTextLayout, QWheelEvent
 from PyQt6.QtWidgets import QApplication, QStyleOptionViewItem, QToolTip
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwKeyWords
 from novelwriter.enum import nwView
+from novelwriter.guimain import GuiMain
 from novelwriter.models.outlinemodel import OutlineModel
 from novelwriter.story.outline import GuiOutlineViewSettings, GuiStoryOutlineView, _OutlineDelegate
 from novelwriter.story.storysettings import OutlineColumn, OutlineViewSettings
-from novelwriter.types import QtModCtrl, QtModNone, QtScrollAlwaysOff, QtScrollAsNeeded
+from novelwriter.types import QtModCtrl, QtModNone, QtModShift, QtScrollAlwaysOff, QtScrollAsNeeded
 
 ALL_SETTINGS = (
     "outline.syntaxColors",
@@ -41,11 +45,12 @@ ALL_SETTINGS = (
     "outline.showScenes",
     "outline.showSections",
     "outline.showProgress",
+    "outline.showStatus",
 )
 
 
 @pytest.mark.gui
-def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
+def testStoryOutline_Settings(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
     """Test the outline view settings and build state."""
     assert nwGUI.openProject(prjLipsum)
     root = QModelIndex()
@@ -75,6 +80,7 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
 
     # Default settings
     view.refresh(None)
+    assert tree.accessibleName() == settings.name
     assert model.rowCount(root) == 9
     assert model.columnCount(root) == 5
     assert not any(tree.isColumnHidden(c) for c in range(5))
@@ -89,6 +95,7 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
     assert tree._delegate._noteCol == SHARED.theme.syntaxTheme.note
     assert tree._delegate._modCol == SHARED.theme.syntaxTheme.mod
     assert model.node(model.index(10, 0)).progress == "Page 16 (81.9\u202f%)"  # type: ignore
+    assert model.node(model.index(10, 0)).status is not None  # type: ignore
 
     # Progress follows the page settings
     settings.setValue("outline.countPerPage", 100)
@@ -126,6 +133,7 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
     assert tree._delegate._noteCol == tree._delegate._textCol
     assert tree._delegate._modCol == tree._delegate._textCol
     assert model.node(model.index(0, 0)).progress == ""  # type: ignore
+    assert model.node(model.index(0, 0)).status is None  # type: ignore
 
     # Columns without content are hidden
     settings.setColumns([*settings.columns, OutlineColumn("empty", "Empty", ())])
@@ -152,10 +160,10 @@ def testStoryOutline_Settings(qtbot, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
+def testStoryOutline_ColumnState(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
     """Test saving and loading the column order and widths."""
     assert nwGUI.openProject(prjLipsum)
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
     storyView = nwGUI.storyView
     storyView.addView.click()
 
@@ -179,7 +187,7 @@ def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
     # The state is saved when the project is closed
     assert nwGUI.closeProject(isYes=True)
     assert nwGUI.openProject(prjLipsum)
-    nwGUI._changeView(nwView.STORY)
+    nwGUI.changeView(nwView.STORY)
 
     view = storyView.tabMain.currentWidget()
     assert isinstance(view, GuiStoryOutlineView)
@@ -248,7 +256,7 @@ def testStoryOutline_ColumnState(qtbot, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryOutline_WheelScroll(qtbot, nwGUI, prjLipsum):
+def testStoryOutline_WheelScroll(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
     """Test that the mouse wheel scrolls one item per step."""
     assert nwGUI.openProject(prjLipsum)
 
@@ -294,7 +302,64 @@ def testStoryOutline_WheelScroll(qtbot, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
+def testStoryOutline_OpenDocument(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, prjLipsum: Path):
+    """Test opening documents from the outline."""
+    assert nwGUI.openProject(prjLipsum)
+    nwGUI.changeView(nwView.STORY)
+    storyView = nwGUI.storyView
+    storyView.addView.click()
+
+    view = storyView.tabMain.currentWidget()
+    assert isinstance(view, GuiStoryOutlineView)
+    tree = view.outlineContent
+    first = tree.node(tree._model.index(1, 0))
+    second = tree.node(tree._model.index(2, 0))
+    assert first is not None
+    assert second is not None
+
+    # Middle-click opens in the viewer
+    tree.middleClicked.emit(tree._model.index(1, 0))
+    assert nwGUI.docViewer.docHandle == first.handle
+    assert nwGUI.docViewer.hasFocus() is True
+    assert nwGUI.mainStack.currentWidget() == nwGUI.splitMain
+
+    # Double-click opens in the editor
+    nwGUI.changeView(nwView.STORY)
+    tree.doubleClicked.emit(tree._model.index(2, 0))
+    assert nwGUI.docEditor.docHandle == second.handle
+    assert nwGUI.docEditor.hasFocus() is True
+    assert nwGUI.mainStack.currentWidget() == nwGUI.splitMain
+
+    # Clicks on an invalid index do nothing
+    nwGUI.changeView(nwView.STORY)
+    tree.middleClicked.emit(QModelIndex())
+    tree.doubleClicked.emit(QModelIndex())
+    assert nwGUI.mainStack.currentWidget() == storyView
+
+    # The open shortcut does nothing without a current index
+    tree.setCurrentIndex(QModelIndex())
+    view.keyOpenItem.activated.emit()
+    assert nwGUI.mainStack.currentWidget() == storyView
+
+    # The open shortcut opens the current row in the editor
+    nwGUI.docPanes.closeDocument()
+    tree.setCurrentIndex(tree._model.index(1, 0))
+    view.keyOpenItem.activated.emit()
+    assert nwGUI.docEditor.docHandle == first.handle
+    assert nwGUI.mainStack.currentWidget() == nwGUI.splitMain
+
+    # ... or in the viewer when Shift is held
+    nwGUI.changeView(nwView.STORY)
+    nwGUI.docPanes.closeDocViewer()
+    tree.setCurrentIndex(tree._model.index(2, 0))
+    with monkeypatch.context() as mpShift:
+        mpShift.setattr(QApplication, "keyboardModifiers", lambda: QtModShift)
+        view.keyOpenItem.activated.emit()
+    assert nwGUI.docViewer.docHandle == second.handle
+
+
+@pytest.mark.gui
+def testStoryOutline_Paint(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, prjLipsum: Path):
     """Test painting the outline rows."""
     assert nwGUI.openProject(prjLipsum)
 
@@ -337,10 +402,33 @@ def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
         node._entries[-1].append(("synopsis", "Synopsis", "", "Text"))
         if i % 2:
             node._progress = ""
+        if i % 3:
+            node._status = None
 
     # Paint all rows with one selected
     tree.setCurrentIndex(model.index(3, 0))
     assert not view.grab().isNull()
+
+    # Counts and progress share a line when there is no room for status
+    node = model._nodes[6]
+    assert node.level > 1
+    assert node.progress
+    assert node.status
+    texts = []
+    option = QStyleOptionViewItem()
+    option.rect = QRect(0, 0, 400, delegate._rowHeight)
+    pixmap = QPixmap(400, 400)
+    painter = QPainter(pixmap)
+    with monkeypatch.context() as mp:
+        mp.setattr(QPainter, "drawText", lambda self, rect, flags, text: texts.append(text))
+        delegate.paint(painter, option, model.index(6, 0))
+        assert texts == [node.title, f"{node.counts} • {node.progress}", node.status[0]]
+        texts.clear()
+        delegate.setRowLines(4)
+        delegate.paint(painter, option, model.index(6, 0))
+        assert texts == [node.title, node.counts, node.progress, node.status[0]]
+        delegate.setRowLines(3)
+    painter.end()
 
     # Paint with icons, which show their full labels as tooltips
     delegate.setIcons(True, True)
@@ -381,12 +469,26 @@ def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
     calls = []
     drawLayout = _OutlineDelegate._drawLayout
 
-    def recordLayout(self, painter, x, y, w, h, text, formats, indent=0):
-        used = drawLayout(self, painter, x, y, w, h, text, formats, indent)
-        calls.append((y, h, text, used, painter.pen().color(), formats, indent))
+    def recordLayout(
+        self: _OutlineDelegate,
+        painter: QPainter,
+        x: int,
+        y: int,
+        w: int,
+        h: int,
+        text: str,
+        formats: list[QTextLayout.FormatRange],
+        indent: int = 0,
+        rtl: bool = False,
+    ) -> int:
+        used = drawLayout(self, painter, x, y, w, h, text, formats, indent, rtl)
+        calls.append((y, h, text, used, painter.pen().color(), formats, indent, rtl))
         return used
 
     hLine = delegate._fm.height()
+    box = QRect(0, 0, 150, 3 * hLine)
+    ltr = Qt.LayoutDirection.LeftToRight
+    rtl = Qt.LayoutDirection.RightToLeft
     pixmap = QPixmap(200, 200)
     painter = QPainter(pixmap)
     entries = [
@@ -395,7 +497,7 @@ def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
     ]
     with monkeypatch.context() as mp:
         mp.setattr(_OutlineDelegate, "_drawLayout", recordLayout)
-        delegate._paintEntries(painter, 0, 0, 150, 3 * hLine, node, entries)
+        delegate._paintEntries(painter, box, ltr, node, entries)
         world, note = calls
         assert world[:2] == (0, 2 * hLine)
         assert world[2].startswith("Locations: World0, World1")
@@ -411,7 +513,7 @@ def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
         # Icons replace the labels, and the first line is indented
         calls.clear()
         delegate.setIcons(True, True)
-        delegate._paintEntries(painter, 0, 0, 150, 3 * hLine, node, entries)
+        delegate._paintEntries(painter, box, ltr, node, entries)
         world, note = calls
         assert world[2].startswith("World0, World1")
         assert world[5] == []
@@ -423,16 +525,31 @@ def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
         # Highlights start at the text when there is no label
         tree.setHighlight({"europe"})
         calls.clear()
-        delegate._paintEntries(painter, 0, 0, 150, 3 * hLine, node, [(nwKeyWords.WORLD_KEY, "Location", "", "Europe")])
+        delegate._paintEntries(painter, box, ltr, node, [(nwKeyWords.WORLD_KEY, "Location", "", "Europe")])
         assert [(f.start, f.length) for f in calls[0][5]] == [(0, 6)]
 
         # No icon is drawn if there is no room
         calls.clear()
-        delegate._paintEntries(painter, 0, 0, 150, hLine, node, entries)
+        delegate._paintEntries(painter, QRect(0, 0, 150, hLine), ltr, node, entries)
         assert [c[3] for c in calls] == [0, hLine]
+
+        # In RTL, icons and the first line indent are on the right
+        calls.clear()
+        tips = delegate._paintEntries(painter, box, ltr, node, entries)
+        assert tips[0][0] == QRect(0, 0, hLine, hLine)
+        assert calls[0][7] is False
+        calls.clear()
+        tips = delegate._paintEntries(painter, box, rtl, node, entries)
+        assert tips[0][0] == QRect(150 - hLine, 0, hLine, hLine)
+        assert calls[0][7] is True
         delegate.setIcons(False, False)
 
     painter.end()
+
+    # The whole view also paints in RTL
+    view.setLayoutDirection(rtl)
+    assert not view.grab().isNull()
+    view.setLayoutDirection(ltr)
 
     # Partition rows are a single line
     option = QStyleOptionViewItem()
@@ -449,7 +566,7 @@ def testStoryOutline_Paint(qtbot, monkeypatch, nwGUI, prjLipsum):
 
 
 @pytest.mark.gui
-def testStoryOutline_ColumnsPage(qtbot, nwGUI, prjLipsum):
+def testStoryOutline_ColumnsPage(qtbot: QtBot, nwGUI: GuiMain, prjLipsum: Path):
     """Test the outline columns settings page."""
     assert nwGUI.openProject(prjLipsum)
     index = SHARED.project.index

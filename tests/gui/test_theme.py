@@ -44,6 +44,7 @@ from novelwriter.gui.theme import (
 )
 from novelwriter.types import QtIconNormal, QtIconOff, QtIconOn
 
+from tests.helpers import TstPaths
 from tests.mocked import causeOSError
 
 
@@ -161,7 +162,7 @@ def testGuiTheme_GenerateColorRange():
 
 
 @pytest.mark.gui
-def testGuiTheme_ScanThemes(monkeypatch, tstPaths):
+def testGuiTheme_ScanThemes(monkeypatch: pytest.MonkeyPatch, tstPaths: TstPaths):
     """Test the themes scanning."""
     theme = GuiTheme()
     files = []
@@ -204,7 +205,7 @@ def testGuiTheme_ScanThemes(monkeypatch, tstPaths):
 
 
 @pytest.mark.gui
-def testGuiTheme_LoadThemes(monkeypatch):
+def testGuiTheme_LoadThemes(monkeypatch: pytest.MonkeyPatch):
     """Test loading themes."""
     theme = GuiTheme()
     theme.iconCache = MagicMock()
@@ -294,7 +295,7 @@ def testGuiTheme_LoadThemes(monkeypatch):
 
 
 @pytest.mark.gui
-def testGuiTheme_SpecialColors(tstPaths):
+def testGuiTheme_SpecialColors(tstPaths: TstPaths):
     """Test handling special cases for colours."""
     theme = GuiTheme()
     theme.iconCache = MagicMock()
@@ -400,7 +401,7 @@ def testGuiTheme_SpecialColors(tstPaths):
 
 
 @pytest.mark.gui
-def testGuiTheme_Methods(monkeypatch):
+def testGuiTheme_Methods(monkeypatch: pytest.MonkeyPatch):
     """Test other themes methods."""
     theme = GuiTheme()
     theme.iconCache = MagicMock()
@@ -450,7 +451,7 @@ def testGuiTheme_Methods(monkeypatch):
 
 
 @pytest.mark.gui
-def testGuiTheme_ScanIcons(monkeypatch, tstPaths):
+def testGuiTheme_ScanIcons(monkeypatch: pytest.MonkeyPatch, tstPaths: TstPaths):
     """Test the icon theme scanning."""
     theme = GuiTheme()
 
@@ -482,7 +483,7 @@ def testGuiTheme_ScanIcons(monkeypatch, tstPaths):
 
 
 @pytest.mark.gui
-def testGuiTheme_IconThemes(monkeypatch):
+def testGuiTheme_IconThemes(monkeypatch: pytest.MonkeyPatch):
     """Test loading icon theme."""
     CONFIG.lightTheme = DEF_GUI_LIGHT
     CONFIG.themeMode = nwTheme.LIGHT
@@ -520,7 +521,7 @@ def testGuiTheme_IconThemes(monkeypatch):
 
 
 @pytest.mark.gui
-def testGuiTheme_IconThemeUnknownMeta(tstPaths):
+def testGuiTheme_IconThemeUnknownMeta(tstPaths: TstPaths):
     """An unrecognised meta key in an icon theme file is ignored."""
     theme = GuiTheme()
 
@@ -590,6 +591,23 @@ def testGuiTheme_LoadIcons():
     assert qPix.isNull() is False
     assert qPix.width() == 50, "If this fails, make sure QT_SCALE_FACTOR=1"
     assert qPix.height() == 50, "If this fails, make sure QT_SCALE_FACTOR=1"
+
+    # Directional icons are mirrored in RTL mode, others are not
+    size = QSize(64, 64)
+    ltrChevron = iconCache._loadIcon("chevron_left").pixmap(size).toImage()
+    ltrAdd = iconCache._loadIcon("add").pixmap(size).toImage()
+    ltrList = iconCache._loadIcon("fmt_list_o").pixmap(size).toImage()
+    CONFIG.rtlMode = True
+    rtlChevron = iconCache._loadIcon("chevron_left").pixmap(size).toImage()
+    rtlAdd = iconCache._loadIcon("add").pixmap(size).toImage()
+    rtlList = iconCache._loadIcon("fmt_list_o").pixmap(size).toImage()
+    assert rtlChevron != ltrChevron
+    assert rtlChevron == ltrChevron.mirrored(True, False)
+    assert rtlAdd == ltrAdd
+
+    # Icons with an RTL variant use it in RTL mode
+    assert rtlList != ltrList
+    assert rtlList == iconCache._loadIcon("fmt_list_o_rtl").pixmap(size).toImage()
 
     # Load app icon
     qIcon = iconCache.getIcon("novelwriter")
@@ -671,7 +689,7 @@ def testGuiTheme_LoadIcons():
 
 
 @pytest.mark.gui
-def testGuiTheme_LoadDecorations(monkeypatch):
+def testGuiTheme_LoadDecorations(monkeypatch: pytest.MonkeyPatch):
     """Test the icon cache class.
 
     This test requires the image formats library to be installed for Qt6.
@@ -745,7 +763,7 @@ _listContent(THEMES, CONFIG.assetPath("themes"), ".toml")
 
 @pytest.mark.gui
 @pytest.mark.parametrize("theme", [a.stem for a in THEMES])
-def testGuiTheme_CheckTheme(theme):
+def testGuiTheme_CheckTheme(theme: str):
     """Test loading all themes."""
     themes = GuiTheme()
     themes.iconCache = MagicMock()
@@ -892,7 +910,7 @@ def testGuiTheme_CheckTheme(theme):
     "icons",
     [a.stem for a in CONFIG.assetPath("icons").iterdir() if a.is_file() and a.suffix == ".icons"],
 )
-def testGuiTheme_CheckIcons(icons, tstPaths):
+def testGuiTheme_CheckIcons(icons: str, tstPaths: TstPaths):
     """Test loading all icons."""
     keysFile: Path = tstPaths.filesDir / "all_icons.json"
     iconKeys = json.loads(keysFile.read_text(encoding="utf-8"))

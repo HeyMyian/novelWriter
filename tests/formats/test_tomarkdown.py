@@ -21,6 +21,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from novelwriter.constants import nwHeadFmt
@@ -29,9 +31,11 @@ from novelwriter.enum import nwComment
 from novelwriter.formats.shared import BlockFmt, BlockTyp
 from novelwriter.formats.tomarkdown import ToMarkdown
 
+from tests.mocked import MockGuiMain
+
 
 @pytest.mark.core
-def testToMarkdown_ConvertNovelHeaders(mockGUI):
+def testToMarkdown_ConvertNovelHeaders(mockGUI: MockGuiMain):
     """Test header formats in the ToMarkdown class."""
     project = NWProject()
     md = ToMarkdown(project, False)
@@ -86,7 +90,7 @@ def testToMarkdown_ConvertNovelHeaders(mockGUI):
 
 
 @pytest.mark.core
-def testToMarkdown_ConvertNotesHeaders(mockGUI):
+def testToMarkdown_ConvertNotesHeaders(mockGUI: MockGuiMain):
     """Test header formats in the ToMarkdown class."""
     project = NWProject()
     md = ToMarkdown(project, False)
@@ -138,7 +142,7 @@ def testToMarkdown_ConvertNotesHeaders(mockGUI):
 
 
 @pytest.mark.core
-def testToMarkdown_ConvertParagraphs(mockGUI):
+def testToMarkdown_ConvertParagraphs(mockGUI: MockGuiMain):
     """Test paragraph formats in the ToMarkdown class."""
     project = NWProject()
     md = ToMarkdown(project, False)
@@ -274,7 +278,7 @@ def testToMarkdown_ConvertParagraphs(mockGUI):
 
 
 @pytest.mark.core
-def testToMarkdown_Fields(mockGUI):
+def testToMarkdown_Fields(mockGUI: MockGuiMain):
     """Test field substitution in the ToMarkdown class."""
     project = NWProject()
     md = ToMarkdown(project, False)
@@ -290,7 +294,7 @@ def testToMarkdown_Fields(mockGUI):
 
 
 @pytest.mark.core
-def testToMarkdown_ConvertDirect(mockGUI):
+def testToMarkdown_ConvertDirect(mockGUI: MockGuiMain):
     """Test the converter directly using the ToMarkdown class."""
     project = NWProject()
     md = ToMarkdown(project, False)
@@ -332,7 +336,7 @@ def testToMarkdown_ConvertDirect(mockGUI):
 
 
 @pytest.mark.core
-def testToMarkdown_Save(mockGUI, fncPath):
+def testToMarkdown_Save(mockGUI: MockGuiMain, fncPath: Path):
     """Test the save method of the ToMarkdown class."""
     project = NWProject()
     md = ToMarkdown(project, False)

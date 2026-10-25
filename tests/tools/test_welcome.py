@@ -30,12 +30,14 @@ import pytest
 from PyQt6.QtCore import QPoint
 from PyQt6.QtGui import QAction
 from PyQt6.QtWidgets import QFileDialog, QMenu
+from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.constants import nwFiles
 from novelwriter.core.coretools import ProjectBuilder
 from novelwriter.core.projectdata import ProjectData
 from novelwriter.enum import nwItemClass
+from novelwriter.guimain import GuiMain
 from novelwriter.shared import _GuiAlert
 from novelwriter.tools.welcome import SAMPLE_KEY, SAMPLE_NAME, GuiWelcome, _ProjectListEntry
 from novelwriter.types import (
@@ -55,7 +57,7 @@ from novelwriter.types import (
 
 
 @pytest.mark.gui
-def testGuiWelcome_Main(qtbot, monkeypatch, nwGUI, fncPath):
+def testGuiWelcome_Main(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain, fncPath: Path):
     """Test the main Welcome window."""
     welcome = GuiWelcome(nwGUI)
     with qtbot.waitExposed(welcome):
@@ -137,7 +139,7 @@ def testGuiWelcome_Main(qtbot, monkeypatch, nwGUI, fncPath):
 
 
 @pytest.mark.gui
-def testGuiWelcome_Open(qtbot, monkeypatch, nwGUI):
+def testGuiWelcome_Open(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, nwGUI: GuiMain):
     """Test the open tab in the Welcome window."""
     monkeypatch.setattr(QMenu, "exec", lambda *a: None)
     monkeypatch.setattr(QMenu, "setParent", lambda *a: None)
@@ -300,7 +302,13 @@ def testGuiWelcome_Open(qtbot, monkeypatch, nwGUI):
 
 
 @pytest.mark.gui
-def testGuiWelcome_New(qtbot, caplog, monkeypatch, nwGUI, fncPath):
+def testGuiWelcome_New(
+    qtbot: QtBot,
+    caplog: pytest.LogCaptureFixture,
+    monkeypatch: pytest.MonkeyPatch,
+    nwGUI: GuiMain,
+    fncPath: Path,
+):
     """Test the new project tab in the Welcome window."""
     welcome = GuiWelcome(nwGUI)
     with qtbot.waitExposed(welcome):
