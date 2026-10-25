@@ -54,6 +54,7 @@ class GuiDocFooterBase(QWidget):
         self._docHandle: str | None = None
 
         iSz = SHARED.theme.baseIconSize
+        fPx = int(0.9 * SHARED.theme.fontPixelSize)
 
         # Main Widget Settings
         self.setAutoFillBackground(True)
@@ -93,15 +94,21 @@ class GuiDocFooterBase(QWidget):
         self.wordsText.setFixedHeight(rH)
         self.wordsText.setAlignment(QtAlignLeftMiddle)
 
+        # Vim Mode
+        self.vimStatus = QLabel("", self)
+        self.vimStatus.setAutoFillBackground(True)
+        self.vimStatus.setFixedHeight(fPx)
+        self.vimStatus.setAlignment(QtAlignLeftTop)
+        self.vimStatus.setVisible(False)
+        self._vimMode: nwVimMode | None = None
+        self._vimColor = SHARED.theme.getBaseColor("base")
+        self._vimModes = {}
+
         # Cached Translations
         self.initSettings()
         self._trSelectCount = self.tr("Selected: {0}")
 
         # Layout
-        self.innerBox = QHBoxLayout()
-        self.innerBox.setContentsMargins(0, 0, 0, 0)
-        self.innerBox.setSpacing(4)
-
         self.outerBox = QHBoxLayout()
         self.outerBox.setContentsMargins(4, 4, 4, 4)
         self.outerBox.setSpacing(4)
@@ -110,7 +117,7 @@ class GuiDocFooterBase(QWidget):
         self.outerBox.addWidget(self.statusIcon)
         self.outerBox.addWidget(self.statusText)
         self.outerBox.addStretch(1)
-        self.outerBox.addLayout(self.innerBox)
+        self.outerBox.addWidget(self.vimStatus, 0, QtAlignMiddle)
         self.outerBox.addSpacing(6)
         self.outerBox.addWidget(self.wordsIcon)
         self.outerBox.addWidget(self.wordsText)
@@ -156,6 +163,22 @@ class GuiDocFooterBase(QWidget):
             text = self._trMainCount.format("0", "+0")
         self.wordsText.setText(text)
 
+    def updateVimModeStatusBar(self, mode: nwVimMode | None) -> None:
+        """Update the vim Mode status information."""
+        if mode is None:
+            self.vimStatus.setText("")
+            self.vimStatus.setVisible(False)
+            self._vimMode = None
+        elif mode != self._vimMode:
+            text, color = self._vimModes.get(mode, ("", QtBlack))
+            palette = self.vimStatus.palette()
+            palette.setColor(QPalette.ColorRole.WindowText, self._vimColor)
+            palette.setColor(QPalette.ColorRole.Window, color)
+            self.vimStatus.setText(f"  {text}  ")
+            self.vimStatus.setPalette(palette)
+            self.vimStatus.setVisible(True)
+            self._vimMode = mode
+
     def heightHint(self) -> int:
         """Return the height to reserve for the footer."""
         return 0 if self.isHidden() else self.sizeHint().height()
@@ -165,6 +188,7 @@ class GuiDocFooterBase(QWidget):
         self.setFont(SHARED.theme.guiFont)
         self.statusText.setFont(SHARED.theme.guiFontSmall)
         self.wordsText.setFont(SHARED.theme.guiFontSmall)
+        self.vimStatus.setFont(SHARED.theme.guiFontSmall)
 
     def updateTheme(self, *, init: bool = False) -> None:
         """Update theme elements."""
@@ -173,6 +197,13 @@ class GuiDocFooterBase(QWidget):
             self.optsButton.refreshTheme()
         iPx = round(0.9 * SHARED.theme.baseIconHeight)
         self.wordsIcon.setPixmap(SHARED.theme.getPixmap("stats", iPx, iPx))
+        self._vimColor = SHARED.theme.getBaseColor("base")
+        self._vimModes = {
+            nwVimMode.NORMAL: (self.tr("NORMAL"), SHARED.theme.getBaseColor("green")),
+            nwVimMode.INSERT: (self.tr("INSERT"), SHARED.theme.getBaseColor("blue")),
+            nwVimMode.VISUAL: (self.tr("VISUAL"), SHARED.theme.getBaseColor("orange")),
+            nwVimMode.V_LINE: (self.tr("V-LINE"), SHARED.theme.getBaseColor("orange")),
+        }
         self.matchColors()
 
     def matchColors(self) -> None:
@@ -202,25 +233,11 @@ class GuiDocEditFooter(GuiDocFooterBase):
 
         logger.debug("Create: GuiDocEditFooter")
 
-        fPx = int(0.9 * SHARED.theme.fontPixelSize)
-
         # Not used by the editor yet
         self.showHide.setVisible(False)
         self.optsButton.setVisible(False)
 
-        # Vim mode status bar
-        self.vimStatus = QLabel("", self)
-        self.vimStatus.setAutoFillBackground(True)
-        self.vimStatus.setFixedHeight(fPx)
-        self.vimStatus.setAlignment(QtAlignLeftTop)
-        self._vimMode: nwVimMode | None = None
-        self._vimColor = SHARED.theme.getBaseColor("base")
-        self._vimModes = {}
-
         # Assemble
-        self.innerBox.addSpacing(6)
-        self.innerBox.addWidget(self.vimStatus, 0, QtAlignMiddle)
-
         self.setLayout(self.outerBox)
 
         # Fix the Colours
@@ -231,44 +248,6 @@ class GuiDocEditFooter(GuiDocFooterBase):
         self.updateMainCount(0, False)
 
         logger.debug("Ready: GuiDocEditFooter")
-
-    ##
-    #  Methods
-    ##
-
-    def updateFont(self) -> None:
-        """Update the font settings."""
-        super().updateFont()
-        self.vimStatus.setFont(SHARED.theme.guiFontSmall)
-
-    def updateTheme(self, *, init: bool = False) -> None:
-        """Update theme elements."""
-        logger.debug("Theme Update: GuiDocEditFooter")
-
-        self._vimColor = SHARED.theme.getBaseColor("base")
-        self._vimModes = {
-            nwVimMode.NORMAL: (self.tr("NORMAL"), SHARED.theme.getBaseColor("green")),
-            nwVimMode.INSERT: (self.tr("INSERT"), SHARED.theme.getBaseColor("blue")),
-            nwVimMode.VISUAL: (self.tr("VISUAL"), SHARED.theme.getBaseColor("orange")),
-            nwVimMode.V_LINE: (self.tr("V-LINE"), SHARED.theme.getBaseColor("orange")),
-        }
-        super().updateTheme(init=init)
-
-    def updateVimModeStatusBar(self, mode: nwVimMode | None) -> None:
-        """Update the vim Mode status information."""
-        if mode is None:
-            self.vimStatus.setText("")
-            self.vimStatus.setVisible(False)
-            self._vimMode = None
-        elif mode != self._vimMode:
-            text, color = self._vimModes.get(mode, ("", QtBlack))
-            palette = self.vimStatus.palette()
-            palette.setColor(QPalette.ColorRole.WindowText, self._vimColor)
-            palette.setColor(QPalette.ColorRole.Window, color)
-            self.vimStatus.setText(f"  {text}  ")
-            self.vimStatus.setPalette(palette)
-            self.vimStatus.setVisible(True)
-            self._vimMode = mode
 
 
 class GuiDocViewFooter(GuiDocFooterBase):
