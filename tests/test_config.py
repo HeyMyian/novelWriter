@@ -40,7 +40,7 @@ from novelwriter.constants import nwFiles
 from novelwriter.core.project import NWProject
 from novelwriter.enum import nwTheme
 from novelwriter.formats.configparser import NConfigParser
-from novelwriter.formats.tomlparser import NTomlParser
+from novelwriter.formats.tomlparser import NTomlParser, T_TomlConfig
 from novelwriter.guimain import GuiMain
 
 from tests.helpers import TstPaths, cmpFiles, writeFile
@@ -699,17 +699,21 @@ def testConfig_MovedConfigs(fncPath: Path):
         assert newOpt in saved[newSec]
         assert oldOpt not in saved.get(oldSec, {})
 
-        oldOnly = f'[{oldSec}]\n{oldOpt} = "old"\n'
-        oldAndNew = f'{oldOnly}[{newSec}]\n{newOpt} = "new"\n'
+        data: T_TomlConfig = {oldSec: {oldOpt: "old"}}
 
         toml = NTomlParser(confMap=MOVED_CONFIGS)
-        toml.readString(oldOnly)
+        toml.readString(toml.writeString(data))
         assert toml.getStr(newSec, newOpt, "") == "old"
-        toml.readString(oldAndNew)
-        assert toml.getStr(newSec, newOpt, "") == "new"
 
         ini = NConfigParser(confMap=MOVED_CONFIGS)
-        ini.read_string(oldOnly.replace('"', ""))
+        ini.read_dict(data)
         assert ini.getStr(newSec, newOpt, "") == "old"
-        ini.read_string(oldAndNew.replace('"', ""))
+
+        # The new location takes precedence
+        data.setdefault(newSec, {})[newOpt] = "new"
+
+        toml.readString(toml.writeString(data))
+        assert toml.getStr(newSec, newOpt, "") == "new"
+
+        ini.read_dict(data)
         assert ini.getStr(newSec, newOpt, "") == "new"

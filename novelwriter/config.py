@@ -84,10 +84,10 @@ DEF_GUI_LIGHT = "default_light"
 DEF_ICONS = "material_rounded_normal"
 DEF_TREECOL = "theme"
 
-
 # Maps the current location of an option to its old location
 MOVED_CONFIGS: T_ConfigMap = {
     ("Main", "hideFocusFooter"): ("Editor", "hideFocusFooter"),
+    ("Editor", "allowOpenDialog"): ("Editor", "allowOpenDial"),
 }
 
 
@@ -122,7 +122,7 @@ class Config:
         "_recentPaths",
         "_recentProjects",
         "_splash",
-        "allowOpenDial",
+        "allowOpenDialog",
         "altDialogClose",
         "altDialogOpen",
         "appHandle",
@@ -384,7 +384,7 @@ class Config:
         self.scrollPastEnd = True  # Scroll past end of document, and centre cursor
 
         self.dialogStyle = 2  # Quote type to use for dialogue
-        self.allowOpenDial = True  # Allow open-ended dialogue quotes
+        self.allowOpenDialog = True  # Allow open-ended dialogue quotes
         self.dialogLine = ""  # Symbol to use for dialogue line
         self.narratorBreak = ""  # Symbol to use for narrator break
         self.narratorDialog = ""  # Symbol for alternating between dialogue and narrator
@@ -913,7 +913,7 @@ class Config:
         self.incNotesWCount = parser.getBool(sec, "incNotesWCount", self.incNotesWCount)
         self.showFullPath = parser.getBool(sec, "showFullPath", self.showFullPath)
         self.dialogStyle = parser.getInt(sec, "dialogStyle", self.dialogStyle)
-        self.allowOpenDial = parser.getBool(sec, "allowOpenDial", self.allowOpenDial)
+        self.allowOpenDialog = parser.getBool(sec, "allowOpenDialog", self.allowOpenDialog)
         dialogLine = parser.getStr(sec, "dialogLine", self.dialogLine)
         narratorBreak = parser.getStr(sec, "narratorBreak", self.narratorBreak)
         narratorDialog = parser.getStr(sec, "narratorDialog", self.narratorDialog)
@@ -1062,7 +1062,7 @@ class Config:
             "incNotesWCount": self.incNotesWCount,
             "showFullPath": self.showFullPath,
             "dialogStyle": self.dialogStyle,
-            "allowOpenDial": self.allowOpenDial,
+            "allowOpenDialog": self.allowOpenDialog,
             "dialogLine": self.dialogLine,
             "narratorBreak": self.narratorBreak,
             "narratorDialog": self.narratorDialog,

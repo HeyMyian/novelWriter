@@ -755,11 +755,11 @@ class GuiPreferences(NDialog):
         )
 
         # Open-Ended Dialogue
-        self.allowOpenDial = NSwitch(self)
-        self.allowOpenDial.setChecked(CONFIG.allowOpenDial)
+        self.allowOpenDialog = NSwitch(self)
+        self.allowOpenDialog.setChecked(CONFIG.allowOpenDialog)
         self.mainForm.addRow(
             self.tr("Allow open-ended dialogue"),
-            self.allowOpenDial,
+            self.allowOpenDialog,
             self.tr("Highlight dialogue line with no closing quote."),
         )
 
@@ -1329,7 +1329,7 @@ class GuiPreferences(NDialog):
 
         # Text Highlighting
         dialogueStyle = self.dialogStyle.currentData()
-        allowOpenDial = self.allowOpenDial.isChecked()
+        allowOpenDialog = self.allowOpenDialog.isChecked()
         dialogueLine = processDialogSymbols(self.dialogLine.text())
         narratorBreak = self.narratorBreak.currentData()
         narratorDialog = self.narratorDialog.currentData()
@@ -1340,7 +1340,7 @@ class GuiPreferences(NDialog):
         showMultiSpaces = self.showMultiSpaces.isChecked()
 
         updateSyntax |= CONFIG.dialogStyle != dialogueStyle
-        updateSyntax |= CONFIG.allowOpenDial != allowOpenDial
+        updateSyntax |= CONFIG.allowOpenDialog != allowOpenDialog
         updateSyntax |= CONFIG.dialogLine != dialogueLine
         updateSyntax |= CONFIG.narratorBreak != narratorBreak
         updateSyntax |= CONFIG.narratorDialog != narratorDialog
@@ -1351,7 +1351,7 @@ class GuiPreferences(NDialog):
         initEditor |= CONFIG.showMultiSpaces != showMultiSpaces
 
         CONFIG.dialogStyle = dialogueStyle
-        CONFIG.allowOpenDial = allowOpenDial
+        CONFIG.allowOpenDialog = allowOpenDialog
         CONFIG.dialogLine = dialogueLine
         CONFIG.narratorBreak = narratorBreak
         CONFIG.narratorDialog = narratorDialog

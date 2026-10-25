@@ -78,7 +78,7 @@ singleStarBold = false
 incNotesWCount = true
 showFullPath = true
 dialogStyle = 2
-allowOpenDial = true
+allowOpenDialog = true
 dialogLine = ""
 narratorBreak = ""
 narratorDialog = ""
@@ -110,4 +110,3 @@ searchProjAuto = false
 searchProjCase = false
 searchProjWord = false
 searchProjRegEx = false
-
