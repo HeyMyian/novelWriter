@@ -163,6 +163,7 @@ class GuiDocViewer(QTextBrowser):
         self.setSearchPaths([""])
         self._docHandle = None
         self.docHeader.clearHeader()
+        self.docFooter.setHandle(None)
         self._timerHover.stop()
         self._hoverCard.hide()
         self._hoverCard.clearCache()
@@ -178,6 +179,7 @@ class GuiDocViewer(QTextBrowser):
         # Set the font. See issues #1862 and #1875.
         self.setFont(CONFIG.textFont)
         self.docHeader.updateFont()
+        self.docFooter.initSettings()
         self.docFooter.updateFont()
 
         # Set the widget colours to match syntax theme
@@ -243,6 +245,8 @@ class GuiDocViewer(QTextBrowser):
 
     def initSettings(self) -> None:
         """Initialise non-expensive settings."""
+        self.docFooter.initSettings()
+        self.docFooter.updateMainCount(0, False)
         if self._docHandle:
             self.docHeader.setHandle(self._docHandle)
 
@@ -308,6 +312,7 @@ class GuiDocViewer(QTextBrowser):
         self._docHandle = tHandle
         SHARED.project.data.setLastHandle(tHandle, "viewer")
         self.docHeader.setHandle(tHandle)
+        self.docFooter.setHandle(tHandle)
         self.docHeader.setOutline({
             sTitle: (hItem.title, nwStyles.H_LEVEL.get(hItem.level, 0))
             for sTitle, hItem in SHARED.project.index.iterItemHeadings(tHandle)
@@ -396,6 +401,8 @@ class GuiDocViewer(QTextBrowser):
         """Update the header title bar if needed."""
         if tHandle == self._docHandle and change == nwChange.UPDATE:
             self.docHeader.setHandle(tHandle)
+            self.docFooter.updateInfo()
+            self.docFooter.updateMainCount(0, False)
             self.updateDocMargins()
 
     @pyqtSlot(str)

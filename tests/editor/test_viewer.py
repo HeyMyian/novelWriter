@@ -207,6 +207,7 @@ def testGuiDocViewer_Selection(
     # Close document
     docViewer.docHeader._closeDocument()
     assert docViewer.docHandle is None
+    assert docViewer.docFooter.statusText.text() == ""
 
     # Action on no document
     assert docViewer.docAction(nwDocAction.COPY) is False
@@ -600,6 +601,13 @@ def testGuiDocViewer_FooterAndErrors(
 
     nwGUI.docPanes.viewDocument(C.hSceneDoc)
     fullLength = len(docViewer.toPlainText())
+
+    # The footer shows the document status, counter, and the panel toggle
+    assert (item := SHARED.project.tree[C.hSceneDoc])
+    assert docViewer.docFooter.statusText.text() != ""
+    assert f"{item.mainCount:n}" in docViewer.docFooter.wordsText.text()
+    assert docViewer.docFooter.showHide.isVisible() is True
+    assert nwGUI.docEditor.docFooter.showHide.isVisible() is False
 
     with qtbot.waitSignal(docViewer.togglePanelVisibility, timeout=1000):
         docViewer.docFooter.showHide.click()
