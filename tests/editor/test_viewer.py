@@ -596,6 +596,7 @@ def testGuiDocViewer_FooterAndErrors(
         "% A plain comment.\n\n"
         "%Note: A note about something.\n\n"
         "Some body text.\n\n"
+        "More body text.\n\n"
     )
     nwGUI.docPanes.saveDocument()
 
@@ -626,6 +627,22 @@ def testGuiDocViewer_FooterAndErrors(
     noNotesLength = len(docViewer.toPlainText())
     assert noNotesLength < fullLength
     docViewer.docFooter.aShowNotes.setChecked(True)
+
+    # First line indent skips the first paragraph after the heading
+    def textIndent(text: str) -> float:
+        document = docViewer.document()
+        assert document is not None
+        return document.find(text).blockFormat().textIndent()
+
+    assert CONFIG.viewFirstLineIndent is False
+    assert textIndent("More body text.") == 0.0
+    docViewer.docFooter.aUseIndent.setChecked(True)
+    assert CONFIG.viewFirstLineIndent is True
+    assert textIndent("Some body text.") == 0.0
+    assert textIndent("More body text.") > 0.0
+    docViewer.docFooter.aUseIndent.setChecked(False)
+    assert CONFIG.viewFirstLineIndent is False
+    assert textIndent("More body text.") == 0.0
 
     # The options menu pops up above the button, aligned by direction
     optsButton = docViewer.docFooter.optsButton
