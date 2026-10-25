@@ -199,6 +199,7 @@ def testGuiPreferences_Settings(
     prefs.hideVScroll.setChecked(True)
     prefs.hideHScroll.setChecked(True)
     prefs.useCharCount.setChecked(True)
+    prefs.incNotesWCount.setChecked(False)
 
     assert CONFIG.guiLocale != "en_US"
     assert CONFIG.guiForceRTL is False
@@ -208,6 +209,7 @@ def testGuiPreferences_Settings(
     assert CONFIG.hideVScroll is False
     assert CONFIG.hideHScroll is False
     assert CONFIG.useCharCount is False
+    assert CONFIG.incNotesWCount is True
 
     # Document Style
     with monkeypatch.context() as mp:
@@ -220,11 +222,15 @@ def testGuiPreferences_Settings(
         prefs.textFontButton.click()
 
     prefs.showFullPath.setChecked(False)
-    prefs.incNotesWCount.setChecked(False)
+    prefs.hideFocusFooter.setChecked(True)
+    prefs.cleanFocusHeader.setChecked(True)
+    prefs.goalInFocusMode.setChecked(True)
 
     assert CONFIG.textFont.family() != ""
     assert CONFIG.showFullPath is True
-    assert CONFIG.incNotesWCount is True
+    assert CONFIG.hideFocusFooter is False
+    assert CONFIG.cleanFocusHeader is False
+    assert CONFIG.goalInFocusMode is False
 
     # Project View
     prefs.iconColTree.setCurrentData("faded", "default")
@@ -276,8 +282,6 @@ def testGuiPreferences_Settings(
     # Text Flow
     prefs.textWidth.stepDown()
     prefs.focusWidth.stepDown()
-    prefs.hideFocusFooter.setChecked(True)
-    prefs.cleanFocusHeader.setChecked(True)
     prefs.doJustify.setChecked(True)
     prefs.textMargin.stepUp()
     prefs.tabWidth.stepUp()
@@ -285,8 +289,6 @@ def testGuiPreferences_Settings(
 
     assert CONFIG.textWidth == 700
     assert CONFIG.focusWidth == 800
-    assert CONFIG.hideFocusFooter is False
-    assert CONFIG.cleanFocusHeader is False
     assert CONFIG.doJustify is False
     assert CONFIG.textMargin == 40
     assert CONFIG.tabWidth == 40
@@ -322,7 +324,7 @@ def testGuiPreferences_Settings(
 
     # Text Highlighting
     prefs.dialogStyle.setCurrentData(3, 0)
-    prefs.allowOpenDial.setChecked(False)
+    prefs.allowOpenDialog.setChecked(False)
     prefs.dialogLine.setText(nwUnicode.U_EMDASH)
     prefs.narratorBreak.setCurrentData(nwUnicode.U_EMDASH, "")
     prefs.narratorDialog.setCurrentData(nwUnicode.U_EMDASH, "")
@@ -337,7 +339,7 @@ def testGuiPreferences_Settings(
     assert prefs.dialogLine.text() == f"{nwUnicode.U_ENDASH} {nwUnicode.U_EMDASH}"
 
     assert CONFIG.dialogStyle == 2
-    assert CONFIG.allowOpenDial is True
+    assert CONFIG.allowOpenDialog is True
     assert CONFIG.dialogLine == ""
     assert CONFIG.narratorBreak == ""
     assert CONFIG.narratorDialog == ""
@@ -444,11 +446,14 @@ def testGuiPreferences_Settings(
     assert CONFIG.hideVScroll is True
     assert CONFIG.hideHScroll is True
     assert CONFIG.useCharCount is True
+    assert CONFIG.incNotesWCount is False
 
     # Document Style
     assert CONFIG.textFont == QFont()
     assert CONFIG.showFullPath is False
-    assert CONFIG.incNotesWCount is False
+    assert CONFIG.hideFocusFooter is True
+    assert CONFIG.cleanFocusHeader is True
+    assert CONFIG.goalInFocusMode is True
 
     # Project View
     assert CONFIG.iconColTree == "faded"
@@ -474,8 +479,6 @@ def testGuiPreferences_Settings(
     # Text Flow
     assert CONFIG.textWidth == 690
     assert CONFIG.focusWidth == 790
-    assert CONFIG.hideFocusFooter is True
-    assert CONFIG.cleanFocusHeader is True
     assert CONFIG.doJustify is True
     assert CONFIG.textMargin == 41
     assert CONFIG.tabWidth == 41
@@ -498,7 +501,7 @@ def testGuiPreferences_Settings(
 
     # Text Highlighting
     assert CONFIG.dialogStyle == 3
-    assert CONFIG.allowOpenDial is False
+    assert CONFIG.allowOpenDialog is False
     assert CONFIG.dialogLine == f"{nwUnicode.U_ENDASH}{nwUnicode.U_EMDASH}"
     assert CONFIG.narratorBreak == nwUnicode.U_EMDASH
     assert CONFIG.narratorDialog == nwUnicode.U_EMDASH

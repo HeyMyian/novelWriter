@@ -707,7 +707,7 @@ class GuiMain(QMainWindow):
         cursorVisible = self.docEditor.cursorIsVisible()
         isVisible = not focusMode
         self.treePane.setVisible(isVisible and not self._treePaneHidden)
-        self.mainStatus.setVisible(isVisible)
+        self.mainStatus.setFocusMode(focusMode)
         self.mainMenu.setVisible(isVisible)
         self.sideBar.setVisible(isVisible)
         self.docPanes.setFocusMode(focusMode)
