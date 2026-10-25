@@ -175,7 +175,7 @@ class GuiMain(QMainWindow):
         self.mainBox = QHBoxLayout()
         self.mainBox.addWidget(self.sideBar)
         self.mainBox.addWidget(self.mainStack)
-        self.mainBox.setContentsMargins(0, 0, 0, 0)
+        self.mainBox.setContentsMargins(0, 0, 4, 0)
         self.mainBox.setSpacing(0)
 
         self.outerBox = QVBoxLayout()
