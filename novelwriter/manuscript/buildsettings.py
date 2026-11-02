@@ -86,6 +86,7 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
 
     "format.textFont":         (str, CONFIG.textFont.toString()),
     "format.lineHeight":       (float, 1.15),
+    "format.tabSize":          (float, 3.0),
     "format.justifyText":      (bool, False),
     "format.justifyOnBreak":   (bool, True),
     "format.stripUnicode":     (bool, False),
@@ -97,7 +98,7 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "format.upperHeadings":    (bool, False),
     "format.showStatus":       (bool, False),
     "format.firstLineIndent":  (bool, False),
-    "format.firstIndentWidth": (float, 1.4),
+    "format.firstIndentWidth": (float, 2.0),
     "format.indentFirstPar":   (bool, False),
     "format.titleSize":        (float, nwStyles.H_SIZES[0]),
     "format.h1Size":           (float, nwStyles.H_SIZES[1]),
@@ -116,6 +117,8 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "format.h4MarginB":        (float, nwStyles.T_MARGIN["H4"][1]),
     "format.textMarginT":      (float, nwStyles.T_MARGIN["TT"][0]),
     "format.textMarginB":      (float, nwStyles.T_MARGIN["TT"][1]),
+    "format.listMarginT":      (float, nwStyles.T_MARGIN["LI"][0]),
+    "format.listMarginB":      (float, nwStyles.T_MARGIN["LI"][1]),
     "format.sepMarginT":       (float, nwStyles.T_MARGIN["SP"][0]),
     "format.sepMarginB":       (float, nwStyles.T_MARGIN["SP"][1]),
     "format.lineForMargin":    (bool, False),
@@ -134,6 +137,8 @@ SETTINGS_TEMPLATE: dict[str, tuple[type, T_BuildValue]] = {
     "doc.pageHeaderEven":      (str, nwHeadFmt.DOC_AUTO_EVEN),
     "doc.pageCountOffset":     (int, 0),
     "doc.metaLanguage":        (str, ""),
+
+    "epub.nestedToc":          (bool, False),
 
     "html.addStyles":          (bool, True),
     "html.preserveTabs":       (bool, False),
@@ -160,11 +165,12 @@ SETTINGS_LABELS = {
     "text.includeNotes":       QT_TRANSLATE_NOOP("Builds", "Include manuscript notes"),
     "text.includeKeywords":    QT_TRANSLATE_NOOP("Builds", "Include tags and references"),
     "text.ignoredKeywords":    QT_TRANSLATE_NOOP("Builds", "Ignore these keys"),
-    "text.addNoteHeadings":    QT_TRANSLATE_NOOP("Builds", "Add titles for note root folders"),
+    "text.addNoteHeadings":    QT_TRANSLATE_NOOP("Builds", "Insert note root folder labels as titles"),
 
     "format.grpFormat":        QT_TRANSLATE_NOOP("Builds", "Text Format"),
     "format.textFont":         QT_TRANSLATE_NOOP("Builds", "Text font"),
     "format.lineHeight":       QT_TRANSLATE_NOOP("Builds", "Line height"),
+    "format.tabSize":          QT_TRANSLATE_NOOP("Builds", "Tab size"),
     "format.justifyText":      QT_TRANSLATE_NOOP("Builds", "Justify text margins"),
     "format.justifyOnBreak":   QT_TRANSLATE_NOOP("Builds", "Justify text on manual line breaks"),
     "format.stripUnicode":     QT_TRANSLATE_NOOP("Builds", "Replace Unicode characters"),
@@ -190,6 +196,7 @@ SETTINGS_LABELS = {
     "format.h3Margin":         QT_TRANSLATE_NOOP("Builds", "Heading 3 and Section"),
     "format.h4Margin":         QT_TRANSLATE_NOOP("Builds", "Heading 4"),
     "format.textMargin":       QT_TRANSLATE_NOOP("Builds", "Text paragraph"),
+    "format.listMargin":       QT_TRANSLATE_NOOP("Builds", "List"),
     "format.sepMargin":        QT_TRANSLATE_NOOP("Builds", "Scene separator"),
     "format.lineForMargin":    QT_TRANSLATE_NOOP("Builds", "Add empty lines instead of margins"),
 
@@ -207,6 +214,9 @@ SETTINGS_LABELS = {
     "doc.pageHeaderEven":      QT_TRANSLATE_NOOP("Builds", "Page header for even pages"),
     "doc.pageCountOffset":     QT_TRANSLATE_NOOP("Builds", "Page counter offset"),
     "doc.metaLanguage":        QT_TRANSLATE_NOOP("Builds", "Override document language"),
+
+    "epub":                    QT_TRANSLATE_NOOP("Builds", "EPUB Options"),
+    "epub.nestedToc":          QT_TRANSLATE_NOOP("Builds", "Nested table of contents"),
 
     "html":                    QT_TRANSLATE_NOOP("Builds", "HTML Options"),
     "html.addStyles":          QT_TRANSLATE_NOOP("Builds", "Add CSS styles"),

@@ -49,8 +49,8 @@ from PyQt6.QtWidgets import (
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.common import describeFont, fontMatcher, languageName, processLangCode, qtAddAction, qtLambda
-from novelwriter.constants import nwHeadFmt, nwKeyWords, nwLabels, nwStyles, nwUnicode, trConst
-from novelwriter.enum import nwStandardButton, nwToolButton
+from novelwriter.constants import nwHeadFmt, nwKeyWords, nwLabels, nwStyles, nwUnicode, trConst, trUnit
+from novelwriter.enum import nwStandardButton, nwStdUnit, nwToolButton
 from novelwriter.extensions.configlayout import NColorLabel, NFixedPage, NScrollableForm, NScrollablePage
 from novelwriter.extensions.modified import (
     NComboBox,
@@ -1060,6 +1060,8 @@ class _FormattingTab(NScrollableForm):
         iPx = SHARED.theme.baseIconHeight
         iSz = SHARED.theme.baseIconSize
 
+        trEm = trUnit(nwStdUnit.EM)
+
         # Text Content
         # ============
 
@@ -1128,7 +1130,12 @@ class _FormattingTab(NScrollableForm):
         # Line Height
         self.lineHeight = NDoubleSpinBox(self, minVal=0.75, maxVal=3.0, step=0.05, prec=2)
         self.lineHeight.setFixedNumbersWidth(4)
-        self.addRow(self._build.getLabel("format.lineHeight"), self.lineHeight, unit="em")
+        self.addRow(self._build.getLabel("format.lineHeight"), self.lineHeight, unit=trEm)
+
+        # Tab Size
+        self.tabSize = NDoubleSpinBox(self, minVal=0.0, maxVal=19.9, step=0.1, prec=2)
+        self.tabSize.setFixedNumbersWidth(5)
+        self.addRow(self._build.getLabel("format.tabSize"), self.tabSize, unit=trEm)
 
         # Text Options
         self.justifyText = NSwitch(self, height=iPx)
@@ -1174,11 +1181,11 @@ class _FormattingTab(NScrollableForm):
         self.firstIndent = NSwitch(self, height=iPx)
         self.indentFirstPar = NSwitch(self, height=iPx)
 
-        self.indentWidth = NDoubleSpinBox(self, minVal=0.1, maxVal=9.9, step=0.1, prec=1)
-        self.indentWidth.setFixedNumbersWidth(4)
+        self.indentWidth = NDoubleSpinBox(self, minVal=0.1, maxVal=19.9, step=0.1, prec=2)
+        self.indentWidth.setFixedNumbersWidth(5)
 
         self.addRow(self._build.getLabel("format.firstLineIndent"), self.firstIndent)
-        self.addRow(self._build.getLabel("format.firstIndentWidth"), self.indentWidth, unit="em")
+        self.addRow(self._build.getLabel("format.firstIndentWidth"), self.indentWidth, unit=trEm)
         self.addRow(self._build.getLabel("format.indentFirstPar"), self.indentFirstPar)
 
         # Size & Margins
@@ -1351,6 +1358,23 @@ class _FormattingTab(NScrollableForm):
             button=self.btnTextProps,
         )
 
+        # List
+        self.listMarginT = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.listMarginT.setFixedNumbersWidth(4)
+        self.listMarginB = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
+        self.listMarginB.setFixedNumbersWidth(4)
+        self.btnListProps = SHARED.theme.getIconButton(nwToolButton.REVERT, self)
+        self.btnListProps.clicked.connect(self._resetListProps)
+
+        self.pixLIT = QLabel(self)
+        self.pixLIB = QLabel(self)
+
+        self.addRow(
+            self._build.getLabel("format.listMargin"),
+            [self.pixLIT, self.listMarginT, iSp, self.pixLIB, self.listMarginB],
+            button=self.btnListProps,
+        )
+
         # Separator
         self.sepMarginT = NDoubleSpinBox(self, minVal=0.0, maxVal=10.0, step=0.1)
         self.sepMarginT.setFixedNumbersWidth(4)
@@ -1500,6 +1524,18 @@ class _FormattingTab(NScrollableForm):
 
         self.addRow(self._build.getLabel("doc.metaLanguage"), [self.lblMetaLanguage, 8, self.metaLanguage])
 
+        # EPUB Document
+        # =============
+
+        title = self._build.getLabel("epub")
+        section += 1
+        self._sidebar.addButton(title, section)
+        self.addGroupLabel(title, section)
+
+        self.nestedToc = NSwitch(self, height=iPx)
+
+        self.addRow(self._build.getLabel("epub.nestedToc"), self.nestedToc)
+
         # HTML Document
         # =============
 
@@ -1556,6 +1592,8 @@ class _FormattingTab(NScrollableForm):
         self.pixH4B.setPixmap(bMargin)
         self.pixTTT.setPixmap(tMargin)
         self.pixTTB.setPixmap(bMargin)
+        self.pixLIT.setPixmap(tMargin)
+        self.pixLIB.setPixmap(bMargin)
         self.pixSPT.setPixmap(tMargin)
         self.pixSPB.setPixmap(bMargin)
         self.pixPMT.setPixmap(tMargin)
@@ -1571,8 +1609,6 @@ class _FormattingTab(NScrollableForm):
     def loadContent(self) -> None:
         """Populate the widgets."""
         # Text Content
-        # ============
-
         self.incBodyText.setChecked(self._build.getBool("text.includeBodyText"))
         self.incSynopsis.setChecked(self._build.getBool("text.includeSynopsis"))
         self.incComments.setChecked(self._build.getBool("text.includeComments"))
@@ -1584,8 +1620,6 @@ class _FormattingTab(NScrollableForm):
         self._updateIgnoredKeywords()
 
         # Text Format
-        # ===========
-
         font = QFont()
         font.fromString(self._build.getStr("format.textFont"))
         self._textFont = fontMatcher(font)
@@ -1594,6 +1628,7 @@ class _FormattingTab(NScrollableForm):
         self.textFont.setCursorPosition(0)
 
         self.lineHeight.setValue(self._build.getFloat("format.lineHeight"))
+        self.tabSize.setValue(self._build.getFloat("format.tabSize"))
         self.justifyText.setChecked(self._build.getBool("format.justifyText"))
         self.justifyOnBreak.setChecked(self._build.getBool("format.justifyOnBreak"))
         self.stripUnicode.setChecked(self._build.getBool("format.stripUnicode"))
@@ -1602,23 +1637,17 @@ class _FormattingTab(NScrollableForm):
         self.showDialogue.setChecked(self._build.getBool("format.showDialogue"))
 
         # Heading Format
-        # ==============
-
         self.colorHeadings.setChecked(self._build.getBool("format.colorHeadings"))
         self.boldHeadings.setChecked(self._build.getBool("format.boldHeadings"))
         self.upperHeadings.setChecked(self._build.getBool("format.upperHeadings"))
         self.showStatus.setChecked(self._build.getBool("format.showStatus"))
 
         # First Line Indent
-        # =================
-
         self.firstIndent.setChecked(self._build.getBool("format.firstLineIndent"))
         self.indentWidth.setValue(self._build.getFloat("format.firstIndentWidth"))
         self.indentFirstPar.setChecked(self._build.getBool("format.indentFirstPar"))
 
         # Text Margins
-        # ============
-
         self.titleSize.setValue(self._build.getFloat("format.titleSize"))
         self.h1Size.setValue(self._build.getFloat("format.h1Size"))
         self.h2Size.setValue(self._build.getFloat("format.h2Size"))
@@ -1637,6 +1666,8 @@ class _FormattingTab(NScrollableForm):
         self.h4MarginB.setValue(self._build.getFloat("format.h4MarginB"))
         self.textMarginT.setValue(self._build.getFloat("format.textMarginT"))
         self.textMarginB.setValue(self._build.getFloat("format.textMarginB"))
+        self.listMarginT.setValue(self._build.getFloat("format.listMarginT"))
+        self.listMarginB.setValue(self._build.getFloat("format.listMarginB"))
         self.sepMarginT.setValue(self._build.getFloat("format.sepMarginT"))
         self.sepMarginB.setValue(self._build.getFloat("format.sepMarginB"))
         self.lineForMargin.setChecked(self._build.getBool("format.lineForMargin"))
@@ -1644,8 +1675,6 @@ class _FormattingTab(NScrollableForm):
         self._updateTextMarginState()
 
         # Page Layout
-        # ===========
-
         pageUnit = self._build.getStr("format.pageUnit")
         index = self.pageUnit.findData(pageUnit)
         if index >= 0:
@@ -1674,8 +1703,6 @@ class _FormattingTab(NScrollableForm):
         self.pageSize.currentIndexChanged.connect(self._changePageSize)
 
         # Document
-        # ========
-
         self.metaLanguage.setText(processLangCode(self._build.getStr("doc.metaLanguage")))
         self.pageHeader.setText(self._build.getStr("doc.pageHeader"))
         self.pageHeader.setCursorPosition(0)
@@ -1683,9 +1710,10 @@ class _FormattingTab(NScrollableForm):
         self.pageHeaderEven.setCursorPosition(0)
         self.pageCountOffset.setValue(self._build.getInt("doc.pageCountOffset"))
 
-        # HTML Document
-        # =============
+        # EPUB Document
+        self.nestedToc.setChecked(self._build.getBool("epub.nestedToc"))
 
+        # HTML Document
         self.htmlAddStyles.setChecked(self._build.getBool("html.addStyles"))
         self.htmlPreserveTabs.setChecked(self._build.getBool("html.preserveTabs"))
 
@@ -1705,6 +1733,7 @@ class _FormattingTab(NScrollableForm):
         # Text Format
         self._build.setValue("format.textFont", self._textFont.toString())
         self._build.setValue("format.lineHeight", self.lineHeight.value())
+        self._build.setValue("format.tabSize", self.tabSize.value())
 
         self._build.setValue("format.justifyText", self.justifyText.isChecked())
         self._build.setValue("format.justifyOnBreak", self.justifyOnBreak.isChecked())
@@ -1743,6 +1772,8 @@ class _FormattingTab(NScrollableForm):
         self._build.setValue("format.h4MarginB", self.h4MarginB.value())
         self._build.setValue("format.textMarginT", self.textMarginT.value())
         self._build.setValue("format.textMarginB", self.textMarginB.value())
+        self._build.setValue("format.listMarginT", self.listMarginT.value())
+        self._build.setValue("format.listMarginB", self.listMarginB.value())
         self._build.setValue("format.sepMarginT", self.sepMarginT.value())
         self._build.setValue("format.sepMarginB", self.sepMarginB.value())
         self._build.setValue("format.lineForMargin", self.lineForMargin.isChecked())
@@ -1768,6 +1799,9 @@ class _FormattingTab(NScrollableForm):
         self._build.setValue("doc.pageCountOffset", self.pageCountOffset.value())
 
         self.metaLanguage.setText(metaLanguage)
+
+        # EPUB Document
+        self._build.setValue("epub.nestedToc", self.nestedToc.isChecked())
 
         # HTML Document
         self._build.setValue("html.addStyles", self.htmlAddStyles.isChecked())
@@ -1934,13 +1968,19 @@ class _FormattingTab(NScrollableForm):
 
     @pyqtSlot()
     def _resetTextProps(self) -> None:
-        """Reset the text size and margins to default."""
+        """Reset the text margins to default."""
         self.textMarginT.setValue(nwStyles.T_MARGIN["TT"][0])
         self.textMarginB.setValue(nwStyles.T_MARGIN["TT"][1])
 
     @pyqtSlot()
+    def _resetListProps(self) -> None:
+        """Reset the list margins to default."""
+        self.listMarginT.setValue(nwStyles.T_MARGIN["LI"][0])
+        self.listMarginB.setValue(nwStyles.T_MARGIN["LI"][1])
+
+    @pyqtSlot()
     def _resetSepProps(self) -> None:
-        """Reset the separator size and margins to default."""
+        """Reset the separator margins to default."""
         self.sepMarginT.setValue(nwStyles.T_MARGIN["SP"][0])
         self.sepMarginB.setValue(nwStyles.T_MARGIN["SP"][1])
 

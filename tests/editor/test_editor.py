@@ -1174,6 +1174,30 @@ def testGuiDocEditor_UpdateSyntaxColors(
 
 
 @pytest.mark.gui
+def testGuiDocEditor_UpdateReplaceKeys(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd: MockRnd):
+    """Test that auto-replace key changes refresh the highlighter."""
+    buildTestProject(NWProject(), projPath)
+    nwGUI.openProject(projPath)
+    docEditor = nwGUI.docEditor
+    syntax = docEditor._qDocument.syntaxHighlighter
+
+    # No document open, nothing is updated
+    nwGUI.docPanes.closeDocument()
+    SHARED.project.data.setAutoReplace({"Name": "Bob"}, False)
+    docEditor.updateReplaceKeys()
+    assert syntax._replaceKeys == frozenset()
+
+    # Opening a document loads the keys
+    assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
+    assert syntax._replaceKeys == frozenset({"Name"})
+
+    # Changed keys are picked up
+    SHARED.project.data.setAutoReplace({"Name": "Bob", "Place": "Here"}, False)
+    docEditor.updateReplaceKeys()
+    assert syntax._replaceKeys == frozenset({"Name", "Place"})
+
+
+@pytest.mark.gui
 def testGuiDocEditor_Actions(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, ipsumText: list[str], mockRnd: MockRnd):
     """Test the document actions. This is not an extensive test of the
     action features, just that the actions are actually called. The
@@ -1651,6 +1675,31 @@ def testGuiDocEditor_Zoom(qtbot: QtBot, nwGUI: GuiMain, projPath: Path, mockRnd:
     )
     docEditor.wheelEvent(scrollEvent)
     assert docEditor.font().pointSizeF() == basePt
+
+    # High resolution wheel steps add up to whole points in both directions
+    for dy, size in ((-40, 0), (-40, 0), (-40, -1), (40, -1), (40, -1), (40, 0)):
+        hiResEvent = QWheelEvent(
+            position,
+            position,
+            QPoint(0, 0),
+            QPoint(0, dy),
+            Qt.MouseButton.NoButton,
+            QtModCtrl,
+            Qt.ScrollPhase.NoScrollPhase,
+            False,
+        )
+        docEditor.wheelEvent(hiResEvent)
+        assert docEditor.font().pointSizeF() == basePt + size
+
+    # Zoom is capped at the minimum and maximum size
+    docEditor.zoomOut(100)
+    assert docEditor.font().pointSizeF() == nwConst.TEXT_FONT_MIN_SIZE
+    docEditor.zoomIn(100)
+    assert docEditor.font().pointSizeF() == nwConst.TEXT_FONT_MAX_SIZE
+
+    # Tab stops follow the zoomed font size
+    tabStop = docEditor._qDocument.defaultTextOption().tabStopDistance()
+    assert tabStop == CONFIG.tabSize * nwConst.TEXT_FONT_MAX_SIZE * 96.0 / 72.0
 
 
 @pytest.mark.gui
