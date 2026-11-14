@@ -56,7 +56,7 @@ from novelwriter.common import decodeMimeHandles, utf16CharMap
 from novelwriter.constants import nwConst, nwKeyWords, nwUnicode
 from novelwriter.core.item import ProjectItem
 from novelwriter.core.project import NWProject
-from novelwriter.core.spellcheck import SpellEnchant
+from novelwriter.core.spellcheck import SpellChecker
 from novelwriter.dialogs.editlabel import GuiEditLabel
 from novelwriter.dialogs.editlink import GuiEditLink
 from novelwriter.editor.editor import GuiDocEditor, _TagAction
@@ -716,7 +716,7 @@ def testGuiDocEditor_SpellChecking(
     # The test must not depend on which dictionaries are available on
     # the host system, so all words are accepted from the start, and
     # the spell check worker must run synchronously
-    monkeypatch.setattr(SpellEnchant, "checkWord", lambda *a: True)
+    monkeypatch.setattr(SpellChecker, "checkWord", lambda *a: True)
     monkeypatch.setattr(SHARED, "runInThreadPool", lambda r: r.run())
 
     assert nwGUI.docPanes.openDocument(C.hSceneDoc) is True
@@ -739,10 +739,10 @@ def testGuiDocEditor_SpellChecking(
     docEditor.toggleSpellCheck(True)
     assert SHARED.project.data.spellCheck is True
 
-    CONFIG.hasEnchant = False
+    CONFIG.hasSpellCheck = False
     docEditor.toggleSpellCheck(True)
     assert SHARED.project.data.spellCheck is False
-    CONFIG.hasEnchant = True
+    CONFIG.hasSpellCheck = True
     docEditor.toggleSpellCheck(True)
     assert SHARED.project.data.spellCheck is True
 
@@ -769,7 +769,7 @@ def testGuiDocEditor_SpellChecking(
     blockPos = cursor.block().position()
     data._spellErrors = [(0, 5, "Lorem"), (6, 11, "ipsum")]
     with monkeypatch.context() as mp:
-        mp.setattr(SpellEnchant, "suggestWords", lambda *a: [])
+        mp.setattr(SpellChecker, "suggestWords", lambda *a: [])
         assert docEditor._qDocument.spellErrorAtPos(blockPos + 8) == ("ipsum", 6, 11, [])
 
     # No entry matches the given position
@@ -802,7 +802,7 @@ def testGuiDocEditor_SpellChecking(
 
     # With Suggestion
     with monkeypatch.context() as mp:
-        mp.setattr(SpellEnchant, "suggestWords", lambda *a: [LORAX])
+        mp.setattr(SpellChecker, "suggestWords", lambda *a: [LORAX])
         suggestion = f"{nwUnicode.U_ENDASH} {LORAX}"
 
         ctxMenu = getMenuForPos(docEditor, 16)
@@ -821,7 +821,7 @@ def testGuiDocEditor_SpellChecking(
 
     # Without Suggestion
     with monkeypatch.context() as mp:
-        mp.setattr(SpellEnchant, "suggestWords", lambda *a: [])
+        mp.setattr(SpellChecker, "suggestWords", lambda *a: [])
 
         ctxMenu = getMenuForPos(docEditor, 16)
         assert ctxMenu is not None
@@ -833,7 +833,7 @@ def testGuiDocEditor_SpellChecking(
 
     # Add to Dictionary
     with monkeypatch.context() as mp:
-        mp.setattr(SpellEnchant, "suggestWords", lambda *a: [])
+        mp.setattr(SpellChecker, "suggestWords", lambda *a: [])
 
         ctxMenu = getMenuForPos(docEditor, 16)
         assert ctxMenu is not None
@@ -851,7 +851,7 @@ def testGuiDocEditor_SpellChecking(
 
     # No spelling error at the clicked position: no spelling actions
     with monkeypatch.context() as mp:
-        mp.setattr(SpellEnchant, "suggestWords", lambda *a: [])
+        mp.setattr(SpellChecker, "suggestWords", lambda *a: [])
 
         ctxMenu = getMenuForPos(docEditor, blockPos + 20)
         assert ctxMenu is not None
@@ -1134,10 +1134,10 @@ def testGuiDocEditor_UpdateSyntaxColors(
     docEditor.highlightSearchSelections([blockPos], [blockPos + 1])
     assert len(docEditor._searchSelections) == 1
 
-    # Build the current line highlight selection
+    # Build the current line highlight
     CONFIG.lineHighlight = True
     docEditor.setCursorPosition(blockPos)
-    assert docEditor._selection.cursor.position() == blockPos
+    assert docEditor._lineRect.isValid()
 
     # Change the theme colours and refresh the syntax colours only,
     # without moving the cursor or editing the document
@@ -1168,9 +1168,32 @@ def testGuiDocEditor_UpdateSyntaxColors(
     )
     assert searchSel.format.background().color() == QColor(4, 5, 6)
 
-    lineSel = docEditor.extraSelections()[0]
-    assert lineSel.cursor.hasSelection() is False
-    assert lineSel.format.background().color() == QColor(7, 8, 9)
+    assert docEditor._lineColor == QColor(7, 8, 9)
+
+    # The line highlight is painted from the current layout
+    viewport = docEditor.viewport()
+    assert viewport is not None
+    viewport.repaint()
+    assert docEditor._lineRect.isValid()
+
+    # No line highlight when the block has no layout lines
+    docEditor.textCursor().block().clearLayout()
+    assert docEditor._currentLineRect().isValid() is False
+
+    # No line highlight when disabled
+    CONFIG.lineHighlight = False
+    docEditor._cursorMoved()
+    viewport.repaint()
+    assert docEditor._lineRect.isValid() is False
+    CONFIG.lineHighlight = True
+
+    # No line highlight on an empty document
+    docEditor.clearEditor()
+    docEditor._cursorMoved()
+    assert docEditor._lineRect.isValid() is False
+
+    docEditor.insertPlainText("Text")
+    assert docEditor._lineRect.isValid()
 
 
 @pytest.mark.gui
