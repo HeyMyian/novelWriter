@@ -34,7 +34,7 @@ from pytestqt.qtbot import QtBot
 
 from novelwriter import CONFIG, SHARED
 from novelwriter.core.project import NWProject
-from novelwriter.core.spellcheck import SpellEnchant
+from novelwriter.core.spellcheck import SpellChecker
 from novelwriter.dialogs.editlabel import GuiEditLabel
 from novelwriter.dialogs.projectsettings import GuiProjectSettings
 from novelwriter.enum import nwItemType, nwStatusShape
@@ -113,7 +113,7 @@ def testGuiProjectSettings_SettingsPage(
 ):
     """Test the settings page of the dialog."""
     languages = [("en", "English"), ("de", "German")]
-    monkeypatch.setattr(SpellEnchant, "listDictionaries", lambda *a: languages)
+    monkeypatch.setattr(SpellChecker, "listDictionaries", lambda *a: languages)
 
     (fncPath / "nw_en.qm").touch()
     (fncPath / "nw_de.qm").touch()
@@ -169,7 +169,7 @@ def testGuiProjectSettings_SettingsPage(
 
     # Without Enchant, only the default spell check entry is available
     with monkeypatch.context() as mp:
-        mp.setattr(CONFIG, "hasEnchant", False)
+        mp.setattr(CONFIG, "hasSpellCheck", False)
         noEnchant = GuiProjectSettings(nwGUI, GuiProjectSettings.PAGE_SETTINGS)
         qtbot.addWidget(noEnchant)
         assert noEnchant.settingsPage.spellLang.count() == 1
@@ -277,9 +277,7 @@ def testGuiProjectSettings_StatusImport(
     project.countStatus()
 
     assert [e.count for _, e in project.data.itemStatus.iterItems()] == [2, 0, 2, 1]
-    # The Trash root, created when the project is opened, also counts
-    # towards the default "New" import flag
-    assert [e.count for _, e in project.data.itemImport.iterItems()] == [4, 0, 2, 1]
+    assert [e.count for _, e in project.data.itemImport.iterItems()] == [3, 0, 2, 1]
 
     # Create Dialog
     projSettings = GuiProjectSettings(nwGUI, GuiProjectSettings.PAGE_STATUS)

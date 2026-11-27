@@ -12,6 +12,7 @@ Larger contributions were made by:
 * Internationalisation: Bruno Meneguello
 * Setup and Packaging: Rachel Powers
 * Vim Mode: Alexis Dumelie
+* Maintainer for macOS: Konstantin Kostov-Gerry
 
 For other contributions, see the project's [Contributors](https://github.com/saga-soft/novelWriter/graphs/contributors) page.
 
@@ -37,6 +38,7 @@ translators for the languages currently available:
 * **Portuguese:** Bruno Meneguello (bkmeneguello)
 * **Russian:** Konstantin Tan (k1kimosha)
 * **Simplified Chinese:** Qianzhi Long (longqzh)
+* **Ukrainian:** Orest Smertnyi (foresle)
 
 Additional larger translation contributions:
 
@@ -79,6 +81,7 @@ Colour themes included with novelWriter were adapted from the following sources:
 * **Dracula** theme by Zeno Rocha
 * **Espresso** theme by Sainnhe Park and Antoine Cotten
 * **Everforest** themes by Sainnhe Park
+* **Gruvbox** themes by Pavel Pertsev
 * **Horizon** themes by Jonathan Olaleye
 * **New Moon** theme by Tania Rascia
 * **Noctis** themes by Liviu Schera and contributors
